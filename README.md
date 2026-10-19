@@ -10,6 +10,12 @@ cable. No camera, no USB data, no secure element and no storage: the seed
 lives in memory only while you sign. From the
 [NDS-Signer](https://github.com/ndssigner/nds-signer) project.
 
+**The key idea:** the seed arrives as tones, made by ur-tones on an offline
+computer, and **is never shown, on any channel**: only its fingerprint.
+From there, you choose: keep everything on audio, for the strongest air
+gap, or drive it from a vintage terminal over a serial port. DTMF-Signer
+and ur-tones are designed to go together.
+
 > **Status: design stage.** There is no firmware or hardware yet. This
 > repository holds the hardware specification and the risk analysis, in
 > Spanish for now. Do not use it with funds.
@@ -32,7 +38,9 @@ lives in memory only while you sign. From the
     ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
     Here you build the signer yourself from generic parts, the
     microcontroller is one you bought, flashed and can pull out of its
-    socket, and every part of the board is open and in plain sight.
+    socket, and every part of the board is open and in plain sight. And
+    the seed is never shown on its screen: an implant reading it would
+    find nothing to steal.
   - Also in 2026, a build error in Coldcard's firmware made it generate
     seeds from a weak software fallback instead of its hardware random
     number generator, and wallets created that way were swept
@@ -60,12 +68,35 @@ calculator can lend it a screen and a keyboard over a serial port.
    signer and never played. A passphrase, if you use one, comes by cable or
    is typed on the signer.
 2. The signer shows the seed's fingerprint, to check it is the right one.
+   The seed itself is never shown.
 3. The unsigned PSBT arrives as tones.
 4. The signer shows every output, amount and fee on its screen. You page
    through all of them, and hold a button to sign.
 5. The signed PSBT goes back as tones.
 
-Unplug it, and the seed is gone.
+Unplug it, and the seed is gone. From step 3 on, the PSBTs can travel as
+tones, or through a vintage terminal over the serial port: your choice.
+
+## Everyday use
+
+1. Generate the seed outside the signer: with dice, or with another wallet
+   you trust.
+2. On an **offline computer**, the ur-tones web tool turns it into tones,
+   protected by a **PIN of 12 characters or more** (it can make one up for
+   you), and saves them as a **WAV** file.
+3. Write the PIN down on paper or keep it in a password manager, **always
+   apart from the WAV**.
+4. Keep the WAV on an **audio player with no internet connection**, such as
+   an MP3 player.
+5. To sign: plug the player **by cable** into the signer's input jack and
+   play the WAV. Type the PIN on the signer and check the fingerprint.
+6. Then sign: PSBTs come and go through the air with your wallet, or
+   through a vintage terminal.
+
+The WAV is an encrypted copy of your seed: whoever gets it can try PINs
+offline, so make the PIN long. And it **must not be your only backup**:
+players break. Keep the seed itself some other way too (paper, metal,
+[SeedCraft](https://github.com/ndssigner/seedcraft)…).
 
 ## The basic board
 
@@ -84,6 +115,8 @@ out, batteries, and a header with the free GPIO pins.
 
 ## Security in brief
 
+- **The seed is never shown.** Not on the screen, the video output, the
+  serial port or the audio. Only its fingerprint.
 - **Stateless.** The seed lives in memory only. Nothing is written to flash.
   Unplugging, switching off or leaving it idle wipes it.
 - **PIN and passphrase never go through the air.** Sensitive data comes by

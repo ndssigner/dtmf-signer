@@ -74,12 +74,15 @@ Mitigaciones:
 | La cartera o el ordenador generan una PSBT con una dirección cambiada | Media | Revisión **completa en el OLED** antes de firmar; verificación de la salida de cambio |
 | Un terminal UART comprometido muestra datos falsos o inyecta datos sensibles | Media | Resumen también en el OLED; **confirmación física** obligatoria para firmar y para aceptar datos sensibles |
 | Las grabaciones de audio guardadas son copias de la seed | Media | Tratarlas como copias de seguridad en papel; cifradas con PIN largo |
+| Pérdida o robo del reproductor con el WAV de la seed | Media | PIN de **12 caracteres o más** (ur-tones puede generar uno de 60 bits), guardado **separado** del WAV; el WAV no es la única copia de la seed |
+| Implante que lee la pantalla (caso Ledger) | Baja | **La seed nunca se muestra**: no hay nada que capturar. La rejilla del PIN y la passphrase sí se ve; para el máximo nivel, PIN y passphrase por cable |
+| Cámara o alguien mirando la pantalla | Baja | La seed nunca se muestra; PIN y passphrase enmascarados por defecto |
 | Una passphrase cifrada guardada junto a la seed cifrada permite comprobar rápido si se acertó el PIN | Media | Passphrase por cable en directo o tecleada en el firmador; no guardarla cifrada junto a la seed |
 | PIN o passphrase con un error dan otra cartera válida y vacía | Alta (error humano) | Comparar siempre las **huellas** que muestra el OLED |
 | Se deja el firmador encendido con la seed cargada | Media | Apagado por inactividad que borra la seed; desenchufar = borrar |
 | Análisis de potencia si se alimenta desde un ordenador comprometido | Baja | Alimentar desde cargador o power bank |
-| Emisiones de la señal de vídeo analógica captadas a distancia | Baja | La seed nunca se muestra entera de una vez |
-| Smart TV que analiza lo que muestra (ACR) | Media, si se usa la salida de vídeo | No mostrar datos sensibles en teles conectadas a internet |
+| Emisiones de la señal de vídeo analógica captadas a distancia | Baja | La seed nunca se muestra; como mucho se ve la rejilla del PIN y la passphrase |
+| Smart TV que analiza lo que muestra (ACR) | Baja, si se usa la salida de vídeo | La seed nunca se muestra; con una tele conectada, PIN y passphrase por cable |
 | Ruido o volumen inadecuado por el aire | Media (fallo, no fuga) | Corrección Reed-Solomon; aparatos cerca; cable como alternativa |
 
 ## 5. Riesgos físicos

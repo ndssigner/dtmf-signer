@@ -13,6 +13,12 @@ al aire o por cable. Sin cámara, sin datos por USB, sin elemento seguro y sin
 almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
 [NDS-Signer](https://github.com/ndssigner/nds-signer).
 
+**La idea central:** la semilla llega como tonos, creados con ur-tones en un
+ordenador desconectado, y **nunca se muestra, por ningún canal**: solo su
+huella. A partir de ahí, tú eliges: seguir todo por audio, para el máximo
+aislamiento, o manejarlo desde un terminal vintage por un puerto serie.
+DTMF-Signer y ur-tones están pensados para ir juntos.
+
 > **Estado: fase de diseño.** Todavía no hay firmware ni hardware. Este
 > repositorio contiene la especificación de hardware y el análisis de
 > riesgos, de momento en español. No lo uses con fondos.
@@ -38,7 +44,9 @@ almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
     ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
     Aquí el firmador lo montas tú con piezas genéricas, el microcontrolador
     lo has comprado y flasheado tú y puedes sacarlo de su zócalo, y cada
-    pieza de la placa está abierta y a la vista.
+    pieza de la placa está abierta y a la vista. Además, la semilla nunca
+    se muestra en su pantalla: un implante que la leyera no encontraría
+    nada que robar.
   - También en 2026, un error de compilación en el firmware de Coldcard le
     hizo generar semillas con un sustituto por software débil en lugar de
     su generador de números aleatorios por hardware, y las carteras creadas
@@ -69,13 +77,37 @@ puerto serie.
    firmador y nunca suena. La passphrase, si usas una, llega por cable o se
    teclea en el firmador.
 2. El firmador muestra la huella de la semilla, para comprobar que es la
-   correcta.
+   correcta. La semilla en sí nunca se muestra.
 3. La PSBT sin firmar llega como tonos.
 4. El firmador muestra en su pantalla cada salida, cada importe y la
    comisión. Las recorres todas y mantienes pulsado un botón para firmar.
 5. La PSBT firmada vuelve como tonos.
 
-Lo desenchufas y la semilla desaparece.
+Lo desenchufas y la semilla desaparece. Del paso 3 en adelante, las PSBT
+pueden viajar como tonos o a través de un terminal vintage por el puerto
+serie: tú eliges.
+
+## Uso cotidiano
+
+1. Genera la semilla fuera del firmador: con dados, o con otra cartera de
+   tu confianza.
+2. En un **ordenador desconectado**, la herramienta web de ur-tones la
+   convierte en tonos, protegida con un **PIN de 12 caracteres o más**
+   (puede generarlo por ti), y los guarda como archivo **WAV**.
+3. Apunta el PIN en papel o guárdalo en un gestor de contraseñas, **siempre
+   separado del WAV**.
+4. Guarda el WAV en un **reproductor de audio sin conexión a internet**,
+   como un reproductor MP3.
+5. Para firmar: conecta el reproductor **por cable** al jack de entrada del
+   firmador y reproduce el WAV. Teclea el PIN en el firmador y comprueba la
+   huella.
+6. Después, firma: las PSBT van y vienen por el aire con tu cartera, o a
+   través de un terminal vintage.
+
+El WAV es una copia cifrada de tu semilla: quien lo consiga puede probar
+PINs sin conexión, así que usa un PIN largo. Y **no debe ser tu única copia
+de seguridad**: los reproductores se estropean. Guarda también la semilla
+por otra vía (papel, metal, [SeedCraft](https://github.com/ndssigner/seedcraft)…).
 
 ## La placa básica
 
@@ -94,6 +126,8 @@ salida de línea, pilas y una tira con los GPIO libres.
 
 ## Seguridad en resumen
 
+- **La semilla nunca se muestra.** Ni en la pantalla, ni por la salida de
+  vídeo, ni por el puerto serie, ni por audio. Solo su huella.
 - **Sin estado.** La semilla vive solo en memoria. Nada se escribe en la
   flash. Desenchufarlo, apagarlo o dejarlo inactivo la borra.
 - **El PIN y la passphrase nunca van por el aire.** Los datos sensibles

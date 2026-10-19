@@ -7,6 +7,7 @@
 
 ## 1. Filosofía
 
+- **La idea central: la seed llega como tonos y nunca se muestra.** Se genera en otro sitio y [ur-tones](https://github.com/ndssigner/ur-tones) la convierte en tonos DTMF, con PIN o sin él, desde un ordenador desconectado. El firmador la recibe por audio y no la muestra jamás, por ningún canal: solo su huella. A partir de ahí, **el usuario elige** cómo interactuar: todo por audio, para el máximo aislamiento, o con un terminal vintage por UART.
 - **Un firmador básico que funciona solo.** Pantalla, cruceta y audio integrados. Cualquiera puede cargar una seed, revisar una transacción y firmarla sin nada más.
 - **Mejor aún con una interfaz prestada.** El firmador vive mejor conectado a un aparato vintage (Game Boy, HP-48, C64…) que ponga pantalla y teclado. Esa vía se ofrece y se documenta, pero nunca es obligatoria.
 - **Montar y listo.** El proyecto ofrece una PCB y un diseño de protoboard. El usuario solo flashea la Pico 2 y la pincha en su zócalo.
@@ -141,29 +142,43 @@ Comisión: 1200 sat       0.01500000 BTC
 ```
 
 - Las flechas mueven el cursor, que da la vuelta por los bordes, y el central añade el carácter. Pulsación larga del central: terminar; de la izquierda: borrar.
-- Se muestra enmascarado salvo el último carácter.
+- **Enmascarado por defecto**, salvo el último carácter. El enmascarado se puede desactivar en los ajustes.
 - Un PIN de 12 caracteres, el mínimo que recomienda ur-tones para seeds enviadas por el aire, son ~50 pulsaciones, alrededor de un minuto.
 
-**Passphrase:** 3 páginas de 6×6 (mayúsculas y dígitos; minúsculas y dígitos; símbolos ASCII y espacio), que se cambian con pulsación larga hacia arriba. 20 caracteres son unas 100-120 pulsaciones. Opción de mostrarla en claro o enmascarada. **Recomendar passphrases solo ASCII:** sin ñ ni tildes, porque el teclado no las tiene y BIP39 las normaliza (NFKD) de forma no siempre igual entre carteras.
+**Passphrase:** 3 páginas de 6×6 (mayúsculas y dígitos; minúsculas y dígitos; símbolos ASCII y espacio), que se cambian con pulsación larga hacia arriba. 20 caracteres son unas 100-120 pulsaciones. **Enmascarada por defecto** salvo el último carácter, con opción de desactivarlo. **Recomendar passphrases solo ASCII:** sin ñ ni tildes, porque el teclado no las tiene y BIP39 las normaliza (NFKD) de forma no siempre igual entre carteras.
 
 **Huellas:** tras cargar la seed y el PIN se muestra la **huella de la seed**. Tras la passphrase, la **huella de la cartera final**. Un PIN o una passphrase con una letra mal da otra cartera válida y vacía, así que estas comprobaciones son imprescindibles.
+
+**La seed nunca se muestra.** Ni en el OLED, ni por vídeo, ni por UART, ni por audio. No existe ninguna pantalla para introducirla a mano ni para revisarla: solo entra por audio (o por UART con confirmación) y solo se muestra su huella. Así, un implante que lea la pantalla (el caso Ledger de octubre de 2026), una cámara o alguien mirando no tienen nada que capturar.
+
+**Matiz sobre el PIN y la passphrase con la cruceta:** la rejilla y su cursor se ven en la pantalla. Aunque el texto esté enmascarado, un implante que lea la pantalla podría reconstruirlos viendo qué casilla se elige. Por sí solos no sirven sin la seed, que nunca pasa por la pantalla. Para el máximo nivel, el PIN y la passphrase también por cable.
 
 ## 8. Política de canales
 
 | Dato | Por el aire | Por cable (jack o UART) | Con la cruceta |
 |---|---|---|---|
 | PSBT | ✅ | ✅ | — |
-| Seed cifrada con PIN | ⚠️ Permitido con aviso | ✅ Recomendado | ✅ (tedioso) |
-| Seed sin cifrar | ❌ | ✅ | ✅ (tedioso) |
+| Seed cifrada con PIN | ⚠️ Permitido con aviso | ✅ Recomendado | ❌ (obligaría a mostrarla) |
+| Seed sin cifrar | ❌ | ✅ | ❌ (obligaría a mostrarla) |
 | PIN | ❌ | ✅ | ✅ |
 | Passphrase | ❌ | ✅ | ✅ |
 
 - **El firmware impone esta tabla**, porque sabe si el dato llegó por el micrófono, por la línea o por UART.
 - **Datos sensibles por UART: se piden con confirmación física.** La pantalla pregunta, por ejemplo, "¿Aceptar passphrase recibida por UART?", y hay que pulsar el central. Un terminal conectado nunca puede meter datos sensibles sin que el usuario lo sepa.
-- **La seed, el PIN y la passphrase nunca salen del firmador**, por ningún canal, ni siquiera como eco por UART.
+- **La seed, el PIN y la passphrase nunca salen del firmador**, por ningún canal, ni siquiera como eco por UART. **La seed tampoco se muestra nunca**; solo su huella.
 - **El cable protege el camino, no el origen.** El aparato que envía el dato lo conoce. Es el mismo riesgo que aceptan carteras como Trezor al teclear la passphrase en el ordenador. Lo ideal es enviar datos sensibles desde un aparato desconectado de la red (móvil viejo en modo avión, reproductor de audio, ordenador vintage).
 - **Las grabaciones son copias.** Un archivo de audio con la seed o la passphrase merece el mismo cuidado que una copia en papel; si se guarda, cifrado con un PIN largo.
 - **Por cable en directo, la passphrase puede ir en claro.** Cifrarla con el PIN solo tiene sentido en grabaciones guardadas. Si se hace, con una sal distinta de la de la seed (por ejemplo `ur-tones/passphrase-pin/v0`) y rellenada hasta una longitud fija. Aun así, descifrar con un PIN equivocado da un texto que "no parece texto", lo que permite al atacante comprobar rápido si acertó: una passphrase cifrada guardada junto a la seed cifrada debilita a las dos. *Ampliación pendiente de la especificación de ur-tones.*
+
+**Uso cotidiano recomendado:**
+1. La seed se genera fuera del firmador (con dados, o con otra cartera de confianza).
+2. En un **ordenador desconectado**, la herramienta web de ur-tones la convierte en tonos, protegida con un **PIN de 12 caracteres o más** (la herramienta puede generarlo), y la guarda como **WAV**.
+3. El PIN se apunta en papel o en un gestor de contraseñas, **siempre separado del WAV**.
+4. El WAV se guarda en un **reproductor de audio sin conexión a internet** (un reproductor MP3, por ejemplo).
+5. Para firmar: el reproductor se conecta **por cable** al jack de entrada y reproduce el WAV; el PIN se teclea en el firmador; se comprueba la huella.
+6. A partir de ahí, las PSBT van y vienen por el aire con la cartera, o por UART con un terminal vintage.
+
+El WAV es una copia de la seed cifrada: quien lo consiga puede probar PINs sin conexión, por eso el PIN debe ser largo. Y **no debe ser la única copia de seguridad**: los reproductores se estropean. La seed original se conserva por otra vía (papel, metal, [SeedCraft](https://github.com/ndssigner/seedcraft)…).
 
 ## 9. Interfaz prestada por aparatos vintage
 
@@ -188,8 +203,9 @@ La especificación completa del protocolo es un documento aparte, pendiente.
 - **Blanco y negro**, sin portadora de color. La misma señal sirve para PAL y NTSC; el firmware elige 50 o 60 Hz.
 - **Dos resistencias** desde GP21 (sincronía) y GP22 (vídeo) hasta el RCA, sobre la carga de 75 Ω de la tele. Valores orientativos: ~680 Ω y ~220-330 Ω, para ~0 V de sincronía, ~0,3 V de negro y ~1 V de blanco. *A ajustar en el prototipo.*
 - **Modo texto de 40 columnas**, legible en una tele de tubo.
-- **No mostrar la seed en teles conectadas a internet.** Las smart TV pueden analizar y enviar lo que muestran (ACR), por cualquier entrada.
-- **Las señales de vídeo analógicas pueden captarse a distancia** con equipo especializado (*van Eck phreaking*). La seed nunca se muestra entera de una vez.
+- **La seed nunca se muestra**, así que por vídeo no puede filtrarse. Lo que sí se ve es la rejilla del PIN y la passphrase.
+- **Smart TV:** pueden analizar y enviar lo que muestran (ACR), por cualquier entrada. Si se usa una tele conectada a internet, el PIN y la passphrase mejor por cable.
+- **Las señales de vídeo analógicas pueden captarse a distancia** con equipo especializado (*van Eck phreaking*). Afecta, como mucho, a la rejilla del PIN y la passphrase.
 
 ## 11. Niveles eléctricos
 
@@ -201,13 +217,14 @@ Los puertos de la placa traen su protección prevista: el MAX3232 para RS-232 y 
 
 ## 12. Reglas de seguridad
 
-1. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. Desenchufar, apagar o la inactividad la borran.
-2. **Apagado automático por inactividad**, que borra la seed.
-3. **Firmar requiere la cruceta del propio firmador.** Ningún terminal puede firmar por su cuenta.
-4. **Política de canales** de la sección 8, impuesta por el firmware.
-5. **USB de la Pico desactivado al arrancar.** Solo se activa manteniendo la flecha izquierda pulsada al encender (modo desarrollo: actualizar y releer el firmware para verificarlo).
-6. **Nonces deterministas** (RFC 6979 para ECDSA; BIP340 sin aleatoriedad auxiliar obligatoria). No depende de ningún generador de aleatorios.
-7. **Alimentarse de un cargador o un power bank, no de un ordenador.** Aunque el USB-C no tenga datos, un equipo comprometido podría en teoría medir el consumo mientras se firma (análisis de potencia).
+1. **La seed nunca se muestra** por ningún canal. Solo su huella.
+2. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. Desenchufar, apagar o la inactividad la borran.
+3. **Apagado automático por inactividad**, que borra la seed.
+4. **Firmar requiere la cruceta del propio firmador.** Ningún terminal puede firmar por su cuenta.
+5. **Política de canales** de la sección 8, impuesta por el firmware.
+6. **USB de la Pico desactivado al arrancar.** Solo se activa manteniendo la flecha izquierda pulsada al encender (modo desarrollo: actualizar y releer el firmware para verificarlo).
+7. **Nonces deterministas** (RFC 6979 para ECDSA; BIP340 sin aleatoriedad auxiliar obligatoria). No depende de ningún generador de aleatorios.
+8. **Alimentarse de un cargador o un power bank, no de un ordenador.** Aunque el USB-C no tenga datos, un equipo comprometido podría en teoría medir el consumo mientras se firma (análisis de potencia).
 
 ## 13. Formatos de distribución
 
