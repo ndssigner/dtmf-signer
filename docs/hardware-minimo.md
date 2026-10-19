@@ -298,6 +298,32 @@ Antes de publicar el repositorio con los diseños, probar en simulación todo lo
 - Rendimiento de libsecp256k1, PBKDF2 (BIP39) y del PIN de ur-tones en el RP2350.
 - Errata del RP2350 sobre pull-downs internos: usar pull-ups.
 
+## 17. Ideas para el futuro (no prioritarias)
+
+### Entrada de seeds de SeedCraft por consola
+
+Para quien guarde su seed con [SeedCraft](https://github.com/ndssigner/seedcraft) (una secuencia de objetos, por ejemplo cuentas de un collar), poder introducirla en el firmador **en modo consola**: teclado PS/2 con tele, o terminal por UART. Así la seed iría del collar al firmador sin pasar por ningún ordenador. No por DTMF: para eso ya está la seed codificada con ur-tones.
+
+1. **Primero el diccionario.** El usuario "bautiza" cada símbolo, en orden, con un nombre y una abreviatura:
+
+   ```
+   0: Bola roja (BR)
+   1: Tubo negro (TNG)
+   ...
+   15: ...
+   ```
+
+   El firmador comprueba que hay N entradas (16 en el tamaño recomendado) y que no se repite ninguna abreviatura.
+2. **Después la secuencia**, tecleando la abreviatura de cada objeto según se lee el collar. Es más fácil y menos propenso a errores que traducir mentalmente cada objeto a su número.
+3. **Respetando la regla de no mostrar nunca la seed.** En el modo sin llave, la secuencia equivale a la seed en claro, así que **no se muestra lo tecleado**: solo el progreso ("Pieza 23/54") y un aviso si la abreviatura no existe en el diccionario. La entrada a ciegas tiene red de seguridad: el QR de SeedCraft repara una pieza mal leída, el firmador puede avisar por filas de 16 piezas y al final muestra la huella.
+4. **Modo con llave:** se introducen las dos secuencias y el firmador las combina internamente.
+
+Notas:
+- La secuencia de SeedCraft cuenta como **seed sin cifrar** en la política de canales: por PS/2 o por UART con confirmación, nunca por el aire.
+- Por UART, el terminal conoce la secuencia (y con ella la seed). Mejor un aparato que nunca se haya conectado a la red.
+- El diccionario se introduce en cada sesión: el firmador no guarda nada.
+- Requiere portar a C el decodificador de SeedCraft (de símbolos a módulos del QR, quitar la máscara, corregir errores y extraer la seed).
+
 ## Referencias
 
 - [ur-tones](https://github.com/ndssigner/ur-tones) y su [especificación](https://github.com/ndssigner/ur-tones/blob/main/SPEC.md)
