@@ -318,9 +318,16 @@ Para quien guarde su seed con [SeedCraft](https://github.com/ndssigner/seedcraft
 3. **Respetando la regla de no mostrar nunca la seed.** En el modo sin llave, la secuencia equivale a la seed en claro, así que **no se muestra lo tecleado**: solo el progreso ("Pieza 23/54") y un aviso si la abreviatura no existe en el diccionario. La entrada a ciegas tiene red de seguridad: el QR de SeedCraft repara una pieza mal leída, el firmador puede avisar por filas de 16 piezas y al final muestra la huella.
 4. **Modo con llave:** se introducen las dos secuencias y el firmador las combina internamente.
 
+Detalles de la entrada:
+- **Separador entre piezas** (espacio o Enter) y **sin distinguir mayúsculas**, para que abreviaturas como "T", "TN" y "TNG" puedan convivir sin ambigüedad.
+- **Abreviaturas solo con letras y dígitos ASCII.** Los teclados PS/2 envían la posición de la tecla, no el carácter, y el firmware tiene que suponer una distribución (inglesa por defecto, española como opción). Los nombres largos pueden llevar cualquier carácter: solo sirven para bautizar.
+- **Cada abreviatura se valida al momento:** si no existe en el diccionario, el firmador avisa en el acto, aunque no muestre lo tecleado.
+- **Comando para deshacer la última pieza.**
+- **Introducción por filas de 16 piezas**, con confirmación al terminar cada fila. Una pieza de más o de menos desplaza todo lo que viene detrás; por filas se localiza enseguida dónde está el fallo.
+
 Notas:
 - La secuencia de SeedCraft cuenta como **seed sin cifrar** en la política de canales: por PS/2 o por UART con confirmación, nunca por el aire.
-- Por UART, el terminal conoce la secuencia (y con ella la seed). Mejor un aparato que nunca se haya conectado a la red.
+- **Vía recomendada: teclado PS/2 con tele**, ambos dentro de la frontera de confianza. Por UART, el terminal ve el diccionario y la secuencia, es decir, la seed completa: mejor un aparato que nunca se haya conectado a la red.
 - El diccionario se introduce en cada sesión: el firmador no guarda nada.
 - Requiere portar a C el decodificador de SeedCraft (de símbolos a módulos del QR, quitar la máscara, corregir errores y extraer la seed).
 
