@@ -14,19 +14,36 @@ lives in memory only while you sign. From the
 > repository holds the hardware specification and the risk analysis, in
 > Spanish for now. Do not use it with funds.
 
-## Why
+## Motivation
 
-- **Cheap.** About US$13 in parts for the basic board (an estimate), roughly
-  a third of a signer that reads QR codes with a scanner module.
-- **No black boxes.** No camera or QR module with closed firmware: the whole
-  path of the signal, from the microphone to the decoder, is our own code.
-- **Parts from anywhere.** Generic, common parts. The tones are decoded in
-  software, so there are no hard-to-find DTMF decoder chips.
-- **Build it yourself.** On a breadboard, or on a PCB where you plug in a
-  Pico 2 you bought and flashed yourself. No hardware-wallet vendor in the
-  middle.
-- **Friends with old machines.** A vintage computer or calculator can lend it
-  a screen and a keyboard over a serial port. It also works fine on its own.
+- **A signer for everyone.** It works on its own, with any phone or computer
+  that can play and hear sound. No camera, no special cable, no app store.
+- **Low cost.** About US$13 in parts for the basic board (an estimate),
+  roughly a third of a signer that reads QR codes with a scanner module.
+- **Easy, foolproof DIY.** Plug a Pico 2 into a ready-made board, with no
+  soldering, or wire common modules on a breadboard. Generic parts you can
+  buy anywhere: the tones are decoded in software, so there are no
+  hard-to-find DTMF decoder chips.
+- **Against supply-chain attacks and fake entropy.**
+  - In October 2026, Ledger devices sold through resellers turned out to
+    carry a hidden implant that read the recovery phrase from the screen
+    during setup and sent it out over the mobile network; losses are
+    estimated in the tens of millions of dollars
+    ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
+    Here you build the signer yourself from generic parts, the
+    microcontroller is one you bought, flashed and can pull out of its
+    socket, and every part of the board is open and in plain sight.
+  - Also in 2026, a build error in Coldcard's firmware made it generate
+    seeds from a weak software fallback instead of its hardware random
+    number generator, and wallets created that way were swept
+    ([crypto.news](https://crypto.news/coldcard-firmware-bug-drains-38-million-bitcoin/)).
+    DTMF-Signer never generates seeds, and its signatures use deterministic
+    nonces: it has no random number generator that could fail.
+
+It also has **no black boxes** (no camera or QR module with closed
+firmware: the whole path of the signal, from the microphone to the decoder,
+is our own code), and it **likes old machines**: a vintage computer or
+calculator can lend it a screen and a keyboard over a serial port.
 
 ## How it works
 

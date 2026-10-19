@@ -17,22 +17,42 @@ almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
 > repositorio contiene la especificación de hardware y el análisis de
 > riesgos, de momento en español. No lo uses con fondos.
 
-## Por qué
+## Motivación
 
-- **Barato.** Unos 13 $ en piezas para la placa básica (una estimación),
-  más o menos un tercio de un firmador que lee códigos QR con un módulo
-  lector.
-- **Sin cajas negras.** Ni cámara ni módulo QR con firmware cerrado: todo el
-  camino de la señal, del micrófono al decodificador, es código propio.
-- **Piezas de cualquier parte.** Piezas genéricas y comunes. Los tonos se
-  decodifican por software, así que no hacen falta chips decodificadores de
-  DTMF, difíciles de encontrar.
-- **Móntalo tú.** En una protoboard, o en una PCB donde pinchas una Pico 2
-  que has comprado y flasheado tú. Sin fabricantes de carteras hardware de
-  por medio.
-- **Amigo de las máquinas antiguas.** Un ordenador o una calculadora vintage
-  le pueden prestar pantalla y teclado por un puerto serie. También funciona
-  perfectamente solo.
+- **Un firmador para todos.** Funciona solo, con cualquier móvil u
+  ordenador que pueda reproducir y oír sonido. Sin cámara, sin cables
+  especiales, sin tiendas de aplicaciones.
+- **Bajo coste.** Unos 13 $ en piezas para la placa básica (una
+  estimación), más o menos un tercio de un firmador que lee códigos QR con
+  un módulo lector.
+- **Hazlo tú mismo, fácil y a prueba de torpes.** Pincha una Pico 2 en una
+  placa ya montada, sin soldar, o conecta módulos comunes en una
+  protoboard. Piezas genéricas que se compran en cualquier parte: los tonos
+  se decodifican por software, así que no hacen falta chips decodificadores
+  de DTMF, difíciles de encontrar.
+- **Frente a los ataques en la cadena de suministro y la entropía falsa.**
+  - En octubre de 2026 se descubrió que aparatos Ledger vendidos por
+    distribuidores llevaban un implante oculto que leía la frase de
+    recuperación de la pantalla durante la configuración y la enviaba por
+    la red móvil; las pérdidas se estiman en decenas de millones de dólares
+    ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
+    Aquí el firmador lo montas tú con piezas genéricas, el microcontrolador
+    lo has comprado y flasheado tú y puedes sacarlo de su zócalo, y cada
+    pieza de la placa está abierta y a la vista.
+  - También en 2026, un error de compilación en el firmware de Coldcard le
+    hizo generar semillas con un sustituto por software débil en lugar de
+    su generador de números aleatorios por hardware, y las carteras creadas
+    así fueron vaciadas
+    ([crypto.news](https://crypto.news/coldcard-firmware-bug-drains-38-million-bitcoin/)).
+    DTMF-Signer nunca genera semillas, y sus firmas usan nonces
+    deterministas: no tiene ningún generador de números aleatorios que
+    pueda fallar.
+
+Además, **no tiene cajas negras** (ni cámara ni módulo QR con firmware
+cerrado: todo el camino de la señal, del micrófono al decodificador, es
+código propio) y **se lleva bien con las máquinas antiguas**: un ordenador
+o una calculadora vintage le pueden prestar pantalla y teclado por un
+puerto serie.
 
 ## Cómo funciona
 
