@@ -233,9 +233,19 @@ El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. E
 | Formato | Contenido | Para quién |
 |---|---|---|
 | **Protoboard + lista de materiales** | Esquema de cableado, fotos y lista de módulos comerciales comunes (Pico 2, OLED, módulo de micrófono, piezo, botones, adaptadores de jack y USB-C) | Entusiastas y prototipado |
+| **Placa perforada + guía de montaje** | Los mismos módulos que en la protoboard, **soldados** en una placa perforada con el trazado de una protoboard. Pico y OLED en zócalo de tiras hembra | Quien quiere algo sólido y portátil sin pedir una PCB |
 | **PCB "shell"** | Placa montada **sin la Pico ni el OLED**, ambos en zócalo. El usuario los compra por su cuenta y flashea la Pico | La mayoría |
 | **PCB con Pico y OLED** | La misma placa con la Pico **sin flashear** y el OLED, **ambos en zócalo** | Quien prioriza la comodidad |
 | **PCB de agujero pasante, vacía** | Placa que el usuario pide (o se fabrica) y suelda entera por su cuenta | Los más exigentes |
+
+**Placa perforada recomendada:** una placa de prototipos **con el mismo trazado que una protoboard** (filas de 5 puntos unidos y canal central; se venden como *solderable breadboard* o *Perma-Proto*), de **tamaño completo**, con agujeros metalizados por las dos caras. Ventajas:
+- **El mismo esquema sirve para protoboard y placa perforada:** cada pieza va en la misma fila y columna. Se prueba en la protoboard y, cuando funciona, se pasa tal cual a la placa perforada.
+- La Pico 2 está diseñada para montarse a caballo del canal central, como en una protoboard. En la placa perforada va sobre **tiras hembra**, para poder sacarla.
+- **Sólida y portátil**, más que una protoboard, y sin pedir una PCB a nadie: es una pieza genérica, con la misma privacidad que el formato protoboard.
+- Solo pide soldar componentes de agujero pasante, lo más sencillo de soldar.
+- Alternativa más barata: **placa de tiras** (*stripboard*, tipo Veroboard), con pistas de cobre continuas que hay que cortar en ciertos puntos. Necesita su propio esquema de colocación; queda para la comunidad.
+
+*Pendiente:* comprobar en el esquema que todo cabe en una placa de tamaño completo, y elegir modelos concretos con disponibilidad actual. El esquema de montaje y cableado se publicará junto con el de protoboard.
 
 **Dos diseños de PCB, un mismo circuito:**
 

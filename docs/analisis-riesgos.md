@@ -34,6 +34,8 @@
 | Interceptación dirigida del envío | Baja: varios paquetes genéricos | Baja | Media | Media-alta: paquete identificable y listo para usar |
 | Habilidad necesaria | Media: cablear | Alta: soldar | Baja | Muy baja |
 
+La **placa perforada** con el trazado de una protoboard tiene el mismo perfil que el formato protoboard (piezas genéricas, muy privado). Solo cambia la habilidad necesaria: media, porque hay que soldar componentes de agujero pasante.
+
 ### 2.2 Vinculación de identidad: el riesgo que más se olvida
 
 Cualquier pedido identificable como "firmador de bitcoin" deja **nombre, dirección postal, correo y teléfono** asociados a la condición de posible poseedor de bitcoin en la base de datos del fabricante, de la tienda, de la pasarela de pago y del transportista. **Hay que asumir que esas bases de datos pueden filtrarse algún día.**

@@ -149,6 +149,10 @@ El análisis completo, por formato de distribución y por uso, está en
 ## Formas de montarlo (previstas)
 
 - **Protoboard + lista de materiales**, con módulos comerciales comunes.
+- **Placa perforada:** los mismos módulos soldados en una placa de
+  prototipos con el trazado de una protoboard, con la Pico y la pantalla en
+  tiras hembra. El montaje de la protoboard se pasa tal cual. Más sólida y
+  portátil, sin pedir ninguna PCB.
 - **PCB "shell":** montada en fábrica, sin la Pico ni la pantalla. Las
   compras tú, flasheas la Pico y las pinchas.
 - **La misma PCB con la Pico y la pantalla en sus zócalos**, la Pico sin
@@ -158,7 +162,7 @@ El análisis completo, por formato de distribución y por uso, está en
 ## Hoja de ruta
 
 - [ ] Decodificador de tonos por software en una Pico 2, probado con ur-tones
-- [ ] Esquema, guía de protoboard y lista de materiales
+- [ ] Esquema, guías de protoboard y placa perforada, y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
 - [ ] Firmware: audio, ur-tones, PSBT, firma, pantallas

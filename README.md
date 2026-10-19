@@ -137,6 +137,10 @@ The whole analysis, by distribution format and by use, is in
 ## Ways to build it (planned)
 
 - **Breadboard + bill of materials**, with common off-the-shelf modules.
+- **Perfboard:** the same modules soldered onto a prototyping board laid out
+  like a breadboard, with the Pico and the screen on socket headers. The
+  breadboard layout carries over as is. Sturdier and portable, with no PCB
+  to order.
 - **"Shell" PCB:** factory-assembled, without the Pico or the screen. You buy
   those yourself, flash the Pico and plug them in.
 - **The same PCB with the Pico and the screen in their sockets**, the Pico
@@ -146,7 +150,7 @@ The whole analysis, by distribution format and by use, is in
 ## Roadmap
 
 - [ ] Software tone decoder on a Pico 2, tested with ur-tones
-- [ ] Schematic, breadboard guide and bill of materials
+- [ ] Schematic, breadboard and perfboard guides, and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
 - [ ] Firmware: audio, ur-tones, PSBT, signing, screens
