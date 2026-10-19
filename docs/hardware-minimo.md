@@ -218,10 +218,20 @@ El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. E
 | **Protoboard + lista de materiales** | Esquema de cableado, fotos y lista de módulos comerciales comunes (Pico 2, OLED, módulo de micrófono, piezo, botones, adaptadores de jack y USB-C) | Entusiastas y prototipado |
 | **PCB "shell"** | Placa montada **sin la Pico ni el OLED**, ambos en zócalo. El usuario los compra por su cuenta y flashea la Pico | La mayoría |
 | **PCB con Pico** | La misma placa con la Pico **en zócalo y sin flashear** | Quien prioriza la comodidad |
-| *(PCB vacía)* | Los Gerber son públicos: quien quiera pide la placa y suelda todo | Los más exigentes |
+| **PCB de agujero pasante, vacía** | Placa que el usuario pide (o se fabrica) y suelda entera por su cuenta | Los más exigentes |
+
+**Dos diseños de PCB, un mismo circuito:**
+
+| Diseño | Componentes | Base de |
+|---|---|---|
+| **PCB-SMD** | Pasivos y semiconductores pequeños en SMD de tamaño grande (0805/1206), fáciles de inspeccionar, **montados por el fabricante**. Conectores y zócalos de agujero pasante | PCB "shell" y PCB con Pico |
+| **PCB-THT** | **Todo de agujero pasante**, pensado para soldar a mano | PCB de agujero pasante, vacía |
+
+- Mismo esquema eléctrico, misma asignación de pines y mismo firmware. Solo cambia el diseño físico de la placa.
+- El montaje en fábrica es mucho más barato en SMD; el soldado a mano es mucho más fácil en agujero pasante. Por eso dos diseños.
 
 Notas:
-- **PCB "shell":** montar componentes de agujero pasante en fábrica es caro. Puede convenir que los pasivos sean SMD grandes y fáciles de inspeccionar, y dejar de agujero pasante solo los conectores. Se publicarán **fotos de referencia en alta resolución** de la placa montada para poder compararla.
+- **PCB "shell":** se publicarán **fotos de referencia en alta resolución** de la placa montada para poder compararla.
 - **PCB con Pico:** el usuario debe **reflashearla siempre** con el firmware oficial verificado, aunque venga flasheada.
 - **Normativa:** vender aparatos electrónicos ya montados puede requerir marcado CE (UE), FCC (EE. UU.), RoHS y gestión de residuos electrónicos. *Pendiente de consultar antes de ofrecer los formatos montados.*
 
@@ -248,7 +258,18 @@ Notas:
 | `video` | Compuesto B/N por PIO (opcional) |
 | `system` | Arranque, desactivar USB, modo desarrollo, carga de mantenimiento, apagado por inactividad |
 
-## 15. Pendiente de verificar
+## 15. Validación en hardware virtual
+
+Antes de publicar el repositorio con los diseños, probar en simulación todo lo que se pueda. Herramientas candidatas, *pendientes de verificar*:
+
+| Qué | Herramienta candidata |
+|---|---|
+| Etapas analógicas (micrófono, línea, filtros, escalera de la cruceta, vídeo compuesto) | Simulación SPICE (ngspice, integrado en KiCad) |
+| Firmware con Pico, OLED, botones y piezo | Wokwi (simulador en línea con soporte de Pico). Comprobar si admite el RP2350 y entradas analógicas de audio |
+| Decodificador Goertzel y ur-tones | Pruebas nativas en el ordenador alimentadas con archivos WAV, grabados y sintéticos con ruido |
+| Emulación más completa del microcontrolador | Renode u otros emuladores. Comprobar soporte del RP2350 |
+
+## 16. Pendiente de verificar
 
 - Alcance y fiabilidad del piezo y del micrófono con móviles y portátiles reales.
 - Ruido del ADC de la Pico 2 con las etapas de micrófono y línea propuestas.
