@@ -217,14 +217,14 @@ El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. E
 |---|---|---|
 | **Protoboard + lista de materiales** | Esquema de cableado, fotos y lista de módulos comerciales comunes (Pico 2, OLED, módulo de micrófono, piezo, botones, adaptadores de jack y USB-C) | Entusiastas y prototipado |
 | **PCB "shell"** | Placa montada **sin la Pico ni el OLED**, ambos en zócalo. El usuario los compra por su cuenta y flashea la Pico | La mayoría |
-| **PCB con Pico** | La misma placa con la Pico **en zócalo y sin flashear** | Quien prioriza la comodidad |
+| **PCB con Pico y OLED** | La misma placa con la Pico **sin flashear** y el OLED, **ambos en zócalo** | Quien prioriza la comodidad |
 | **PCB de agujero pasante, vacía** | Placa que el usuario pide (o se fabrica) y suelda entera por su cuenta | Los más exigentes |
 
 **Dos diseños de PCB, un mismo circuito:**
 
 | Diseño | Componentes | Base de |
 |---|---|---|
-| **PCB-SMD** | Pasivos y semiconductores pequeños en SMD de tamaño grande (0805/1206), fáciles de inspeccionar, **montados por el fabricante**. Conectores y zócalos de agujero pasante | PCB "shell" y PCB con Pico |
+| **PCB-SMD** | Pasivos y semiconductores pequeños en SMD de tamaño grande (0805/1206), fáciles de inspeccionar, **montados por el fabricante**. Conectores y zócalos de agujero pasante | PCB "shell" y PCB con Pico y OLED |
 | **PCB-THT** | **Todo de agujero pasante**, pensado para soldar a mano | PCB de agujero pasante, vacía |
 
 - Mismo esquema eléctrico, misma asignación de pines y mismo firmware. Solo cambia el diseño físico de la placa.
@@ -232,7 +232,7 @@ El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. E
 
 Notas:
 - **PCB "shell":** se publicarán **fotos de referencia en alta resolución** de la placa montada para poder compararla.
-- **PCB con Pico:** el usuario debe **reflashearla siempre** con el firmware oficial verificado, aunque venga flasheada.
+- **PCB con Pico y OLED:** el usuario debe **reflashear siempre** la Pico con el firmware oficial verificado, aunque venga flasheada, y revisar el OLED contra las fotos de referencia.
 - **Normativa:** vender aparatos electrónicos ya montados puede requerir marcado CE (UE), FCC (EE. UU.), RoHS y gestión de residuos electrónicos. *Pendiente de consultar antes de ofrecer los formatos montados.*
 
 **Financiación:** PCBWay paga una **comisión del 10 % por pedido** de los proyectos compartidos en su comunidad. *Pendiente de confirmar las condiciones actuales y si se aplica a placas ensambladas.* Otras vías: Tindie (venta directa de kits) o Crowd Supply (campañas en las que ellos fabrican y distribuyen). Los archivos se publican también en el repositorio, para no depender de un único fabricante.

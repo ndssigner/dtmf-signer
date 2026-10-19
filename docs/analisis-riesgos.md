@@ -25,9 +25,9 @@
 
 ### 2.1 Por formato
 
-| Riesgo | Protoboard + lista de materiales | PCB vacía | PCB "shell" (sin Pico ni OLED) | PCB con Pico |
+| Riesgo | Protoboard + lista de materiales | PCB vacía | PCB "shell" (sin Pico ni OLED) | PCB con Pico y OLED |
 |---|---|---|---|---|
-| Hardware manipulado | **Muy baja**: piezas genéricas, el vendedor no sabe para qué son | **Baja**: placa sin componentes, fácil de inspeccionar | **Media-baja**: el fabricante monta piezas; pocas y visibles | **Media**: la Pico podría venir sustituida o modificada |
+| Hardware manipulado | **Muy baja**: piezas genéricas, el vendedor no sabe para qué son | **Baja**: placa sin componentes, fácil de inspeccionar | **Media-baja**: el fabricante monta piezas; pocas y visibles | **Media**: la Pico o el OLED podrían venir sustituidos o modificados |
 | Firmware manipulado | Baja: lo flashea el usuario | Baja | Baja | **Alta si se usa tal cual**; baja si el usuario la reflashea |
 | Pico o chip falsificados | Baja si se compra en distribuidor oficial | Baja | Baja (la compra el usuario) | Media: depende de dónde la obtuvo el fabricante |
 | **Vinculación de identidad** | **Baja**: millones de aficionados compran estas piezas | Media: el pedido lleva el nombre del proyecto | **Alta**: pedido identificable con dirección postal | **Alta**: además, es claramente un producto final |
@@ -51,7 +51,8 @@ Mitigaciones:
 
 Mitigaciones:
 - **Fotos de referencia en alta resolución** de cada versión de PCB, para comparar.
-- **La Pico siempre en zócalo**, nunca soldada: se puede sacar, inspeccionar y cambiar.
+- **La Pico y el OLED siempre en zócalo**, nunca soldados: se pueden sacar, inspeccionar y cambiar.
+- **Revisar el módulo OLED** en los formatos que lo traen montado. El implante de los Ledger manipulados de octubre de 2026 leía precisamente la pantalla. En el OLED solo debe haber el panel, su controlador y unos pocos pasivos; cualquier chip de más es sospechoso. Para enviar lo que lee, un implante necesitaría además su propia radio y alimentación, porque el firmador no tiene ninguna conexión inalámbrica. Ante la duda, se cambia por un OLED comprado aparte.
 - **Reflashear siempre** con el firmware oficial, venga como venga.
 - **Comprar solo desde los enlaces del repositorio** para los formatos montados. Los clones de terceros son legítimos (hardware abierto), pero no hay forma de saber cómo se han montado.
 
@@ -95,7 +96,7 @@ Se documentan para que el usuario decida con conocimiento:
 
 - **El aparato que envía la seed o la passphrase la conoce.** Es el mismo riesgo que aceptan otras carteras al teclear la passphrase en el ordenador.
 - **Sin elemento seguro.** Se compensa con un diseño sin estado: no hay nada que extraer con el firmador apagado.
-- **El formato con Pico montada traslada la confianza al fabricante.** Se ofrece por comodidad, con el riesgo bien explicado.
+- **El formato con Pico y OLED montados traslada la confianza al fabricante.** Se ofrece por comodidad, con el riesgo bien explicado.
 - **Cualquier formato comprado por correo vincula identidad y dirección.** Solo las piezas genéricas compradas por separado lo evitan del todo.
 
 ## 7. Pendiente

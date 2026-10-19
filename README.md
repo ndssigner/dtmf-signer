@@ -106,8 +106,8 @@ The whole analysis, by distribution format and by use, is in
 - **Breadboard + bill of materials**, with common off-the-shelf modules.
 - **"Shell" PCB:** factory-assembled, without the Pico or the screen. You buy
   those yourself, flash the Pico and plug them in.
-- **The same PCB with the Pico in its socket**, unflashed, for convenience.
-  Reflash it before use.
+- **The same PCB with the Pico and the screen in their sockets**, the Pico
+  unflashed, for convenience. Reflash it before use.
 - **A through-hole PCB** to order bare and solder by hand.
 
 ## Roadmap

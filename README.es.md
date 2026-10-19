@@ -117,8 +117,8 @@ El análisis completo, por formato de distribución y por uso, está en
 - **Protoboard + lista de materiales**, con módulos comerciales comunes.
 - **PCB "shell":** montada en fábrica, sin la Pico ni la pantalla. Las
   compras tú, flasheas la Pico y las pinchas.
-- **La misma PCB con la Pico en su zócalo**, sin flashear, por comodidad.
-  Reflashéala antes de usarla.
+- **La misma PCB con la Pico y la pantalla en sus zócalos**, la Pico sin
+  flashear, por comodidad. Reflashéala antes de usarla.
 - **Una PCB de agujero pasante** para pedirla vacía y soldarla a mano.
 
 ## Hoja de ruta
