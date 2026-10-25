@@ -102,7 +102,7 @@ Channels are grouped by **what they expose**, not by port.
 
 | Class | What it is | Examples |
 |---|---|---|
-| `AIR` | Broadcast: anyone nearby can hear | Microphone, buzzer, speaker |
+| `AIR` | Broadcast: anyone nearby can hear, or see | Microphone, buzzer, speaker, a QR on the signer's screen |
 | `CABLE` | Point to point with another device, which knows what it sends | Line-in jack, UART, line-out |
 | `LOCAL` | Part of the signer, with no other device behind it that knows the data | Buttons, PS/2 keyboard, a salvaged phone keypad (§4.3), the signer's own screen |
 
@@ -116,6 +116,9 @@ which still accepts the PIN and the passphrase (§4.2).
 **Speed is not a class.** An earbud pressed against a microphone carries
 tones fast and cleanly, but it is still `AIR`: anyone close enough can
 record it.
+
+**A QR is `AIR` too.** The signer's screen is `LOCAL` when it shows text to
+the user, but a QR on it is an output that any camera in sight can read.
 
 ### 4.2 What is accepted where
 
@@ -175,7 +178,8 @@ that the connected device does not control.** Accepted forms:
 - **A readout in tones or beeps:** a last resort, slow and error-prone.
 
 What never counts is the connected device's own presentation of the
-transaction.
+transaction. Nor does a QR (`OUT-QR`): the device that reads it is the one
+that is not trusted.
 
 ### 5.1 Several listeners
 
@@ -287,7 +291,7 @@ class; its risks; the vectors that check it.
 |---|---|
 | Tone input | `TONES-SW` (in software), `TONES-CHIP` (decoder chip) |
 | Input channels | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-BUTTONS` |
-| Data outputs | `OUT-AIR`, `OUT-LINE`, `OUT-UART` |
+| Data outputs | `OUT-AIR`, `OUT-LINE`, `OUT-UART`, `OUT-QR` |
 | Verification | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS` |
 | Storage | `STORE-SEED` |
 | Optional Bitcoin | `BTC-TAPROOT`, `BTC-MULTISIG`, `BTC-PATHS`, `BTC-INPUT-AMOUNTS` |

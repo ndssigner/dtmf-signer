@@ -105,7 +105,7 @@ Los canales se agrupan por **lo que exponen**, no por puerto.
 
 | Clase | Qué es | Ejemplos |
 |---|---|---|
-| `AIR` | Aire, difusión: cualquiera cerca puede oír | Micrófono, zumbador, altavoz |
+| `AIR` | Aire, difusión: cualquiera cerca puede oír, o ver | Micrófono, zumbador, altavoz, un QR en la pantalla del firmador |
 | `CABLE` | Punto a punto con otro aparato, que conoce lo que envía | Jack de entrada de línea, UART, salida de línea |
 | `LOCAL` | Parte del firmador, sin otro aparato detrás que conozca el dato | Botones, teclado PS/2, un teclado de teléfono recuperado (§4.3), la pantalla del propio firmador |
 
@@ -120,6 +120,10 @@ de línea es entonces `CABLE`, que sigue aceptando el PIN y la passphrase
 **La velocidad no es una clase.** Un auricular pegado a un micrófono lleva
 los tonos rápido y limpios, pero sigue siendo `AIR`: cualquiera que esté lo
 bastante cerca puede grabarlo.
+
+**Un QR también es `AIR`.** La pantalla del firmador es `LOCAL` cuando le
+muestra texto al usuario, pero un QR en ella es una salida que puede leer
+cualquier cámara que la vea.
 
 ### 4.2 Qué se acepta por dónde
 
@@ -180,7 +184,8 @@ por un camino que el aparato conectado no controla.** Formas admitidas:
   errores.
 
 Lo que nunca vale es la presentación de la transacción que hace el propio
-aparato conectado.
+aparato conectado. Tampoco un QR (`OUT-QR`): el aparato que lo lee es justo
+aquel del que no nos fiamos.
 
 ### 5.1 Varios escuchadores
 
@@ -295,7 +300,7 @@ procesador; sus riesgos; los vectores que la comprueban.
 |---|---|
 | Entrada de tonos | `TONES-SW` (por software), `TONES-CHIP` (chip decodificador) |
 | Canales de entrada | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-BUTTONS` |
-| Salidas de datos | `OUT-AIR`, `OUT-LINE`, `OUT-UART` |
+| Salidas de datos | `OUT-AIR`, `OUT-LINE`, `OUT-UART`, `OUT-QR` |
 | Verificación | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS` |
 | Almacenamiento | `STORE-SEED` |
 | Bitcoin opcional | `BTC-TAPROOT`, `BTC-MULTISIG`, `BTC-PATHS`, `BTC-INPUT-AMOUNTS` |

@@ -153,6 +153,28 @@ build someone makes and measures.
 - **Risks:** never an echo of the PIN or the passphrase (`INV-2`).
 - **Vectors:** planned.
 
+### `OUT-QR` — QR codes on the screen
+
+- **What it does:** returns data (a signed PSBT, an xpub, a descriptor) as
+  QR codes on the signer's screen (`AIR`): static, or animated URs for long
+  data, as wallets such as Sparrow read them. With `IN-LINE`, a build can
+  listen by cable and speak by QR, with no speaker and no microphone.
+- **Needs:** a screen (`VERIFY-SCREEN`) and a QR encoder (small ones exist in
+  C, without malloc). The image inverted (light background, dark modules,
+  as on paper) and the contrast adjustable, low by default. Measured on a
+  128 × 64 OLED: up to a version 7 QR (45 modules) fits at 1 pixel per
+  module, enough for a BIP-84 descriptor (146 characters) in one code. A
+  phone camera read every code at 1 pixel per module; a laptop webcam,
+  through Sparrow, was dazzled at full contrast and read the descriptor once
+  the contrast was lowered. Larger screens (128 × 128) fit more per frame.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Risks:** any camera that sees the screen can read it: never sensitive
+  data (§4 of the specification). It is not a verification output: the
+  device that reads it is the one that is not trusted. A wallet needs a
+  descriptor, with the fingerprint and the path, to import an account: a bare
+  xpub is not enough.
+- **Vectors:** planned (the texts it shows come from the core's vectors).
+
 ### `VERIFY-SCREEN` — the signer's own screen
 
 - **What it does:** shows the summary, the fingerprints and the prompts.
@@ -292,7 +314,7 @@ build someone makes and measures.
 ### `PROFILE-PICO-REF` — Pico reference
 
 - **Capabilities:** `TONES-SW`, `IN-LINE`, `IN-MIC`, `IN-BUTTONS`,
-  `OUT-AIR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
+  `OUT-AIR`, `OUT-QR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
 - **Parts:** the current prototype, on a breadboard: an RP2040 board with
   the Pico's layout and USB-C (the RP2350 later), a 1.3" SH1106 OLED over
   SPI (GP17 to GP21), push buttons, a 3.5 mm plug as line input (GP27), a

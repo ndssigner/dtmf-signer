@@ -159,6 +159,30 @@ Crece con cada montaje que alguien haga y mida.
 - **Riesgos:** nunca un eco del PIN ni de la passphrase (`INV-2`).
 - **Vectores:** previstos.
 
+### `OUT-QR` — códigos QR en la pantalla
+
+- **Qué hace:** devuelve datos (una PSBT firmada, una XPUB, un descriptor)
+  como códigos QR en la pantalla del firmador (`AIR`): fijos, o URs animados
+  para datos largos, como los leen carteras como Sparrow. Con `IN-LINE`, un
+  montaje puede escuchar por cable y hablar por QR, sin altavoz ni micrófono.
+- **Necesita:** una pantalla (`VERIFY-SCREEN`) y un generador de QR (los hay
+  pequeños en C, sin malloc). La imagen invertida (fondo claro, módulos
+  oscuros, como en papel) y el contraste ajustable, bajo por defecto. Medido
+  en una OLED de 128 × 64: cabe hasta un QR versión 7 (45 módulos) a 1 píxel
+  por módulo, suficiente para un descriptor BIP-84 (146 caracteres) en un
+  solo código. La cámara de un móvil leyó todos los códigos a 1 píxel por
+  módulo; la webcam de un portátil, con Sparrow, se deslumbraba con el
+  contraste al máximo y leyó el descriptor al bajarlo. Las pantallas mayores
+  (128 × 128) dan para más en cada cuadro.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Riesgos:** cualquier cámara que vea la pantalla puede leerlo: nunca datos
+  sensibles (§4 de la especificación). No sirve como verificación: el
+  aparato que lo lee es justo aquel del que no nos fiamos. Una cartera
+  necesita un descriptor, con la huella y la ruta, para importar una cuenta:
+  no basta una XPUB suelta.
+- **Vectores:** previstos (los textos que muestra salen de los vectores del
+  núcleo).
+
 ### `VERIFY-SCREEN` — la pantalla del propio firmador
 
 - **Qué hace:** muestra el resumen, las huellas y las preguntas. Es la
@@ -302,7 +326,7 @@ Crece con cada montaje que alguien haga y mida.
 ### `PROFILE-PICO-REF` — Referencia Pico
 
 - **Capacidades:** `TONES-SW`, `IN-LINE`, `IN-MIC`, `IN-BUTTONS`,
-  `OUT-AIR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
+  `OUT-AIR`, `OUT-QR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
 - **Piezas:** el prototipo actual, en protoboard: una placa RP2040 con la
   disposición de la Pico y USB-C (la RP2350 más adelante), una OLED SH1106
   de 1,3" por SPI (GP17 a GP21), pulsadores, un conector macho de 3,5 mm como
