@@ -124,7 +124,7 @@ static int32_t wav_to_seed(const char *path, const char *pin, uint8_t *entropy)
     char group[UT_GROUP + 1];
     uint32_t rate = 0;
     int32_t count, n = UT_ERR_SEED, got;
-    size_t pos, step;
+    size_t pos, step, count_cap = 0;
     int flushed = 0;
 
     count = ds_wav_read(path, NULL, 0, &rate);
@@ -132,7 +132,8 @@ static int32_t wav_to_seed(const char *path, const char *pin, uint8_t *entropy)
         fprintf(stderr, "dtmf-signer-host: cannot read %s as a 16-bit PCM WAV\n", path);
         return UT_ERR_ARG;
     }
-    samples = malloc((size_t)count * sizeof *samples + 1);
+    count_cap = (size_t)count;
+    samples = malloc(count_cap * sizeof *samples + 1);
     l = malloc(sizeof *l);
     if (samples == NULL || l == NULL) {
         fputs("dtmf-signer-host: out of memory\n", stderr);
@@ -166,8 +167,14 @@ static int32_t wav_to_seed(const char *path, const char *pin, uint8_t *entropy)
     fprintf(stderr, "dtmf-signer-host: %s\n", none);
 done:
     ds_wipe(group, sizeof group);
-    free(samples);
-    free(l);
+    if (samples != NULL) {
+        ds_wipe(samples, (size_t)count_cap * sizeof *samples + 1);
+        free(samples);
+    }
+    if (l != NULL) {
+        ds_wipe(l, sizeof *l);
+        free(l);
+    }
     return n;
 }
 

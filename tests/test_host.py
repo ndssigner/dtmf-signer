@@ -115,6 +115,33 @@ class HostTest(unittest.TestCase):
             self.assertEqual(out, {})
             self.assertTrue(err)
 
+    def test_host_wav_truncated_and_streamed(self):
+        seed = next(s for s in SEEDS if not s["pin"])
+        keypad = ur_tones.seed_to_keypad(bytes.fromhex(seed["entropy"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "seed.wav"
+            ur_tones.write_wav(path, ur_tones.render([keypad]), 8000)
+            data = path.read_bytes()
+            at = data.index(b"data")
+            # streamed: the data size is unknown (0xFFFFFFFF)
+            streamed = Path(tmp) / "streamed.wav"
+            streamed.write_bytes(data[:at + 4] + b"\xff\xff\xff\xff" + data[at + 8:])
+            # truncated: the header claims the whole recording, the file ends
+            # a little after the tones (silence cut off)
+            truncated = Path(tmp) / "truncated.wav"
+            truncated.write_bytes(data[:-4000])
+            for p in (streamed, truncated):
+                with self.subTest(p.name):
+                    code, out, err = run("keys", "--wav", str(p))
+                    self.assertEqual(code, 0, err)
+                    self.assertEqual(out["seed_fingerprint"], expected_fingerprint(seed))
+            # no data chunk at all
+            nodata = Path(tmp) / "nodata.wav"
+            nodata.write_bytes(data[:at])
+            code, out, err = run("keys", "--wav", str(nodata))
+            self.assertEqual(code, 1)
+            self.assertTrue(err)
+
     def test_host_usage(self):
         self.assertEqual(run()[0], 2)
         self.assertEqual(run("keys")[0], 2)

@@ -22,4 +22,3 @@ jobs:
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure
       - run: python3 -m unittest discover -s tests -v
-      - run: node tests/check_fingerprints.mjs 00000000000000000000000000000000

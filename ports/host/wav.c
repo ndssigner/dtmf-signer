@@ -68,14 +68,10 @@ int32_t ds_wav_read(const char *path, int16_t *samples, size_t cap, uint32_t *ra
             if (!have_fmt)
                 goto done;
             frames = size / (2 * channels);
-            if (samples != NULL && frames > cap) {
-                result = DS_ERR_SPACE;
-                goto done;
-            }
-            if (frames > 0x7fffffffu) {
-                result = DS_ERR_SPACE;
-                goto done;
-            }
+            /* the header may claim more than the file holds (a truncated or
+             * streamed recording): read what is there, up to cap */
+            if (samples != NULL && frames > cap)
+                frames = (uint32_t)cap;
             if (samples == NULL) {
                 /* count what the file really holds, not what it claims */
                 result = 0;
