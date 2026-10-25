@@ -1,0 +1,8 @@
+function(ds_add_test name)
+  add_executable(${name} ${name}.c)
+  target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(${name} PRIVATE dtmf_core ds_warnings)
+  add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+ds_add_test(test_wipe)

@@ -1,0 +1,19 @@
+/* DTMF-Signer portable core: common definitions. */
+#ifndef DS_CORE_H
+#define DS_CORE_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+#define DS_OK 0
+#define DS_ERR_ARG (-1)
+#define DS_ERR_SPACE (-2)
+#define DS_ERR_PASSPHRASE (-3)
+#define DS_ERR_DERIVE (-4)
+#define DS_ERR_SEED (-5)
+#define DS_ERR_AUDIO (-6)
+
+/* Zeroes n bytes at p; the compiler cannot elide the writes. */
+void ds_wipe(void *p, size_t n);
+
+#endif
