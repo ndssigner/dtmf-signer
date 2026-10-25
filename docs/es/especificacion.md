@@ -109,9 +109,12 @@ Los canales se agrupan por **lo que exponen**, no por puerto.
 | `LOCAL` | Parte del firmador, sin otro aparato detrás que conozca el dato | Botones, teclado PS/2, un teclado de teléfono recuperado (§4.3), la pantalla del propio firmador |
 
 Todo dato DEBE llegar al núcleo **etiquetado con su clase**. Si un montaje
-no puede distinguir de dónde llega algo (por ejemplo, un micrófono y una
-entrada de línea en el mismo pin), DEBE tratarlo como `AIR`, la clase más
-restrictiva.
+no puede distinguir sus fuentes (por ejemplo, varias entradas en un mismo
+pin o en un mismo chip decodificador), DEBE etiquetar sus datos con la clase
+más restrictiva entre ellas, en el orden `AIR`, `CABLE`, `LOCAL`: `AIR` si
+entre ellas hay un micrófono. Un teclado de teléfono conectado a la entrada
+de línea es entonces `CABLE`, que sigue aceptando el PIN y la passphrase
+(§4.2).
 
 ### 4.2 Qué se acepta por dónde
 
@@ -218,12 +221,16 @@ una comisión normal y acaba firmando una enorme.
   la lee por partes, comprueba que coincide con la entrada que se gasta y
   saca el importe de ahí.
 - Un montaje que no pueda permitírselo DEBE declarar ausente la capacidad
-  `BTC-INPUT-AMOUNTS`. Entonces muestra "comisión NO verificada" (`INV-6`),
-  y antes de transmitir la transacción el usuario comprueba la comisión real
-  con otro aparato o programa distinto del que creó la PSBT: la herramienta
-  web de ur-tones, una cartera en otro aparato, su propio nodo. El ataque
-  solo hace daño cuando se transmite la transacción firmada, así que esa
-  comprobación lo detecta.
+  `BTC-INPUT-AMOUNTS`. Entonces muestra "comisión NO verificada" (`INV-6`)
+  y, para cada entrada, la entrada que se gasta y su importe declarado.
+  **Antes de confirmar**, el usuario comprueba esos importes con otro
+  aparato o programa distinto del que creó la PSBT: la herramienta web de
+  ur-tones, una cartera en otro aparato, su propio nodo. Comprobarlo después
+  de firmar es tarde: la PSBT firmada vuelve al aparato que la creó, y uno
+  malicioso puede transmitir la transacción él mismo.
+- Dentro de una sesión, un montaje así DEBERÍA recordar las entradas que ha
+  firmado y avisar si se le pide firmar alguna de nuevo: una segunda
+  petición para las mismas entradas es justo como funciona el ataque.
 
 ## 7. Hardware mínimo
 

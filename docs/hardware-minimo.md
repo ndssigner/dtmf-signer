@@ -50,7 +50,7 @@
   - Necesita **dos resistencias de 5,1 kΩ en CC1 y CC2**; sin ellas, los cargadores USB-C a USB-C no dan tensión. La regulación la hace la fuente.
   - **Las líneas de datos no se conectan a nada**: aislamiento por hardware aunque se enchufe a un ordenador.
   - Del raíl de 5 V salen VSYS (a través de una Schottky) y los 5 V de los agujeros de PS/2 y de ampliación.
-  - **Desenchufar = apagar = seed borrada.** No hace falta interruptor.
+  - **Desenchufar = apagar = seed perdida.** No hace falta interruptor. La RAM pierde su contenido sin alimentación, aunque no al instante; por eso el firmware la pone a cero antes: al terminar, al cancelar y por inactividad.
 - **Carga de mantenimiento:** el firmware genera un pulso de ~150 mA durante ~100 ms cada ~10 s, para que los power banks no se apaguen por bajo consumo. Duración, intervalo y activación configurables; con cargador de pared se desactiva.
 - **Micro-USB de la Pico: solo para flashear.** En caso de apuro, sirve para alimentarla desde un cargador, nunca desde un ordenador: ese puerto sí tiene datos.
 - **Pilas (opcional, agujeros):** a VSYS a través de una Schottky. Recomendado 2×AAA (~200-250 sesiones de 5 min, estimado). La CR2032 es una variante experimental: a 25-45 mA su tensión cae y puede apagarse a mitad de sesión. No es peligroso, porque no hay estado que perder, pero sí molesto.
@@ -219,7 +219,7 @@ Los puertos de la placa traen su protección prevista: el MAX3232 para RS-232 y 
 ## 12. Reglas de seguridad
 
 1. **La seed nunca se muestra** por ningún canal. Solo su huella.
-2. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. Desenchufar, apagar o la inactividad la borran.
+2. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. El firmware la pone a cero al terminar, al cancelar y por inactividad; desenchufar también la pierde, aunque no al instante (ver la [§8 de la especificación](es/especificacion.md#8-guardar-la-semilla-y-borrado-de-emergencia)).
 3. **Apagado automático por inactividad**, que borra la seed.
 4. **Firmar requiere la cruceta del propio firmador.** Ningún terminal puede firmar por su cuenta.
 5. **Política de canales** de la sección 8, impuesta por el firmware.

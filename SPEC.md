@@ -106,9 +106,11 @@ Channels are grouped by **what they expose**, not by port.
 | `LOCAL` | Part of the signer, with no other device behind it that knows the data | Buttons, PS/2 keyboard, a salvaged phone keypad (§4.3), the signer's own screen |
 
 Every piece of data MUST reach the core **tagged with its class**. If a
-build cannot tell where something came from (for example, a microphone and
-a line input on the same pin), it MUST treat it as `AIR`, the most
-restrictive class.
+build cannot tell its sources apart (for example, several inputs on one pin
+or one decoder chip), it MUST tag their data with the most restrictive class
+among them, in the order `AIR`, `CABLE`, `LOCAL`: `AIR` if a microphone is
+among them. A phone keypad plugged into the line input is then `CABLE`,
+which still accepts the PIN and the passphrase (§4.2).
 
 ### 4.2 What is accepted where
 
@@ -213,11 +215,16 @@ fee and ends up signing a huge one.
   while it reads it in parts, checks that it matches the outpoint being
   spent, and takes the amount from it.
 - A build that cannot afford this MUST declare the capability
-  `BTC-INPUT-AMOUNTS` absent. It then shows "fee NOT verified" (`INV-6`),
-  and before the transaction is broadcast the user checks the real fee with
-  another device or program than the one that made the PSBT: the ur-tones
-  web tool, a wallet on another device, their own node. The attack only does
-  harm once the signed transaction is broadcast, so that check catches it.
+  `BTC-INPUT-AMOUNTS` absent. It then shows "fee NOT verified" (`INV-6`)
+  and, for every input, the outpoint and its declared amount. **Before
+  confirming**, the user checks those amounts with another device or program
+  than the one that made the PSBT: the ur-tones web tool, a wallet on
+  another device, their own node. Checking after signing is too late: the
+  signed PSBT goes back to the device that made it, and a malicious one can
+  broadcast the transaction itself.
+- Within a session, such a build SHOULD remember the inputs it has signed,
+  and warn if it is asked to sign any of them again: a second request for
+  the same inputs is how the attack works.
 
 ## 7. Minimum hardware
 

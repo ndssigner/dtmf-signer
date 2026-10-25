@@ -48,8 +48,8 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** difícil de comprar nuevo en muchos sitios, pero habitual en
   teléfonos viejos, contestadores y centralitas. Un chip de origen
-  desconocido es un decodificador, no guarda secretos: nunca ve la semilla
-  decodificada, solo tonos.
+  desconocido decodifica todas las teclas, también las de una semilla sin
+  cifrar, pero no guarda nada: no tiene memoria ni firmware.
 - **Vectores:** los vectores de ur-tones, entregados como teclas.
 
 ### `IN-MIC` — micrófono
@@ -246,7 +246,8 @@ Crece con cada montaje que alguien haga y mida.
   unos cientos de bytes, pero puede llegar a decenas de kilobytes).
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** sin ella, el firmador muestra "comisión NO verificada" y el
-  usuario comprueba la comisión en otro sitio antes de transmitir. Ver la
+  importe declarado de cada entrada, y el usuario los comprueba en otro
+  sitio antes de confirmar. Ver la
   [§6 de la especificación](especificacion.md#6-el-ataque-de-la-comisión-en-segwit-v0).
 - **Vectores:** previstos.
 
@@ -254,13 +255,14 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Qué hace:** un microcontrolador se encarga de la entrada y la salida, y
   otro guarda la semilla y firma. Se comunican por serie con tramas de
-  ur-tones (`ut_frame`), sin audio. Solo el que firma llega a ver la
-  semilla.
+  ur-tones (`ut_frame`), sin audio. La separación aísla código y memoria,
+  no secretos.
 - **Necesita:** dos microcontroladores y un enlace serie entre ellos.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** el protocolo interno debe ser tan estricto como la política
-  de canales; el lado de entrada y salida ve el PIN y la passphrase de
-  camino.
+  de canales. El lado de entrada y salida maneja todo lo que se introduce
+  (el PIN, la passphrase, la semilla de camino), así que hay que confiar en
+  él como en el lado que firma.
 - **Vectores:** previstos.
 
 ### `SEEDCRAFT-CONSOLE` — entrada de SeedCraft en consola
@@ -284,8 +286,8 @@ Crece con cada montaje que alguien haga y mida.
 - **Piezas:** un microcontrolador de 8 bits, un MT8870 recuperado, un jack
   de entrada, un pulsador, un zumbador.
 - **Qué le falta:** pantalla propia, `STORE-SEED`, `BTC-TAPROOT`,
-  `BTC-MULTISIG`; quizá `BTC-INPUT-AMOUNTS`, y entonces la comisión se
-  comprueba en otro sitio antes de transmitir. Firmar es lento.
+  `BTC-MULTISIG`; quizá `BTC-INPUT-AMOUNTS`, y entonces los importes de las
+  entradas se comprueban en otro sitio antes de confirmar. Firmar es lento.
 
 ### `PROFILE-PICO-REF` — Referencia Pico
 
@@ -302,5 +304,7 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Capacidades:** las de `PROFILE-PICO-REF`, más `IN-UART`, `OUT-UART`,
   `VERIFY-TERMINAL`, `IN-PS2`, `VERIFY-TV`, `OUT-LINE` y, opcionalmente,
-  `STORE-SEED` y `SEEDCRAFT-CONSOLE`.
+  `SEEDCRAFT-CONSOLE`. Sin `STORE-SEED`: esta placa no guarda estado. Una
+  variante que lo añada necesita el borrado de emergencia de la §8 de la
+  especificación.
 - **Piezas:** la placa de [`docs/hardware-minimo.md`](../hardware-minimo.md).

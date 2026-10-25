@@ -47,8 +47,9 @@ build someone makes and measures.
   colour-TV crystal) and a few passive parts.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** hard to buy new in many places, but common in old telephones,
-  answering machines and switchboards. A chip of unknown origin is a
-  decoder, not a secret-holder: it never sees the seed decoded, only tones.
+  answering machines and switchboards. A chip of unknown origin decodes
+  every key, including those of an unencrypted seed, but keeps nothing: it
+  has no memory and no firmware.
 - **Vectors:** ur-tones' own vectors, fed as keys.
 
 ### `IN-MIC` — microphone
@@ -236,8 +237,9 @@ build someone makes and measures.
   more data to receive (a previous transaction is usually a few hundred
   bytes, but can be tens of kilobytes).
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
-- **Risks:** without it, the signer shows "fee NOT verified" and the user
-  checks the fee elsewhere before broadcasting. See
+- **Risks:** without it, the signer shows "fee NOT verified" and every
+  input's declared amount, and the user checks them elsewhere before
+  confirming. See
   [§6 of the specification](../SPEC.md#6-the-segwit-v0-fee-attack).
 - **Vectors:** planned.
 
@@ -245,12 +247,14 @@ build someone makes and measures.
 
 - **What it does:** one microcontroller handles input and output, and
   another one holds the seed and signs. They talk over serial with
-  ur-tones frames (`ut_frame`), without audio. Only the signing one ever
-  sees the seed.
+  ur-tones frames (`ut_frame`), without audio. The split separates code and
+  memory, not secrets.
 - **Needs:** two microcontrollers and a serial link between them.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
-- **Risks:** the internal protocol must be as strict as the channel policy;
-  the input-and-output side sees the PIN and the passphrase on their way.
+- **Risks:** the internal protocol must be as strict as the channel policy.
+  The input-and-output side handles everything entered (the PIN, the
+  passphrase, the seed on its way), so it must be trusted like the signing
+  side.
 - **Vectors:** planned.
 
 ### `SEEDCRAFT-CONSOLE` — SeedCraft console entry
@@ -273,8 +277,8 @@ build someone makes and measures.
 - **Parts:** an 8-bit microcontroller, a salvaged MT8870, an input jack, a
   push button, a buzzer.
 - **What it lacks:** its own screen, `STORE-SEED`, `BTC-TAPROOT`,
-  `BTC-MULTISIG`; possibly `BTC-INPUT-AMOUNTS`, and then the fee is checked
-  elsewhere before broadcasting. Signing is slow.
+  `BTC-MULTISIG`; possibly `BTC-INPUT-AMOUNTS`, and then the input amounts
+  are checked elsewhere before confirming. Signing is slow.
 
 ### `PROFILE-PICO-REF` — Pico reference
 
@@ -290,7 +294,8 @@ build someone makes and measures.
 ### `PROFILE-PICO-FULL` — Full Pico
 
 - **Capabilities:** those of `PROFILE-PICO-REF`, plus `IN-UART`,
-  `OUT-UART`, `VERIFY-TERMINAL`, `IN-PS2`, `VERIFY-TV`, `OUT-LINE`, and,
-  optionally, `STORE-SEED` and `SEEDCRAFT-CONSOLE`.
+  `OUT-UART`, `VERIFY-TERMINAL`, `IN-PS2`, `VERIFY-TV`, `OUT-LINE`, and, optionally,
+  `SEEDCRAFT-CONSOLE`. No `STORE-SEED`: this board is stateless. A variant
+  that adds it needs the emergency wipe of §8 of the specification.
 - **Parts:** the board in [`docs/hardware-minimo.md`](hardware-minimo.md)
   (in Spanish).
