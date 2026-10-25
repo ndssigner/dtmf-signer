@@ -7,3 +7,4 @@ endfunction()
 
 ds_add_test(test_wipe)
 ds_add_test(test_hash)
+ds_add_test(test_bip39)
