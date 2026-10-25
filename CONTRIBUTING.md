@@ -63,11 +63,14 @@ a pull request for the implementations, following its CONTRIBUTING.
 ## Before a pull request
 
 ```bash
-python3 -m unittest discover -s tests   # the tests
+cmake -S . -B build -G Ninja            # the core (clone with --recurse-submodules)
+cmake --build build
+ctest --test-dir build --output-on-failure   # the core's C tests
+python3 -m unittest discover -s tests   # the tests (they run the host tool built above)
 python3 tools/check_docs.py             # links, anchors, English/Spanish parity
 ```
 
-Both must pass; CI runs them on every pull request.
+All of them must pass; CI runs them on every pull request.
 
 ## Rules
 

@@ -1,0 +1,96 @@
+{
+ "format": "dtmf-signer-keys",
+ "version": 0,
+ "note": "Public test seeds only.",
+ "vectors": [
+  {
+   "name": "BIP-39 test seed, BIP-84 account",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "73c5da0a",
+   "wallet_fingerprint": "73c5da0a",
+   "xpub": "xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V"
+  },
+  {
+   "name": "NDS-Signer test seed",
+   "entropy": "6aa74bc073a67104570cca7a05839ca5",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "8b218e81",
+   "wallet_fingerprint": "8b218e81"
+  },
+  {
+   "name": "NDS-Signer test seed (PIN)",
+   "entropy": "6aa74bc073a67104570cca7a05839ca5",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "8b218e81",
+   "wallet_fingerprint": "8b218e81"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 4",
+   "entropy": "5bbd9d71a8ec7990831aff359d426545",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "0948d268",
+   "wallet_fingerprint": "0948d268"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 4 (PIN)",
+   "entropy": "5bbd9d71a8ec7990831aff359d426545",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "0948d268",
+   "wallet_fingerprint": "0948d268"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 5",
+   "entropy": "6462686427203385c2337dd84c5089fd",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "b237fe9d",
+   "wallet_fingerprint": "b237fe9d"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 5 (PIN)",
+   "entropy": "6462686427203385c2337dd84c5089fd",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "b237fe9d",
+   "wallet_fingerprint": "b237fe9d"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 1",
+   "entropy": "0e74b64107f94cc0ccfae6a13dcbec3662154fec67e0e00999c07892597d190a",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "8c65eb9f",
+   "wallet_fingerprint": "8c65eb9f"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 1 (PIN)",
+   "entropy": "0e74b64107f94cc0ccfae6a13dcbec3662154fec67e0e00999c07892597d190a",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "8c65eb9f",
+   "wallet_fingerprint": "8c65eb9f"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 3",
+   "entropy": "cfca8c658bc81962549252bc7ac3ba5b0b01d26bcae89f2b5ecebe263dcb2a36",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "87c3c6f0",
+   "wallet_fingerprint": "87c3c6f0"
+  },
+  {
+   "name": "SeedSigner SeedQR test vector 3 (PIN)",
+   "entropy": "cfca8c658bc81962549252bc7ac3ba5b0b01d26bcae89f2b5ecebe263dcb2a36",
+   "passphrase": "",
+   "testnet": false,
+   "seed_fingerprint": "87c3c6f0",
+   "wallet_fingerprint": "87c3c6f0"
+  }
+ ]
+}
