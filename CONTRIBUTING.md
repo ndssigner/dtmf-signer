@@ -14,10 +14,12 @@ issue or pull request here, under the same rules.
 - **The catalog**, [`docs/catalog.md`](docs/catalog.md) and
   [`docs/es/catalogo.md`](docs/es/catalogo.md): the capabilities, what each
   one needs and costs, and the profiles that combine them.
-- **The test vectors**, `vectors/` (planned): the contract. A build that
-  reproduces them does what the specification says.
-- **The reference firmware** (planned): a portable core, a build for a
-  computer, and a port for the Raspberry Pi Pico.
+- **The test vectors**, `vectors/`: the contract. A build that reproduces
+  them does what the specification says. So far `keys-v0.json` (PSBT
+  vectors are still planned).
+- **The reference firmware**: a portable core (`core/`, the keys so far) and
+  a build for a computer (`ports/host`) exist; the port for the Raspberry
+  Pi Pico is still planned.
 - **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md),
   and the risk analysis, [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md)
   (both in Spanish for now).
@@ -33,7 +35,7 @@ invariants, the channel policy, verification, the rules for storage.
    it solves, and what it costs the smallest builds: the specification must
    never stop a scrapyard build from being possible.
 2. **Then one pull request** with `SPEC.md`, its Spanish translation, and the
-   vectors that show the change (once `vectors/` exists). The two languages
+   vectors that show the change. The two languages
    must stay in step: `python3 tools/check_docs.py` checks it.
 
 ### 2. A capability or a build for the catalog
