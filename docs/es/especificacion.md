@@ -256,8 +256,11 @@ De las §2–§5 se deduce que todo montaje necesita al menos:
 
 **Un ejemplo del suelo:** un microcontrolador, un jack de entrada (con un
 chip decodificador MT8870 si el procesador es lento), un pulsador y un
-zumbador; verificación con dos escuchadores independientes; el PIN con un
-teclado de teléfono recuperado o por cable. Es el perfil `PROFILE-SCRAP`.
+auricular o un altavoz pequeño recuperados; verificación con dos
+escuchadores independientes; el PIN con un teclado de teléfono recuperado o
+por cable. O, en lugar del auricular y los escuchadores, una tele vieja:
+muestra el resumen, y la PSBT firmada como un QR. Es el perfil
+`PROFILE-SCRAP`.
 
 ## 8. Guardar la semilla y borrado de emergencia
 
@@ -310,8 +313,12 @@ procesador; sus riesgos; los vectores que la comprueban.
 **Perfiles:**
 
 - `PROFILE-SCRAP` — **Chatarra mínima:** un microcontrolador de 8 bits, un
-  MT8870 recuperado, un jack de entrada, un pulsador y un zumbador; varios
-  escuchadores; sin almacenamiento.
+  MT8870 recuperado, un jack de entrada, un pulsador y un auricular
+  recuperado; varios escuchadores, o una tele vieja con códigos QR; sin
+  almacenamiento.
+- `PROFILE-CABLE-QR` — **Cable y QR:** escucha por cable y habla por QR: un
+  jack de entrada, unos pocos botones y una pantalla gráfica, sin ningún
+  camino por el aire.
 - `PROFILE-PICO-REF` — **Referencia Pico:** el prototipo actual, sobre una
   Raspberry Pi Pico.
 - `PROFILE-PICO-FULL` — **Pico completo:** la placa de

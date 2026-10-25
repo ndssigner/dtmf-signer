@@ -165,8 +165,17 @@ Crece con cada montaje que alguien haga y mida.
   como códigos QR en la pantalla del firmador (`AIR`): fijos, o URs animados
   para datos largos, como los leen carteras como Sparrow. Con `IN-LINE`, un
   montaje puede escuchar por cable y hablar por QR, sin altavoz ni micrófono.
-- **Necesita:** una pantalla (`VERIFY-SCREEN`) y un generador de QR (los hay
-  pequeños en C, sin malloc). La imagen invertida (fondo claro, módulos
+- **Necesita:** una pantalla gráfica (`VERIFY-SCREEN`) o una tele
+  (`VERIFY-TV`), y un generador de QR (los hay pequeños en C, sin malloc).
+  Una LCD de caracteres (HD44780) no puede dibujarlos; las pantallas
+  gráficas de los móviles antiguos (PCD8544, 84 × 48) dan para códigos
+  pequeños, hasta la versión 5. Una tele vieja es la opción más fácil de
+  recuperar: un microcontrolador de 8 bits saca vídeo compuesto de 128 × 96
+  en blanco y negro con dos resistencias (como hace la librería TVout de
+  Arduino), y en 96 líneas cabe un QR versión 17 (85 módulos) a 1 píxel por
+  módulo; pero esa imagen ocupa 1,5 KB, casi toda la RAM de un ATmega328, así
+  que hay que bajar la resolución (en 64 × 64 aún cabe la versión 11) o
+  dibujarla por partes. La imagen invertida (fondo claro, módulos
   oscuros, como en papel) y el contraste ajustable, bajo por defecto. Medido
   en una OLED de 128 × 64: cabe hasta un QR versión 7 (45 módulos) a 1 píxel
   por módulo, suficiente para un descriptor BIP-84 (146 caracteres) en un
@@ -210,7 +219,7 @@ Crece con cada montaje que alguien haga y mida.
 ### `VERIFY-TV` — una tele
 
 - **Qué hace:** el resumen en una tele, como vídeo compuesto en blanco y
-  negro.
+  negro. También puede mostrar códigos QR (`OUT-QR`).
 - **Necesita:** dos pines y dos resistencias hasta un conector RCA, y la CPU
   o un periférico para generar la señal.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
@@ -316,12 +325,29 @@ Crece con cada montaje que alguien haga y mida.
 ### `PROFILE-SCRAP` — Chatarra mínima
 
 - **Capacidades:** `TONES-CHIP`, `IN-LINE`, `IN-BUTTONS` (un pulsador) o
-  `IN-PHONEPAD`, `OUT-AIR`, `VERIFY-LISTENERS`.
+  `IN-PHONEPAD`, `OUT-AIR`, `VERIFY-LISTENERS`. Variante: `VERIFY-TV` y
+  `OUT-QR` en una tele vieja en lugar de `OUT-AIR` y `VERIFY-LISTENERS`: la
+  tele muestra el resumen, y la PSBT firmada como un QR.
 - **Piezas:** un microcontrolador de 8 bits, un MT8870 recuperado, un jack
-  de entrada, un pulsador, un zumbador.
+  de entrada, un pulsador, un auricular o un altavoz pequeño recuperados (no
+  un zumbador magnético); o, en la variante, dos resistencias y un cable RCA
+  hasta la tele.
 - **Qué le falta:** pantalla propia, `STORE-SEED`, `BTC-TAPROOT`,
   `BTC-MULTISIG`; quizá `BTC-INPUT-AMOUNTS`, y entonces los importes de las
   entradas se comprueban en otro sitio antes de confirmar. Firmar es lento.
+
+### `PROFILE-CABLE-QR` — Cable y QR
+
+- **Capacidades:** `TONES-SW`, `IN-LINE`, `IN-BUTTONS`, `VERIFY-SCREEN`,
+  `OUT-QR`, `BTC-INPUT-AMOUNTS`.
+- **Piezas:** un microcontrolador de 32 bits con ADC (una Raspberry Pi Pico),
+  una pantalla gráfica (vale una OLED de 128 × 64; una de 128 × 128 es más
+  rápida con datos largos), un jack o conector de 3,5 mm con su etapa de
+  entrada, unos pocos pulsadores.
+- **Qué le falta:** cualquier camino por el aire: sin micrófono ni altavoz,
+  así que no puede escuchar la habitación. Un móvil sin jack de auriculares
+  necesita un adaptador para enviar los tonos. También `STORE-SEED`,
+  `BTC-TAPROOT`, `BTC-MULTISIG`.
 
 ### `PROFILE-PICO-REF` — Referencia Pico
 

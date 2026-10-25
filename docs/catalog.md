@@ -159,8 +159,16 @@ build someone makes and measures.
   QR codes on the signer's screen (`AIR`): static, or animated URs for long
   data, as wallets such as Sparrow read them. With `IN-LINE`, a build can
   listen by cable and speak by QR, with no speaker and no microphone.
-- **Needs:** a screen (`VERIFY-SCREEN`) and a QR encoder (small ones exist in
-  C, without malloc). The image inverted (light background, dark modules,
+- **Needs:** a graphic screen (`VERIFY-SCREEN`) or a television
+  (`VERIFY-TV`), and a QR encoder (small ones exist in C, without malloc).
+  A character LCD (HD44780) cannot draw one; the graphic screens of old
+  mobile phones (PCD8544, 84 × 48) fit small codes, up to version 5. An old
+  television is the most salvageable option: an 8-bit microcontroller drives
+  128 × 96 black-and-white composite video with two resistors (as the
+  Arduino TVout library does), and 96 lines fit a version 17 QR (85 modules)
+  at 1 pixel per module; but that image takes 1.5 KB, most of an ATmega328's
+  RAM, so lower the resolution (64 × 64 still fits version 11) or draw it in
+  parts. The image inverted (light background, dark modules,
   as on paper) and the contrast adjustable, low by default. Measured on a
   128 × 64 OLED: up to a version 7 QR (45 modules) fits at 1 pixel per
   module, enough for a BIP-84 descriptor (146 characters) in one code. A
@@ -201,7 +209,7 @@ build someone makes and measures.
 ### `VERIFY-TV` — a television
 
 - **What it does:** the summary on a television, as black-and-white
-  composite video.
+  composite video. It can also show QR codes (`OUT-QR`).
 - **Needs:** two pins and two resistors to an RCA jack, and the CPU or a
   peripheral to generate the signal.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
@@ -304,12 +312,28 @@ build someone makes and measures.
 ### `PROFILE-SCRAP` — Scrapyard minimum
 
 - **Capabilities:** `TONES-CHIP`, `IN-LINE`, `IN-BUTTONS` (one push button)
-  or `IN-PHONEPAD`, `OUT-AIR`, `VERIFY-LISTENERS`.
+  or `IN-PHONEPAD`, `OUT-AIR`, `VERIFY-LISTENERS`. Variant: `VERIFY-TV` and
+  `OUT-QR` on an old television instead of `OUT-AIR` and
+  `VERIFY-LISTENERS`: the television shows the summary, and the signed PSBT
+  as a QR.
 - **Parts:** an 8-bit microcontroller, a salvaged MT8870, an input jack, a
-  push button, a buzzer.
+  push button, a salvaged earbud or small speaker (not a magnetic buzzer);
+  or, in the variant, two resistors and an RCA lead to the television.
 - **What it lacks:** its own screen, `STORE-SEED`, `BTC-TAPROOT`,
   `BTC-MULTISIG`; possibly `BTC-INPUT-AMOUNTS`, and then the input amounts
   are checked elsewhere before confirming. Signing is slow.
+
+### `PROFILE-CABLE-QR` — Cable and QR
+
+- **Capabilities:** `TONES-SW`, `IN-LINE`, `IN-BUTTONS`, `VERIFY-SCREEN`,
+  `OUT-QR`, `BTC-INPUT-AMOUNTS`.
+- **Parts:** a 32-bit microcontroller with an ADC (a Raspberry Pi Pico), one
+  graphic screen (a 128 × 64 OLED works; 128 × 128 is faster for long
+  data), a 3.5 mm jack or plug with its input stage, a few push buttons.
+- **What it lacks:** any air path: no microphone and no speaker, so it
+  cannot listen to the room. A phone without a headphone jack needs an
+  adapter to send the tones. Also `STORE-SEED`, `BTC-TAPROOT`,
+  `BTC-MULTISIG`.
 
 ### `PROFILE-PICO-REF` — Pico reference
 

@@ -248,8 +248,10 @@ From §2–§5, every build needs at least:
 
 **An example of the floor:** a microcontroller, an input jack (with an
 MT8870 decoder chip if the processor is slow), one push button and a
-buzzer; verification with two independent listeners; the PIN through a
-salvaged phone keypad or by cable. This is the profile `PROFILE-SCRAP`.
+salvaged earbud or small speaker; verification with two independent
+listeners; the PIN through a salvaged phone keypad or by cable. Or, instead
+of the earbud and the listeners, an old television: it shows the summary,
+and the signed PSBT as a QR. This is the profile `PROFILE-SCRAP`.
 
 ## 8. Seed storage and emergency wipe
 
@@ -301,8 +303,11 @@ class; its risks; the vectors that check it.
 **Profiles:**
 
 - `PROFILE-SCRAP` — **Scrapyard minimum:** an 8-bit microcontroller, a
-  salvaged MT8870, an input jack, a push button and a buzzer; several
-  listeners; no storage.
+  salvaged MT8870, an input jack, a push button and a salvaged earbud;
+  several listeners, or an old television with QR codes; no storage.
+- `PROFILE-CABLE-QR` — **Cable and QR:** listens by cable and speaks by QR:
+  an input jack, a few buttons and one graphic screen, with no air path at
+  all.
 - `PROFILE-PICO-REF` — **Pico reference:** the current prototype, on a
   Raspberry Pi Pico.
 - `PROFILE-PICO-FULL` — **Full Pico:** the board in
