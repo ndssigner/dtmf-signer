@@ -54,7 +54,7 @@ Every build MUST provide all of these.
 | `OP-SEED` | Load the seed | In ur-tones tones, encrypted with a PIN or not. Held in RAM only. |
 | `OP-PASSPHRASE` | Take a passphrase | The signer MUST accept one; using it is up to the user. ASCII only. |
 | `OP-FINGERPRINT` | Present fingerprints | On the verification output (§5). The seed's, after loading it (as ur-tones defines it); the final wallet's, after the passphrase. |
-| `OP-XPUB` | Return the xpub | Of the BIP84 account `m/84'/0'/0'` (and its test-network equivalent `m/84'/1'/0'`), with the master key fingerprint. |
+| `OP-XPUB` | Return the xpub | Of the BIP84 account `m/84'/0'/0'` (and its test-network equivalent `m/84'/1'/0'`), with the master key fingerprint. The descriptor is `wpkh(@0)`, with the origin written with apostrophes, as in `/84'/0'/0'`. |
 | `OP-SIGN` | Sign a P2WPKH PSBT | Processed in parts, never held whole in RAM (§2.1). |
 | `OP-WIPE` | Wipe | RAM set to zero when done, on cancel, and on the emergency wipe (§8). |
 | `OP-TESTNET` | Test networks | testnet and signet, to practise without real money. |
@@ -306,12 +306,15 @@ class; its risks; the vectors that check it.
 
 ## 10. Test vectors
 
-*Planned.* Test vectors will live in `vectors/`, as JSON, like ur-tones'.
+Test vectors live in `vectors/`, as JSON, like ur-tones'.
 **Public test seeds and testnet PSBTs only.**
 
-- **Every core operation:** decrypting the seed with a PIN; BIP39 to seed,
-  with and without a passphrase; fingerprints; the xpub; the summary and the
-  signature of a PSBT.
+- **Done:** `vectors/keys-v0.json` has the seed and wallet fingerprints and
+  the BIP84 xpub of public test seeds. Its seed fingerprints are checked
+  against ur-tones' own JavaScript, an implementation independent of the C
+  core (`tests/check_fingerprints.mjs`).
+- **Planned, for every core operation:** decrypting the seed with a PIN;
+  BIP39 to seed with a passphrase; the summary and the signature of a PSBT.
 - **Malicious PSBTs**, which a build MUST reject or flag: fake change (our
   path, someone else's key), change to another address type, the wrong
   network, a sighash other than `SIGHASH_ALL`, an out-of-proportion fee,

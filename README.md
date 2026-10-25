@@ -25,7 +25,7 @@ it takes. The [catalog](docs/catalog.md) lists the capabilities and the
 profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
 comes later.
 
-> **Status: design stage.** There is no firmware or hardware yet. This
+> **Status: design stage.** There is no device firmware or hardware yet. This
 > repository holds the specification and its catalog (in English and
 > Spanish), and the Pico hardware specification and the risk analysis (in
 > Spanish for now). Do not use it with funds.
@@ -161,7 +161,8 @@ The whole analysis, by distribution format and by use, is in
 ## Roadmap
 
 - [x] Hardware-independent specification and capability catalog
-- [ ] Core firmware and a computer build, tested with ur-tones recordings
+- [x] Core: seed to fingerprints and xpub, and a computer build (`ports/host`)
+- [ ] Core firmware, tested with ur-tones recordings
 - [ ] Software tone decoder on the Pico reference, tested with ur-tones
 - [ ] Schematic, breadboard and perfboard guides, and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
@@ -189,6 +190,11 @@ for the use anyone makes of this design.
   formats (Spanish).
 - [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): the risk analysis:
   supply chain, buyer privacy, firmware, use and physical threats (Spanish).
+- [`core/`](core/): the portable C99 core: SHA-512, HMAC, PBKDF2, BIP39,
+  BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub.
+- [`ports/host/`](ports/host/): the computer build, `dtmf-signer-host keys`:
+  from a UR, tones or a WAV to the fingerprints, the xpub and the descriptor.
+- [`vectors/`](vectors/): test vectors (JSON), public test seeds only.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.
 

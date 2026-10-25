@@ -28,7 +28,7 @@ y cuánto tarda. El [catálogo](docs/es/catalogo.md) enumera las capacidades
 y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
 Pico 2 vendrá después.
 
-> **Estado: fase de diseño.** Todavía no hay firmware ni hardware. Este
+> **Estado: fase de diseño.** Todavía no hay firmware de aparato ni hardware. Este
 > repositorio contiene la especificación y su catálogo (en inglés y en
 > español), y la especificación de hardware de la Pico y el análisis de
 > riesgos (de momento en español). No lo uses con fondos.
@@ -173,7 +173,8 @@ El análisis completo, por formato de distribución y por uso, está en
 ## Hoja de ruta
 
 - [x] Especificación independiente del hardware y catálogo de capacidades
-- [ ] Firmware del núcleo y una versión para ordenador, probados con grabaciones de ur-tones
+- [x] Núcleo: de la semilla a las huellas y la XPUB, y una versión para ordenador (`ports/host`)
+- [ ] Firmware del núcleo, probado con grabaciones de ur-tones
 - [ ] Decodificador de tonos por software en la referencia Pico, probado con ur-tones
 - [ ] Esquema, guías de protoboard y placa perforada, y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
@@ -203,6 +204,13 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 - [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): el análisis de
   riesgos: cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
+- [`core/`](core/): el núcleo portable en C99: SHA-512, HMAC, PBKDF2, BIP39,
+  BIP32 y la cartera BIP84, de una semilla a sus huellas y su XPUB.
+- [`ports/host/`](ports/host/): la versión para ordenador,
+  `dtmf-signer-host keys`: de un UR, tonos o un WAV a las huellas, la XPUB y
+  el descriptor.
+- [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
+  públicas.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el
   catálogo o portar DTMF-Signer (en inglés).
 

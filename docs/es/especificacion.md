@@ -56,7 +56,7 @@ Todo montaje DEBE ofrecer todas estas.
 | `OP-SEED` | Cargar la semilla | En tonos de ur-tones, cifrada con PIN o sin cifrar. Solo en RAM. |
 | `OP-PASSPHRASE` | Recibir una passphrase | El firmador DEBE aceptarla; usarla es decisión del usuario. Solo ASCII. |
 | `OP-FINGERPRINT` | Presentar las huellas | Por la salida de verificación (§5). La de la semilla, tras cargarla (como la define ur-tones); la de la cartera final, tras la passphrase. |
-| `OP-XPUB` | Devolver la XPUB | De la cuenta BIP84 `m/84'/0'/0'` (y su equivalente en redes de prueba, `m/84'/1'/0'`), con la huella de la clave maestra. |
+| `OP-XPUB` | Devolver la XPUB | De la cuenta BIP84 `m/84'/0'/0'` (y su equivalente en redes de prueba, `m/84'/1'/0'`), con la huella de la clave maestra. El descriptor es `wpkh(@0)`, con el origen escrito con apóstrofos, como en `/84'/0'/0'`. |
 | `OP-SIGN` | Firmar una PSBT P2WPKH | Procesada por partes, nunca entera en RAM (§2.1). |
 | `OP-WIPE` | Borrar | RAM a cero al terminar, al cancelar y con el borrado de emergencia (§8). |
 | `OP-TESTNET` | Redes de prueba | testnet y signet, para practicar sin dinero real. |
@@ -314,12 +314,16 @@ procesador; sus riesgos; los vectores que la comprueban.
 
 ## 10. Vectores de prueba
 
-*Previstos.* Los vectores de prueba estarán en `vectors/`, en JSON, como
-los de ur-tones. **Solo semillas de prueba públicas y PSBT de testnet.**
+Los vectores de prueba están en `vectors/`, en JSON, como los de ur-tones.
+**Solo semillas de prueba públicas y PSBT de testnet.**
 
-- **Cada operación del núcleo:** descifrar la semilla con un PIN; de BIP39 a
-  semilla, con y sin passphrase; las huellas; la XPUB; el resumen y la firma
-  de una PSBT.
+- **Hecho:** `vectors/keys-v0.json` tiene las huellas de la semilla y de la
+  cartera y la XPUB BIP84 de semillas de prueba públicas. Sus huellas de la
+  semilla están comprobadas con el JavaScript de ur-tones, una
+  implementación independiente del núcleo en C
+  (`tests/check_fingerprints.mjs`).
+- **Previsto, para cada operación del núcleo:** descifrar la semilla con un
+  PIN; de BIP39 a semilla con passphrase; el resumen y la firma de una PSBT.
 - **PSBT malintencionadas**, que un montaje DEBE rechazar o marcar: un
   cambio falso (nuestra ruta, la clave de otro), un cambio a otro tipo de
   dirección, la red equivocada, un sighash distinto de `SIGHASH_ALL`, una
