@@ -4,55 +4,64 @@
 
 #include <string.h>
 
-static const uint64_t K512[80] = {
-    0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL,
-    0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
-    0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL,
-    0x923f82a4af194f9bULL, 0xab1c5ed5da6d8118ULL,
-    0xd807aa98a3030242ULL, 0x12835b0145706fbeULL,
-    0x243185be4ee4b28cULL, 0x550c7dc3d5ffb4e2ULL,
-    0x72be5d74f27b896fULL, 0x80deb1fe3b1696b1ULL,
-    0x9bdc06a725c71235ULL, 0xc19bf174cf692694ULL,
-    0xe49b69c19ef14ad2ULL, 0xefbe4786384f25e3ULL,
-    0x0fc19dc68b8cd5b5ULL, 0x240ca1cc77ac9c65ULL,
-    0x2de92c6f592b0275ULL, 0x4a7484aa6ea6e483ULL,
-    0x5cb0a9dcbd41fbd4ULL, 0x76f988da831153b5ULL,
-    0x983e5152ee66dfabULL, 0xa831c66d2db43210ULL,
-    0xb00327c898fb213fULL, 0xbf597fc7beef0ee4ULL,
-    0xc6e00bf33da88fc2ULL, 0xd5a79147930aa725ULL,
-    0x06ca6351e003826fULL, 0x142929670a0e6e70ULL,
-    0x27b70a8546d22ffcULL, 0x2e1b21385c26c926ULL,
-    0x4d2c6dfc5ac42aedULL, 0x53380d139d95b3dfULL,
-    0x650a73548baf63deULL, 0x766a0abb3c77b2a8ULL,
-    0x81c2c92e47edaee6ULL, 0x92722c851482353bULL,
-    0xa2bfe8a14cf10364ULL, 0xa81a664bbc423001ULL,
-    0xc24b8b70d0f89791ULL, 0xc76c51a30654be30ULL,
-    0xd192e819d6ef5218ULL, 0xd69906245565a910ULL,
-    0xf40e35855771202aULL, 0x106aa07032bbd1b8ULL,
-    0x19a4c116b8d2d0c8ULL, 0x1e376c085141ab53ULL,
-    0x2748774cdf8eeb99ULL, 0x34b0bcb5e19b48a8ULL,
-    0x391c0cb3c5c95a63ULL, 0x4ed8aa4ae3418acbULL,
-    0x5b9cca4f7763e373ULL, 0x682e6ff3d6b2b8a3ULL,
-    0x748f82ee5defb2fcULL, 0x78a5636f43172f60ULL,
-    0x84c87814a1f0ab72ULL, 0x8cc702081a6439ecULL,
-    0x90befffa23631e28ULL, 0xa4506cebde82bde9ULL,
-    0xbef9a3f7b2c67915ULL, 0xc67178f2e372532bULL,
-    0xca273eceea26619cULL, 0xd186b8c721c0c207ULL,
-    0xeada7dd6cde0eb1eULL, 0xf57d4f7fee6ed178ULL,
-    0x06f067aa72176fbaULL, 0x0a637dc5a2c898a6ULL,
-    0x113f9804bef90daeULL, 0x1b710b35131c471bULL,
-    0x28db77f523047d84ULL, 0x32caab7b40c72493ULL,
-    0x3c9ebe0a15c9bebcULL, 0x431d67c49c100d4cULL,
-    0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL,
-    0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL,
+#include "ur_tones.h"
+
+/* 64-bit constants stored as (high, low) 32-bit pairs: ur-tones has no
+ * 64-bit ROM read, so rom64() rebuilds them from two UT_ROM_U32 reads. */
+static const uint32_t K512[160] UT_ROM = {
+    0x428a2f98u, 0xd728ae22u, 0x71374491u, 0x23ef65cdu,
+    0xb5c0fbcfu, 0xec4d3b2fu, 0xe9b5dba5u, 0x8189dbbcu,
+    0x3956c25bu, 0xf348b538u, 0x59f111f1u, 0xb605d019u,
+    0x923f82a4u, 0xaf194f9bu, 0xab1c5ed5u, 0xda6d8118u,
+    0xd807aa98u, 0xa3030242u, 0x12835b01u, 0x45706fbeu,
+    0x243185beu, 0x4ee4b28cu, 0x550c7dc3u, 0xd5ffb4e2u,
+    0x72be5d74u, 0xf27b896fu, 0x80deb1feu, 0x3b1696b1u,
+    0x9bdc06a7u, 0x25c71235u, 0xc19bf174u, 0xcf692694u,
+    0xe49b69c1u, 0x9ef14ad2u, 0xefbe4786u, 0x384f25e3u,
+    0x0fc19dc6u, 0x8b8cd5b5u, 0x240ca1ccu, 0x77ac9c65u,
+    0x2de92c6fu, 0x592b0275u, 0x4a7484aau, 0x6ea6e483u,
+    0x5cb0a9dcu, 0xbd41fbd4u, 0x76f988dau, 0x831153b5u,
+    0x983e5152u, 0xee66dfabu, 0xa831c66du, 0x2db43210u,
+    0xb00327c8u, 0x98fb213fu, 0xbf597fc7u, 0xbeef0ee4u,
+    0xc6e00bf3u, 0x3da88fc2u, 0xd5a79147u, 0x930aa725u,
+    0x06ca6351u, 0xe003826fu, 0x14292967u, 0x0a0e6e70u,
+    0x27b70a85u, 0x46d22ffcu, 0x2e1b2138u, 0x5c26c926u,
+    0x4d2c6dfcu, 0x5ac42aedu, 0x53380d13u, 0x9d95b3dfu,
+    0x650a7354u, 0x8baf63deu, 0x766a0abbu, 0x3c77b2a8u,
+    0x81c2c92eu, 0x47edaee6u, 0x92722c85u, 0x1482353bu,
+    0xa2bfe8a1u, 0x4cf10364u, 0xa81a664bu, 0xbc423001u,
+    0xc24b8b70u, 0xd0f89791u, 0xc76c51a3u, 0x0654be30u,
+    0xd192e819u, 0xd6ef5218u, 0xd6990624u, 0x5565a910u,
+    0xf40e3585u, 0x5771202au, 0x106aa070u, 0x32bbd1b8u,
+    0x19a4c116u, 0xb8d2d0c8u, 0x1e376c08u, 0x5141ab53u,
+    0x2748774cu, 0xdf8eeb99u, 0x34b0bcb5u, 0xe19b48a8u,
+    0x391c0cb3u, 0xc5c95a63u, 0x4ed8aa4au, 0xe3418acbu,
+    0x5b9cca4fu, 0x7763e373u, 0x682e6ff3u, 0xd6b2b8a3u,
+    0x748f82eeu, 0x5defb2fcu, 0x78a5636fu, 0x43172f60u,
+    0x84c87814u, 0xa1f0ab72u, 0x8cc70208u, 0x1a6439ecu,
+    0x90befffau, 0x23631e28u, 0xa4506cebu, 0xde82bde9u,
+    0xbef9a3f7u, 0xb2c67915u, 0xc67178f2u, 0xe372532bu,
+    0xca273eceu, 0xea26619cu, 0xd186b8c7u, 0x21c0c207u,
+    0xeada7dd6u, 0xcde0eb1eu, 0xf57d4f7fu, 0xee6ed178u,
+    0x06f067aau, 0x72176fbau, 0x0a637dc5u, 0xa2c898a6u,
+    0x113f9804u, 0xbef90daeu, 0x1b710b35u, 0x131c471bu,
+    0x28db77f5u, 0x23047d84u, 0x32caab7bu, 0x40c72493u,
+    0x3c9ebe0au, 0x15c9bebcu, 0x431d67c4u, 0x9c100d4cu,
+    0x4cc5d4beu, 0xcb3e42b6u, 0x597f299cu, 0xfc657e2au,
+    0x5fcb6fabu, 0x3ad6faecu, 0x6c44198cu, 0x4a475817u,
 };
 
-static const uint64_t H512[8] = {
-    0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL,
-    0x3c6ef372fe94f82bULL, 0xa54ff53a5f1d36f1ULL,
-    0x510e527fade682d1ULL, 0x9b05688c2b3e6c1fULL,
-    0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL,
+static const uint32_t H512[16] UT_ROM = {
+    0x6a09e667u, 0xf3bcc908u, 0xbb67ae85u, 0x84caa73bu,
+    0x3c6ef372u, 0xfe94f82bu, 0xa54ff53au, 0x5f1d36f1u,
+    0x510e527fu, 0xade682d1u, 0x9b05688cu, 0x2b3e6c1fu,
+    0x1f83d9abu, 0xfb41bd6bu, 0x5be0cd19u, 0x137e2179u,
 };
+
+static uint64_t rom64(const uint32_t *p)
+{
+    return ((uint64_t)UT_ROM_U32(p) << 32) | UT_ROM_U32(p + 1);
+}
 
 #define ROR64(x, n) (((x) >> (n)) | ((x) << (64 - (n))))
 
@@ -79,7 +88,7 @@ static void compress(uint64_t h[8], const uint8_t blk[128])
     for (i = 0; i < 80; i++) {
         uint64_t S1 = ROR64(e, 14) ^ ROR64(e, 18) ^ ROR64(e, 41);
         uint64_t ch = (e & f) ^ (~e & g);
-        uint64_t t1 = hh + S1 + ch + K512[i] + w[i];
+        uint64_t t1 = hh + S1 + ch + rom64(&K512[2 * i]) + w[i];
         uint64_t S0 = ROR64(a, 28) ^ ROR64(a, 34) ^ ROR64(a, 39);
         uint64_t mj = (a & b) ^ (a & c) ^ (b & c);
         uint64_t t2 = S0 + mj;
@@ -93,7 +102,10 @@ static void compress(uint64_t h[8], const uint8_t blk[128])
 
 void ds_sha512_init(ds_sha512_ctx *c)
 {
-    memcpy(c->h, H512, sizeof H512);
+    int i;
+    for (i = 0; i < 8; i++) {
+        c->h[i] = rom64(&H512[2 * i]);
+    }
     c->len = 0;
     c->fill = 0;
     memset(c->buf, 0, sizeof c->buf);
