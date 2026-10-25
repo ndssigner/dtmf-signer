@@ -29,8 +29,9 @@ Pico.
   `v0.3.0` o posterior). Lo que DTMF-Signer necesite de ur-tones se propone
   allí, en público, con issues y pull requests, según sus propias reglas.
 
-Las palabras DEBE, NO DEBE, DEBERÍA y PUEDE se usan como MUST, MUST NOT,
-SHOULD y MAY en el RFC 2119.
+Las palabras DEBE, NO DEBE, OBLIGATORIO (u OBLIGATORIA), DEBERÍA,
+RECOMENDADO (o RECOMENDADA) y PUEDE se usan como MUST, MUST NOT, REQUIRED,
+SHOULD, RECOMMENDED y MAY en el RFC 2119.
 
 ## 1. Principios
 
@@ -115,6 +116,10 @@ más restrictiva entre ellas, en el orden `AIR`, `CABLE`, `LOCAL`: `AIR` si
 entre ellas hay un micrófono. Un teclado de teléfono conectado a la entrada
 de línea es entonces `CABLE`, que sigue aceptando el PIN y la passphrase
 (§4.2).
+
+**La velocidad no es una clase.** Un auricular pegado a un micrófono lleva
+los tonos rápido y limpios, pero sigue siendo `AIR`: cualquiera que esté lo
+bastante cerca puede grabarlo.
 
 ### 4.2 Qué se acepta por dónde
 
@@ -345,5 +350,8 @@ los de ur-tones. **Solo semillas de prueba públicas y PSBT de testnet.**
 - **La librería C de ur-tones vista desde 8 bits:** si compila con
   compiladores como SDCC o cc65, que no tiene enteros de 64 bits, y si
   necesita coma flotante en algún punto.
+- **Un ritmo más rápido por cable, o por el aire de cerca**, medido con un
+  patrón de entrenamiento, y menos paridad a ese ritmo: propuesto en
+  [ur-tones#1](https://github.com/ndssigner/ur-tones/issues/1).
 - **El formato de datos del catálogo**, cuando alguna herramienta necesite
   leerlo.

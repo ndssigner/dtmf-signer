@@ -32,7 +32,7 @@ Crece con cada montaje que alguien haga y mida.
   algoritmo de Goertzel, como la librería C de ur-tones.
 - **Necesita:** un ADC que muestree a 8 kHz o más, y CPU para filtrar en
   tiempo real. Un filtro antialiasing analógico antes del pin.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos).
 - **Riesgos:** un ADC alimentado fuera de su rango se daña o recorta; la
   etapa de entrada debe protegerlo. Un procesador lento pierde tonos:
   entonces, `TONES-CHIP`.
@@ -69,11 +69,15 @@ Crece con cada montaje que alguien haga y mida.
 - **Necesita:** un jack o conector macho de 3,5 mm, un condensador que
   bloquee la continua, una polarización a media alimentación, una
   resistencia en serie y un filtro paso bajo; un pin de ADC, o la entrada de
-  `TONES-CHIP`.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
-- **Riesgos:** un despiste con el volumen o un cable equivocado pueden
-  sacar el pin de su rango: lo protegen una atenuación fija y diodos de
-  protección.
+  `TONES-CHIP`. Medido: decodifica desde unas 90 de 4095 cuentas pico a
+  pico (con un ruido en reposo de unas 30), así que basta la salida de
+  auriculares de un portátil a una cuarta parte de su volumen.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos).
+- **Riesgos:** un cable equivocado, o una salida de altavoz, pueden sacar el
+  pin de su rango: lo protegen las resistencias en serie, un condensador que
+  bloquea la continua y diodos de protección. Con salidas de auriculares no
+  hace falta una atenuación fija: reduciría una señal que ya llega pequeña a
+  volumen bajo.
 - **Vectores:** las grabaciones por cable de ur-tones.
 
 ### `IN-UART` — entrada serie
@@ -126,12 +130,17 @@ Crece con cada montaje que alguien haga y mida.
 ### `OUT-AIR` — tonos por el aire
 
 - **Qué hace:** devuelve datos (PSBT, XPUB, resúmenes, huellas) como tonos
-  por un zumbador, un piezo o un altavoz (`AIR`).
-- **Necesita:** un pin de PWM. Un zumbador magnético necesita un
-  transistor; un piezo puede excitarse directamente desde dos pines.
+  por un altavoz, un auricular o un piezo (`AIR`).
+- **Necesita:** un pin de PWM. **Un auricular de cable o un altavoz pequeño
+  funcionan**, también recuperados: probado, un auricular junto al micrófono
+  de un móvil dio todas las teclas (pin, 1 kΩ, 10 µF, auricular). Un piezo de
+  disco puede excitarse directamente desde dos pines. **Un zumbador
+  magnético (2 kHz) no sirve** para DTMF: suena mucho más fuerte en el grupo
+  agudo, y un decodificador rechaza la mayoría de teclas aun con el grupo
+  grave 12 dB más fuerte. Sirve para pitidos.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** cualquiera cerca lo oye: nunca datos sensibles (§4 de la
-  especificación).
+  especificación), aunque el auricular esté pegado al micrófono.
 - **Vectores:** los vectores de ur-tones.
 
 ### `OUT-LINE` — salida de línea
@@ -160,7 +169,8 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** un implante que lea la pantalla ve lo que muestra; la
   semilla nunca se muestra, así que solo puede capturar las rejillas del PIN
-  y la passphrase.
+  y la passphrase. Sí ve los resúmenes, la XPUB y las huellas: una fuga de
+  privacidad, aunque no un robo.
 - **Vectores:** previstos (el texto del resumen).
 
 ### `VERIFY-TERMINAL` — un terminal
@@ -293,10 +303,11 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Capacidades:** `TONES-SW`, `IN-LINE`, `IN-MIC`, `IN-BUTTONS`,
   `OUT-AIR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
-- **Piezas:** el prototipo actual, en protoboard: una Raspberry Pi Pico
-  (RP2040; la RP2350 más adelante), una OLED SH1106 de 1,3" por SPI,
-  pulsadores, un conector macho de 3,5 mm como entrada de línea, un módulo
-  de micrófono MAX9814, un zumbador excitado con un transistor.
+- **Piezas:** el prototipo actual, en protoboard: una placa RP2040 con la
+  disposición de la Pico y USB-C (la RP2350 más adelante), una OLED SH1106
+  de 1,3" por SPI (GP17 a GP21), pulsadores, un conector macho de 3,5 mm como
+  entrada de línea (GP27), un auricular de cable como salida por el aire
+  (GP15) y un módulo de micrófono MAX9814 (GP26, aún sin probar).
 - **Qué le falta:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`, `IN-UART`
   y los demás puertos, de momento.
 
@@ -304,7 +315,8 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Capacidades:** las de `PROFILE-PICO-REF`, más `IN-UART`, `OUT-UART`,
   `VERIFY-TERMINAL`, `IN-PS2`, `VERIFY-TV`, `OUT-LINE` y, opcionalmente,
-  `SEEDCRAFT-CONSOLE`. Sin `STORE-SEED`: esta placa no guarda estado. Una
+  `SEEDCRAFT-CONSOLE` y `BTC-TAPROOT` (previsto en sus módulos de firmware).
+  Sin `STORE-SEED`: esta placa no guarda estado. Una
   variante que lo añada necesita el borrado de emergencia de la §8 de la
   especificación.
 - **Piezas:** la placa de [`docs/hardware-minimo.md`](../hardware-minimo.md).

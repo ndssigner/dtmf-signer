@@ -27,7 +27,8 @@ board (in Spanish).
   What DTMF-Signer needs from ur-tones is proposed there, in public, through
   issues and pull requests, under its own rules.
 
-The words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
+The words MUST, MUST NOT, REQUIRED, SHOULD, RECOMMENDED and MAY are used as
+in RFC 2119.
 
 ## 1. Principles
 
@@ -111,6 +112,10 @@ or one decoder chip), it MUST tag their data with the most restrictive class
 among them, in the order `AIR`, `CABLE`, `LOCAL`: `AIR` if a microphone is
 among them. A phone keypad plugged into the line input is then `CABLE`,
 which still accepts the PIN and the passphrase (§4.2).
+
+**Speed is not a class.** An earbud pressed against a microphone carries
+tones fast and cleanly, but it is still `AIR`: anyone close enough can
+record it.
 
 ### 4.2 What is accepted where
 
@@ -336,4 +341,7 @@ class; its risks; the vectors that check it.
 - **The ur-tones C library seen from 8 bits:** whether it builds with
   compilers such as SDCC or cc65, which lacks 64-bit integers, and whether
   it needs floating point anywhere.
+- **A faster pace by cable, or through the air at close range**, measured
+  with a training pattern, and lighter parity at that pace: proposed in
+  [ur-tones#1](https://github.com/ndssigner/ur-tones/issues/1).
 - **The data format of the catalog**, once a tool needs to read it.

@@ -3,8 +3,8 @@ English · [Español](README.es.md)
 # DTMF-Signer
 
 A minimal, cheap, open-hardware Bitcoin signer that anyone can build. The
-reference build: a Raspberry Pi Pico, a small screen, five buttons, a
-microphone and a piezo.
+full board: a Raspberry Pi Pico, a small screen, five buttons, a microphone
+and a piezo.
 It talks to your wallet with telephone tones (DTMF) through
 [ur-tones](https://github.com/ndssigner/ur-tones), through the air or by
 cable. No camera, no USB data, no secure element and no storage: the seed

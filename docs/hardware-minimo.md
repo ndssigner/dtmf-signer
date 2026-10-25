@@ -97,9 +97,18 @@ Como el micrófono y la línea entran por pines distintos del ADC, y el jack tie
 - Condensador de acople de 1 µF, centrado a 1,65 V con 2×10 kΩ, resistencia de 1 kΩ en serie como protección, y filtro paso bajo antes de GP27.
 - Si el aparato de origen da más nivel del que admite el ADC, un divisor en la entrada.
 
+**Protección de la entrada de línea:** un despiste con el volumen o con el cable no debe dañar nada.
+- **Sin atenuación fija.** Medido en el prototipo (RP2040, la misma etapa con 1 kΩ y un filtro de 4,7 kΩ y 10 nF): con la salida de auriculares de un portátil decodifica sin errores desde una cuarta parte del volumen, unas 90 de 4095 cuentas pico a pico, con un ruido en reposo de unas 30. Atenuar reduciría una señal que ya llega pequeña. Si una fuente da más de lo que admite el ADC, el indicador de nivel pide bajar el volumen.
+- **Dos diodos Schottky externos** (BAT85, de patas) de la entrada a 3V3 y a GND, en agujeros sin montar. Recogen la corriente antes que los diodos internos del pin, para equivocaciones graves, como la salida de altavoz de un amplificador.
+- **Las resistencias en serie limitan la corriente** hacia los diodos: con los ~5,7 kΩ de la etapa, un exceso de varios voltios deja pasar menos de 1 mA.
+- **El condensador de acople bloquea la continua**: una tensión continua metida por error en el jack, por ejemplo de un cargador de 12 V, no llega al pin. Debe aguantar al menos 25 V.
+- **Indicador de nivel en el firmware:** que mida la potencia de los tonos, como hace el detector de ur-tones, y no el pico, que incluye el ruido. El umbral de "bajo" va muy por debajo de lo que parecería: con unas 90 cuentas ya decodifica. Es comodidad, no protección.
+- *Medido:* a 40/20 ms y hasta 30/10 ms, sin errores en 900 tonos.
+
 **Emisión por el aire (piezo):**
 - Excitado directamente desde GP2 y GP3 en contrafase, con una resistencia en serie. No necesita amplificador.
 - El piezo suena mucho más fuerte hacia 1,5 kHz que hacia 700 Hz. **El firmware compensa dando más amplitud al grupo bajo de tonos.**
+- **Un zumbador magnético no sirve:** probado en el prototipo, uno de 2 kHz suena mucho más fuerte en el grupo agudo, y el decodificador rechaza la mayoría de teclas aun compensando 12 dB. **Un auricular de cable** junto al micrófono del móvil, en cambio, dio todas las teclas: es una alternativa probada, por ejemplo desde la salida de audio por cable.
 - **Uso: aparatos cerca (unos centímetros) y volumen moderado.** A 1-2 cm puede saturar el micrófono del móvil. La documentación debe indicar dónde suele estar el micrófono (borde inferior en móviles, junto a la webcam en portátiles).
 
 **Robustez por firmware:** comprobar la energía de los tonos frente a la total, el *twist* entre los dos tonos, los segundos armónicos y la duración mínima, además de la corrección Reed-Solomon de ur-tones.

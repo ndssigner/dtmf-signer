@@ -32,7 +32,7 @@ build someone makes and measures.
   algorithm, as the ur-tones C library does.
 - **Needs:** an ADC sampling at 8 kHz or more, and the CPU to filter in
   real time. An analog anti-aliasing filter before the pin.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones).
 - **Risks:** an ADC fed beyond its range is damaged or clips; the input
   stage must protect it. A slow processor misses tones: then use
   `TONES-CHIP`.
@@ -68,10 +68,14 @@ build someone makes and measures.
   output: the recommended path for the seed.
 - **Needs:** a 3.5 mm jack or plug, a DC-blocking capacitor, a bias at half
   the supply, a series resistor and a low-pass filter; one ADC pin, or the
-  input of `TONES-CHIP`.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
-- **Risks:** a careless volume or a wrong cable can push the pin out of
-  range: fixed attenuation and clamping diodes protect it.
+  input of `TONES-CHIP`. Measured: it decodes from about 90 of 4095 counts
+  peak to peak (idle noise about 30), so a laptop's headphone output at a
+  quarter of its volume is enough.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones).
+- **Risks:** a wrong cable, or a loudspeaker output, can push the pin out of
+  range: series resistors, a DC-blocking capacitor and clamping diodes
+  protect it. Fixed attenuation is not needed with headphone outputs: it
+  would shrink a signal that already arrives small at low volume.
 - **Vectors:** ur-tones' cable recordings.
 
 ### `IN-UART` — serial input
@@ -121,12 +125,16 @@ build someone makes and measures.
 ### `OUT-AIR` — tones through the air
 
 - **What it does:** returns data (PSBT, xpub, summaries, fingerprints) as
-  tones through a buzzer, a piezo or a speaker (`AIR`).
-- **Needs:** a PWM pin. A magnetic buzzer needs a transistor; a piezo can
-  be driven straight from two pins.
+  tones through a speaker, an earbud or a piezo (`AIR`).
+- **Needs:** a PWM pin. **A wired earbud or a small speaker works**, salvaged
+  ones too: tested, an earbud next to a phone's microphone gave every key
+  (pin, 1 kΩ, 10 µF, earbud). A piezo disc can be driven straight from two
+  pins. **A magnetic buzzer (2 kHz) does not work** for DTMF: it is far
+  louder in the high group, and a decoder rejects most keys even with the low
+  group 12 dB louder. It is fine for beeps.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** anyone nearby hears it: never sensitive data (§4 of the
-  specification).
+  specification), even with an earbud pressed against the microphone.
 - **Vectors:** ur-tones' own vectors.
 
 ### `OUT-LINE` — line output
@@ -155,7 +163,8 @@ build someone makes and measures.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** an implant that reads the screen sees what it shows; the seed
   is never shown, so it has nothing to capture but the grids of the PIN and
-  the passphrase.
+  the passphrase. It does see the summaries, the xpub and the fingerprints:
+  a privacy leak, though not a theft.
 - **Vectors:** planned (the summary's text).
 
 ### `VERIFY-TERMINAL` — a terminal
@@ -284,10 +293,11 @@ build someone makes and measures.
 
 - **Capabilities:** `TONES-SW`, `IN-LINE`, `IN-MIC`, `IN-BUTTONS`,
   `OUT-AIR`, `VERIFY-SCREEN`, `BTC-INPUT-AMOUNTS`.
-- **Parts:** the current prototype, on a breadboard: a Raspberry Pi Pico
-  (RP2040; the RP2350 later), a 1.3" SH1106 OLED over SPI, push buttons, a
-  3.5 mm plug as line input, a MAX9814 microphone module, a buzzer driven
-  through a transistor.
+- **Parts:** the current prototype, on a breadboard: an RP2040 board with
+  the Pico's layout and USB-C (the RP2350 later), a 1.3" SH1106 OLED over
+  SPI (GP17 to GP21), push buttons, a 3.5 mm plug as line input (GP27), a
+  wired earbud as air output (GP15), and a MAX9814 microphone module (GP26,
+  not yet tested).
 - **What it lacks:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`,
   `IN-UART` and the other ports, for now.
 
@@ -295,7 +305,8 @@ build someone makes and measures.
 
 - **Capabilities:** those of `PROFILE-PICO-REF`, plus `IN-UART`,
   `OUT-UART`, `VERIFY-TERMINAL`, `IN-PS2`, `VERIFY-TV`, `OUT-LINE`, and, optionally,
-  `SEEDCRAFT-CONSOLE`. No `STORE-SEED`: this board is stateless. A variant
+  `SEEDCRAFT-CONSOLE` and `BTC-TAPROOT` (planned in its firmware modules).
+  No `STORE-SEED`: this board is stateless. A variant
   that adds it needs the emergency wipe of §8 of the specification.
 - **Parts:** the board in [`docs/hardware-minimo.md`](hardware-minimo.md)
   (in Spanish).

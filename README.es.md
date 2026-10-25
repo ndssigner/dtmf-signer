@@ -6,8 +6,8 @@ versión inglesa.*
 # DTMF-Signer
 
 Un firmador de Bitcoin mínimo, barato y de hardware abierto que cualquiera
-puede montar. El montaje de referencia: una Raspberry Pi Pico, una pantalla
-pequeña, cinco botones, un micrófono y un piezo. Se comunica con tu cartera mediante tonos de
+puede montar. La placa completa: una Raspberry Pi Pico, una pantalla pequeña,
+cinco botones, un micrófono y un piezo. Se comunica con tu cartera mediante tonos de
 teléfono (DTMF) a través de [ur-tones](https://github.com/ndssigner/ur-tones),
 al aire o por cable. Sin cámara, sin datos por USB, sin elemento seguro y sin
 almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
