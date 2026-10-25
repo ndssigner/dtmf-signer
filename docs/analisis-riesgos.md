@@ -86,6 +86,10 @@ Mitigaciones:
 | Emisiones de la señal de vídeo analógica captadas a distancia | Baja | La seed nunca se muestra; como mucho se ve la rejilla del PIN y la passphrase |
 | Smart TV que analiza lo que muestra (ACR) | Baja, si se usa la salida de vídeo | La seed nunca se muestra; con una tele conectada, PIN y passphrase por cable |
 | Ruido o volumen inadecuado por el aire | Media (fallo, no fuga) | Corrección Reed-Solomon; aparatos cerca; cable como alternativa |
+| Verificación con varios escuchadores que no son independientes de verdad (misma app, mismo sistema, o el aparato que creó la PSBT) | Media | Escuchadores de software o hardware distinto, sin conexión; el que creó la PSBT no cuenta como el honesto ([especificación, §5.1](es/especificacion.md#51-varios-escuchadores)) |
+| Un teléfono recuperado usado como teclado guarda el PIN en su memoria de rellamada o en su agenda | Media | Solo el teclado, un teléfono sin memoria, o borrarla marcando otra cosa ([especificación, §4.3](es/especificacion.md#43-un-teclado-de-teléfono-recuperado)) |
+| Un montaje que guarda la semilla la deja en una memoria de la que no se puede borrar con garantías | Media | Sin estado por defecto; si se guarda, cifrada y con borrado de emergencia que sobrescribe y comprueba ([especificación, §8](es/especificacion.md#8-guardar-la-semilla-y-borrado-de-emergencia)) |
+| Un montaje sin importes comprobados con varias entradas firma una comisión enorme (ataque de la comisión en SegWit v0) | Media | El firmador muestra "comisión NO verificada"; comprobar la comisión real en otro aparato antes de transmitir ([especificación, §6](es/especificacion.md#6-el-ataque-de-la-comisión-en-segwit-v0)) |
 
 ## 5. Riesgos físicos
 
@@ -110,3 +114,4 @@ Se documentan para que el usuario decida con conocimiento:
 - Valoraciones tras probar el prototipo (alcance real del audio, consumo, ruido).
 - Diseño de versiones firmadas y compilaciones reproducibles.
 - Consulta normativa para los formatos montados.
+- Riesgos propios de los montajes con piezas recuperadas (chips y memorias de origen desconocido), a medida que el [catálogo](es/catalogo.md) recoja montajes reales.

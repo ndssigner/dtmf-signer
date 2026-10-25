@@ -2,8 +2,9 @@ English · [Español](README.es.md)
 
 # DTMF-Signer
 
-A minimal, cheap, open-hardware Bitcoin signer that anyone can build: a
-Raspberry Pi Pico 2, a small screen, five buttons, a microphone and a piezo.
+A minimal, cheap, open-hardware Bitcoin signer that anyone can build. The
+reference build: a Raspberry Pi Pico, a small screen, five buttons, a
+microphone and a piezo.
 It talks to your wallet with telephone tones (DTMF) through
 [ur-tones](https://github.com/ndssigner/ur-tones), through the air or by
 cable. No camera, no USB data, no secure element and no storage: the seed
@@ -16,9 +17,18 @@ From there, you choose: keep everything on audio, for the strongest air
 gap, or drive it from a vintage terminal over a serial port. DTMF-Signer
 and ur-tones are designed to go together.
 
+**Many ways to build it.** DTMF-Signer is a [specification](SPEC.md) that
+can be built in many ways: from a Raspberry Pi Pico, the reference, down to
+parts recovered from a scrapyard (an 8-bit microcontroller, a DTMF decoder
+chip from an old telephone), knowing what each build gives up and how long
+it takes. The [catalog](docs/catalog.md) lists the capabilities and the
+profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
+comes later.
+
 > **Status: design stage.** There is no firmware or hardware yet. This
-> repository holds the hardware specification and the risk analysis, in
-> Spanish for now. Do not use it with funds.
+> repository holds the specification and its catalog (in English and
+> Spanish), and the Pico hardware specification and the risk analysis (in
+> Spanish for now). Do not use it with funds.
 
 ## Motivation
 
@@ -26,10 +36,11 @@ and ur-tones are designed to go together.
   that can play and hear sound. No camera, no special cable, no app store.
 - **Low cost.** About US$13 in parts for the basic board (an estimate),
   roughly a third of a signer that reads QR codes with a scanner module.
-- **Easy, foolproof DIY.** Plug a Pico 2 into a ready-made board, with no
+- **Easy, foolproof DIY.** Plug a Pico into a ready-made board, with no
   soldering, or wire common modules on a breadboard. Generic parts you can
-  buy anywhere: the tones are decoded in software, so there are no
-  hard-to-find DTMF decoder chips.
+  buy anywhere: the reference decodes the tones in software, so it needs no
+  hard-to-find DTMF decoder chips. A slower build can use one salvaged from
+  an old telephone.
 - **Against supply-chain attacks and fake entropy.**
   - In October 2026, Ledger devices sold through resellers turned out to
     carry a hidden implant that read the recovery phrase from the screen
@@ -149,12 +160,15 @@ The whole analysis, by distribution format and by use, is in
 
 ## Roadmap
 
-- [ ] Software tone decoder on a Pico 2, tested with ur-tones
+- [x] Hardware-independent specification and capability catalog
+- [ ] Core firmware and a computer build, tested with ur-tones recordings
+- [ ] Software tone decoder on the Pico reference, tested with ur-tones
 - [ ] Schematic, breadboard and perfboard guides, and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
 - [ ] Firmware: audio, ur-tones, PSBT, signing, screens
 - [ ] Serial protocol for vintage terminals
+- [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review
 
 ## Notice
@@ -166,11 +180,17 @@ for the use anyone makes of this design.
 
 ## In this repository
 
+- [`SPEC.md`](SPEC.md) ([Spanish](docs/es/especificacion.md)): the
+  specification: what every build must do, whatever it is made of.
+- [`docs/catalog.md`](docs/catalog.md) ([Spanish](docs/es/catalogo.md)): the
+  capabilities and the profiles that combine them.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): the hardware
-  specification: board, pins, audio, screens, channel policy, distribution
+  specification of the full Pico board: pins, audio, screens, distribution
   formats (Spanish).
 - [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): the risk analysis:
   supply chain, buyer privacy, firmware, use and physical threats (Spanish).
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
+  catalog or port DTMF-Signer.
 
 ## Sister projects
 

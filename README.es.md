@@ -6,8 +6,8 @@ versión inglesa.*
 # DTMF-Signer
 
 Un firmador de Bitcoin mínimo, barato y de hardware abierto que cualquiera
-puede montar: una Raspberry Pi Pico 2, una pantalla pequeña, cinco botones,
-un micrófono y un piezo. Se comunica con tu cartera mediante tonos de
+puede montar. El montaje de referencia: una Raspberry Pi Pico, una pantalla
+pequeña, cinco botones, un micrófono y un piezo. Se comunica con tu cartera mediante tonos de
 teléfono (DTMF) a través de [ur-tones](https://github.com/ndssigner/ur-tones),
 al aire o por cable. Sin cámara, sin datos por USB, sin elemento seguro y sin
 almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
@@ -19,9 +19,19 @@ huella. A partir de ahí, tú eliges: seguir todo por audio, para el máximo
 aislamiento, o manejarlo desde un terminal vintage por un puerto serie.
 DTMF-Signer y ur-tones están pensados para ir juntos.
 
+**Muchas formas de montarlo.** DTMF-Signer es una
+[especificación](docs/es/especificacion.md) que se puede montar de muchas
+formas: desde una Raspberry Pi Pico, la referencia, hasta piezas
+recuperadas de una chatarrería (un microcontrolador de 8 bits, un chip
+decodificador DTMF de un teléfono viejo), sabiendo qué pierde cada montaje
+y cuánto tarda. El [catálogo](docs/es/catalogo.md) enumera las capacidades
+y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
+Pico 2 vendrá después.
+
 > **Estado: fase de diseño.** Todavía no hay firmware ni hardware. Este
-> repositorio contiene la especificación de hardware y el análisis de
-> riesgos, de momento en español. No lo uses con fondos.
+> repositorio contiene la especificación y su catálogo (en inglés y en
+> español), y la especificación de hardware de la Pico y el análisis de
+> riesgos (de momento en español). No lo uses con fondos.
 
 ## Motivación
 
@@ -31,11 +41,12 @@ DTMF-Signer y ur-tones están pensados para ir juntos.
 - **Bajo coste.** Unos 13 $ en piezas para la placa básica (una
   estimación), más o menos un tercio de un firmador que lee códigos QR con
   un módulo lector.
-- **Hazlo tú mismo, fácil y a prueba de torpes.** Pincha una Pico 2 en una
+- **Hazlo tú mismo, fácil y a prueba de torpes.** Pincha una Pico en una
   placa ya montada, sin soldar, o conecta módulos comunes en una
-  protoboard. Piezas genéricas que se compran en cualquier parte: los tonos
-  se decodifican por software, así que no hacen falta chips decodificadores
-  de DTMF, difíciles de encontrar.
+  protoboard. Piezas genéricas que se compran en cualquier parte: la
+  referencia decodifica los tonos por software, así que no necesita chips
+  decodificadores de DTMF, difíciles de encontrar. Un montaje más lento
+  puede usar uno recuperado de un teléfono viejo.
 - **Frente a los ataques en la cadena de suministro y la entropía falsa.**
   - En octubre de 2026 se descubrió que aparatos Ledger vendidos por
     distribuidores llevaban un implante oculto que leía la frase de
@@ -161,12 +172,15 @@ El análisis completo, por formato de distribución y por uso, está en
 
 ## Hoja de ruta
 
-- [ ] Decodificador de tonos por software en una Pico 2, probado con ur-tones
+- [x] Especificación independiente del hardware y catálogo de capacidades
+- [ ] Firmware del núcleo y una versión para ordenador, probados con grabaciones de ur-tones
+- [ ] Decodificador de tonos por software en la referencia Pico, probado con ur-tones
 - [ ] Esquema, guías de protoboard y placa perforada, y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
 - [ ] Firmware: audio, ur-tones, PSBT, firma, pantallas
 - [ ] Protocolo serie para terminales vintage
+- [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente
 
 ## Aviso
@@ -178,12 +192,19 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 
 ## Qué hay en el repositorio
 
+- [`SPEC.md`](SPEC.md) ([en español](docs/es/especificacion.md)): la
+  especificación: lo que debe hacer todo montaje, esté hecho de lo que esté
+  hecho.
+- [`docs/catalog.md`](docs/catalog.md) ([en español](docs/es/catalogo.md)):
+  las capacidades y los perfiles que las combinan.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): la especificación de
-  hardware: placa, pines, audio, pantallas, política de canales, formatos de
+  hardware de la placa Pico completa: pines, audio, pantallas, formatos de
   distribución.
 - [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): el análisis de
   riesgos: cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el
+  catálogo o portar DTMF-Signer (en inglés).
 
 ## Proyectos hermanos
 
