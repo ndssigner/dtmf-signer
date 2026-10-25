@@ -1,3 +1,5 @@
+English · [Español](docs/es/especificacion.md)
+
 # DTMF-Signer specification (draft v0)
 
 **Status: draft for discussion.** Nothing here is final, there is no
