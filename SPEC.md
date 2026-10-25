@@ -11,7 +11,7 @@ through [ur-tones](https://github.com/ndssigner/ur-tones). This document
 says **what any DTMF-Signer must do, whatever it is built from**: a
 Raspberry Pi Pico, an 8-bit microcontroller, a vintage processor, a DTMF
 decoder chip salvaged from an old telephone. How a given build does it is
-described elsewhere: the catalog (`docs/catalog.md`, planned) lists the capabilities
+described elsewhere: the [catalog](docs/catalog.md) lists the capabilities
 and the profiles that combine them, and
 [`docs/hardware-minimo.md`](docs/hardware-minimo.md) describes the Pico
 board (in Spanish).
@@ -255,7 +255,7 @@ salvaged phone keypad or by cable. This is the profile `PROFILE-SCRAP`.
 
 A build is described as **the core (§2–§8) plus a set of capabilities**.
 Profiles are named, ready-made sets of capabilities, to make choosing
-easier. The catalog describes each one in detail.
+easier. The [catalog](docs/catalog.md) describes each one in detail.
 
 **Every capability is described the same way:** what it does; what it
 needs (pins, peripherals, RAM, program memory); its time on each processor

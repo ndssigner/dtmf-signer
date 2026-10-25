@@ -12,7 +12,7 @@ documento dice **qué tiene que hacer cualquier DTMF-Signer, esté hecho con
 lo que esté hecho**: una Raspberry Pi Pico, un microcontrolador de 8 bits,
 un procesador vintage, un chip decodificador DTMF recuperado de un teléfono
 viejo. Cómo lo hace cada montaje se describe en otros documentos: el
-catálogo (`docs/catalog.md`, previsto) enumera las capacidades y los
+[catálogo](catalogo.md) enumera las capacidades y los
 perfiles que las combinan, y
 [`docs/hardware-minimo.md`](../hardware-minimo.md) describe la placa de la
 Pico.
@@ -262,7 +262,7 @@ teclado de teléfono recuperado o por cable. Es el perfil `PROFILE-SCRAP`.
 
 Un montaje se describe como **el núcleo (§2–§8) más un conjunto de
 capacidades**. Los perfiles son conjuntos de capacidades ya preparados y
-con nombre, para facilitar la elección. El catálogo describe cada una en
+con nombre, para facilitar la elección. El [catálogo](catalogo.md) describe cada una en
 detalle.
 
 **Todas las capacidades se describen igual:** qué hace; qué necesita
