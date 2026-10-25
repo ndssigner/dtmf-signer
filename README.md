@@ -194,6 +194,8 @@ for the use anyone makes of this design.
   BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub.
 - [`ports/host/`](ports/host/): the computer build, `dtmf-signer-host keys`:
   from a UR, tones or a WAV to the fingerprints, the xpub and the descriptor.
+  Warning: its arguments (seed, PIN, passphrase) are visible to other
+  processes and are kept in the shell history; use only test seeds with it.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.

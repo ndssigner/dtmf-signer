@@ -208,7 +208,9 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   BIP32 y la cartera BIP84, de una semilla a sus huellas y su XPUB.
 - [`ports/host/`](ports/host/): la versión para ordenador,
   `dtmf-signer-host keys`: de un UR, tonos o un WAV a las huellas, la XPUB y
-  el descriptor.
+  el descriptor. Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
+  otros procesos y quedan en el historial del shell; usa solo semillas de
+  prueba con ella.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el

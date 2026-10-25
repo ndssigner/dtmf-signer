@@ -76,6 +76,18 @@ static void test_wallet_wipe_clears(void)
     CHECK(memcmp(&w, zeros, sizeof w) == 0);
 }
 
+static void test_wallet_small_cap_is_ds_error(void)
+{
+    ds_wallet w;
+    char text[160];
+
+    CHECK_EQ_INT(ds_wallet_load(&w, zero16, 16, NULL, 0), DS_OK);
+    CHECK_EQ_INT(ds_wallet_xpub(&w, text, 10), DS_ERR_SPACE);
+    CHECK_EQ_INT(ds_wallet_descriptor(&w, text, 10), DS_ERR_SPACE);
+    CHECK_EQ_INT(ds_wallet_xpub(&w, text, 0), DS_ERR_SPACE);
+    ds_wallet_wipe(&w);
+}
+
 TEST_MAIN(test_wallet_bip84, test_wallet_seed_fp_ignores_passphrase,
           test_wallet_testnet, test_wallet_bad_input_leaves_wiped,
-          test_wallet_wipe_clears)
+          test_wallet_wipe_clears, test_wallet_small_cap_is_ds_error)

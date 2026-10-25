@@ -102,6 +102,13 @@ static void test_bip32_args_and_wipe(void)
     CHECK_EQ_INT(k.depth, 2);
     ds_hdkey_wipe(&k);
     CHECK(memcmp(&k, &z, sizeof k) == 0);
+    /* a bad argument also wipes a non-NULL out */
+    CHECK_EQ_INT(ds_bip32_path(&m, p, 2, &k), DS_OK);
+    CHECK_EQ_INT(ds_bip32_path(NULL, p, 2, &k), DS_ERR_ARG);
+    CHECK(memcmp(&k, &z, sizeof k) == 0);
+    CHECK_EQ_INT(ds_bip32_path(&m, p, 2, &k), DS_OK);
+    CHECK_EQ_INT(ds_bip32_path(&m, NULL, 2, &k), DS_ERR_ARG);
+    CHECK(memcmp(&k, &z, sizeof k) == 0);
     ds_hdkey_wipe(&m);
 }
 

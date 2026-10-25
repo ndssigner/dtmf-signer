@@ -72,12 +72,20 @@ done:
     return DS_OK;
 }
 
+static int32_t map_ut(int32_t r)
+{
+    if (r >= 0) {
+        return r;
+    }
+    return r == UT_ERR_SPACE ? DS_ERR_SPACE : DS_ERR_ARG;
+}
+
 int32_t ds_wallet_xpub(const ds_wallet *w, char *out, size_t cap)
 {
     ut_xpub x;
 
     ds_bip32_to_xpub(&w->account, w->wallet_fp, w->path, 3, w->testnet, &x);
-    return ut_xpub_text(&x, "xpub", out, cap);
+    return map_ut(ut_xpub_text(&x, "xpub", out, cap));
 }
 
 int32_t ds_wallet_descriptor(const ds_wallet *w, char *out, size_t cap)
@@ -85,7 +93,7 @@ int32_t ds_wallet_descriptor(const ds_wallet *w, char *out, size_t cap)
     ut_xpub x;
 
     ds_bip32_to_xpub(&w->account, w->wallet_fp, w->path, 3, w->testnet, &x);
-    return ut_descriptor_text("wpkh(@0)", &x, out, cap);
+    return map_ut(ut_descriptor_text("wpkh(@0)", &x, out, cap));
 }
 
 void ds_wallet_wipe(ds_wallet *w)

@@ -28,7 +28,9 @@ typedef struct {
 static void usage(void)
 {
     fputs("usage: dtmf-signer-host keys (--ur UR | --keypad TONES | --frame TONES | --wav FILE)\n"
-          "                            [--pin PIN] [--passphrase TEXT] [--testnet]\n",
+          "                            [--pin PIN] [--passphrase TEXT] [--testnet]\n"
+          "warning: arguments are visible to other processes (ps) and are kept in\n"
+          "the shell history. Use only test seeds with this tool.\n",
           stderr);
 }
 
@@ -191,6 +193,7 @@ int main(int argc, char **argv)
     char text[512];
     ds_wallet w;
     int32_t n, r;
+    int i;
     int exit_code = EXIT_FAIL;
     const char *pass_arg;
 
@@ -199,6 +202,9 @@ int main(int argc, char **argv)
     memset(entropy, 0, sizeof entropy);
     if (argc < 2 || strcmp(argv[1], "keys") || parse(argc, argv, &o) != 0) {
         usage();
+        /* Any argument may hold a seed, PIN or passphrase: wipe them all. */
+        for (i = 2; i < argc; i++)
+            ds_wipe(argv[i], strlen(argv[i]));
         return EXIT_USAGE;
     }
     if (o.passphrase != NULL && strlen(o.passphrase) > PASSPHRASE_MAX) {
@@ -255,5 +261,7 @@ done:
         ds_wipe(o.passphrase, strlen(o.passphrase));
     if (o.pin != NULL)
         ds_wipe(o.pin, strlen(o.pin));
+    if (o.value != NULL && o.kind != SRC_WAV) /* the seed as an argument */
+        ds_wipe((char *)o.value, strlen(o.value));
     return exit_code;
 }

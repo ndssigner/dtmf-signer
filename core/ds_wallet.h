@@ -20,11 +20,11 @@ int32_t ds_wallet_load(ds_wallet *w, const uint8_t *entropy, size_t len,
                        const char *passphrase, int testnet);
 
 /* Account xpub text ("xpub", or "tpub" on testnet). Returns the length or a
- * negative DS_ERR_*. */
+ * negative DS_ERR_* (DS_ERR_SPACE if cap is too small, else DS_ERR_ARG). */
 int32_t ds_wallet_xpub(const ds_wallet *w, char *out, size_t cap);
 
-/* wpkh([wallet_fp/84h/0h/0h]xpub...)#checksum. Returns the length or a
- * negative DS_ERR_*. */
+/* wpkh([wallet_fp/84'/0'/0']xpub...)#checksum. Returns the length or a
+ * negative DS_ERR_* (as ds_wallet_xpub). */
 int32_t ds_wallet_descriptor(const ds_wallet *w, char *out, size_t cap);
 
 void ds_wallet_wipe(ds_wallet *w);
