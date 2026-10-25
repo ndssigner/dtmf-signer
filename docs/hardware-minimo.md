@@ -2,6 +2,7 @@
 
 **Estado:** propuesta de diseño, sin probar en hardware.
 **Plataforma:** Raspberry Pi Pico 2 (RP2350), bare-metal, sin sistema operativo.
+**Perfil:** este documento describe el perfil `PROFILE-PICO-FULL` de la [especificación](es/especificacion.md) y el [catálogo](es/catalogo.md). El prototipo actual (`PROFILE-PICO-REF`) usa una Pico RP2040.
 
 ---
 
@@ -155,20 +156,20 @@ Comisión: 1200 sat       0.01500000 BTC
 
 ## 8. Política de canales
 
-| Dato | Por el aire | Por cable (jack o UART) | Con la cruceta |
-|---|---|---|---|
-| PSBT | ✅ | ✅ | — |
-| Seed cifrada con PIN | ⚠️ Permitido con aviso | ✅ Recomendado | ❌ (obligaría a mostrarla) |
-| Seed sin cifrar | ❌ | ✅ | ❌ (obligaría a mostrarla) |
-| PIN | ❌ | ✅ | ✅ |
-| Passphrase | ❌ | ✅ | ✅ |
+La política de canales es común a todos los montajes y está en la [especificación](es/especificacion.md#4-canales): qué dato se acepta por qué clase de canal, y por qué. En esta placa, cada puerto pertenece a una clase:
 
-- **El firmware impone esta tabla**, porque sabe si el dato llegó por el micrófono, por la línea o por UART.
-- **Datos sensibles por UART: se piden con confirmación física.** La pantalla pregunta, por ejemplo, "¿Aceptar passphrase recibida por UART?", y hay que pulsar el central. Un terminal conectado nunca puede meter datos sensibles sin que el usuario lo sepa.
-- **La seed, el PIN y la passphrase nunca salen del firmador**, por ningún canal, ni siquiera como eco por UART. **La seed tampoco se muestra nunca**; solo su huella.
-- **El cable protege el camino, no el origen.** El aparato que envía el dato lo conoce. Es el mismo riesgo que aceptan carteras como Trezor al teclear la passphrase en el ordenador. Lo ideal es enviar datos sensibles desde un aparato desconectado de la red (móvil viejo en modo avión, reproductor de audio, ordenador vintage).
-- **Las grabaciones son copias.** Un archivo de audio con la seed o la passphrase merece el mismo cuidado que una copia en papel; si se guarda, cifrado con un PIN largo.
-- **Por cable en directo, la passphrase puede ir en claro.** Cifrarla con el PIN solo tiene sentido en grabaciones guardadas. Si se hace, con una sal distinta de la de la seed (por ejemplo `ur-tones/passphrase-pin/v0`) y rellenada hasta una longitud fija. Aun así, descifrar con un PIN equivocado da un texto que "no parece texto", lo que permite al atacante comprobar rápido si acertó: una passphrase cifrada guardada junto a la seed cifrada debilita a las dos. *Ampliación pendiente de la especificación de ur-tones.*
+| Puerto | Clase |
+|---|---|
+| Micrófono (GP26) | `AIR` |
+| Jack de ENTRADA (GP27, con detección en GP8) | `CABLE` |
+| Serie TTL o RS-232 (GP0/GP1) | `CABLE` |
+| Cruceta, teclado PS/2 | `LOCAL` |
+| Piezo (salida) | `AIR` |
+| Salida de audio por cable | `CABLE` |
+
+- Como el micrófono y la línea entran por pines distintos (§6), el firmware sabe siempre la clase de cada dato.
+- Los datos sensibles que llegan por UART solo se aceptan tras pulsar el botón central.
+- La confirmación física de la firma es la pulsación larga del central (§7).
 
 **Uso cotidiano recomendado:**
 1. La seed se genera fuera del firmador (con dados, o con otra cartera de confianza).
