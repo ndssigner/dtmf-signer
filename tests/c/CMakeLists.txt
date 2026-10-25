@@ -6,3 +6,4 @@ function(ds_add_test name)
 endfunction()
 
 ds_add_test(test_wipe)
+ds_add_test(test_hash)
