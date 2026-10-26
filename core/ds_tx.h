@@ -52,11 +52,15 @@ typedef int32_t (*ds_tx_output_cb)(void *user, uint32_t index, uint64_t amount,
 typedef int32_t (*ds_tx_end_cb)(void *user, const ds_tx_result *result);
 
 struct ds_tx_reader {
-    /* Set after ds_tx_reader_init; init leaves them NULL. */
+    /* Set after ds_tx_reader_init; init leaves the callbacks NULL. */
     ds_tx_input_cb on_input;
     ds_tx_output_cb on_output;
     ds_tx_end_cb on_end;
     void *user;
+    /* Most inputs and outputs accepted; init sets DS_MAX_INPUTS and
+     * DS_MAX_OUTPUTS. A caller that stores nothing per entry (a previous
+     * transaction, only streamed) may raise them. */
+    uint32_t max_inputs, max_outputs;
 
     /* Private state. */
     ds_sha256_ctx txid_h, prevouts_h, sequence_h, outputs_h;
@@ -75,7 +79,7 @@ struct ds_tx_reader {
 void ds_tx_reader_init(ds_tx_reader *r);
 /* Consumes n bytes. Returns DS_OK, or a negative error that sticks:
  * DS_ERR_PSBT for malformed data (bad flag, oversized script, bytes after the
- * end), DS_ERR_LIMIT for more than DS_MAX_INPUTS / DS_MAX_OUTPUTS, or a
+ * end), DS_ERR_LIMIT for more than max_inputs / max_outputs, or a
  * callback's error. Any split of the stream gives the same result. */
 int32_t ds_tx_reader_feed(ds_tx_reader *r, const uint8_t *p, size_t n);
 /* 1 once the whole transaction has been read, 0 while it is incomplete, or

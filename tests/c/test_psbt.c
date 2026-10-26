@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "ds_bip32.h"
 #include "ds_bitcoin.h"
+#include "ds_hash.h"
 #include "ds_psbt.h"
 #include "ds_wallet.h"
 #include "psbt_vectors.h"
@@ -84,11 +86,11 @@ static void expected_summary(const psbt_vector *v, char *out, size_t cap)
         btc(x->amount, amt, sizeof amt);
         if (x->address) {
             o += (size_t)snprintf(out + o, cap - o, "OUTPUT %u: %s BTC to %s",
-                                  (unsigned)k, amt, x->address);
+                                  (unsigned)k + 1, amt, x->address);
         } else {
             o += (size_t)snprintf(out + o, cap - o,
                                   "OUTPUT %u: %s BTC to script, %u bytes",
-                                  (unsigned)k, amt,
+                                  (unsigned)k + 1, amt,
                                   (unsigned)(strlen(x->script_hex) / 2));
         }
         o += (size_t)snprintf(out + o, cap - o, "%s\n",
@@ -104,7 +106,8 @@ static void expected_summary(const psbt_vector *v, char *out, size_t cap)
     for (k = 0; v->inputs_ours[k]; k++) {
         if (v->inputs_ours[k] == '0') {
             o += (size_t)snprintf(out + o, cap - o,
-                                  "INPUT %u NOT SIGNED: not ours\n", (unsigned)k);
+                                  "INPUT %u NOT SIGNED: not ours\n",
+                                  (unsigned)k + 1);
         }
     }
 }
@@ -326,6 +329,259 @@ static void test_psbt_witness_script_mismatch(void)
     ds_wallet_wipe(&w);
 }
 
+/* A source whose content switches to another buffer once it has been read
+ * to the end (after the analysis has hashed it). */
+typedef struct {
+    const uint8_t *first, *then;
+    uint32_t len;
+    int switched;
+} changing_src;
+
+static int32_t changing_read(void *ctx, uint32_t off, uint8_t *buf, size_t n)
+{
+    changing_src *m = ctx;
+    if (off > m->len || n > m->len - off) {
+        return DS_ERR_ARG;
+    }
+    memcpy(buf, (m->switched ? m->then : m->first) + off, n);
+    if (off + n == m->len) {
+        m->switched = 1;
+    }
+    return (int32_t)n;
+}
+
+static void test_psbt_source_changes(void)
+{
+    const psbt_vector *v = find("one input with change");
+    uint8_t buf[2048];
+    ds_wallet w;
+    ds_psbt_review rv;
+    mem_src m;
+    changing_src c;
+    ds_source src;
+    size_t k;
+
+    if (!v || !load(v, &w)) {
+        return;
+    }
+    /* The first output's amount (60000 sat) in the unsigned transaction. */
+    memcpy(buf, v->psbt, v->psbt_len);
+    for (k = 0; k + 8 <= v->psbt_len; k++) {
+        if (memcmp(buf + k, "\x60\xea\x00\x00\x00\x00\x00\x00", 8) == 0) {
+            break;
+        }
+    }
+    CHECK(k + 8 <= v->psbt_len);
+    buf[k + 1] = 0x50; /* 20576 sat: still a valid PSBT, with a larger fee */
+    CHECK_EQ_INT(analyze(buf, v->psbt_len, &w, &rv, &m), DS_OK);
+    CHECK_EQ_INT(rv.fee, 1000 + 60000 - 20576);
+
+    c.first = v->psbt;
+    c.then = buf;
+    c.len = (uint32_t)v->psbt_len;
+    c.switched = 0;
+    src.read = changing_read;
+    src.ctx = &c;
+    src.len = c.len;
+    rv.fee = 1;
+    CHECK_EQ_INT(ds_psbt_analyze(&src, &w, &rv), DS_ERR_PSBT);
+    CHECK_EQ_INT(c.switched, 1);
+    CHECK_EQ_INT(rv.fee, 0); /* the review is wiped */
+    CHECK_EQ_INT(rv.n_out, 0);
+    ds_wallet_wipe(&w);
+}
+
+/* ---- a PSBT built here: two inputs of ours, large previous transactions ---- */
+
+typedef struct {
+    uint8_t *p;
+    size_t len;
+} bytes;
+
+static void add(bytes *b, const void *d, size_t n)
+{
+    memcpy(b->p + b->len, d, n);
+    b->len += n;
+}
+
+static void add_byte(bytes *b, uint8_t v)
+{
+    add(b, &v, 1);
+}
+
+static void add_le32(bytes *b, uint32_t v)
+{
+    uint8_t t[4];
+    t[0] = (uint8_t)v;
+    t[1] = (uint8_t)(v >> 8);
+    t[2] = (uint8_t)(v >> 16);
+    t[3] = (uint8_t)(v >> 24);
+    add(b, t, 4);
+}
+
+static void add_le64(bytes *b, uint64_t v)
+{
+    add_le32(b, (uint32_t)v);
+    add_le32(b, (uint32_t)(v >> 32));
+}
+
+static void add_compact(bytes *b, uint64_t v)
+{
+    uint8_t t[9];
+    add(b, t, ds_compact_encode(v, t));
+}
+
+/* A key/value pair. */
+static void add_pair(bytes *b, const uint8_t *key, size_t klen,
+                     const uint8_t *val, size_t vlen)
+{
+    add_compact(b, klen);
+    add(b, key, klen);
+    add_compact(b, vlen);
+    add(b, val, vlen);
+}
+
+/* A previous transaction with n_in inputs and n_out outputs; output vout
+ * pays amount to script (22 bytes), the others pay 1000 sat elsewhere. */
+static size_t prev_tx(uint8_t *out, unsigned n_in, unsigned n_out,
+                      unsigned vout, uint64_t amount, const uint8_t script[22])
+{
+    static const uint8_t other[22] = {0x00, 0x14, 0x44, 0x44, 0x44, 0x44, 0x44,
+                                      0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+                                      0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
+                                      0x44};
+    bytes b;
+    unsigned k;
+    uint8_t op[36];
+
+    b.p = out;
+    b.len = 0;
+    add_le32(&b, 2);
+    add_compact(&b, n_in);
+    for (k = 0; k < n_in; k++) {
+        memset(op, 0x20 + (int)k, 36);
+        add(&b, op, 36);
+        add_byte(&b, 0);
+        add_le32(&b, 0xffffffffu);
+    }
+    add_compact(&b, n_out);
+    for (k = 0; k < n_out; k++) {
+        add_le64(&b, k == vout ? amount : 1000);
+        add_byte(&b, 22);
+        add(&b, k == vout ? script : other, 22);
+    }
+    add_le32(&b, 0);
+    return b.len;
+}
+
+/* Builds the PSBT; input k spends output vout[k] of a previous transaction
+ * with n_in[k] inputs and n_out[k] outputs, paying account/0/k. */
+static size_t big_prev_psbt(uint8_t *out, const ds_wallet *w,
+                            const unsigned n_in[2], const unsigned n_out[2],
+                            const unsigned vout[2])
+{
+    static const uint64_t amount[2] = {70000, 50000};
+    static uint8_t prev[2][3000];
+    size_t prev_len[2];
+    uint8_t script[2][22], pub[2][33], tx[200], txid[32], kv[40];
+    uint8_t ext[22];
+    bytes b, t;
+    unsigned k, j;
+
+    for (k = 0; k < 2; k++) {
+        ds_hdkey key;
+        CHECK_EQ_INT(ds_bip32_child(&w->account, 0, &key), DS_OK);
+        CHECK_EQ_INT(ds_bip32_child(&key, k, &key), DS_OK);
+        memcpy(pub[k], key.pub, 33);
+        ds_hdkey_wipe(&key);
+        script[k][0] = 0x00;
+        script[k][1] = 0x14;
+        ds_hash160(pub[k], 33, script[k] + 2);
+        prev_len[k] = prev_tx(prev[k], n_in[k], n_out[k], vout[k], amount[k],
+                              script[k]);
+    }
+
+    /* The unsigned transaction: both inputs, one external output. */
+    t.p = tx;
+    t.len = 0;
+    add_le32(&t, 2);
+    add_byte(&t, 2);
+    for (k = 0; k < 2; k++) {
+        ds_sha256d(prev[k], prev_len[k], txid);
+        add(&t, txid, 32);
+        add_le32(&t, vout[k]);
+        add_byte(&t, 0);
+        add_le32(&t, 0xfffffffdu);
+    }
+    add_byte(&t, 1);
+    add_le64(&t, amount[0] + amount[1] - 1000);
+    memset(ext, 0x55, sizeof ext);
+    ext[0] = 0x00;
+    ext[1] = 0x14;
+    add_byte(&t, 22);
+    add(&t, ext, 22);
+    add_le32(&t, 0);
+
+    b.p = out;
+    b.len = 0;
+    add(&b, "psbt\xff", 5);
+    add_pair(&b, (const uint8_t *)"\x00", 1, tx, t.len);
+    add_byte(&b, 0);
+    for (k = 0; k < 2; k++) {
+        bytes v;
+        uint8_t key[34];
+
+        add_pair(&b, (const uint8_t *)"\x00", 1, prev[k], prev_len[k]);
+        v.p = kv;
+        v.len = 0;
+        add_le64(&v, amount[k]);
+        add_byte(&v, 22);
+        add(&v, script[k], 22);
+        add_pair(&b, (const uint8_t *)"\x01", 1, kv, v.len);
+        key[0] = 0x06;
+        memcpy(key + 1, pub[k], 33);
+        v.len = 0;
+        for (j = 0; j < 4; j++) {
+            add_byte(&v, (uint8_t)(w->wallet_fp >> (24 - 8 * j)));
+        }
+        add_le32(&v, w->path[0]);
+        add_le32(&v, w->path[1]);
+        add_le32(&v, w->path[2]);
+        add_le32(&v, 0);
+        add_le32(&v, k);
+        add_pair(&b, key, sizeof key, kv, v.len);
+        add_byte(&b, 0);
+    }
+    add_byte(&b, 0); /* the output map */
+    return b.len;
+}
+
+static void test_psbt_large_previous_tx(void)
+{
+    static const unsigned n_in[2][2] = {{1, 1}, {1, DS_MAX_INPUTS + 8}};
+    static const unsigned n_out[2][2] = {{DS_MAX_OUTPUTS + 10, 2}, {2, 2}};
+    static const unsigned vout[2][2] = {{DS_MAX_OUTPUTS + 9, 0}, {1, 0}};
+    const psbt_vector *v = find("one input with change"); /* wallet: abandon */
+    static uint8_t buf[8000];
+    ds_wallet w;
+    unsigned c;
+
+    if (!v || !load(v, &w)) {
+        return;
+    }
+    for (c = 0; c < 2; c++) {
+        ds_psbt_review rv;
+        mem_src m;
+        size_t n = big_prev_psbt(buf, &w, n_in[c], n_out[c], vout[c]);
+        CHECK_EQ_INT(analyze(buf, n, &w, &rv, &m), DS_OK);
+        CHECK_EQ_INT(rv.n_ours, 2);
+        CHECK_EQ_INT(rv.fee, 1000);
+        CHECK_EQ_INT(rv.total_in, 120000);
+        CHECK_EQ_INT(m.out_of_range, 0);
+    }
+    ds_wallet_wipe(&w);
+}
+
 /* A PSBT with only the global map: an unsigned transaction with n_in inputs
  * and n_out P2WPKH outputs. */
 static size_t limits_psbt(uint8_t *p, unsigned n_in, unsigned n_out)
@@ -417,4 +673,5 @@ static void test_psbt_summary_space(void)
 
 TEST_MAIN(test_psbt_vectors, test_psbt_truncated, test_psbt_trailing_byte,
           test_psbt_fee_boundaries, test_psbt_witness_script_mismatch,
+          test_psbt_source_changes, test_psbt_large_previous_tx,
           test_psbt_limits, test_psbt_review_size, test_psbt_summary_space)

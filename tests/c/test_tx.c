@@ -328,6 +328,66 @@ static void test_tx_long_output_script(void)
     }
 }
 
+/* A transaction with n_in inputs and n_out outputs, all empty scripts. */
+static size_t counts_tx(uint8_t *b, unsigned n_in, unsigned n_out)
+{
+    size_t o = 0, k;
+    memcpy(b, "\x02\x00\x00\x00", 4);
+    o = 4;
+    b[o++] = (uint8_t)n_in;
+    for (k = 0; k < n_in; k++) {
+        memset(b + o, (int)k, 36);
+        b[o + 36] = 0;
+        memset(b + o + 37, 0xff, 4);
+        o += 41;
+    }
+    b[o++] = (uint8_t)n_out;
+    for (k = 0; k < n_out; k++) {
+        memset(b + o, 0, 9);
+        o += 9;
+    }
+    memset(b + o, 0, 4);
+    return o + 4;
+}
+
+/* The limits are per reader: init sets DS_MAX_*, the caller may change them. */
+static void test_tx_reader_limits(void)
+{
+    uint8_t b[3000];
+    ds_tx_reader r;
+    size_t n;
+
+    ds_tx_reader_init(&r);
+    CHECK_EQ_INT(r.max_inputs, DS_MAX_INPUTS);
+    CHECK_EQ_INT(r.max_outputs, DS_MAX_OUTPUTS);
+
+    n = counts_tx(b, 1, DS_MAX_OUTPUTS + 8);
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_ERR_LIMIT);
+    ds_tx_reader_init(&r);
+    r.max_outputs = 100000;
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_OK);
+    CHECK_EQ_INT(ds_tx_reader_done(&r), 1);
+    CHECK_EQ_INT(ds_tx_reader_result(&r)->n_outputs, DS_MAX_OUTPUTS + 8);
+
+    n = counts_tx(b, DS_MAX_INPUTS + 8, 1);
+    ds_tx_reader_init(&r);
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_ERR_LIMIT);
+    ds_tx_reader_init(&r);
+    r.max_inputs = 100000;
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_OK);
+    CHECK_EQ_INT(ds_tx_reader_done(&r), 1);
+    CHECK_EQ_INT(ds_tx_reader_result(&r)->n_inputs, DS_MAX_INPUTS + 8);
+
+    /* Lower limits apply too. */
+    n = counts_tx(b, 2, 2);
+    ds_tx_reader_init(&r);
+    r.max_inputs = 1;
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_ERR_LIMIT);
+    ds_tx_reader_init(&r);
+    r.max_outputs = 1;
+    CHECK_EQ_INT(ds_tx_reader_feed(&r, b, n), DS_ERR_LIMIT);
+}
+
 TEST_MAIN(test_bip143_native_p2wpkh, test_txid_with_witness, test_tx_truncated,
           test_tx_errors, test_tx_callback_error, test_tx_huge_counts,
-          test_tx_long_output_script)
+          test_tx_long_output_script, test_tx_reader_limits)

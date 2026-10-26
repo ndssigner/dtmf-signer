@@ -397,6 +397,9 @@ static int32_t check_prev_tx(cache *c, const entry *e, const uint8_t op[36],
     r.on_output = on_prev_output;
     r.on_end = on_prev_end;
     r.user = p;
+    /* Only streamed: nothing is stored per entry, so a large cap suffices. */
+    r.max_inputs = DS_PSBT_PREV_MAX;
+    r.max_outputs = DS_PSBT_PREV_MAX;
     if ((err = read_tx(c, e->val, e->val_len, &r, &pos)) < 0) {
         return err;
     }
@@ -594,6 +597,7 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
     int has_tx = 0;
     uint32_t off, end, k;
     uint64_t total_out = 0, external = 0;
+    uint8_t again[32];
     int32_t r;
 
     memset(&tx, 0, sizeof tx);
@@ -666,6 +670,16 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
     rv->fee = rv->total_in - total_out;
     rv->fee_warning = rv->fee > FEE_LIMIT || (external > 0 && rv->fee * 10 > external);
     rv->testnet = w->testnet;
+
+    /* The bytes analyzed must be the bytes hashed: hash the source again,
+     * bypassing the cache, and compare. */
+    c->fill = 0;
+    if ((r = hash_source(c, again)) < 0) {
+        return r;
+    }
+    if (memcmp(again, rv->psbt_sha256, 32) != 0) {
+        return DS_ERR_PSBT; /* the source changed during the analysis */
+    }
     return DS_OK;
 }
 
@@ -749,7 +763,7 @@ int32_t ds_psbt_summary_text(const ds_psbt_review *r, char *out, size_t cap)
         const ds_out *o = &r->out[k];
         char addr[96];
         put(&t, "OUTPUT ");
-        put_uint(&t, k, 1);
+        put_uint(&t, k + 1, 1);
         put(&t, ": ");
         put_btc(&t, o->amount);
         put(&t, " to ");
@@ -774,7 +788,7 @@ int32_t ds_psbt_summary_text(const ds_psbt_review *r, char *out, size_t cap)
     for (k = 0; k < r->n_in; k++) {
         if (!r->in[k].ours) {
             put(&t, "INPUT ");
-            put_uint(&t, k, 1);
+            put_uint(&t, k + 1, 1);
             put(&t, " NOT SIGNED: not ours\n");
         }
     }

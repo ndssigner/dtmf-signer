@@ -12,11 +12,13 @@
  *  - DS_ERR_PSBT: not a well-formed version 0 PSBT: bad magic, truncated or
  *    trailing data, a key repeated in a map, a missing or malformed unsigned
  *    transaction (it must have empty scriptSigs and no witnesses), a known key
- *    with an unexpected key or value length.
+ *    with an unexpected key or value length; or a source whose content
+ *    changed during the analysis.
  *  - DS_ERR_UNSUPPORTED: a global version (0xFB) other than 0.
  *  - DS_ERR_LIMIT: more than DS_MAX_INPUTS inputs or DS_MAX_OUTPUTS outputs
- *    (also in a previous transaction), or more than DS_PSBT_MAX_KEYS pairs in
- *    one map.
+ *    in the unsigned transaction, more than DS_PSBT_PREV_MAX inputs or
+ *    outputs in a previous transaction (non_witness_utxo), or more than
+ *    DS_PSBT_MAX_KEYS pairs in one map.
  *  - DS_ERR_SIGHASH: an input whose sighash type is present and not 0x01.
  *  - DS_ERR_AMOUNTS: an input with neither witness_utxo nor non_witness_utxo;
  *    with two or more inputs, an input without non_witness_utxo; a
@@ -50,9 +52,21 @@
 #define DS_PSBT_MAX_KEYS 64
 #endif
 
+/* Most inputs and most outputs accepted in a previous transaction. They are
+ * only streamed (nothing is stored per entry); this is a sanity cap. */
+#ifndef DS_PSBT_PREV_MAX
+#define DS_PSBT_PREV_MAX 100000
+#endif
+
 /* A random-access byte source. read copies n bytes at offset into buf and
  * returns the number of bytes copied, or a negative DS_ERR_* that the
- * analysis returns as is. It is only asked for bytes inside [0, len). */
+ * analysis returns as is. It is only asked for bytes inside [0, len).
+ *
+ * Contract: the content must not change from the start of the analysis to
+ * the end of the signing pass (a fixed buffer filled before the review). The
+ * analysis reads the source several times; it hashes the whole source at its
+ * start and again at its end and fails with DS_ERR_PSBT if they differ, and
+ * psbt_sha256 lets the signing pass check the same. */
 typedef struct {
     int32_t (*read)(void *ctx, uint32_t offset, uint8_t *buf, size_t n);
     void *ctx;
@@ -107,7 +121,8 @@ int32_t ds_psbt_analyze(const ds_source *src, const ds_wallet *w,
  *   FEE: <amount> BTC
  *   WARNING: high fee                      (when fee_warning)
  *   INPUT n NOT SIGNED: not ours           (for each input that is not ours)
- * n counts from 0, as the PSBT does; amounts have 8 decimals. Returns the
+ * n counts from 1 (for people; the PSBT's index is n - 1); amounts have 8
+ * decimals. Returns the
  * length without the NUL (the text is NUL-terminated), DS_ERR_SPACE if cap is
  * too small, or DS_ERR_ARG. */
 int32_t ds_psbt_summary_text(const ds_psbt_review *r, char *out, size_t cap);

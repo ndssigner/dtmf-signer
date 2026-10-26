@@ -62,6 +62,8 @@ void ds_tx_reader_init(ds_tx_reader *r)
     ds_sha256_init(&r->prevouts_h);
     ds_sha256_init(&r->sequence_h);
     ds_sha256_init(&r->outputs_h);
+    r->max_inputs = DS_MAX_INPUTS;
+    r->max_outputs = DS_MAX_OUTPUTS;
     r->state = S_VERSION;
 }
 
@@ -194,7 +196,7 @@ static int32_t step(ds_tx_reader *r, uint8_t b)
     case S_INCNT:
         absorb(r, b, H_TXID);
         if (cs_step(r, b, &v)) {
-            if (v > DS_MAX_INPUTS) {
+            if (v > r->max_inputs) {
                 return DS_ERR_LIMIT;
             }
             if (v == 0) {
@@ -252,7 +254,7 @@ static int32_t step(ds_tx_reader *r, uint8_t b)
     case S_OUTCNT:
         absorb(r, b, H_TXID);
         if (cs_step(r, b, &v)) {
-            if (v > DS_MAX_OUTPUTS) {
+            if (v > r->max_outputs) {
                 return DS_ERR_LIMIT;
             }
             r->res.n_outputs = (uint32_t)v;
