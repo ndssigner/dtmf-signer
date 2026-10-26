@@ -36,7 +36,11 @@ enum {
     E_NOTHING,    /* no input of this wallet -> READY */
     E_TOO_BIG,    /* the signed PSBT would not fit a QR -> READY */
     E_SIGN,       /* signing failed -> READY */
+    E_NO_QR,      /* signed, but the QR would not start -> READY */
 };
+
+/* The signed PSBT's echo, one step per take. */
+enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 
 static const uint8_t CONTRASTS[] = {0x01, 0x04, 0x10, 0x20, 0x40, 0x80, 0xFF};
 #define N_CONTRASTS ((int)(sizeof CONTRASTS / sizeof CONTRASTS[0]))
@@ -44,31 +48,6 @@ static const uint8_t CONTRASTS[] = {0x01, 0x04, 0x10, 0x20, 0x40, 0x80, 0xFF};
 
 #define HOME_ITEMS 4
 #define READY_ITEMS 5
-
-/* The marker of the signed PSBT in the echo queue: expanded when taken. */
-#define ECHO_SIGNED "\x01"
-
-static const char *error_name(int32_t code)
-{
-    switch (code) {
-    case DS_ERR_ARG: return "DS_ERR_ARG";
-    case DS_ERR_SPACE: return "DS_ERR_SPACE";
-    case DS_ERR_PASSPHRASE: return "DS_ERR_PASSPHRASE";
-    case DS_ERR_DERIVE: return "DS_ERR_DERIVE";
-    case DS_ERR_SEED: return "DS_ERR_SEED";
-    case DS_ERR_AUDIO: return "DS_ERR_AUDIO";
-    case DS_ERR_PSBT: return "DS_ERR_PSBT";
-    case DS_ERR_UNSUPPORTED: return "DS_ERR_UNSUPPORTED";
-    case DS_ERR_AMOUNTS: return "DS_ERR_AMOUNTS";
-    case DS_ERR_SIGHASH: return "DS_ERR_SIGHASH";
-    case DS_ERR_NETWORK: return "DS_ERR_NETWORK";
-    case DS_ERR_CHANGE: return "DS_ERR_CHANGE";
-    case DS_ERR_LIMIT: return "DS_ERR_LIMIT";
-    case DS_ERR_STATE: return "DS_ERR_STATE";
-    case DS_ERR_POLICY: return "DS_ERR_POLICY";
-    default: return "error";
-    }
-}
 
 static const char *state_name(int st)
 {
@@ -106,43 +85,83 @@ static void echo_pop(ds_app *a)
 static void echo_line(ds_app *a, const char *line)
 {
     size_t n = strlen(line) + 1;
-    if (n > sizeof a->echo) {
+    if (n > DS_APP_ECHO_MAX) {
+        a->echo_dropped++;
         return;
     }
     while (a->echo_len + n > sizeof a->echo) {
         echo_pop(a);
+        a->echo_dropped++;
     }
     memcpy(a->echo + a->echo_len, line, n);
     a->echo_len += n;
 }
 
+/* Stops the signed PSBT's echo when its bytes are zeroed before it ended:
+ * the abort is said in the echo. */
+static void echo_signed_abort(ds_app *a)
+{
+    char l[40];
+    if (a->sig_phase != SIG_NONE) {
+        snprintf(l, sizeof l, "signed-psbt-abort %u", (unsigned)a->sig_id);
+        echo_line(a, l);
+        a->sig_phase = SIG_NONE;
+        a->sig_pos = 0;
+    }
+}
+
+/* The next line of the signed PSBT's echo into l (cap >= DS_APP_ECHO_MAX). */
+static int32_t echo_signed_next(ds_app *a, char *l, size_t cap)
+{
+    int32_t r;
+    size_t n;
+
+    switch (a->sig_phase) {
+    case SIG_BEGIN:
+        a->sig_phase = SIG_CHUNKS;
+        a->sig_pos = 0;
+        return (int32_t)snprintf(l, cap, "signed-psbt-begin %u %u", (unsigned)a->sig_id,
+                                 (unsigned)a->out_len);
+    case SIG_CHUNKS:
+        n = a->out_len - a->sig_pos;
+        if (n > DS_APP_ECHO_CHUNK) {
+            n = DS_APP_ECHO_CHUNK;
+        }
+        memcpy(l, "signed-psbt ", 12);
+        r = ds_base64_encode(a->out + a->sig_pos, n, l + 12, cap - 12);
+        a->sig_pos += n;
+        if (a->sig_pos >= a->out_len) {
+            a->sig_phase = SIG_END;
+        }
+        return r < 0 ? r : 12 + r;
+    case SIG_END:
+        a->sig_phase = SIG_NONE;
+        a->sig_pos = 0;
+        return (int32_t)snprintf(l, cap, "signed-psbt-end %u", (unsigned)a->sig_id);
+    default:
+        return 0;
+    }
+}
+
 int32_t ds_app_take_echo(ds_app *a, char *out, size_t cap)
 {
-    while (a->echo_len > 0) {
-        size_t n;
-        int32_t r;
-        if (strcmp(a->echo, ECHO_SIGNED) == 0) {
-            echo_pop(a);
-            if (a->out_len == 0) {
-                continue; /* the signed screen was left: nothing to echo */
-            }
-            if (cap < 12 + DS_BASE64_LEN(a->out_len) + 1) {
-                return DS_ERR_SPACE;
-            }
-            memcpy(out, "signed-psbt ", 12);
-            r = ds_base64_encode(a->out, a->out_len, out + 12, cap - 12);
-            return r < 0 ? r : 12 + r;
-        }
+    size_t n;
+
+    if (cap < DS_APP_ECHO_MAX) {
+        return DS_ERR_SPACE; /* nothing taken */
+    }
+    if (a->echo_dropped > 0) {
+        int32_t r = (int32_t)snprintf(out, cap, "echo-dropped %u", (unsigned)a->echo_dropped);
+        a->echo_dropped = 0;
+        return r;
+    }
+    if (a->echo_len > 0) {
         n = strlen(a->echo);
-        if (cap < n + 1) {
-            echo_pop(a);
-            return DS_ERR_SPACE;
-        }
         memcpy(out, a->echo, n + 1);
         echo_pop(a);
         return (int32_t)n;
     }
-    return 0;
+    return echo_signed_next(a, out, cap);
 }
 
 /* ---- the screen ---- */
@@ -196,7 +215,7 @@ static void error_screen(const ds_app *a, ds_screen *s)
         break;
     case E_REJECTED:
         line(s, 0, "Rejected");
-        line(s, 1, error_name(a->err));
+        line(s, 1, ds_error_name(a->err));
         break;
     case E_NOTHING:
         line(s, 0, "Rejected");
@@ -209,7 +228,11 @@ static void error_screen(const ds_app *a, ds_screen *s)
         break;
     case E_SIGN:
         line(s, 0, "Sign failed");
-        line(s, 1, error_name(a->err));
+        line(s, 1, ds_error_name(a->err));
+        break;
+    case E_NO_QR:
+        line(s, 0, "Signed, but no QR:");
+        line(s, 1, "output discarded");
         break;
     default:
         line(s, 0, "Error");
@@ -302,6 +325,9 @@ static void build(const ds_app *a, ds_screen *s)
         break;
     case ST_PAGER:
         ds_pager_page(&a->pager, s);
+        if (!a->armed && a->pager.page + 1 >= a->pager.pages) {
+            line(s, 7, "Tap OK, then hold OK");
+        }
         break;
     case ST_ERROR:
         error_screen(a, s);
@@ -368,6 +394,7 @@ static void clear_qr(ds_app *a)
 static void clear_work(ds_app *a)
 {
     clear_qr(a);
+    echo_signed_abort(a);
     ds_wipe(a->out, sizeof a->out);
     a->out_len = 0;
     ds_wipe(a->summary, sizeof a->summary);
@@ -558,6 +585,7 @@ static void job_review(ds_app *a)
         return;
     }
     ds_pager_init(&a->pager, a->summary);
+    a->armed = 0; /* a hold carried over from before the review cannot confirm */
     set_state(a, ST_PAGER);
 }
 
@@ -610,12 +638,16 @@ static int32_t show_qr(ds_app *a, const char *type, int st)
 
 static void job_qr_signed(ds_app *a)
 {
+    /* Unreachable while ds_app_fits_qr holds for the review (the bound
+     * covers the signed PSBT); if it ever fails, the signature is dropped. */
     if (show_qr(a, "crypto-psbt", ST_SIGNED) != DS_OK) {
         clear_work(a);
-        error_to(a, E_TOO_BIG, DS_ERR_LIMIT);
+        error_to(a, E_NO_QR, DS_ERR_LIMIT);
         return;
     }
-    echo_line(a, ECHO_SIGNED);
+    a->sig_id++;
+    a->sig_phase = SIG_BEGIN;
+    a->sig_pos = 0;
 }
 
 static void job_qr_xpub(ds_app *a)
@@ -670,7 +702,9 @@ void ds_app_init(ds_app *a, uint32_t audio_rate)
 
 static int listening_now(const ds_app *a)
 {
-    return a->state == ST_LOAD || (a->state == ST_LISTEN && !a->rx.d.done);
+    /* DS_RX_DONE leaves ST_LISTEN in the same poll: no audio reaches the
+     * receiver after it. */
+    return a->state == ST_LOAD || a->state == ST_LISTEN;
 }
 
 void ds_app_audio(ds_app *a, const int16_t *x, size_t n)
@@ -743,17 +777,26 @@ static void button_ready(ds_app *a, int btn)
     }
 }
 
+/* The review. ds_btn sends at most one LONG per press, and a PRESS ends
+ * its press: so once a PRESS (of any button) has been taken here, every
+ * later LONG belongs to a press begun after the review was on screen. A
+ * LONG before that (a hold carried over from "Listening" or "Working...")
+ * is ignored. Then OK held confirms, only on the last page once every page
+ * has been reached. */
 static void button_pager(ds_app *a, int btn, int kind)
 {
     if (kind == DS_BTN_LONG) {
-        /* Only on the last page, once every page has been reached. */
-        if (btn == DS_BTN_OK && a->pager.seen_last &&
+        if (btn == DS_BTN_OK && a->armed && a->pager.seen_last &&
             a->pager.page + 1 >= a->pager.pages && a->s.state == DS_S_REVIEW &&
             ds_session_confirm(&a->s) == DS_OK) {
             start_job(a, JOB_SIGN);
         }
         return;
     }
+    if (kind != DS_BTN_PRESS) {
+        return;
+    }
+    a->armed = 1;
     if (btn == DS_BTN_UP) {
         ds_pager_move(&a->pager, -1);
     } else if (btn == DS_BTN_DOWN) {
@@ -917,7 +960,10 @@ void ds_app_tick(ds_app *a, uint32_t now_ms)
     if ((a->state == ST_XPUB || a->state == ST_SIGNED) &&
         now_ms - a->part_at >= DS_APP_PART_MS) {
         ds_qr_next(&a->qr);
-        a->part_at = now_ms;
+        a->part_at += DS_APP_PART_MS;
+        if (now_ms - a->part_at >= DS_APP_PART_MS) {
+            a->part_at = now_ms; /* a stalled loop: resync, no burst */
+        }
         a->dirty = 1;
     }
     if (a->job != JOB_NONE) {

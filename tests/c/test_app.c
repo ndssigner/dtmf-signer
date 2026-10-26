@@ -145,6 +145,47 @@ static int echo_has(const char *prefix, const char *secret)
     return found;
 }
 
+/* Takes the echo up to the end of the next signed PSBT, decoding its
+ * chunks into buf: returns its length (and its id), -2 on an abort, -1 if
+ * it is not there or broken. Other lines in between are skipped. */
+static int32_t take_signed(uint8_t *buf, size_t cap, uint32_t *id)
+{
+    char line[DS_APP_ECHO_MAX];
+    int32_t n;
+    size_t len = 0;
+    unsigned begin_id = 0, end_id = 0, bytes = 0;
+    int begun = 0;
+
+    while ((n = ds_app_take_echo(&app, line, sizeof line)) > 0) {
+        CHECK(strstr(line, "TEST") == NULL);
+        if (sscanf(line, "signed-psbt-begin %u %u", &begin_id, &bytes) == 2) {
+            CHECK(!begun);
+            begun = 1;
+            len = 0;
+        } else if (strncmp(line, "signed-psbt ", 12) == 0) {
+            int32_t k;
+            CHECK(begun);
+            CHECK(strlen(line + 12) <= 64);
+            k = ds_base64_decode(line + 12, strlen(line + 12), buf + len, cap - len);
+            CHECK(k > 0);
+            if (k <= 0) {
+                return -1;
+            }
+            len += (size_t)k;
+        } else if (sscanf(line, "signed-psbt-end %u", &end_id) == 1) {
+            CHECK(begun);
+            CHECK_EQ_INT(end_id, begin_id);
+            CHECK_EQ_INT(len, bytes);
+            *id = end_id;
+            return begun && end_id == begin_id && len == bytes ? (int32_t)len : -1;
+        } else if (strncmp(line, "signed-psbt-abort ", 18) == 0) {
+            return -2;
+        }
+    }
+    CHECK(n == 0);
+    return -1;
+}
+
 /* Collected echo lines, for checks across a flow. */
 static char seen[8192];
 
@@ -388,9 +429,11 @@ static void test_app_sign_flow(void)
 {
     const psbt_vector *v = vector("one input with change");
     const uint8_t *m = NULL, *p = NULL;
-    size_t m_len, p_len, w_len = sign_direct(v);
+    size_t m_len, p_len, w_len;
     int32_t n;
+    uint32_t id = 0;
 
+    w_len = sign_direct(v);
     to_ready(NULL, 0x73c5da0au);
     send_psbt(v);
     work_done();
@@ -443,10 +486,9 @@ static void test_app_sign_flow(void)
     CHECK_EQ_INT(p_len, w_len);
     CHECK(p_len == w_len && memcmp(p, want, w_len) == 0);
 
-    seen[0] = '\0';
-    CHECK(echo_has("signed-psbt ", "TEST"));
-    n = ds_base64_decode(echo + 12, strlen(echo + 12), raw, sizeof raw);
+    n = take_signed(raw, sizeof raw, &id);
     CHECK_EQ_INT(n, (int32_t)w_len);
+    CHECK_EQ_INT(id, 1);
     CHECK(n > 0 && memcmp(raw, want, w_len) == 0);
 
     /* LEFT leaves the signed screen: out and cbor are zeroed. */
@@ -455,6 +497,213 @@ static void test_app_sign_flow(void)
     CHECK(all_zero(app.out, sizeof app.out));
     CHECK(all_zero(app.cbor, sizeof app.cbor));
     CHECK_EQ_INT(app.out_len, 0);
+
+    /* A second PSBT signed after the first: its own bytes, id 2. */
+    v = vector("fee above 10% of external outputs");
+    w_len = sign_direct(v);
+    send_psbt(v);
+    work_done();
+    read_all_pages();
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    work_done();
+    CHECK(shows("Signed"));
+    m_len = read_qr("crypto-psbt", &m);
+    CHECK(ut_cbor_to_psbt(m, m_len, &p, &p_len) >= 0);
+    CHECK(p_len == w_len && memcmp(p, want, w_len) == 0);
+    n = take_signed(raw, sizeof raw, &id);
+    CHECK_EQ_INT(n, (int32_t)w_len);
+    CHECK_EQ_INT(id, 2);
+    CHECK(n > 0 && memcmp(raw, want, w_len) == 0);
+    press(DS_BTN_LEFT);
+    CHECK(all_zero(app.out, sizeof app.out));
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* A review that fits one page: seen_last is set at once, so only the rule
+ * that a PRESS must come first keeps a carried-over hold from confirming. */
+static void test_app_single_page(void)
+{
+    const psbt_vector *v = vector("no external outputs, fee under the limit");
+    const uint8_t *m = NULL, *p = NULL;
+    size_t m_len, p_len, w_len = sign_direct(v);
+    uint32_t id = 0;
+
+    /* OK held from "Working..." into the review: its LONG arrives once the
+     * one-page review is up. It must not sign. */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(v);
+    work_done();
+    CHECK_EQ_INT(app.pager.pages, 1);
+    CHECK(app.pager.seen_last);
+    CHECK(shows("Tap OK, then hold OK"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    CHECK(!shows("Working..."));
+    CHECK(all_zero(app.out, sizeof app.out));
+    /* Released after the LONG (no event), held again: still a LONG with no
+     * PRESS taken in the review, so still nothing. */
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+
+    /* A tap, then a fresh hold on the single page: signs. */
+    press(DS_BTN_OK);
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    CHECK(shows("HOLD OK TO SIGN"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
+    work_done();
+    CHECK(shows("Signed"));
+    m_len = read_qr("crypto-psbt", &m);
+    CHECK(ut_cbor_to_psbt(m, m_len, &p, &p_len) >= 0);
+    CHECK(p_len == w_len && memcmp(p, want, w_len) == 0);
+    CHECK_EQ_INT(take_signed(raw, sizeof raw, &id), (int32_t)w_len);
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* Leaving the signed screen before the echo is taken: an abort, never the
+ * bytes of another PSBT. */
+static void test_app_echo_abort(void)
+{
+    uint32_t id = 0;
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(vector("one input with change"));
+    work_done();
+    read_all_pages();
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    work_done();
+    CHECK(shows("Signed"));
+    {
+        char line[DS_APP_ECHO_MAX];
+        int k, chunks = 0;
+        /* Take a little of it: up to the first chunk. */
+        for (k = 0; k < 100 && chunks == 0; k++) {
+            CHECK(ds_app_take_echo(&app, line, sizeof line) > 0);
+            chunks = strncmp(line, "signed-psbt ", 12) == 0;
+        }
+        CHECK(chunks);
+        CHECK_EQ_INT(ds_app_take_echo(&app, line, 10), DS_ERR_SPACE);
+    }
+    press(DS_BTN_LEFT);
+    CHECK_EQ_INT(take_signed(raw, sizeof raw, &id), -2);
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* A full queue says how many lines it dropped. */
+static void test_app_echo_dropped(void)
+{
+    char line[DS_APP_ECHO_MAX];
+    unsigned dropped = 0;
+    int i;
+    ds_app_init(&app, TONES_RATE);
+    now = 0;
+    tick();
+    for (i = 0; i < 100; i++) {
+        press(DS_BTN_OK);   /* Load seed */
+        press(DS_BTN_LEFT); /* back HOME */
+    }
+    CHECK(ds_app_take_echo(&app, line, sizeof line) > 0);
+    CHECK(sscanf(line, "echo-dropped %u", &dropped) == 1);
+    CHECK(dropped > 100);
+    CHECK(ds_app_take_echo(&app, line, sizeof line) > 0);
+    CHECK(strncmp(line, "state ", 6) == 0);
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* Four QR parts a second, with no drift at 16 ms ticks, and no burst after
+ * a stall. */
+static void test_app_qr_pace(void)
+{
+    int i;
+    uint32_t shown;
+    to_ready(NULL, 0x73c5da0au);
+    press(DS_BTN_DOWN);
+    press(DS_BTN_OK); /* Show XPUB */
+    work_done();
+    shown = app.qr.shown;
+    for (i = 0; i < 63; i++) {
+        tick(); /* 1008 ms */
+    }
+    CHECK_EQ_INT(app.qr.shown - shown, 4);
+    for (i = 0; i < 1000 / 16 * 9; i++) {
+        tick();
+    }
+    shown = app.qr.shown;
+    now += 3000; /* a stalled loop */
+    ds_app_tick(&app, now);
+    CHECK_EQ_INT(app.qr.shown - shown, 1);
+    tick();
+    tick();
+    CHECK_EQ_INT(app.qr.shown - shown, 1);
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void check_wiped(void)
+{
+    CHECK(shows("Wiped"));
+    CHECK_EQ_INT(ds_app_wants_reboot(&app), 1);
+    CHECK(all_zero(&app.s, sizeof app.s));
+    CHECK(all_zero(&app.rx, sizeof app.rx));
+    CHECK(all_zero(app.out, sizeof app.out));
+    CHECK(all_zero(app.cbor, sizeof app.cbor));
+    CHECK(all_zero(&app.qr, sizeof app.qr));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK_EQ_INT(app.job, 0);
+    idle(100);
+    CHECK(shows("Wiped"));
+    CHECK(all_zero(&app.s, sizeof app.s));
+    CHECK(all_zero(app.out, sizeof app.out));
+}
+
+/* WIPE while working, on the XPUB and signed screens and on an error. */
+static void test_app_wipe_anywhere(void)
+{
+    /* While "Working..." (the review pending). */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(vector("one input with change"));
+    CHECK(shows("Working..."));
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
+    check_wiped();
+
+    /* While "Working..." for the signature (confirmed, not signed). */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(vector("one input with change"));
+    work_done();
+    read_all_pages();
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
+    check_wiped();
+
+    /* On the XPUB screen. */
+    to_ready(NULL, 0x73c5da0au);
+    press(DS_BTN_DOWN);
+    press(DS_BTN_OK);
+    work_done();
+    CHECK(shows("XPUB"));
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
+    check_wiped();
+
+    /* On the signed screen. */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(vector("one input with change"));
+    work_done();
+    read_all_pages();
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    work_done();
+    CHECK(shows("Signed"));
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
+    check_wiped();
+
+    /* On an error screen. */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(vector("fake change: our path, foreign key"));
+    work_done();
+    CHECK(shows("Rejected"));
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
+    check_wiped();
     ds_app_init(&app, TONES_RATE);
 }
 
@@ -476,7 +725,9 @@ static void test_app_timings(void)
     CHECK(strstr(seen, "t review ") != NULL);
     CHECK(strstr(seen, "t sign ") != NULL);
     CHECK(strstr(seen, "t qr ") != NULL);
+    CHECK(strstr(seen, "signed-psbt-begin 1 ") != NULL);
     CHECK(strstr(seen, "signed-psbt ") != NULL);
+    CHECK(strstr(seen, "signed-psbt-end 1") != NULL);
     CHECK(strstr(seen, "TEST") == NULL);
     ds_app_init(&app, TONES_RATE);
 }
@@ -733,4 +984,6 @@ static void test_app_settings(void)
 TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
           test_app_sign_flow, test_app_timings, test_app_reject, test_app_cancel,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
-          test_app_fits_qr, test_app_settings)
+          test_app_fits_qr, test_app_settings, test_app_single_page,
+          test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
+          test_app_wipe_anywhere)

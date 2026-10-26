@@ -9,7 +9,12 @@
  *
  * The session's invariants hold through the screens:
  *  - nothing is signed unless every page of the review has been reached and
- *    OK is held (DS_BTN_LONG) on the last page; only then ds_session_confirm;
+ *    OK is held (DS_BTN_LONG) on the last page; only then ds_session_confirm.
+ *    That LONG counts only after a DS_BTN_PRESS (of any button) has been
+ *    taken in the review: ds_btn sends one LONG per press and a PRESS ends
+ *    its press, so the hold began after the review was on screen. A hold of
+ *    OK carried over from "Listening" or "Working..." never confirms; on a
+ *    one-page review the footer says "Tap OK, then hold OK";
  *  - before the review can be confirmed, the signed PSBT's upper bound
  *    (PSBT + 112 bytes per input of ours + 8) must fit an animated QR at
  *    1 px, or the review is cancelled ("Too big for QR"): the device never
@@ -27,10 +32,16 @@
  * "Working..." on screen, so the port can draw it first. Buttons are ignored
  * while working, except DS_BTN_WIPE.
  *
- * The echo (ds_app_take_echo) is public data only: the state names, the
- * timings "t pin|derive|review|sign|qr <ms>", the wallet fingerprint, the
- * descriptor and "signed-psbt <base64>". Never a PIN, a passphrase, a seed
- * or a tone group.
+ * The echo (ds_app_take_echo) is public data only, one line per take: the
+ * state names ("state ready"), the timings "t pin|derive|review|sign|qr
+ * <ms>", "fingerprint xxxxxxxx", the descriptor, "echo-dropped N" when the
+ * queue was full, and the signed PSBT as
+ *   signed-psbt-begin <id> <bytes>
+ *   signed-psbt <base64 of up to 48 bytes>     (in order, as many as needed)
+ *   signed-psbt-end <id>
+ * or "signed-psbt-abort <id>" if the signed screen was left before the end
+ * (other lines may come between these). The id counts the signed PSBTs.
+ * Never a PIN, a passphrase, a seed or a tone group.
  *
  * Everything is inside the struct: no malloc, no globals, no pointers to
  * memory outside it. With the default limits (DS_APP_PSBT_MAX 16384,
@@ -57,11 +68,13 @@
 /* The review text: at most about 120 characters per output line and 40 per
  * input line, plus the fee and its warning. */
 #define DS_APP_SUMMARY_MAX (DS_MAX_OUTPUTS * 128 + DS_MAX_INPUTS * 48 + 128)
-/* Echo lines waiting to be taken (when full, the oldest are dropped). */
+/* Echo lines waiting to be taken (when full, the oldest are dropped and
+ * "echo-dropped N" says so). */
 #define DS_APP_ECHO_BUF 1024
-/* The longest echo line ("signed-psbt " and the base64), with its NUL: the
- * cap ds_app_take_echo needs. */
-#define DS_APP_ECHO_MAX (12 + (DS_APP_OUT_MAX + 2) / 3 * 4 + 1)
+/* The cap ds_app_take_echo needs: the longest line with its NUL. */
+#define DS_APP_ECHO_MAX 256
+/* Bytes of the signed PSBT per echo line (64 base64 characters). */
+#define DS_APP_ECHO_CHUNK 48
 
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
@@ -95,6 +108,11 @@ typedef struct {
     uint32_t t_at;
     uint32_t now, msg_until, part_at, lost;
     int msg;                      /* 1 while "Not a ..." is shown */
+    int armed;                    /* a PRESS was taken in the review */
+    uint32_t echo_dropped;        /* lines dropped from the full queue */
+    uint32_t sig_id;              /* signed PSBTs so far, for the echo */
+    int sig_phase;                /* the signed PSBT's echo: where it is */
+    size_t sig_pos;
     int dirty, reboot;
 } ds_app;
 
@@ -127,8 +145,8 @@ void ds_app_draw(const ds_app *a, uint8_t fb[8][128]);
 uint8_t ds_app_contrast(const ds_app *a);
 
 /* The next echo line (NUL-terminated, no line break): returns its length, 0
- * when there is none, or DS_ERR_SPACE when cap is too small for it (the line
- * is dropped). DS_APP_ECHO_MAX always fits. */
+ * when there is none, or DS_ERR_SPACE (nothing taken) when cap is under
+ * DS_APP_ECHO_MAX. */
 int32_t ds_app_take_echo(ds_app *a, char *out, size_t cap);
 
 /* 1 after a wipe: the port reboots the device. */
