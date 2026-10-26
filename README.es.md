@@ -214,7 +214,8 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   UR o un WAV con sus tonos) de entrada, el resumen por la salida de error,
   "yes" por la entrada estándar y la PSBT firmada de salida.
   `dtmf-signer-host tones seed|psbt … --out FILE.wav` es una herramienta de
-  pruebas que graba una semilla o una PSBT como tonos (ritmo de cable o de aire). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
+  pruebas que graba una semilla o una PSBT como tonos (ritmo de cable o de
+  aire). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
   otros procesos y quedan en el historial del shell; usa solo semillas de
   prueba con ella.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba

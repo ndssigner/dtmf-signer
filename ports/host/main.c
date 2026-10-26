@@ -402,13 +402,15 @@ static uint8_t *psbt_from_wav(const char *path, size_t *len)
     size_t bytes_len, pos, step, k;
     uint32_t rate = 0;
     int32_t count, r = DS_RX_NONE;
+    size_t cap = 0;
 
     count = ds_wav_read(path, NULL, 0, &rate);
     if (count < 0) {
         fprintf(stderr, "dtmf-signer-host: cannot read %s as a 16-bit PCM WAV\n", path);
         goto done;
     }
-    samples = malloc((size_t)count * sizeof *samples + 1);
+    cap = (size_t)count;
+    samples = malloc(cap * sizeof *samples + 1);
     if (rx == NULL || samples == NULL) {
         fputs("dtmf-signer-host: out of memory\n", stderr);
         goto done;
@@ -444,7 +446,10 @@ done:
         ds_rx_wipe(rx);
         free(rx);
     }
-    free(samples);
+    if (samples != NULL) { /* a seed recording given by mistake is seed audio */
+        ds_wipe(samples, cap * sizeof *samples + 1);
+        free(samples);
+    }
     return psbt;
 }
 
@@ -669,10 +674,16 @@ static int audio_add(audio_buf *a, const char *tones, uint32_t rate, const ut_ti
     for (;;) {
         if (a->cap - a->len < 4096) {
             size_t cap = a->cap ? a->cap * 2 : 65536;
-            int16_t *bigger = realloc(a->p, cap * sizeof *a->p);
+            /* a new block, not realloc: the old one may hold seed tones */
+            int16_t *bigger = malloc(cap * sizeof *a->p);
             if (bigger == NULL) {
                 fputs("dtmf-signer-host: out of memory\n", stderr);
                 return -1;
+            }
+            if (a->p != NULL) {
+                memcpy(bigger, a->p, a->len * sizeof *a->p);
+                ds_wipe(a->p, a->cap * sizeof *a->p);
+                free(a->p);
             }
             a->p = bigger;
             a->cap = cap;

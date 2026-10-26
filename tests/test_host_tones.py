@@ -3,11 +3,16 @@ ur-tones tones, read back by `keys` and `sign`."""
 
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "third_party" / "ur-tones" / "reference" / "python"))
+
+import ur_tones  # noqa: E402
+
 HOST = ROOT / "build" / "ports" / "host" / "dtmf-signer-host"
 ZERO16 = "00" * 16
 ZERO_FP = "73c5da0a"
@@ -66,10 +71,6 @@ class HostTonesTest(unittest.TestCase):
         self.assertEqual(o1, o2)
 
     def seed_args(self):
-        import sys
-        ut = ROOT / "third_party" / "ur-tones" / "reference" / "python"
-        sys.path.insert(0, str(ut))
-        import ur_tones
         return ["--ur", ur_tones.seed_to_ur(bytes.fromhex(VECTOR["entropy"]))]
 
     def test_psbt_wav_options(self):
