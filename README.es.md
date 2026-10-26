@@ -218,6 +218,14 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   aire). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
   otros procesos y quedan en el historial del shell; usa solo semillas de
   prueba con ella.
+- [`ports/pico/`](ports/pico/): el firmware para la Raspberry Pi Pico
+  (RP2040), un proyecto CMake propio: `cmake -S ports/pico -B build-pico
+  -DPICO_SDK_PATH=<pico-sdk>` da `dtmf-signer-pico.uf2`. Línea en GP27,
+  botones en una escalera de resistencias en GP28, una OLED SH1106 por SPI
+  (los pines, en `board.h`). `-DDS_DISPLAY=SSD1306_SPI` y `SSD1306_I2C`
+  compilan para la SSD1306 pero no están probadas en hardware;
+  `-DDS_DISPLAY_FLIP=ON` gira la pantalla. El serie USB es solo de salida (el
+  eco público y `stack-free`).
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el

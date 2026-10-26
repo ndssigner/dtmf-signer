@@ -23,3 +23,20 @@ jobs:
       - run: cmake --build build
       - run: ctest --test-dir build --output-on-failure
       - run: python3 -m unittest discover -s tests -v
+
+  pico:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libusb-1.0-0-dev pkg-config
+      - name: Fetch the Pico SDK
+        run: |
+          git clone --depth 1 --branch 2.3.1 https://github.com/raspberrypi/pico-sdk "$RUNNER_TEMP/pico-sdk"
+          git -C "$RUNNER_TEMP/pico-sdk" submodule update --init --depth 1 lib/tinyusb
+      - run: cmake -S ports/pico -B build-pico -G Ninja -DPICO_SDK_PATH="$RUNNER_TEMP/pico-sdk"
+      - run: cmake --build build-pico
+      - run: arm-none-eabi-size build-pico/dtmf-signer-pico.elf

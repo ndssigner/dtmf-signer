@@ -61,3 +61,8 @@ ds_add_test(test_app)
 target_sources(test_app PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_app PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_app PRIVATE dtmf_app)
+
+# The Pico port's ADC ring arithmetic is pure C and is tested here.
+ds_add_test(test_adc_ring)
+target_sources(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico/adc_ring.c)
+target_include_directories(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico)

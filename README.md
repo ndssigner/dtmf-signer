@@ -202,6 +202,13 @@ for the use anyone makes of this design.
   test tool that records a seed or a PSBT as tones (cable or air timing).
   Warning: its arguments (seed, PIN, passphrase) are visible to other
   processes and are kept in the shell history; use only test seeds with it.
+- [`ports/pico/`](ports/pico/): the Raspberry Pi Pico (RP2040) firmware, a
+  CMake project of its own: `cmake -S ports/pico -B build-pico
+  -DPICO_SDK_PATH=<pico-sdk>` gives `dtmf-signer-pico.uf2`. Line-in on GP27,
+  buttons on a resistor ladder on GP28, an SH1106 OLED over SPI (pins in
+  `board.h`). `-DDS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C` build for the
+  SSD1306 but are not tested on hardware; `-DDS_DISPLAY_FLIP=ON` rotates the
+  screen. The USB serial is output only (the public echo and `stack-free`).
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.
