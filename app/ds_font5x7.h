@@ -1,5 +1,9 @@
 /* DTMF-Signer device logic: the 5x7 text font.
  *
+ * Not an original drawing: the glyphs (0x20-0x7E) are the classic 5x7
+ * character-generator design, widely published and reproduced in many
+ * displays' and libraries' font tables.
+ *
  * Printable ASCII 0x20-0x7E, 5 bytes per glyph, one byte per column from the
  * left; bit 0 is the top row and a set bit is a lit pixel. A glyph is drawn
  * with one blank column after it (6 px per character). The index of a

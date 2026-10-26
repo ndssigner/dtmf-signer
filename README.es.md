@@ -260,3 +260,10 @@ Las mismas direcciones que [NDS-Signer](https://github.com/ndssigner/nds-signer#
 
 Sin decidir todavía. El hardware se publicará previsiblemente bajo
 [CERN-OHL-S v2](https://ohwr.org/cern_ohl_s_v2.txt).
+
+Las partes de terceros conservan sus propias condiciones: libsecp256k1 y
+qrcodegen (en `third_party/`) están bajo la licencia MIT, y
+`ports/pico/pico_sdk_import.cmake` procede del SDK de la Raspberry Pi Pico
+(BSD de 3 cláusulas). La fuente 5×7 de la pantalla (`app/ds_font5x7.h`) no
+es un dibujo original: sus glifos (0x20–0x7E) son el diseño clásico de
+generador de caracteres 5×7, ampliamente publicado.
