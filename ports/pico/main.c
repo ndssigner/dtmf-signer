@@ -52,7 +52,9 @@ static uint8_t fb[8][128];
 static uint32_t ladder_ms;
 static uint32_t ladder_phase;
 
-/* The stack, from its low end (__StackBottom) to its top (__StackTop). ---- */
+/* The stack, from its low end (__StackBottom) to its top (__StackTop): the
+ * whole 8 KB region of both scratch banks (CMakeLists.txt), so the watermark
+ * sees all of it. Core 1 is never started (it would need a stack there). -- */
 extern char __StackBottom[];
 extern char __StackTop[];
 

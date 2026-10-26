@@ -8,7 +8,9 @@
 #   DS_DISPLAY       SH1106_SPI (default, tested on hardware), SSD1306_SPI or
 #                    SSD1306_I2C (not tested on hardware)
 #   DS_DISPLAY_FLIP  rotate the picture 180 degrees (OFF)
-#   DS_STACK_SIZE    the core 0 stack in bytes (0x1000: the SDK linker script puts it in SCRATCH_Y, which is 4 KB)
+#
+# The stack of core 0 is 8 KB (see "The stack" below): core 1 must never be
+# started.
 cmake_minimum_required(VERSION 3.22)
 
 set(PICO_BOARD pico)
@@ -20,7 +22,6 @@ project(dtmf_signer_pico C CXX ASM)
 set(DS_DISPLAY "SH1106_SPI" CACHE STRING "Display: SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
 set_property(CACHE DS_DISPLAY PROPERTY STRINGS SH1106_SPI SSD1306_SPI SSD1306_I2C)
 option(DS_DISPLAY_FLIP "Rotate the display 180 degrees" OFF)
-set(DS_STACK_SIZE "0x1000" CACHE STRING "Stack of core 0, in bytes (at least 0x1000)")
 
 if(NOT DS_DISPLAY MATCHES "^(SH1106_SPI|SSD1306_SPI|SSD1306_I2C)$")
   message(FATAL_ERROR "DS_DISPLAY must be SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
@@ -28,7 +29,8 @@ endif()
 
 # Read by the SDK's own libraries too, so they are set for the whole project.
 add_compile_definitions(
-  PICO_STACK_SIZE=${DS_STACK_SIZE}
+  # 8 KB: see "The stack" below.
+  PICO_STACK_SIZE=0x2000
   # The USB echo is output only: nothing is read from USB, and the host
   # cannot reset the board into the bootloader through it.
   PICO_ENABLE_USB_RESET_VIA_BAUD_RATE=0
@@ -103,6 +105,21 @@ target_link_libraries(dtmf-signer-pico PRIVATE
   dtmf_app dtmf_core
   pico_stdlib hardware_spi hardware_i2c hardware_adc hardware_dma
   hardware_watchdog ds_warnings)
+
+# The stack. Its deepest paths need about 5.5 KB on this build (the review:
+# PSBT analysis, BIP32, secp256k1) and 4.7 KB (signing), more than the 4 KB
+# of SCRATCH_Y the SDK gives it by default. The SDK's scratch banks X and Y
+# are contiguous (0x20040000-0x20042000) and SCRATCH_X is only for core 1's
+# stack and code placed with __scratch_x, neither of which this firmware has:
+# core 1 is never started, and must not be. So SCRATCH_X is given no length
+# and SCRATCH_Y both banks, all of it the core 0 stack (PICO_STACK_SIZE
+# 0x2000, __StackBottom..__StackTop = 0x20040000-0x20042000, which main.c
+# paints and measures). Anything placed in .scratch_x or .stack1 (core 1's
+# default stack: multicore_launch_core1) or in .scratch_y now overflows its
+# region and the link fails, instead of sharing memory with the stack.
+pico_set_linker_script_var(dtmf-signer-pico SCRATCH_X_LENGTH 0)
+pico_set_linker_script_var(dtmf-signer-pico SCRATCH_Y_ORIGIN 0x20040000)
+pico_set_linker_script_var(dtmf-signer-pico SCRATCH_Y_LENGTH 0x2000)
 
 pico_enable_stdio_usb(dtmf-signer-pico 1)
 pico_enable_stdio_uart(dtmf-signer-pico 0)
