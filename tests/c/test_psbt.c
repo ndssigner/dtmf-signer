@@ -301,6 +301,50 @@ static void test_psbt_fee_boundaries(void)
     ds_wallet_wipe(&w);
 }
 
+/* Wording of "not signed": an input with our derivation but no witness_utxo
+ * is left unsigned without claiming ownership was checked; an input whose
+ * ownership was checked and failed says "not ours". */
+static void test_psbt_not_signed_wording(void)
+{
+    const psbt_vector *v = find("two inputs with non_witness_utxo");
+    const psbt_vector *f = find("foreign input is not signed");
+    uint8_t buf[2048];
+    char text[2048];
+    ds_wallet w;
+    ds_psbt_review rv;
+    mem_src m;
+    size_t at, len;
+
+    if (v && load(v, &w)) {
+        memcpy(buf, v->psbt, v->psbt_len);
+        len = v->psbt_len;
+        at = find_witness_utxo(buf, len, 0);
+        CHECK(at != 0);
+        if (at != 0) {
+            /* drop the whole pair: key length, key, value length, value */
+            size_t start = at - 3, end = at + 0x1f;
+            memmove(buf + start, buf + end, len - end);
+            len -= end - start;
+            CHECK_EQ_INT(analyze(buf, len, &w, &rv, &m), DS_OK);
+            CHECK_EQ_INT(rv.in[0].ours, 0);
+            CHECK_EQ_INT(rv.in[1].ours, 1);
+            CHECK_EQ_INT(rv.n_ours, 1);
+            CHECK(ds_psbt_summary_text(&rv, text, sizeof text) > 0);
+            CHECK(strstr(text, "INPUT 1 NOT SIGNED: no witness_utxo\n") != NULL);
+            CHECK(strstr(text, "not ours") == NULL);
+            CHECK(strstr(text, "INPUT 2") == NULL);
+        }
+        ds_wallet_wipe(&w);
+    }
+    if (f && load(f, &w)) {
+        CHECK_EQ_INT(analyze(f->psbt, f->psbt_len, &w, &rv, &m), DS_OK);
+        CHECK(ds_psbt_summary_text(&rv, text, sizeof text) > 0);
+        CHECK(strstr(text, "NOT SIGNED: not ours\n") != NULL);
+        CHECK(strstr(text, "no witness_utxo") == NULL);
+        ds_wallet_wipe(&w);
+    }
+}
+
 /* Two inputs: witness_utxo with the right amount but another script than the
  * non_witness_utxo output is rejected. */
 static void test_psbt_witness_script_mismatch(void)
@@ -671,7 +715,7 @@ static void test_psbt_summary_space(void)
     ds_wallet_wipe(&w);
 }
 
-TEST_MAIN(test_psbt_vectors, test_psbt_truncated, test_psbt_trailing_byte,
+TEST_MAIN(test_psbt_not_signed_wording, test_psbt_vectors, test_psbt_truncated, test_psbt_trailing_byte,
           test_psbt_fee_boundaries, test_psbt_witness_script_mismatch,
           test_psbt_source_changes, test_psbt_large_previous_tx,
           test_psbt_limits, test_psbt_review_size, test_psbt_summary_space)

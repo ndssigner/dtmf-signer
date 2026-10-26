@@ -506,6 +506,9 @@ static int32_t analyze_input(ds_psbt_cache *c, uint32_t start,
         if ((r = classify(c, &e, w, &chain, &index)) < 0) {
             return r;
         }
+        if (r == OUR_PATH && !has_wit) {
+            in->no_witness = 1; /* we cannot check ownership without it */
+        }
         if (r != OUR_PATH || in->ours || b[0] != 0x00 || b[1] != 0x14) {
             continue;
         }
@@ -514,6 +517,7 @@ static int32_t analyze_input(ds_psbt_cache *c, uint32_t start,
         }
         if (memcmp(mine, b, 22) == 0) {
             in->ours = 1;
+            in->no_witness = 0;
             in->chain = (uint8_t)chain;
             in->index = index;
             rv->n_ours++;
@@ -777,7 +781,8 @@ int32_t ds_psbt_summary_text(const ds_psbt_review *r, char *out, size_t cap)
         if (!r->in[k].ours) {
             put(&t, "INPUT ");
             put_uint(&t, k + 1, 1);
-            put(&t, " NOT SIGNED: not ours\n");
+            put(&t, r->in[k].no_witness ? " NOT SIGNED: no witness_utxo\n"
+                                        : " NOT SIGNED: not ours\n");
         }
     }
     if (t.full) {

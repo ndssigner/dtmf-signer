@@ -93,6 +93,7 @@ typedef struct {
     uint32_t index; /* when ours: the key is account/chain/index */
     uint8_t chain;  /* 0 receive, 1 change */
     uint8_t ours;
+    uint8_t no_witness; /* our derivation, but no witness_utxo: not checked, not signed */
 } ds_psbt_input;
 
 typedef struct {
@@ -120,7 +121,9 @@ int32_t ds_psbt_analyze(const ds_source *src, const ds_wallet *w,
  *   with ", CHANGE" or ", OWN" appended for our outputs; then
  *   FEE: <amount> BTC
  *   WARNING: high fee                      (when fee_warning)
- *   INPUT n NOT SIGNED: not ours           (for each input that is not ours)
+ *   INPUT n NOT SIGNED: not ours           (ownership checked and failed, or no
+ *                                           derivation of ours)
+ *   INPUT n NOT SIGNED: no witness_utxo    (our derivation, ownership not checked)
  * n counts from 1 (for people; the PSBT's index is n - 1); amounts have 8
  * decimals. Returns the
  * length without the NUL (the text is NUL-terminated), DS_ERR_SPACE if cap is
