@@ -334,9 +334,9 @@ Los vectores de prueba están en `vectors/`, en JSON, como los de ur-tones.
   semilla están comprobadas con el JavaScript de ur-tones, una
   implementación independiente del núcleo en C
   (`tests/check_fingerprints.mjs`).
-- **Hecho:** `vectors/psbt-v0.json` tiene vectores de PSBT versión 0: `14`
+- **Hecho:** `vectors/psbt-v0.json` tiene vectores de PSBT versión 0: `13`
   que un montaje DEBE firmar, con los importes, las direcciones, el cambio,
-  la comisión y las firmas esperados, y `9` que DEBE rechazar, con el error
+  la comisión y las firmas esperados, y `10` que DEBE rechazar, con el error
   esperado. Están generados con embit, una implementación independiente del
   núcleo en C (`tools/gen_psbt_vectors.py`, cuya dependencia está fijada en
   `tools/requirements-vectors.txt`).

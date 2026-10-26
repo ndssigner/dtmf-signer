@@ -322,9 +322,9 @@ Test vectors live in `vectors/`, as JSON, like ur-tones'.
   the BIP84 xpub of public test seeds. Its seed fingerprints are checked
   against ur-tones' own JavaScript, an implementation independent of the C
   core (`tests/check_fingerprints.mjs`).
-- **Done:** `vectors/psbt-v0.json` has PSBT version 0 vectors: `14` that a
+- **Done:** `vectors/psbt-v0.json` has PSBT version 0 vectors: `13` that a
   build MUST sign, with the amounts, addresses, change, fee and signatures
-  expected, and `9` that it MUST reject, with the error expected. They are
+  expected, and `10` that it MUST reject, with the error expected. They are
   generated with embit, an implementation independent of the C core
   (`tools/gen_psbt_vectors.py`, whose dependency is pinned in
   `tools/requirements-vectors.txt`).
