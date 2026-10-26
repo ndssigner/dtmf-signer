@@ -7,7 +7,8 @@ The build runs this (a CMake custom command) and keeps the header in the build
 directory. Each vector becomes a psbt_vector: the PSBT and the entropy as byte
 arrays, the expected error as its DS_ERR_* name (the test includes ds_core.h),
 and for "sign" vectors the fee, the fee warning, the expected outputs and
-which inputs are ours (those with an expected signature).
+which inputs are ours (those with an expected signature) with each expected
+signature: the compressed public key and DER + sighash byte, as hex.
 """
 
 import base64
@@ -53,6 +54,11 @@ def render(data):
         "} psbt_vector_out;",
         "",
         "typedef struct {",
+        "    const char *pubkey_hex; /* NULL: the input is not ours */",
+        "    const char *sig_hex;    /* DER signature and the sighash byte */",
+        "} psbt_vector_sig;",
+        "",
+        "typedef struct {",
         "    const char *name;",
         "    const uint8_t *entropy;",
         "    size_t entropy_len;",
@@ -67,6 +73,7 @@ def render(data):
         "    const psbt_vector_out *outputs;",
         "    size_t n_outputs;",
         "    const char *inputs_ours; /* sign: one '1' (ours) or '0' per input */",
+        "    const psbt_vector_sig *signatures; /* sign: one per input */",
         "} psbt_vector;",
         "",
     ]
@@ -78,6 +85,7 @@ def render(data):
         outs = "NULL"
         n_out = 0
         ours = "NULL"
+        sigs = "NULL"
         if sign:
             items = []
             for o in v["outputs"]:
@@ -89,12 +97,19 @@ def render(data):
             outs = "psbt_vector_outputs_%d" % n
             n_out = len(items)
             ours = c_string("".join("0" if x is None else "1" for x in v["signatures"]))
+            items = ["    {NULL, NULL}," if x is None else
+                     "    {%s, %s}," % (c_string(x["pubkey"]), c_string(x["sig"]))
+                     for x in v["signatures"]]
+            out.append("static const psbt_vector_sig psbt_vector_sigs_%d[] = {\n%s\n};\n"
+                       % (n, "\n".join(items)))
+            sigs = "psbt_vector_sigs_%d" % n
         rows.append(
             "    {%s, psbt_vector_entropy_%d, sizeof psbt_vector_entropy_%d, %s, %d,\n"
-            "     psbt_vector_psbt_%d, sizeof psbt_vector_psbt_%d, %d, %s, %dull, %d, %s, %d, %s},"
+            "     psbt_vector_psbt_%d, sizeof psbt_vector_psbt_%d, %d, %s, %dull, %d, %s, %d, %s,\n"
+            "     %s},"
             % (c_string(v["name"]), n, n, c_string(v["passphrase"]), 1 if v["testnet"] else 0,
                n, n, 1 if sign else 0, v["error"] if not sign else "DS_OK",
-               v.get("fee", 0), 1 if v.get("fee_warning") else 0, outs, n_out, ours))
+               v.get("fee", 0), 1 if v.get("fee_warning") else 0, outs, n_out, ours, sigs))
     out.append("static const psbt_vector psbt_vectors[] = {")
     out.extend(rows)
     out.append("};")

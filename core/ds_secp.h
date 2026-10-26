@@ -30,7 +30,8 @@ typedef union {
  * also when this returns NULL. */
 static inline secp256k1_context *ds_secp_create(ds_secp_buf *buf)
 {
-    if (secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE) > sizeof *buf) {
+    if (secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE) >
+        sizeof *buf) {
         return NULL;
     }
     return secp256k1_context_preallocated_create(buf, SECP256K1_CONTEXT_NONE);

@@ -28,3 +28,6 @@ add_custom_command(
 ds_add_test(test_psbt)
 target_sources(test_psbt PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_psbt PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+ds_add_test(test_sign)
+target_sources(test_sign PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_sign PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
