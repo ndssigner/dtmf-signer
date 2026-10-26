@@ -175,14 +175,24 @@ Crece con cada montaje que alguien haga y mida.
   Arduino), y en 96 líneas cabe un QR versión 17 (85 módulos) a 1 píxel por
   módulo; pero esa imagen ocupa 1,5 KB, casi toda la RAM de un ATmega328, así
   que hay que bajar la resolución (en 64 × 64 aún cabe la versión 11) o
-  dibujarla por partes. La imagen invertida (fondo claro, módulos
-  oscuros, como en papel) y el contraste ajustable, bajo por defecto. Medido
-  en una OLED de 128 × 64: cabe hasta un QR versión 7 (45 módulos) a 1 píxel
-  por módulo, suficiente para un descriptor BIP-84 (146 caracteres) en un
-  solo código. La cámara de un móvil leyó todos los códigos a 1 píxel por
-  módulo; la webcam de un portátil, con Sparrow, se deslumbraba con el
-  contraste al máximo y leyó el descriptor al bajarlo. Las pantallas mayores
-  (128 × 128) dan para más en cada cuadro.
+  dibujarla por partes.
+  - **Un recuadro claro solo alrededor del código,** con los módulos oscuros
+    dentro, no toda la pantalla invertida: con el mismo contraste deslumbra
+    mucho menos a una cámara (en la medida, un 15 % de píxeles saturados
+    frente a un 42 %).
+  - **Contraste bajo mientras se muestra un código, ajustable por el
+    usuario** desde el menú del firmador: con el contraste alto, la luz de
+    los píxeles encendidos se come los módulos oscuros, y cada cámara es
+    distinta.
+  - **Tamaño del módulo:** medido en una OLED de 128 × 64 con la webcam de un
+    portátil, los códigos a 2 píxeles por módulo se leyeron siempre con
+    contraste bajo (y nunca con el contraste al máximo); a 1 píxel por módulo
+    (hasta un QR versión 7, 45 módulos, suficiente para un descriptor BIP-84
+    en un solo código) los lee la cámara de un móvil, pero la webcam no de
+    forma fiable. Por eso, 2 píxeles por módulo por defecto, con los datos
+    largos en URs animados, y 1 píxel por módulo como modo rápido para
+    móviles. En una pantalla de 128 × 128 cabe un descriptor a 2 píxeles por
+    módulo.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** cualquier cámara que vea la pantalla puede leerlo: nunca datos
   sensibles (§4 de la especificación). No sirve como verificación: el

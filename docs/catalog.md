@@ -168,13 +168,20 @@ build someone makes and measures.
   Arduino TVout library does), and 96 lines fit a version 17 QR (85 modules)
   at 1 pixel per module; but that image takes 1.5 KB, most of an ATmega328's
   RAM, so lower the resolution (64 × 64 still fits version 11) or draw it in
-  parts. The image inverted (light background, dark modules,
-  as on paper) and the contrast adjustable, low by default. Measured on a
-  128 × 64 OLED: up to a version 7 QR (45 modules) fits at 1 pixel per
-  module, enough for a BIP-84 descriptor (146 characters) in one code. A
-  phone camera read every code at 1 pixel per module; a laptop webcam,
-  through Sparrow, was dazzled at full contrast and read the descriptor once
-  the contrast was lowered. Larger screens (128 × 128) fit more per frame.
+  parts.
+  - **A light box around the code only,** dark modules inside it, not the
+    whole screen inverted: at equal contrast it dazzles a camera much less
+    (in the measurement, 15 % of saturated pixels against 42 %).
+  - **Low contrast while a code shows, adjustable by the user** from the
+    signer's menu: at high contrast the light of the lit pixels swallows the
+    dark modules, and every camera is different.
+  - **Module size:** measured on a 128 × 64 OLED with a laptop webcam, codes
+    at 2 pixels per module read every time at low contrast (and never at
+    full contrast); at 1 pixel per module (up to a version 7 QR, 45 modules,
+    enough for a BIP-84 descriptor in one code) a phone camera reads them,
+    but the webcam does not reliably. So 2 pixels per module is the default,
+    with long data as animated URs, and 1 pixel per module a fast mode for
+    phones. A 128 × 128 screen fits a descriptor at 2 pixels per module.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** any camera that sees the screen can read it: never sensitive
   data (§4 of the specification). It is not a verification output: the
