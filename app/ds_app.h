@@ -10,11 +10,18 @@
  * The session's invariants hold through the screens:
  *  - nothing is signed unless every page of the review has been reached and
  *    OK is held (DS_BTN_LONG) on the last page; only then ds_session_confirm.
- *    That LONG counts only after a DS_BTN_PRESS (of any button) has been
- *    taken in the review: ds_btn sends one LONG per press and a PRESS ends
- *    its press, so the hold began after the review was on screen. A hold of
- *    OK carried over from "Listening" or "Working..." never confirms; on a
- *    one-page review the footer says "Tap OK, then hold OK";
+ *    That LONG counts only after the review is armed by a DS_BTN_PRESS (of
+ *    any button) delivered at least DS_APP_ARM_MS of tick time after the
+ *    first ds_app_tick that followed ds_app_take_dirty handing the review
+ *    screen to the port. ds_btn sends one LONG per press and a PRESS ends
+ *    its press, so the LONG's press began after that release. What this
+ *    guarantees: if the port draws the screen ds_app_take_dirty reports
+ *    before its next tick, and feeds each event within 200 ms of the button
+ *    samples it comes from (ring lag plus the 30 ms debounce), then the
+ *    release that armed the review happened after the review was drawn,
+ *    and so did the start of the hold that confirms. A hold of OK carried
+ *    over from "Listening" or "Working...", or a tap made then, never
+ *    confirms; until armed, the last page says "Tap OK, then hold OK";
  *  - before the review can be confirmed, the signed PSBT's upper bound
  *    (PSBT + 112 bytes per input of ours + 8) must fit an animated QR at
  *    1 px, or the review is cancelled ("Too big for QR"): the device never
@@ -78,6 +85,9 @@
 
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
+/* A PRESS arms the review only this long after the port took it (see
+ * above): button events may come from samples up to 200 ms old. */
+#define DS_APP_ARM_MS 300
 #define DS_APP_UI_CONTRAST 0x80
 
 typedef struct {
@@ -108,7 +118,10 @@ typedef struct {
     uint32_t t_at;
     uint32_t now, msg_until, part_at, lost;
     int msg;                      /* 1 while "Not a ..." is shown */
-    int armed;                    /* a PRESS was taken in the review */
+    int armed;                    /* a late enough PRESS was taken in the review */
+    int pager_taken;              /* the port took the review screen */
+    int pager_shown;              /* a tick ran after that, at pager_at */
+    uint32_t pager_at;
     uint32_t echo_dropped;        /* lines dropped from the full queue */
     uint32_t sig_id;              /* signed PSBTs so far, for the echo */
     int sig_phase;                /* the signed PSBT's echo: where it is */
@@ -135,7 +148,8 @@ void ds_app_button(ds_app *a, int btn, int kind);
  * work, takes what the receiver heard, times messages and QR parts. */
 void ds_app_tick(ds_app *a, uint32_t now_ms);
 
-/* 1 if the screen changed since the last call (then draw it). */
+/* 1 if the screen changed since the last call: draw it before the next
+ * ds_app_tick (the review's arming delay counts from that tick). */
 int ds_app_take_dirty(ds_app *a);
 
 /* The screen in fb: the text, and the QR in the left square when there is one. */

@@ -40,10 +40,14 @@ static int all_zero(const void *p, size_t n)
     return 1;
 }
 
+/* One turn of the port's loop: the tick, then the screen taken and drawn. */
 static void tick(void)
 {
     now += 16;
     ds_app_tick(&app, now);
+    if (ds_app_take_dirty(&app)) {
+        ds_app_draw(&app, fb);
+    }
 }
 
 static void idle(uint32_t ms)
@@ -235,7 +239,6 @@ static void to_seed_fp(void)
     /* The tick after the button only shows "Working...": nothing done yet. */
     CHECK(shows("Working..."));
     CHECK_EQ_INT(app.s.state, DS_S_EMPTY);
-    CHECK(ds_app_take_dirty(&app));
     work_done();
     CHECK(shows("Seed fingerprint"));
     CHECK(shows("73c5da0a"));
@@ -419,6 +422,7 @@ static size_t read_qr(const char *type, const uint8_t **msg)
 static void read_all_pages(void)
 {
     uint32_t i;
+    idle(DS_APP_ARM_MS); /* a reader takes longer than this */
     for (i = 0; i < app.pager.pages; i++) {
         press(DS_BTN_DOWN);
     }
@@ -477,7 +481,6 @@ static void test_app_sign_flow(void)
     CHECK(app.qr_scale == 1 || app.qr_scale == 2);
     CHECK(shows(app.qr_scale == 1 ? "1px" : "2px"));
     CHECK_EQ_INT(ds_app_contrast(&app), 0x20);
-    CHECK(ds_app_take_dirty(&app));
     ds_app_draw(&app, fb);
     CHECK(!all_zero(fb, sizeof fb));
 
@@ -548,7 +551,8 @@ static void test_app_single_page(void)
     tick();
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
 
-    /* A tap, then a fresh hold on the single page: signs. */
+    /* A tap well after the review was drawn, then a fresh hold: signs. */
+    idle(DS_APP_ARM_MS);
     press(DS_BTN_OK);
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
     CHECK(shows("HOLD OK TO SIGN"));
@@ -560,6 +564,59 @@ static void test_app_single_page(void)
     CHECK(ut_cbor_to_psbt(m, m_len, &p, &p_len) >= 0);
     CHECK(p_len == w_len && memcmp(p, want, w_len) == 0);
     CHECK_EQ_INT(take_signed(raw, sizeof raw, &id), (int32_t)w_len);
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* Events reach ds_app late (ADC ring lag, debounce): a tap delivered just
+ * after the review appeared may have been made during "Working...". Only a
+ * PRESS delivered DS_APP_ARM_MS after the port took the review arms it. */
+static void test_app_arm_delay(void)
+{
+    const psbt_vector *v = vector("no external outputs, fee under the limit");
+    int i;
+
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(v);
+    /* Ticks until the review is up (the helper takes and draws it). */
+    for (i = 0; i < 4 && !shows("Tap OK"); i++) {
+        tick();
+    }
+    CHECK(shows("Tap OK, then hold OK"));
+    /* A PRESS before any tick in the review, then a LONG: no sign. */
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    CHECK(shows("Tap OK, then hold OK"));
+    /* A PRESS 100 ms into the review, then a LONG: no sign. */
+    idle(100);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    /* A PRESS after DS_APP_ARM_MS, then a LONG: signs. */
+    idle(DS_APP_ARM_MS);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
+    CHECK(shows("HOLD OK TO SIGN"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
+    work_done();
+    CHECK(shows("Signed"));
+    ds_app_init(&app, TONES_RATE);
+
+    /* A port that never took the review screen: nothing arms it. */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(v);
+    for (i = 0; i < 100; i++) {
+        now += 16;
+        ds_app_tick(&app, now); /* never taken, never drawn */
+    }
+    CHECK(shows("Tap OK, then hold OK"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    now += 16;
+    ds_app_tick(&app, now);
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
     ds_app_init(&app, TONES_RATE);
 }
 
@@ -976,6 +1033,7 @@ static void test_app_settings(void)
     press(DS_BTN_DOWN);
     press(DS_BTN_OK);
     CHECK(shows("QR size: 1px"));
+    ds_app_button(&app, DS_BTN_DOWN, DS_BTN_PRESS);
     CHECK(ds_app_take_dirty(&app));
     CHECK(!ds_app_take_dirty(&app));
     ds_app_init(&app, TONES_RATE);
@@ -986,4 +1044,4 @@ TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
           test_app_fits_qr, test_app_settings, test_app_single_page,
           test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
-          test_app_wipe_anywhere)
+          test_app_wipe_anywhere, test_app_arm_delay)

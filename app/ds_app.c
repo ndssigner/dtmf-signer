@@ -585,7 +585,11 @@ static void job_review(ds_app *a)
         return;
     }
     ds_pager_init(&a->pager, a->summary);
-    a->armed = 0; /* a hold carried over from before the review cannot confirm */
+    /* A hold or a tap carried over from before the review cannot arm it. */
+    a->armed = 0;
+    a->pager_taken = 0;
+    a->pager_shown = 0;
+    a->pager_at = 0;
     set_state(a, ST_PAGER);
 }
 
@@ -778,9 +782,11 @@ static void button_ready(ds_app *a, int btn)
 }
 
 /* The review. ds_btn sends at most one LONG per press, and a PRESS ends
- * its press: so once a PRESS (of any button) has been taken here, every
- * later LONG belongs to a press begun after the review was on screen. A
- * LONG before that (a hold carried over from "Listening" or "Working...")
+ * its press. A PRESS arms the review only DS_APP_ARM_MS after the review
+ * was taken by the port and a tick followed (pager_at): events lag their
+ * samples by up to 200 ms, so its release happened after the review was
+ * drawn, and every later LONG belongs to a press begun after that. A LONG
+ * before (a hold or a tap carried over from "Listening" or "Working...")
  * is ignored. Then OK held confirms, only on the last page once every page
  * has been reached. */
 static void button_pager(ds_app *a, int btn, int kind)
@@ -796,7 +802,9 @@ static void button_pager(ds_app *a, int btn, int kind)
     if (kind != DS_BTN_PRESS) {
         return;
     }
-    a->armed = 1;
+    if (a->pager_shown && a->now - a->pager_at >= DS_APP_ARM_MS) {
+        a->armed = 1;
+    }
     if (btn == DS_BTN_UP) {
         ds_pager_move(&a->pager, -1);
     } else if (btn == DS_BTN_DOWN) {
@@ -950,6 +958,10 @@ void ds_app_tick(ds_app *a, uint32_t now_ms)
         echo_line(a, l);
         a->t_kind = NULL;
     }
+    if (a->state == ST_PAGER && a->pager_taken && !a->pager_shown) {
+        a->pager_shown = 1;
+        a->pager_at = now_ms;
+    }
     if (a->job != JOB_NONE && a->job_seen) {
         run_job(a);
     }
@@ -976,6 +988,9 @@ int ds_app_take_dirty(ds_app *a)
 {
     int d = a->dirty;
     a->dirty = 0;
+    if (d && a->state == ST_PAGER) {
+        a->pager_taken = 1; /* the port draws the review now */
+    }
     return d;
 }
 
