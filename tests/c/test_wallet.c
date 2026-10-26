@@ -88,6 +88,38 @@ static void test_wallet_small_cap_is_ds_error(void)
     ds_wallet_wipe(&w);
 }
 
+/* The crypto-account (current = 0) of the account: the same CBOR as
+ * ut_account_cbor with wpkh(@0) and the wallet's key, a map whose first entry
+ * is the master fingerprint. */
+static void test_app_wallet_account_cbor(void)
+{
+    ds_wallet w;
+    ut_xpub x;
+    static const char *const scripts[] = {"wpkh(@0)"};
+    uint8_t got[512], want[512];
+    int32_t n, m;
+
+    CHECK_EQ_INT(ds_wallet_load(&w, zero16, 16, NULL, 0), DS_OK);
+    ds_bip32_to_xpub(&w.account, w.wallet_fp, w.path, 3, w.testnet, &x);
+    m = ut_account_cbor(w.wallet_fp, scripts, &x, 1, 0, want, sizeof want);
+    CHECK(m > 0);
+    n = ds_wallet_account_cbor(&w, got, sizeof got);
+    CHECK_EQ_INT(n, m);
+    CHECK(n == m && m > 0 && memcmp(got, want, (size_t)n) == 0);
+    CHECK_EQ_HEX(got, 7, "a2011a73c5da0a");
+    CHECK_EQ_INT(ds_wallet_account_cbor(&w, got, 10), DS_ERR_SPACE);
+    ds_wallet_wipe(&w);
+
+    /* With a passphrase the master fingerprint is the wallet's. */
+    CHECK_EQ_INT(ds_wallet_load(&w, zero16, 16, "TREZOR", 1), DS_OK);
+    ds_bip32_to_xpub(&w.account, w.wallet_fp, w.path, 3, w.testnet, &x);
+    m = ut_account_cbor(w.wallet_fp, scripts, &x, 1, 0, want, sizeof want);
+    n = ds_wallet_account_cbor(&w, got, sizeof got);
+    CHECK(m > 0 && n == m && memcmp(got, want, (size_t)n) == 0);
+    ds_wallet_wipe(&w);
+}
+
 TEST_MAIN(test_wallet_bip84, test_wallet_seed_fp_ignores_passphrase,
           test_wallet_testnet, test_wallet_bad_input_leaves_wiped,
-          test_wallet_wipe_clears, test_wallet_small_cap_is_ds_error)
+          test_wallet_wipe_clears, test_wallet_small_cap_is_ds_error,
+          test_app_wallet_account_cbor)

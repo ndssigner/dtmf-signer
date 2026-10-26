@@ -96,6 +96,15 @@ int32_t ds_wallet_descriptor(const ds_wallet *w, char *out, size_t cap)
     return map_ut(ut_descriptor_text("wpkh(@0)", &x, out, cap));
 }
 
+int32_t ds_wallet_account_cbor(const ds_wallet *w, uint8_t *out, size_t cap)
+{
+    static const char *const scripts[] = {"wpkh(@0)"};
+    ut_xpub x;
+
+    ds_bip32_to_xpub(&w->account, w->wallet_fp, w->path, 3, w->testnet, &x);
+    return map_ut(ut_account_cbor(w->wallet_fp, scripts, &x, 1, 0, out, cap));
+}
+
 void ds_wallet_wipe(ds_wallet *w)
 {
     ds_wipe(w, sizeof *w);

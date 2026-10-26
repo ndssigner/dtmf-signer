@@ -27,6 +27,12 @@ int32_t ds_wallet_xpub(const ds_wallet *w, char *out, size_t cap);
  * negative DS_ERR_* (as ds_wallet_xpub). */
 int32_t ds_wallet_descriptor(const ds_wallet *w, char *out, size_t cap);
 
+/* The account as the CBOR of a crypto-account UR (BCR-2020-015, current =
+ * 0): the wallet fingerprint and wpkh(@0) with the account key, as
+ * ds_wallet_descriptor describes it. Returns the length or a negative
+ * DS_ERR_* (as ds_wallet_xpub). */
+int32_t ds_wallet_account_cbor(const ds_wallet *w, uint8_t *out, size_t cap);
+
 void ds_wallet_wipe(ds_wallet *w);
 
 #endif
