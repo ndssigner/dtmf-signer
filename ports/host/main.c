@@ -56,7 +56,9 @@ static void usage(void)
           "\"yes\" on standard input.\n"
           "tones writes a recording of a seed (a UR frame, or keypad tones with\n"
           "--keypad) or of a PSBT (a file as for sign) for testing; cable timing\n"
-          "(40/20/400 ms) by default, air timing is 80/80/600 ms.\n"
+          "(40/20/400 ms) by default, air timing is 80/80/600 ms. Keypad tones\n"
+          "always use air timing (ur-tones asks for at least 80 ms + 80 ms):\n"
+          "--keypad with --timing cable is refused.\n"
           "warning: arguments are visible to other processes (ps) and are kept in\n"
           "the shell history. Use only test seeds with this tool.\n",
           stderr);
@@ -790,6 +792,15 @@ static int tones_main(int argc, char **argv)
     }
     if (out == NULL)
         goto done;
+    /* Keypad digits repeat: a machine must play them at 80 ms + 80 ms at
+     * least (ur-tones SPEC), so the cable pace is refused. */
+    if (keypad) {
+        if (have_timing && timing != &air) {
+            fputs("dtmf-signer-host: keypad tones need air timing (80/80/600 ms)\n", stderr);
+            goto done;
+        }
+        timing = &air;
+    }
     usage_error = 0;
 
     if (seed) {

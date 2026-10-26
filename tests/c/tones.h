@@ -10,12 +10,18 @@
 
 #define TONES_RATE 16000
 
-/* Renders tones at 16 kHz with the cable pace 40/20/400 ms. Returns the
- * number of samples written (at most cap). */
+/* Renders tones at 16 kHz with the cable pace 40/20/400 ms, or keypad tones
+ * (they start with '*') at 80/80/600 ms: their digits repeat, and ur-tones
+ * asks a machine to play them at 80 ms + 80 ms at least. Returns the number
+ * of samples written (at most cap). */
 static size_t tones_render(const char *tones, int16_t *out, size_t cap)
 {
     ut_synth s;
-    ut_synth_init(&s, tones, TONES_RATE, 40, 20, 400);
+    if (tones[0] == '*') {
+        ut_synth_init(&s, tones, TONES_RATE, 80, 80, 600);
+    } else {
+        ut_synth_init(&s, tones, TONES_RATE, 40, 20, 400);
+    }
     return ut_synth_read(&s, out, cap);
 }
 

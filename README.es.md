@@ -215,12 +215,15 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   "yes" por la entrada estándar y la PSBT firmada de salida.
   `dtmf-signer-host tones seed|psbt … --out FILE.wav` es una herramienta de
   pruebas que graba una semilla o una PSBT como tonos (ritmo de cable o de
-  aire). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
+  aire; las semillas en modo teclado, `--keypad`, van siempre a ritmo de
+  aire, 80/80/600 ms, porque ur-tones pide ahí al menos 80 ms + 80 ms, y
+  con ellas se rechaza `--timing cable`). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
   otros procesos y quedan en el historial del shell; usa solo semillas de
   prueba con ella.
 - [`ports/pico/`](ports/pico/): el firmware para la Raspberry Pi Pico
-  (RP2040), un proyecto CMake propio: `cmake -S ports/pico -B build-pico
-  -DPICO_SDK_PATH=<pico-sdk>` da `dtmf-signer-pico.uf2`. Línea en GP27,
+  (RP2040), un proyecto CMake propio:
+  `cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<pico-sdk>`
+  da `dtmf-signer-pico.uf2`. Línea en GP27,
   botones en una escalera de resistencias en GP28, una OLED SH1106 por SPI
   (los pines, en `board.h`). `-DDS_DISPLAY=SSD1306_SPI` y `SSD1306_I2C`
   compilan para la SSD1306 pero no están probadas en hardware;

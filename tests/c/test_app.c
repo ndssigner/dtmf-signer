@@ -985,14 +985,9 @@ static void test_app_wrong_seed_data(void)
     tick();
     CHECK(shows("lost 1"));
     CHECK(tones_seed_keypad(zero16, 16, NULL, tones, sizeof tones) > 0);
-    /* A keypad seed without PIN, at keypad pace (80 ms + 80 ms: its digits
-     * repeat, so the cable pace of data frames is too fast for it). */
-    {
-        ut_synth sy;
-        ut_synth_init(&sy, tones, TONES_RATE, 80, 80, 400);
-        len = ut_synth_read(&sy, audio, sizeof audio / sizeof audio[0]);
-    }
-    CHECK(feed(audio, len));
+    /* A keypad seed without PIN, at keypad pace (tones_render: 80 ms + 80 ms,
+     * its digits repeat). */
+    CHECK(feed_tones(tones));
     CHECK(shows("PIN (none: OK)"));
     press(DS_BTN_OK); /* no PIN */
     work_done();

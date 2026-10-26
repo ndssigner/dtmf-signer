@@ -199,12 +199,16 @@ for the use anyone makes of this design.
   and `dtmf-signer-host sign`: a PSBT (base64, binary, a UR or a WAV of its
   tones) in, the summary on standard error, "yes" on standard input, the
   signed PSBT out. `dtmf-signer-host tones seed|psbt … --out FILE.wav` is a
-  test tool that records a seed or a PSBT as tones (cable or air timing).
+  test tool that records a seed or a PSBT as tones (cable or air timing;
+  keypad seeds, `--keypad`, always go at air timing, 80/80/600 ms, since
+  ur-tones asks for at least 80 ms + 80 ms there, and `--timing cable` is
+  refused with them).
   Warning: its arguments (seed, PIN, passphrase) are visible to other
   processes and are kept in the shell history; use only test seeds with it.
 - [`ports/pico/`](ports/pico/): the Raspberry Pi Pico (RP2040) firmware, a
-  CMake project of its own: `cmake -S ports/pico -B build-pico
-  -DPICO_SDK_PATH=<pico-sdk>` gives `dtmf-signer-pico.uf2`. Line-in on GP27,
+  CMake project of its own:
+  `cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<pico-sdk>`
+  gives `dtmf-signer-pico.uf2`. Line-in on GP27,
   buttons on a resistor ladder on GP28, an SH1106 OLED over SPI (pins in
   `board.h`). `-DDS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C` build for the
   SSD1306 but are not tested on hardware; `-DDS_DISPLAY_FLIP=ON` rotates the

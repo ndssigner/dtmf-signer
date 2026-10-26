@@ -59,6 +59,22 @@ class HostTonesTest(unittest.TestCase):
                 pin = ["--pin", "TEST"] if "--pin" in extra else []
                 self.assertEqual(self.fingerprint(wav, *pin), ZERO_FP)
 
+    def test_keypad_air_timing(self):
+        # Keypad tones always go at 80/80/600 ms: the same WAV as --timing air.
+        a, b = str(self.dir / "k1.wav"), str(self.dir / "k2.wav")
+        code, _, err = run(["tones", "seed", ZERO16, "--keypad", "--out", a])
+        self.assertEqual(code, 0, err)
+        code, _, err = run(["tones", "seed", ZERO16, "--keypad", "--timing", "air", "--out", b])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(Path(a).read_bytes(), Path(b).read_bytes())
+        cable = str(self.dir / "c.wav")
+        code, _, err = run(["tones", "seed", ZERO16, "--timing", "cable", "--out", cable])
+        self.assertEqual(code, 0, err)
+        # 16 kHz, 16-bit mono: at least 80 + 80 ms for every keypad tone.
+        tones = len(ur_tones.seed_to_keypad(bytes(16)))
+        frames = (len(Path(a).read_bytes()) - 44) // 2
+        self.assertGreaterEqual(frames, tones * (80 + 80) * 16)
+
     def test_psbt_wav_roundtrip(self):
         wav = str(self.dir / "psbt.wav")
         code, _, err = run(["tones", "psbt", self.psbt_file(), "--out", wav])
@@ -110,6 +126,7 @@ class HostTonesTest(unittest.TestCase):
             ["tones", "seed", ZERO16, "--timing", "fast", "--out", wav],
             ["tones", "seed", ZERO16, "--out", wav, "--out", wav],
             ["tones", "psbt", self.psbt_file(), "--keypad", "--out", wav],
+            ["tones", "seed", ZERO16, "--keypad", "--timing", "cable", "--out", wav],
             ["tones", "psbt", self.psbt_file(), "--pin", "TEST", "--out", wav],
         ]
         for args in cases:
