@@ -1,0 +1,434 @@
+{
+ "format": "dtmf-signer-psbt",
+ "version": 0,
+ "note": "Public test seeds and testnet-style data only.",
+ "vectors": [
+  {
+   "name": "one input with change",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAX4gBlDy3j1VOEPCv1EQt1Y5OeRbmPWZVrdbpYPwIXfEAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiIgYDMNVP0N1CCm5fjTYk9fNILK41D3nV8HU79b7vnC2RrzwYc8XaClQAAIAAAACAAAAAgAAAAAAAAAAAAAAiAgMCUySIjkKauOPbrx94AmSLnNAem0GEhcX6TBubVwDhphhzxdoKVAAAgAAAAIAAAACAAQAAAAAAAAAA",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 60000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 39000,
+     "address": "bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c",
+     "sig": "3045022100c5a06d8b2d91c5cb90677a389186fe47d46a4a55c1b826b327590f26dbb433fc02204dbdc6ba01bbc0269848785a649c3c5193b1ceaa53656e608c887f1b73da08b301"
+    }
+   ]
+  },
+  {
+   "name": "two inputs with non_witness_utxo",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAKYCAAAAAmA+LgIFQIhedJWQJd+PXmDMg9ZUpEXD2e4LUlXc/r1mAQAAAAD9////7bDkEhMCDlRQJsazbtlDczxrgCHqvYP3dI0e1+i3pgUAAAAAAP3///8CoIYBAAAAAAAiACDOtGMVAYG+pmqhLiFsuMFhq9xIyf0visc75Y47PsX5qUhxAAAAAAAAFgAUQifYNPGq6VJz8Mh0lfT/DLNmVFIAAAAAAAEAkAIAAAABO9tsm0NsU/eeWNSQTjQ53zANvkuRF3H2g6PwD9w+CdgAAAAAAP////8D6AMAAAAAAAAWABR2DTR2OBgqBgZStbnSfdjKpqO6xoA4AQAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMJAwAAAAAAABYAFKuxKoL8YFRlDagXQg44nyyRLyIhAAAAAAEBH4A4AQAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMiBgPndf1R8N+4zYZdn/HMoqFYz2Uf6Zf9yf7pwdO16ZXqdxhzxdoKVAAAgAAAAIAAAACAAAAAAAEAAAAAAQBxAgAAAAF+HyFPlN4lG+kjtQ4IYtTZXZcOMC/j6zcYyCAL+ODbMwAAAAAA/////wJQwwAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcCQMAAAAAAAAWABSrsSqC/GBUZQ2oF0IOOJ8skS8iIQAAAAABAR9QwwAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcIgYDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAAAiAgPc9x33HHVbOvRvfoS0GC5ikc7FqMYw93VjinOdoprcthhzxdoKVAAAgAAAAIAAAACAAQAAAAEAAAAA",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 100000,
+     "address": "bc1qe66xx9gpsxl2v64p9cskewxpvx4acjxfl5hc43emuk8rk0k9lx5stf6fte",
+     "kind": "external"
+    },
+    {
+     "amount": 29000,
+     "address": "bc1qggnasd834t54yulsep6fta8lpjekv4zj6gv5rf",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "03e775fd51f0dfb8cd865d9ff1cca2a158cf651fe997fdc9fee9c1d3b5e995ea77",
+     "sig": "3045022100b8fc6199f815dc0ac6f1a0e517c62cdf811641d18a5f26fdd7c047d4775139de0220605e87907124f3e590be6109e3ef84672c37f80f63db5b020558f0b5f1d85e0601"
+    },
+    {
+     "pubkey": "03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b5700e1a6",
+     "sig": "3045022100c2f84a9e26e2c48229f1057785bb135857a29bb9d5526128fb1f77daf985120a02200afaed9f4813528d21bb34fa48265bf35a1c5d5df890f5985b502a19c39b041f01"
+    }
+   ]
+  },
+  {
+   "name": "testnet account m/84'/1'/0'",
+   "entropy": "6aa74bc073a67104570cca7a05839ca5",
+   "passphrase": "",
+   "testnet": true,
+   "psbt": "cHNidP8BAHECAAAAAa5DsWjVAjDf3kvBXL+D45CsHrT8UJKMK8bxSm/yNM6rAAAAAAD9////AqCGAQAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6QIRgIAAAAAABYAFJwhpoDzZbJGeZIOGQuZSuNPw+COAAAAAAABAR+Q0AMAAAAAABYAFNbrl43uCJEN4CVjgbO9UzQYq3lBIgYD4+KNdgTLCcOj9vU9SoYrpMDWSh3VbDlSIyPHxH3/gEMYiyGOgVQAAIABAACAAAAAgAAAAAADAAAAAAAiAgJggeLp3600SPjEUxzJykPvUDg5PbDL3rQn8SJWsfDajxiLIY6BVAAAgAEAAIAAAACAAQAAAAIAAAAA",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 100000,
+     "address": "tb1qkd33yck74lg0kaq4tdcmu3hk4yruhjayv8zk8m",
+     "kind": "external"
+    },
+    {
+     "amount": 149000,
+     "address": "tb1qnss6dq8nvkeyv7vjpcvshx22ud8u8cywyx9g24",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "03e3e28d7604cb09c3a3f6f53d4a862ba4c0d64a1dd56c39522323c7c47dff8043",
+     "sig": "3044022043abaa4c9a724717bf4568520d8f857de4b0cb3867883b69fa2923d95e26e1e502202b0e4801155b85a9f277ee845a2cc1b4bbf4854dca21a6829622f381499296fb01"
+    }
+   ]
+  },
+  {
+   "name": "BIP-39 passphrase",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "test passphrase",
+   "testnet": false,
+   "psbt": "cHNidP8BAHQCAAAAASp5TUzJrbJDCU+03dv9EnVTCFvJHkIb14Y8zSLHI2KlAAAAAAD9////AlDDAAAAAAAAGXapFLNjEmLer9D7dBVbcb5G9qkHy8ukiKxMmgAAAAAAABYAFCr8j7ijK6ocWZtkieQL4Bki8P92AAAAAAABAR+QXwEAAAAAABYAFH0lY883Wsv1ZjMhleCKiVgSmTCxIgYDbFBuyXttJbSy/HTpzZ/MYLzyRztyBgRKI6g9YMKPwFAYiaHOAFQAAIAAAACAAAAAgAAAAAAFAAAAAAAiAgNLaURX6y5s6O4cQmbMDlDObFqaJvPGNNgZItZkadq0WhiJoc4AVAAAgAAAAIAAAACAAQAAAAAAAAAA",
+   "expect": "sign",
+   "fee": 500,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 50000,
+     "address": "1HMWdyAtKzGmwjnejLcXZPigaMtRRc2AxF",
+     "kind": "external"
+    },
+    {
+     "amount": 39500,
+     "address": "bc1q9t7glw9r9w4pckvmvjy7gzlqry30plmklae8rc",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "036c506ec97b6d25b4b2fc74e9cd9fcc60bcf2473b7206044a23a83d60c28fc050",
+     "sig": "3044022029d31cb68b790be2b83414b01ee234f87b31bf4b31b287a72b73d266fb90bc8502204f1024310efcd22aec3847a394f5cdcd8d37b03685ae8607151288a5b51b6ef901"
+    }
+   ]
+  },
+  {
+   "name": "second seed, high address index",
+   "entropy": "6aa74bc073a67104570cca7a05839ca5",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAdHddZXcT1qufvVe3Bet5WU/zy/6jHGZaKh6rctsquaBAAAAAAD9////AjB1AAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFG3Pd8eeg1hBH0k6arue23GTXjmHAAAAAAABAR9wEQEAAAAAABYAFMr75WOW4c4HKZ+wb2JqFEh2/qJ1IgYDwanidScdI5+LqEbCoUVQEH0jI25mjeG/CBREShf6CqUYiyGOgVQAAIAAAACAAAAAgAEAAAARAAAAAAAiAgLu10Nr8ClHyV4fw6kQ1dbmyL0OzkxbyroViT5qLhK7RhiLIY6BVAAAgAAAAIAAAACAAQAAABIAAAAA",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 30000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 39000,
+     "address": "bc1qdh8h03u7sdvyz86f8f4th8kmwxf4uwv80www7w",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "03c1a9e275271d239f8ba846c2a14550107d23236e668de1bf0814444a17fa0aa5",
+     "sig": "3044022038fb53d62347f98e98306d5bee99fe69244ee8a5a9e88cffbd50162e4df7620f0220721de1aab657b309f77df946ee9903b16e0c5fb17161722e29d7ffc6cec840ca01"
+    }
+   ]
+  },
+  {
+   "name": "foreign input is not signed",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJoCAAAAAiuFB8RdYZg5rdTAF1ReCwvaWYwiFHs5bQI/jF/evScFAAAAAAD9////jMxJ33427AJA8RAS25TW8o/R9rPAt2kGa/zu2ya0jg4AAAAAAP3///8CkF8BAAAAAAAWABSzYxJi3q/Q+3QVW3G+RvapB8vLpCgjAAAAAAAAFgAUZpnctDm2VfMOIHuzY7W+mK/Flc8AAAAAAAEAcQIAAAABZ9KAzFEsoRvjfxNMpMsmWFsDBYGd5gQcXeurfuYjiicAAAAAAP////8CYOoAAAAAAAAWABQNCkxYVe5piuUocqFHJIwYn9/3wwkDAAAAAAAAFgAUq7EqgvxgVGUNqBdCDjifLJEvIiEAAAAAAQEfYOoAAAAAAAAWABQNCkxYVe5piuUocqFHJIwYn9/3wyIGA4/+qTay33a/MSIOvVajSzDGuG9A072SZk4vX5hIjd36GHPF2gpUAACAAAAAgAAAAIAAAAAAAgAAAAABAHECAAAAAQzMFQhyfHXBJ2QIorMbGxY5s4zFUGm8IZJt2gQJq6IzAAAAAAD/////AkCcAAAAAAAAFgAU8UdwEpuoeBzOqhYXfv6YE/g0R4AJAwAAAAAAABYAFKuxKoL8YFRlDagXQg44nyyRLyIhAAAAAAEBH0CcAAAAAAAAFgAU8UdwEpuoeBzOqhYXfv6YE/g0R4AiBgLgo7/5AcfXOoDAU13OY4xQtPtUrSos/GBJx4UWFglFyRg/Y1pjVAAAgAAAAIAAAACAAAAAAAcAAAAAACICA9DSQ7ajF2+iD6lc1/sOjggpuD/CtSBTYz0IjBpLqR7fGHPF2gpUAACAAAAAgAAAAIABAAAAAwAAAAA=",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 90000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 9000,
+     "address": "bc1qv6vaedpeke2lxr3q0wek8dd7nzhut9w0eqkz9z",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "038ffea936b2df76bf31220ebd56a34b30c6b86f40d3bd92664e2f5f98488dddfa",
+     "sig": "304402202ee0d4c2e87638ff5d8a1f1d39b73c98c1268895466f66032469762c13a57236022000dc717c85fba3a7f63530a643ffb55aef6412f00513ca7cc0258032a78d1e8701"
+    },
+    null
+   ]
+  },
+  {
+   "name": "outputs to P2TR, P2SH and OP_RETURN",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BALMCAAAAAbhuFcDbPvGAshtM98m1WIQ7jjiOueOYFCc3R3irEWSdAAAAAAD9////BFDDAAAAAAAAIlEgZ5OFCiVB2EMAtBVNcTBIlG99obbQMgeUvhsR7KjjxQFAnAAAAAAAABepFHdYcTeaR6yzPk/w2i0bsdS8sfrrhwAAAAAAAAAADWoLZHRtZi1zaWduZXLIqQEAAAAAABYAFMrHYSYfs9tbAlPiipbd9V26wrJRAAAAAAABAR9ADQMAAAAAABYAFNl8wAkSLGrJ9AWFIknYiStQN9B9IgYDmVE3yOs7IjyQQlnptXGok5oOyZsHF2hMOTZAfKhTjBsYc8XaClQAAIAAAACAAAAAgAAAAAAEAAAAAAAAACICAqje51c7zH08HpueJn2/DNcXNDwx0yLFsHSjqXCQoNlSGHPF2gpUAACAAAAAgAAAAIABAAAABAAAAAA=",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 50000,
+     "address": "bc1pv7fc2z39g8vyxq95z4xhzvzgj3hhmgdk6qeq0997rvg7e28rc5qsgny8xu",
+     "kind": "external"
+    },
+    {
+     "amount": 40000,
+     "address": "3Ca4HStVoAkvUKPWHzt4qSQAtCpZG2N4Ue",
+     "kind": "external"
+    },
+    {
+     "amount": 0,
+     "script_hex": "6a0b64746d662d7369676e6572",
+     "kind": "external"
+    },
+    {
+     "amount": 109000,
+     "address": "bc1qetrkzfslk0d4kqjnu29fdh04tkav9vj3k36vuh",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "03995137c8eb3b223c904259e9b571a8939a0ec99b0717684c3936407ca8538c1b",
+     "sig": "304402204a98812346c5e73470d151b5db68be5f96994dd3208f668bec87ce5c53a83abf022005e8bc0d4737f7caf42cdce84ebb147d4fd2775aad15ad1d528bbd760497116a01"
+    }
+   ]
+  },
+  {
+   "name": "receive-address output counts as own",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJACAAAAAW5EYeDmocQtErEJViHT2DwPzCAp+3+JLQPu2iztwXUkAAAAAAD9////A0CcAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6QwdQAAAAAAABYAFEQcGQoAQPagWTZJbCAF2tVUFY0CSHEAAAAAAAAWABTkSx0JccVUZoi19RQH+kg+qaQnNwAAAAAAAQEfoIYBAAAAAAAWABReVnBrDaMBt4pJwnZ9pgRsuP6oqCIGApm0y0gJ9S2sIbvYyZfYvwUs9NaL/pZsY4wxL7//Y24XGHPF2gpUAACAAAAAgAAAAIAAAAAABgAAAAAAIgICSaRu4czASzuiRHR9W+PziIZbZ0K0+IBz1XRAfKCpGoAYc8XaClQAAIAAAACAAAAAgAAAAAAJAAAAACICAwnknanb9RdIhVcMhxB7Gy4lUgaAaDUKuDL8yPZGJtbBGHPF2gpUAACAAAAAgAAAAIABAAAABQAAAAA=",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 40000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 30000,
+     "address": "bc1qgswpjzsqgrm2qkfkf9kzqpw6642ptrgzapvh9y",
+     "kind": "own"
+    },
+    {
+     "amount": 29000,
+     "address": "bc1qu3936zt3c42xdz94752q07jg8656gfeh3agj6j",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "0299b4cb4809f52dac21bbd8c997d8bf052cf4d68bfe966c638c312fbfff636e17",
+     "sig": "3045022100cf1f4bed35dfeec77f5092d8a5bbcd52c4321ba4ea3278634a9a5476d7b6a85702201de8f6559eea63bed867fa9c8a8b58bdb92473b1f69164602a432f1f79b7fb4001"
+    }
+   ]
+  },
+  {
+   "name": "fee above 10% of external outputs",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAR4pN6TXvRDIJWUU5q9dch8v1L0UIh3qHzUBq3pUMNmoAAAAAAD9////AqCGAQAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6TgkwQAAAAAABYAFPmwFNqpVeLD7iwKcuCL3S0+qrgUAAAAAAABAR8goQcAAAAAABYAFJ4auEQbUjjo3lBfJ+a3S46OUCKqIgYDIJmYbNuwp2vV4aqIEU3R7kI3OUHnMty1YFiV7jW8aD8Yc8XaClQAAIAAAACAAAAAgAAAAAAIAAAAAAAiAgOi4WhAw/Trl6E2O1+cTxLEflmVBdKd/vilfC396qSqvRhzxdoKVAAAgAAAAIAAAACAAQAAAAYAAAAA",
+   "expect": "sign",
+   "fee": 100000,
+   "fee_warning": true,
+   "outputs": [
+    {
+     "amount": 100000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 300000,
+     "address": "bc1qlxcpfk4f2h3v8m3vpfewpz7a95l24wq5wavz6j",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "032099986cdbb0a76bd5e1aa88114dd1ee42373941e732dcb5605895ee35bc683f",
+     "sig": "3044022039f222185d7a11b6d0bc351e0f982a60dc0fa4990ba51899dec79f24f52c9efc02206f1026548df535ff16a7ac94e4a98a84a2b2a9fe546b98cb52e59e7f71d31a0401"
+    }
+   ]
+  },
+  {
+   "name": "fee above 1000000 sat",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAQ0FIW9rcDPIUWlSgq9D8+SwmI4s/dZ8cSfjyXaLqpxKAAAAAAD9////AoDw+gIAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6QANQwAAAAAABYAFIYu11IIaQndzcgNyUJ2ba2bnd+yAAAAAAABAR8AdRkDAAAAABYAFGxeKnaZo+S0GUcbF6rU8Vg1QZQ2IgYC9HJ1TOAJA7mRbu+RaqIamKpwqgJrUc1woweoOMVqFewYc8XaClQAAIAAAACAAAAAgAAAAAAKAAAAAAAiAgPrYVVh1jKyG54krwvwKdkt81CmEZMsofn7LBFfa/nlExhzxdoKVAAAgAAAAIAAAACAAQAAAAcAAAAA",
+   "expect": "sign",
+   "fee": 1200000,
+   "fee_warning": true,
+   "outputs": [
+    {
+     "amount": 50000000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 800000,
+     "address": "bc1qschdw5sgdyyamnwgphy5yand4kdemhaj05tjl3",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "02f472754ce00903b9916eef916aa21a98aa70aa026b51cd70a307a838c56a15ec",
+     "sig": "3043021f44f13b3bd5a2cc62ae1d9e35a92db994f29b12917a59d04cdee1fc6b88d03e0220527d614c513ad8921bd04d7255f4138bebde95531ecfa06ea0e5f0dbf314cb6e01"
+    }
+   ]
+  },
+  {
+   "name": "no external outputs, fee under the limit",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAFICAAAAAanf/HR4HDGd0JrOzzLfdTf5zsH5d8JpzZV2gFXVB/9jAAAAAAD9////AZBfAQAAAAAAFgAUF8zc0IAv0BSqAgLQaN0bWirv2D8AAAAAAAEBH6CGAQAAAAAAFgAUMOqZWZM0gBvwnXU684ulRoAL6osiBgImoH7dAif6a8NiOcC9Tbg9XkiPj7Huto+Jpb6Raq0tYBhzxdoKVAAAgAAAAIAAAACAAAAAAAsAAAAAIgICUDUnmjnaN8jiRZpFYMkSy3evdMgSiOXfqYegGSS+pFgYc8XaClQAAIAAAACAAAAAgAEAAAAIAAAAAA==",
+   "expect": "sign",
+   "fee": 10000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 90000,
+     "address": "bc1qzlxde5yq9lgpf2szqtgx3hgmtg4wlkplz00f52",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "0226a07edd0227fa6bc36239c0bd4db83d5e488f8fb1eeb68f89a5be916aad2d60",
+     "sig": "304402206e164354967f00e57959766ad472dfe46d613ee505ed86e8d3d088f64168c33602201a7db7338b52d572efdb9400dd9a277f80777d3d921cc21c653530ce21fce0d501"
+    }
+   ]
+  },
+  {
+   "name": "no external outputs, fee above 1000000 sat",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAFICAAAAAdZEMVZ8lRNOiaI0nR5xdUu0CTyYOXBuTcJODVMt3ogoAAAAAAD9////AYAaBgAAAAAAFgAUdsd8vGSj3hWO6XYZNaP2OR/Up70AAAAAAAEBH4CEHgAAAAAAFgAUOszAAPYb53t1dh7yjwuyrQQYZSoiBgMcNKa86WduCwEck7z4otEAet184H+aUCpTfw/uVjJZRBhzxdoKVAAAgAAAAIAAAACAAAAAAAwAAAAAIgIDNxKQfgqPR5MgOTV4c5f9yBQHsRbUJiar8UIJl4O5ZLEYc8XaClQAAIAAAACAAAAAgAEAAAAJAAAAAA==",
+   "expect": "sign",
+   "fee": 1600000,
+   "fee_warning": true,
+   "outputs": [
+    {
+     "amount": 400000,
+     "address": "bc1qwmrhe0ry500ptrhfwcvntglk8y0affaauvcp46",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "031c34a6bce9676e0b011c93bcf8a2d1007add7ce07f9a502a537f0fee56325944",
+     "sig": "30450221008b1ad313b9de84625c13a2ec2f054b20a6725aecda7cce99dff338903d38435202200a8f4616041f7023798bdb0e8edd8841086e200e7c3b5eaef7443461bd584d4401"
+    }
+   ]
+  },
+  {
+   "name": "fake change: our path, foreign key",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAYelvvLKwfiVgegbn/ChgTxD398WXuyS5o7CKH1OB39GAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFIhRMUUQFvGEG+MiNhefTjyoO1yTAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiIgYDMNVP0N1CCm5fjTYk9fNILK41D3nV8HU79b7vnC2RrzwYc8XaClQAAIAAAACAAAAAgAAAAAAAAAAAAAAiAgMCUySIjkKauOPbrx94AmSLnNAem0GEhcX6TBubVwDhphhzxdoKVAAAgAAAAIAAAACAAQAAAAAAAAAA",
+   "expect": "reject",
+   "error": "DS_ERR_CHANGE"
+  },
+  {
+   "name": "change to P2SH-P2WPKH of our derivation",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHICAAAAAS8hDUaulhva1kCIKn0deX5o42u/XueiTP9z3qOSiWjnAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABepFI8KercRMhW0G5OB/3HfUpaw8IZPhwAAAAAAAQEfoIYBAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4iIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAAAIgIDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAA==",
+   "expect": "reject",
+   "error": "DS_ERR_CHANGE"
+  },
+  {
+   "name": "testnet path on a mainnet wallet",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAVu7PWwIqkjv/4AO/aVVhWot+8ub1vZSPSe4MtiWGkSWAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFLNjEmLer9D7dBVbcb5G9qkHy8ukAAAAAAABAR+ghgEAAAAAABYAFNDEo+8J6Ze26Z45flGP4+QaEYyhIgYC56slN7XUnpcDCargbp5J82zhyf671E7I4NHMoLT5wxkYc8XaClQAAIABAACAAAAAgAAAAAAAAAAAAAAA",
+   "expect": "reject",
+   "error": "DS_ERR_NETWORK"
+  },
+  {
+   "name": "SIGHASH_NONE",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAVQbKybrVqhbxEE3ybLJNdSiZbRRhac+v7mgq/VQ7EkDAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiAQMEAgAAACIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAAAIgIDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAA==",
+   "expect": "reject",
+   "error": "DS_ERR_SIGHASH"
+  },
+  {
+   "name": "two inputs without non_witness_utxo",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJoCAAAAAksWRtQusegYEUdwgIlGZdSvGsE9lwELIRyJwtKcRkPVAAAAAAD9////Lz6nqAtAq+lzLTU3ojAbyEtyu5PemmvEPS+NVwn7UxMAAAAAAP3///8CYOoAAAAAAAAWABSzYxJi3q/Q+3QVW3G+RvapB8vLpGi/AAAAAAAAFgAUPjSYXcpv3cn7NplA5MfY4oc/UpwAAAAAAAEBH2DqAAAAAAAAFgAUwM681sPTyox13F7GLr5VMw75EOIiBgMw1U/Q3UIKbl+NNiT180gsrjUPedXwdTv1vu+cLZGvPBhzxdoKVAAAgAAAAIAAAACAAAAAAAAAAAAAAQEfUMMAAAAAAAAWABSckPk06lH6D2UEF3BD4JCNppKZgyIGA+d1/VHw37jNhl2f8cyioVjPZR/pl/3J/unB07Xplep3GHPF2gpUAACAAAAAgAAAAIAAAAAAAQAAAAAAIgIDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAA==",
+   "expect": "reject",
+   "error": "DS_ERR_AMOUNTS"
+  },
+  {
+   "name": "non_witness_utxo with a different txid",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJoCAAAAAklj8ou4hYYiLvemV/1E29HTCcSvg8iR9hFpMndaAejLAAAAAAD9////Yda8HBoiy0Ex/OKfbB4q1K8TBuoKQOSguhAOVxffKaQAAAAAAP3///8CYOoAAAAAAAAWABSzYxJi3q/Q+3QVW3G+RvapB8vLpGi/AAAAAAAAFgAUPjSYXcpv3cn7NplA5MfY4oc/UpwAAAAAAAEAcQIAAAABwuTW0zUceiovYC+JvB1SpT8JRjWFS04EEutgclPWi3sAAAAAAP////8CYOoAAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4gkDAAAAAAAAFgAUq7EqgvxgVGUNqBdCDjifLJEvIiEAAAAAAQEfYOoAAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4iIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAABAHECAAAAAdfzQ+a9CGryTnOcSZz0f7jMoCo1SBxhbfMxVkowPxyzAAAAAAD/////AlDDAAAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMJAwAAAAAAABYAFKuxKoL8YFRlDagXQg44nyyRLyIhAQAAAAEBH1DDAAAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMiBgPndf1R8N+4zYZdn/HMoqFYz2Uf6Zf9yf7pwdO16ZXqdxhzxdoKVAAAgAAAAIAAAACAAAAAAAEAAAAAACICAwJTJIiOQpq449uvH3gCZIuc0B6bQYSFxfpMG5tXAOGmGHPF2gpUAACAAAAAgAAAAIABAAAAAAAAAAA=",
+   "expect": "reject",
+   "error": "DS_ERR_AMOUNTS"
+  },
+  {
+   "name": "witness_utxo amount differs from non_witness_utxo",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJoCAAAAAtgZ9gbzMH1Z4EdwoP7rGBbmtqPGn9rRjmRjv5flqMZNAAAAAAD9////dpOfWXYxD5ZuKkz7WpYxv6qOHpJ0L5sRxwsMCpA+wp4AAAAAAP3///8CYOoAAAAAAAAWABSzYxJi3q/Q+3QVW3G+RvapB8vLpGi/AAAAAAAAFgAUPjSYXcpv3cn7NplA5MfY4oc/UpwAAAAAAAEAcQIAAAABUd67X02608C7vkkys1NOpP+DjFALqTAGkoMVggV5Pw0AAAAAAP////8CYOoAAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4gkDAAAAAAAAFgAUq7EqgvxgVGUNqBdCDjifLJEvIiEAAAAAAQEfYOoAAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4iIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAABAHECAAAAAZLaZGSec4YkbivRmI1F7DoGm6qnsF2JZFmnWcIHPNOsAAAAAAD/////AlDDAAAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMJAwAAAAAAABYAFKuxKoL8YFRlDagXQg44nyyRLyIhAAAAAAEBH2i/AAAAAAAAFgAUnJD5NOpR+g9lBBdwQ+CQjaaSmYMiBgPndf1R8N+4zYZdn/HMoqFYz2Uf6Zf9yf7pwdO16ZXqdxhzxdoKVAAAgAAAAIAAAACAAAAAAAEAAAAAACICAwJTJIiOQpq449uvH3gCZIuc0B6bQYSFxfpMG5tXAOGmGHPF2gpUAACAAAAAgAAAAIABAAAAAAAAAAA=",
+   "expect": "reject",
+   "error": "DS_ERR_AMOUNTS"
+  },
+  {
+   "name": "duplicate key in an input map",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAd8jHR1AjwL0m43jbvIW9Jl+641pcYE76YkPof4hvDlzAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiAQEfoIYBAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4iIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAAAIgIDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAA==",
+   "expect": "reject",
+   "error": "DS_ERR_PSBT"
+  },
+  {
+   "name": "PSBT version 2",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAd8jHR1AjwL0m43jbvIW9Jl+641pcYE76YkPof4hvDlzAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFD40mF3Kb93J+zaZQOTH2OKHP1KcAAAAAAH7BAIAAAAAAQEfoIYBAAAAAAAWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4iIGAzDVT9DdQgpuX402JPXzSCyuNQ951fB1O/W+75wtka88GHPF2gpUAACAAAAAgAAAAIAAAAAAAAAAAAAAIgIDAlMkiI5Cmrjj268feAJki5zQHptBhIXF+kwbm1cA4aYYc8XaClQAAIAAAACAAAAAgAEAAAAAAAAAAA==",
+   "expect": "reject",
+   "error": "DS_ERR_UNSUPPORTED"
+  }
+ ]
+}
