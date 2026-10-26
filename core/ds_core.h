@@ -26,6 +26,9 @@
 #define DS_WARN_AIR 1     /* allowed, with a warning about the air channel */
 #define DS_NEED_CONFIRM 2 /* allowed only with physical confirmation */
 
+/* The name of a result above ("DS_ERR_CHANGE"...), or "unknown error". */
+const char *ds_error_name(int32_t code);
+
 /* Zeroes n bytes at p; the compiler cannot elide the writes. */
 void ds_wipe(void *p, size_t n);
 

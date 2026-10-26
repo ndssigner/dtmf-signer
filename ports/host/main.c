@@ -258,29 +258,6 @@ done:
 
 /* ---- sign ---------------------------------------------------------------- */
 
-static const char *ds_error_name(int32_t code)
-{
-    switch (code) {
-    case DS_ERR_ARG: return "DS_ERR_ARG";
-    case DS_ERR_SPACE: return "DS_ERR_SPACE";
-    case DS_ERR_PASSPHRASE: return "DS_ERR_PASSPHRASE";
-    case DS_ERR_DERIVE: return "DS_ERR_DERIVE";
-    case DS_ERR_SEED: return "DS_ERR_SEED";
-    case DS_ERR_AUDIO: return "DS_ERR_AUDIO";
-    case DS_ERR_PSBT: return "DS_ERR_PSBT";
-    case DS_ERR_UNSUPPORTED: return "DS_ERR_UNSUPPORTED";
-    case DS_ERR_AMOUNTS: return "DS_ERR_AMOUNTS";
-    case DS_ERR_SIGHASH: return "DS_ERR_SIGHASH";
-    case DS_ERR_NETWORK: return "DS_ERR_NETWORK";
-    case DS_ERR_CHANGE: return "DS_ERR_CHANGE";
-    case DS_ERR_LIMIT: return "DS_ERR_LIMIT";
-    case DS_ERR_STATE: return "DS_ERR_STATE";
-    case DS_ERR_POLICY: return "DS_ERR_POLICY";
-    case DS_NEED_CONFIRM: return "DS_NEED_CONFIRM";
-    default: return "unknown error";
-    }
-}
-
 /* The whole file at path in a new buffer (NUL-terminated beyond *len), or
  * NULL after a message. */
 static uint8_t *read_file(const char *path, size_t *len)

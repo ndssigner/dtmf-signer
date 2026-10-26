@@ -1,5 +1,6 @@
 add_library(dtmf_core STATIC
   ds_wipe.c
+  ds_error.c
   ds_sha512.c
   ds_sha256.c
   ds_address.c
