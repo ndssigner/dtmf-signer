@@ -2,10 +2,6 @@
 
 #include <string.h>
 
-/* Characters of an alphanumeric QR code at error correction L, by version. */
-static const uint16_t capacity[8] = {0, 25, 47, 77, 114, 154, 195, 224};
-
-#define MARGIN 2 /* characters the sequence number may still grow */
 
 static void upper(char *s)
 {
@@ -16,21 +12,48 @@ static void upper(char *s)
     }
 }
 
-/* Tries the largest fragment (200 down) whose first part fits the version.
- * Returns 0 and leaves the encoder ready, or DS_ERR_LIMIT. */
+/* The highest part number sent: the sequence starts over after it. */
+static uint32_t last_part(const ut_fountain_encoder *e)
+{
+    return 2 * e->seq_len + 10;
+}
+
+/* Makes part number n (as uppercase text in q->ur) and encodes it as a QR
+ * code of at most max_version; returns the size or a negative error. */
+static int32_t make_part(ds_qr *q, uint32_t n, int max_version)
+{
+    q->e.seq_num = n - 1;
+    if (ut_fountain_next_ur(&q->e, q->type, q->ur, sizeof q->ur) < 0) {
+        return DS_ERR_LIMIT;
+    }
+    upper(q->ur);
+    if (!qrcodegen_encodeText(q->ur, q->tmp, q->qr, qrcodegen_Ecc_LOW, 1,
+                              max_version, qrcodegen_Mask_AUTO, false)) {
+        return DS_ERR_LIMIT;
+    }
+    return qrcodegen_getSize(q->qr);
+}
+
+/* Tries the largest fragment (200 down) whose part number W, the highest
+ * sent, really encodes in the version (the sequence number only grows its
+ * digits and its CBOR bytes up to W). Returns 0 with the encoder ready at
+ * the start, or DS_ERR_LIMIT. */
 static int32_t choose(ds_qr *q, const uint8_t *msg, size_t len, int version)
 {
-    size_t f;
-    for (f = UT_MAX_FRAGMENT; f >= 1; f--) {
-        int32_t n;
-        if (ut_fountain_encoder_init(&q->e, msg, len, f) < 0 ||
-            q->e.seq_len > UT_MAX_PARTS) {
+    size_t f = UT_MAX_FRAGMENT;
+    while (f >= 1) {
+        size_t got;
+        if (ut_fountain_encoder_init(&q->e, msg, len, f) < 0) {
             return DS_ERR_LIMIT; /* smaller fragments only need more parts */
         }
-        n = ut_fountain_next_ur(&q->e, q->type, q->ur, sizeof q->ur);
-        if (n >= 0 && (size_t)n + MARGIN <= capacity[version]) {
-            return ut_fountain_encoder_init(&q->e, msg, len, f) < 0 ? DS_ERR_LIMIT : 0;
+        if (make_part(q, last_part(&q->e), version) >= 0) {
+            q->e.seq_num = 0;
+            return 0;
         }
+        /* Every maximum down to this fragment's own length gives the same
+         * fragment: skip them (each init is a CRC-32 over the message). */
+        got = q->e.fragment;
+        f = (got < f ? got : f) - 1;
     }
     return DS_ERR_LIMIT;
 }
@@ -64,22 +87,19 @@ int32_t ds_qr_start(ds_qr *q, const char *type, const uint8_t *msg, size_t len, 
 
 int32_t ds_qr_next(ds_qr *q)
 {
+    int32_t size;
     if (q == NULL) {
         return DS_ERR_ARG;
     }
     if (q->type == NULL) {
         return DS_ERR_STATE;
     }
-    if (ut_fountain_next_ur(&q->e, q->type, q->ur, sizeof q->ur) < 0) {
-        return DS_ERR_LIMIT;
+    size = make_part(q, (q->e.seq_num >= last_part(&q->e) ? 0 : q->e.seq_num) + 1,
+                     q->max_version);
+    if (size >= 0) {
+        q->shown++;
     }
-    upper(q->ur);
-    if (!qrcodegen_encodeText(q->ur, q->tmp, q->qr, qrcodegen_Ecc_LOW, 1,
-                              q->max_version, qrcodegen_Mask_AUTO, false)) {
-        return DS_ERR_LIMIT;
-    }
-    q->shown++;
-    return qrcodegen_getSize(q->qr);
+    return size;
 }
 
 void ds_qr_draw(const ds_qr *q, uint8_t fb[8][128])

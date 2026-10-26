@@ -79,11 +79,16 @@ static void roundtrip(const uint8_t *m, size_t len, int scale, int effective,
         CHECK(r >= 0);
     }
     CHECK_EQ_INT(r, 1);
+    /* Keep going well past the highest part number W and through the wrap:
+     * every part must still be a QR code of the allowed version. */
+    for (i = 0; i < 400; i++) {
+        n = ds_qr_next(&q);
+        CHECK(n >= 21 && (n - 17) / 4 <= max_version);
+        CHECK(q.e.seq_num <= 2 * q.e.seq_len + 10);
+    }
     CHECK(ut_fountain_result(&dec, &type, &out, &olen) >= 0);
     CHECK_EQ_INT(olen, len);
     CHECK(olen == len && memcmp(out, m, len) == 0);
-    printf("scale %d: fragment %u, %u parts, version %d\n", effective,
-           (unsigned)q.e.fragment, (unsigned)q.e.seq_len, max_version);
 }
 
 static void test_qr_roundtrip_scale2(void)
@@ -102,6 +107,23 @@ static void test_qr_scale1_fits_v7(void)
 /* The PSBT vectors need fragments of 11 to 14 bytes, whose first part is 76 to
  * 82 characters: with 2 characters of margin that is over version 3 (77), so
  * a request for scale 2 gives scale 1. */
+/* Messages whose parts grow with the sequence number: 1500 bytes (fragment
+ * 79, 19 parts, W 48), 2400 (80, 30, W 70) and 6000 (82, 74, W 158). */
+static void test_qr_long_run(void)
+{
+    static const size_t lens[] = {1500, 2400, 6000};
+    size_t i, k;
+    for (i = 0; i < sizeof lens / sizeof lens[0]; i++) {
+        for (k = 0; k < sizeof synth; k++) {
+            big[k] = (uint8_t)(k * 13 + i);
+        }
+        for (; k < lens[i]; k++) {
+            big[k] = (uint8_t)(k * 7 + (k >> 8));
+        }
+        roundtrip(big, lens[i], 1, 1, 7);
+    }
+}
+
 static void test_qr_psbt_needs_scale1(void)
 {
     size_t len = vector_cbor("two inputs with non_witness_utxo");
@@ -128,21 +150,23 @@ static void test_qr_fallback(void)
     for (i = 0; i < sizeof big; i++) {
         big[i] = (uint8_t)(i * 7 + 3);
     }
-    /* 6000 bytes: at scale 2 (version 3) a fragment is about 20 bytes, so
-     * ~300 parts > UT_MAX_PARTS (256); scale 1 (version 7) needs ~67. */
+    /* 6000 bytes: at scale 2 (version 3) the fragment is at least 10 bytes,
+     * so it needs 600 parts > UT_MAX_PARTS (256); scale 1 (version 7) takes
+     * fragments of 82 bytes, 74 parts. */
     CHECK_EQ_INT(ds_qr_start(&q, "crypto-psbt", big, 6000, 2), 1);
     CHECK(q.e.seq_len <= UT_MAX_PARTS);
     CHECK(ds_qr_next(&q) <= 17 + 4 * 7);
 
-    /* DS_APP_PSBT_MAX + 4096 = 20480 bytes: at scale 1 a fragment is about
-     * 90 bytes, so ~228 parts, under 256: it fits at 1 px. */
-    r = ds_qr_start(&q, "crypto-psbt", big, sizeof big, 2);
-    printf("big message: result %d, fragment %u, %u parts\n", (int)r,
-           (unsigned)q.e.fragment, (unsigned)q.e.seq_len);
-    CHECK_EQ_INT(r, 1);
+    /* DS_APP_PSBT_MAX (16384 bytes): fragment 82 and 200 parts fit at 1 px. */
+    CHECK_EQ_INT(ds_qr_start(&q, "crypto-psbt", big, DS_APP_PSBT_MAX, 2), 1);
 
-    /* Asking for scale 1 directly gives the same. */
-    CHECK_EQ_INT(ds_qr_start(&q, "crypto-psbt", big, sizeof big, 1), 1);
+    /* DS_APP_PSBT_MAX + 4096 = 20480 bytes: the fragment is 82 bytes and it
+     * is 250 parts (under 256), but the highest part number is W = 510, whose
+     * 3-digit number and 3-byte CBOR number no longer fit version 7. Not even
+     * at 1 px. */
+    r = ds_qr_start(&q, "crypto-psbt", big, sizeof big, 2);
+    CHECK_EQ_INT(r, DS_ERR_LIMIT);
+    CHECK_EQ_INT(ds_qr_start(&q, "crypto-psbt", big, sizeof big, 1), DS_ERR_LIMIT);
 }
 
 static void test_qr_too_big(void)
@@ -212,5 +236,5 @@ static void test_qr_draw_box(void)
 
 TEST_MAIN(test_qr_roundtrip_scale2, test_qr_scale1_fits_v7, test_qr_psbt_needs_scale1,
           test_qr_args,
-          test_qr_fallback, test_qr_too_big, test_qr_next_before_start,
+          test_qr_fallback, test_qr_long_run, test_qr_too_big, test_qr_next_before_start,
           test_qr_draw_box)

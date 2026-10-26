@@ -6,9 +6,15 @@
  * of the framebuffer. The pace (4 parts per second) is the caller's.
  *
  * Scale 2 px/module reaches version 3 (29 modules); scale 1 reaches version 7
- * (45 modules). The fragment is the largest (200 down) whose part fits the
- * version with 2 characters to spare for the sequence number to grow. When
- * scale 2 would need more than UT_MAX_PARTS parts, scale 1 is used.
+ * (45 modules). The fragment is the largest (200 down) whose part number W,
+ * the highest sent (W = 2 * parts + 10), really encodes in the version: the
+ * sequence number grows its digits and its CBOR bytes, so the part is
+ * measured with W, not estimated. After part W the sequence starts over, so
+ * the sequence number never passes W and every part fits. When scale 2 does
+ * not fit (or would need more than UT_MAX_PARTS parts), scale 1 is used. At
+ * 2 px a PSBT's parts practically never fit (fragments are at least 10 bytes
+ * and need version 4 or more), so they go at 1 px; callers must handle both
+ * scales.
  *
  * A ds_qr holds a fountain encoder (about 3 KB) and the QR buffers: declare
  * it static, never on the stack. No malloc. */
@@ -44,7 +50,9 @@ typedef struct {
 int32_t ds_qr_start(ds_qr *q, const char *type, const uint8_t *msg, size_t len, int scale);
 
 /* Makes the next part, in q->ur (uppercase) and q->qr. Returns its size in
- * modules, DS_ERR_STATE before ds_qr_start. */
+ * modules, DS_ERR_STATE before ds_qr_start. After a successful ds_qr_start it
+ * cannot fail (the part with the highest sequence number was encoded there);
+ * DS_ERR_LIMIT would mean a broken invariant. */
 int32_t ds_qr_next(ds_qr *q);
 
 /* Draws the current code in the square x 0-63, y 0-63 of fb (8 pages of 8
