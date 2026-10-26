@@ -15,7 +15,7 @@
  *   REVIEW --confirm--> CONFIRMED --sign--> READY      (cancel: -> READY)
  *
  * A call made in a state that does not allow it returns DS_ERR_STATE and
- * changes nothing, unless said otherwise. The session holds secrets (the
+ * changes nothing, unless said otherwise. A wiped session is in no state. The session holds secrets (the
  * seed entropy, kept to derive again with a passphrase, and the account
  * key); ds_session_wipe clears them, and so does any failure that cannot be
  * retried. It uses about 4 KB, most of it the review. */
@@ -49,7 +49,9 @@
  * unknown data or channel). pin_len only matters for SEED_ENCRYPTED. */
 int32_t ds_policy_accepts(int data, int channel, size_t pin_len);
 
-enum { DS_S_EMPTY = 0, DS_S_SEED, DS_S_READY, DS_S_REVIEW, DS_S_CONFIRMED };
+/* The states start at 1: an all-zero struct (a wiped session) is in no state,
+ * so every call on it returns DS_ERR_STATE until ds_session_init. */
+enum { DS_S_EMPTY = 1, DS_S_SEED, DS_S_READY, DS_S_REVIEW, DS_S_CONFIRMED };
 
 typedef struct {
     ds_wallet w;
@@ -99,7 +101,8 @@ int32_t ds_session_sign(ds_session *s, const ds_source *src,
 /* REVIEW or CONFIRMED -> READY without signing; a no-op in READY. */
 int32_t ds_session_cancel(ds_session *s);
 
-/* Everything to zero: state EMPTY. Call ds_session_init to use it again. */
+/* Everything to zero. The zeroed session is in no state (and has forgotten
+ * its network): every call on it returns DS_ERR_STATE until ds_session_init. */
 void ds_session_wipe(ds_session *s);
 
 #endif

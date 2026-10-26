@@ -627,7 +627,7 @@ static void test_session_wipe_zeroes(void)
         CHECK(s.entropy_len == v->entropy_len && s.state != DS_S_EMPTY);
         ds_session_wipe(&s);
         CHECK(is_zero(&s, sizeof s));
-        CHECK_EQ_INT(s.state, DS_S_EMPTY);
+        CHECK_EQ_INT(s.state, 0);
     }
 
     /* Also from SEED and after a use. */
@@ -653,6 +653,40 @@ static void test_session_wipe_then_nothing_works(void)
     CHECK_EQ_INT(sign(&s, v->psbt, v->psbt_len, &out), DS_ERR_STATE);
     CHECK_EQ_INT(review(&s, v->psbt, v->psbt_len, DS_CABLE), DS_ERR_STATE);
     CHECK_EQ_INT(ds_session_confirm(&s), DS_ERR_STATE);
+}
+
+static void test_session_wiped_is_unusable_until_init(void)
+{
+    uint8_t e[16] = {0};
+    ds_session s;
+
+    /* A testnet session, wiped: seeding it again must not give mainnet. */
+    ds_session_init(&s, 1);
+    ds_session_wipe(&s);
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_CABLE, 0), DS_ERR_STATE);
+    CHECK_EQ_INT(ds_session_passphrase(&s, NULL, DS_CABLE, 0), DS_ERR_STATE);
+    CHECK(is_zero(&s, sizeof s));
+
+    /* init after wipe: a testnet wallet again. */
+    ds_session_init(&s, 1);
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_CABLE, 0), DS_OK);
+    CHECK_EQ_INT(ds_session_passphrase(&s, NULL, DS_CABLE, 0), DS_OK);
+    CHECK_EQ_INT(s.w.testnet, 1);
+    ds_session_wipe(&s);
+}
+
+static void test_session_derive_failure_wipes_and_blocks(void)
+{
+    uint8_t e[16] = {0};
+    ds_session s;
+
+    ds_session_init(&s, 1);
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_CABLE, 0), DS_OK);
+    s.entropy_len = 5; /* makes the derivation fail with DS_ERR_ARG */
+    CHECK_EQ_INT(ds_session_passphrase(&s, NULL, DS_CABLE, 0), DS_ERR_ARG);
+    CHECK(is_zero(&s, sizeof s));
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_CABLE, 0), DS_ERR_STATE);
+    CHECK(is_zero(&s, sizeof s));
 }
 
 static void test_session_null_arguments(void)
@@ -698,4 +732,6 @@ TEST_MAIN(test_policy_table, test_policy_pin_length_boundary,
           test_session_sign_then_ready,
           test_session_sign_failure_returns_to_ready, test_session_cancel,
           test_session_wipe_zeroes, test_session_wipe_then_nothing_works,
+          test_session_wiped_is_unusable_until_init,
+          test_session_derive_failure_wipes_and_blocks,
           test_session_null_arguments)
