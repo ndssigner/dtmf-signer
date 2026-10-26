@@ -350,11 +350,49 @@
    ]
   },
   {
+   "name": "input claiming our path with a foreign script is not signed",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAJoCAAAAAug4qBNbjK9/QA5LTSflSKuCE6qWevKdDtMeY7u9tgYtAAAAAAD9////g/n3JjiOS85kp8l1o2GWf/GNjXC/dFd143A7x0Ed7mcAAAAAAP3///8CkF8BAAAAAAAWABSzYxJi3q/Q+3QVW3G+RvapB8vLpCgjAAAAAAAAFgAUZpnctDm2VfMOIHuzY7W+mK/Flc8AAAAAAAEAcQIAAAABTGTHj5dEjT8yE3CRxFE/caFhuZK/aabPU7kG2fl3EWsAAAAAAP////8CYOoAAAAAAAAWABQNCkxYVe5piuUocqFHJIwYn9/3wwkDAAAAAAAAFgAUq7EqgvxgVGUNqBdCDjifLJEvIiEAAAAAAQEfYOoAAAAAAAAWABQNCkxYVe5piuUocqFHJIwYn9/3wyIGA4/+qTay33a/MSIOvVajSzDGuG9A072SZk4vX5hIjd36GHPF2gpUAACAAAAAgAAAAIAAAAAAAgAAAAABAHECAAAAAc+4YutTsNmysjMM/IpGslqlUzlbXZ/roZW3KrjsEibBAAAAAAD/////AkCcAAAAAAAAFgAU8UdwEpuoeBzOqhYXfv6YE/g0R4AJAwAAAAAAABYAFKuxKoL8YFRlDagXQg44nyyRLyIhAAAAAAEBH0CcAAAAAAAAFgAU8UdwEpuoeBzOqhYXfv6YE/g0R4AiBgJ1zuwRQQrI1zCs0PmeUKUw4cKLHPiRM+xfeY+2db3cjhhzxdoKVAAAgAAAAIAAAACAAAAAAAcAAAAAACICA9DSQ7ajF2+iD6lc1/sOjggpuD/CtSBTYz0IjBpLqR7fGHPF2gpUAACAAAAAgAAAAIABAAAAAwAAAAA=",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 90000,
+     "address": "bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug",
+     "kind": "external"
+    },
+    {
+     "amount": 9000,
+     "address": "bc1qv6vaedpeke2lxr3q0wek8dd7nzhut9w0eqkz9z",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "038ffea936b2df76bf31220ebd56a34b30c6b86f40d3bd92664e2f5f98488dddfa",
+     "sig": "30450221009e07e9a5e9a40cb269a02962a40f7efe44d3889c1f7cebe4fcfe32849f397e3002201a0c91ccf34d432837a8acef0c318136be089fb3f54474e037e50dab6784f00701"
+    },
+    null
+   ]
+  },
+  {
    "name": "fake change: our path, foreign key",
    "entropy": "00000000000000000000000000000000",
    "passphrase": "",
    "testnet": false,
    "psbt": "cHNidP8BAHECAAAAAYelvvLKwfiVgegbn/ChgTxD398WXuyS5o7CKH1OB39GAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFIhRMUUQFvGEG+MiNhefTjyoO1yTAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiIgYDMNVP0N1CCm5fjTYk9fNILK41D3nV8HU79b7vnC2RrzwYc8XaClQAAIAAAACAAAAAgAAAAAAAAAAAAAAiAgMCUySIjkKauOPbrx94AmSLnNAem0GEhcX6TBubVwDhphhzxdoKVAAAgAAAAIAAAACAAQAAAAAAAAAA",
+   "expect": "reject",
+   "error": "DS_ERR_CHANGE"
+  },
+  {
+   "name": "change: our path, declared foreign pubkey and its script",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": false,
+   "psbt": "cHNidP8BAHECAAAAAZGbXDx5GoTYf+LWvx1iNFm3qpxJPVhhfbWORIGgHOlJAAAAAAD9////AmDqAAAAAAAAFgAUs2MSYt6v0Pt0FVtxvkb2qQfLy6RYmAAAAAAAABYAFIhRMUUQFvGEG+MiNhefTjyoO1yTAAAAAAABAR+ghgEAAAAAABYAFMDOvNbD08qMddxexi6+VTMO+RDiIgYDMNVP0N1CCm5fjTYk9fNILK41D3nV8HU79b7vnC2RrzwYc8XaClQAAIAAAACAAAAAgAAAAAAAAAAAAAAiAgMwVxUOtX4rIdaYZnR/PTd+ko+GT6iOzF3bHA5QHM4/gRhzxdoKVAAAgAAAAIAAAACAAQAAAAAAAAAA",
    "expect": "reject",
    "error": "DS_ERR_CHANGE"
   },

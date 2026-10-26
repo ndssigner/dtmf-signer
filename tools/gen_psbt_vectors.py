@@ -111,6 +111,8 @@ def build(wallet, ins, outs, locktime=0):
     for n, s in enumerate(ins):
         if s.who == "own":
             spk = script.p2wpkh(wallet.pub(s.chain, s.i, s.coin))
+        elif s.who == "claimed":  # claims our derivation, but the script is a foreign key's
+            spk = script.p2wpkh(FOREIGN.pub(0, s.i))
         else:
             spk = script.p2wpkh(FOREIGN.pub(0, s.i))
         p = prev_tx(s.label, s.vout, s.value, spk)
@@ -133,14 +135,15 @@ def build(wallet, ins, outs, locktime=0):
             inp.witness_utxo = TransactionOutput(wv, spk)
         if s.sighash is not None:
             inp.sighash_type = s.sighash
-        if s.who == "own":
+        if s.who in ("own", "claimed"):
             inp.bip32_derivations[wallet.pub(s.chain, s.i, s.coin)] = wallet.derivation(s.chain, s.i, s.coin)
         else:
             inp.bip32_derivations[FOREIGN.pub(0, s.i)] = DerivationPath(FOREIGN.fp, FOREIGN.path(0, s.i))
     for n, o in enumerate(outs):
         if o.get("deriv"):
             c, i = o["deriv"]
-            psbt.outputs[n].bip32_derivations[wallet.pub(c, i)] = wallet.derivation(c, i)
+            declared = o.get("deriv_pub") or wallet.pub(c, i)
+            psbt.outputs[n].bip32_derivations[declared] = wallet.derivation(c, i)
     return psbt
 
 
@@ -187,13 +190,19 @@ def sign_expected(wallet, psbt):
     """Per-input expected partial signatures, from embit, verified."""
     signed = PSBT.parse(psbt.serialize())
     n = signed.sign_with(wallet.root)
-    sigs, found = [], 0
+    sigs, found, skipped = [], 0, 0
     for idx, inp in enumerate(signed.inputs):
         if not inp.partial_sigs:
             sigs.append(None)
             continue
         assert len(inp.partial_sigs) == 1
         (pub, got), = inp.partial_sigs.items()
+        if inp.utxo.script_pubkey != script.p2wpkh(pub):
+            # embit signs whatever the derivation says; by our rules the input
+            # is not ours unless its script is P2WPKH of the derived key
+            sigs.append(None)
+            skipped += 1
+            continue
         h = signed.sighash(idx)
         # find the derivation to get the private key
         der = psbt.inputs[idx].bip32_derivations[pub]
@@ -210,7 +219,7 @@ def sign_expected(wallet, psbt):
         assert got == der_sig + b"\x01" or len(der_sig) > 70
         sigs.append({"pubkey": pub.sec().hex(), "sig": (der_sig + b"\x01").hex()})
         found += 1
-    assert found == n
+    assert found + skipped == n
     return sigs
 
 
@@ -362,6 +371,10 @@ def generate():
         [In("w4", 2_000_000, 0, 12)],
         [out_own(A, 1, 9, 400_000)]))
 
+    vs.append(sign_vector("input claiming our path with a foreign script is not signed", A,
+        [In("c1", 60_000, 0, 2, nonwit=True), In("c2", 40_000, 0, 7, who="claimed", nonwit=True)],
+        [out_ext(90_000, "p2wpkh"), out_own(A, 1, 3, 9_000)]))
+
     # --- reject ---
     ok_in = lambda lbl: [In(lbl, 100_000)]
     ext = out_ext(60_000, "p2wpkh")
@@ -370,6 +383,10 @@ def generate():
     fake = {"value": 39_000, "spk": script.p2wpkh(FOREIGN.pub(1, 0)), "deriv": (1, 0), "kind": "change"}
     vs.append(reject_vector("fake change: our path, foreign key", A,
         build(A, ok_in("x1"), [ext, fake]).serialize(), "DS_ERR_CHANGE"))
+    declared = {"value": 39_000, "spk": script.p2wpkh(FOREIGN.pub(1, 0)), "deriv": (1, 0),
+                "deriv_pub": FOREIGN.pub(1, 0), "kind": "change"}
+    vs.append(reject_vector("change: our path, declared foreign pubkey and its script", A,
+        build(A, ok_in("x1b"), [ext, declared]).serialize(), "DS_ERR_CHANGE"))
     nested = {"value": 39_000, "spk": script.p2sh(script.p2wpkh(A.pub(1, 0))), "deriv": (1, 0), "kind": "change"}
     vs.append(reject_vector("change to P2SH-P2WPKH of our derivation", A,
         build(A, ok_in("x2"), [ext, nested]).serialize(), "DS_ERR_CHANGE"))
