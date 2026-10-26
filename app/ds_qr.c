@@ -34,6 +34,22 @@ static int32_t make_part(ds_qr *q, uint32_t n, int max_version)
     return qrcodegen_getSize(q->qr);
 }
 
+/* Part number W made with the message CRC-32 in its CBOR forced to the
+ * longest form (5 bytes): the CRC is the one field whose size depends on the
+ * message's bytes, so the measure holds for every message of this length
+ * (ds_app_fits_qr probes with zeros). Which fragments a part mixes depends
+ * on the CRC too, not its size. */
+static int32_t make_last_part(ds_qr *q, int max_version)
+{
+    uint32_t crc = q->e.checksum;
+    int32_t r;
+
+    q->e.checksum = 0xFFFFFFFFu;
+    r = make_part(q, last_part(&q->e), max_version);
+    q->e.checksum = crc;
+    return r;
+}
+
 /* Tries the largest fragment (200 down) whose part number W, the highest
  * sent, really encodes in the version (the sequence number only grows its
  * digits and its CBOR bytes up to W). Returns 0 with the encoder ready at
@@ -46,7 +62,7 @@ static int32_t choose(ds_qr *q, const uint8_t *msg, size_t len, int version)
         if (ut_fountain_encoder_init(&q->e, msg, len, f) < 0) {
             return DS_ERR_LIMIT; /* smaller fragments only need more parts */
         }
-        if (make_part(q, last_part(&q->e), version) >= 0) {
+        if (make_last_part(q, version) >= 0) {
             q->e.seq_num = 0;
             return 0;
         }

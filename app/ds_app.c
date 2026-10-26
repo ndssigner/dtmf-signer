@@ -481,7 +481,9 @@ int ds_app_fits_qr(ds_app *a, size_t psbt_len, uint32_t n_ours)
     if (bound > sizeof a->cbor) {
         return 0;
     }
-    /* The parts' sizes depend on the length only: probe with zeros. */
+    /* ds_qr_start measures the parts with the message CRC-32 at its longest
+     * (5 bytes), so whether they fit depends on the length only: zeros
+     * probe every message of this length. */
     clear_qr(a);
     r = ds_qr_start(&a->qr, "crypto-psbt", a->cbor, bound, 1);
     clear_qr(a);

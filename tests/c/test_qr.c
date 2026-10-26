@@ -31,11 +31,10 @@ static size_t vector_cbor(const char *name)
     return 0;
 }
 
-/* A message of 300 bytes: the shortest fragment ur-tones makes is 10 bytes
- * (message length / 10 parts at most), and at version 3 a part with the
- * 2-character margin allows 75 characters, which a 10-byte fragment just
- * meets (74), so only messages that split into exact 10-byte fragments reach
- * scale 2. 300 bytes is 30 parts of 10. */
+/* A message of 300 bytes that reaches scale 2: the shortest fragment
+ * ur-tones makes is 10 bytes, and version 3 holds 77 characters, which the
+ * highest part sent (W = 70) of 10-byte fragments just fills (part 1 is 74).
+ * 300 bytes is 30 parts of 10. */
 static uint8_t synth[300];
 
 static size_t synthetic(void)
@@ -104,9 +103,6 @@ static void test_qr_scale1_fits_v7(void)
     roundtrip(msg, len, 1, 1, 7);
 }
 
-/* The PSBT vectors need fragments of 11 to 14 bytes, whose first part is 76 to
- * 82 characters: with 2 characters of margin that is over version 3 (77), so
- * a request for scale 2 gives scale 1. */
 /* Messages whose parts grow with the sequence number: 1500 bytes (fragment
  * 79, 19 parts, W 48), 2400 (80, 30, W 70) and 6000 (82, 74, W 158). */
 static void test_qr_long_run(void)
@@ -124,6 +120,9 @@ static void test_qr_long_run(void)
     }
 }
 
+/* These two PSBT vectors (282 and 693 bytes) cannot split into 10-byte
+ * fragments: their shortest is 11 bytes, whose part W is 79 or 80 characters,
+ * over version 3 (77), so a request for scale 2 gives scale 1. */
 static void test_qr_psbt_needs_scale1(void)
 {
     size_t len = vector_cbor("two inputs with non_witness_utxo");
@@ -141,6 +140,89 @@ static void test_qr_args(void)
     CHECK_EQ_INT(ds_qr_start(&q, "crypto-psbt", NULL, len, 2), DS_ERR_ARG);
     CHECK_EQ_INT(ds_qr_start(&q, NULL, msg, len, 2), DS_ERR_ARG);
     CHECK_EQ_INT(ds_qr_start(NULL, "crypto-psbt", msg, len, 2), DS_ERR_ARG);
+}
+
+/* Sets the last 4 bytes of m so that its CRC-32 is 0 (its CBOR in each part
+ * is then 1 byte, not 5): the CRC is affine in those 32 bits, so the bits
+ * are solved over GF(2). */
+static void force_crc_zero(uint8_t *m, size_t len)
+{
+    uint8_t *tail = m + len - 4;
+    uint32_t col[32], comb[32], base, x = 0, t;
+    int i, j;
+
+    memset(tail, 0, 4);
+    base = ut_crc32(m, len);
+    for (i = 0; i < 32; i++) {
+        tail[i / 8] = (uint8_t)(1u << (i % 8));
+        col[i] = ut_crc32(m, len) ^ base;
+        comb[i] = 1u << i;
+        tail[i / 8] = 0;
+    }
+    /* Gauss-Jordan: col[i] becomes bit i, comb[i] the tail bits giving it. */
+    for (i = 0; i < 32; i++) {
+        for (j = i; j < 32 && !((col[j] >> i) & 1u); j++) {
+        }
+        CHECK(j < 32);
+        if (j == 32) {
+            return;
+        }
+        t = col[i], col[i] = col[j], col[j] = t;
+        t = comb[i], comb[i] = comb[j], comb[j] = t;
+        for (j = 0; j < 32; j++) {
+            if (j != i && ((col[j] >> i) & 1u)) {
+                col[j] ^= col[i];
+                comb[j] ^= comb[i];
+            }
+        }
+    }
+    for (i = 0; i < 32; i++) {
+        if ((base >> i) & 1u) {
+            x ^= comb[i];
+        }
+    }
+    for (i = 0; i < 4; i++) {
+        tail[i] = (uint8_t)(x >> (8 * i));
+    }
+}
+
+/* What fits depends on the message's length only: the parts are measured
+ * with the message CRC-32 at its longest (5 bytes in the CBOR), so a message
+ * whose CRC takes 1 byte gets the same fragment and scale as any other of
+ * its length, and ds_app_fits_qr may probe with zeros. */
+static void test_qr_crc_size_ignored(void)
+{
+    static const size_t longer[] = {1500, 2400, 6000, DS_APP_PSBT_MAX};
+    size_t len, k, i;
+    int scale;
+
+    for (k = 0; k < 400 + sizeof longer / sizeof longer[0]; k++) {
+        len = k < 400 ? 20 + k : longer[k - 400];
+        for (scale = 2; scale >= 1; scale--) {
+            int32_t r1, r2;
+            uint32_t frag, parts;
+
+            for (i = 0; i < len; i++) {
+                big[i] = (uint8_t)(i * 7 + 3);
+            }
+            CHECK(ut_crc32(big, len) >= 0x10000u); /* 5 bytes in the CBOR */
+            r1 = ds_qr_start(&q, "crypto-psbt", big, len, scale);
+            frag = q.e.fragment;
+            parts = q.e.seq_len;
+            force_crc_zero(big, len);
+            CHECK_EQ_INT(ut_crc32(big, len), 0);
+            r2 = ds_qr_start(&q, "crypto-psbt", big, len, scale);
+            CHECK_EQ_INT(r2, r1);
+            CHECK_EQ_INT(q.e.fragment, frag);
+            CHECK_EQ_INT(q.e.seq_len, parts);
+            if (len < 400 && r2 > 0) {
+                /* And every part of it still fits, through W. */
+                for (i = 0; i < 2 * q.e.seq_len + 12; i++) {
+                    CHECK(ds_qr_next(&q) > 0);
+                }
+            }
+        }
+    }
 }
 
 static void test_qr_fallback(void)
@@ -237,4 +319,4 @@ static void test_qr_draw_box(void)
 TEST_MAIN(test_qr_roundtrip_scale2, test_qr_scale1_fits_v7, test_qr_psbt_needs_scale1,
           test_qr_args,
           test_qr_fallback, test_qr_long_run, test_qr_too_big, test_qr_next_before_start,
-          test_qr_draw_box)
+          test_qr_draw_box, test_qr_crc_size_ignored)

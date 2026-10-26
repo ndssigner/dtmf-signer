@@ -9,7 +9,9 @@
  * (45 modules). The fragment is the largest (200 down) whose part number W,
  * the highest sent (W = 2 * parts + 10), really encodes in the version: the
  * sequence number grows its digits and its CBOR bytes, so the part is
- * measured with W, not estimated. After part W the sequence starts over, so
+ * measured with W, not estimated, and with the message CRC-32 in its CBOR
+ * at its longest (5 bytes), so the choice depends on the message's length
+ * only, never on its bytes. After part W the sequence starts over, so
  * the sequence number never passes W and every part fits. When scale 2 does
  * not fit (or would need more than UT_MAX_PARTS parts), scale 1 is used. At
  * 2 px a PSBT's parts practically never fit (fragments are at least 10 bytes
