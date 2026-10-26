@@ -4,11 +4,11 @@
 #include <string.h>
 
 #include "ds_hash.h"
+#include "ds_psbt_io.h"
 
 #define HARD 0x80000000u
 #define MAX_MONEY 2100000000000000ull /* 21 000 000 BTC in sat */
 #define FEE_LIMIT 1000000u            /* sat: always a high fee above this */
-#define CACHE 64
 
 /* PSBT key types we interpret. */
 #define G_UNSIGNED_TX 0x00
@@ -21,14 +21,7 @@
 
 /* ---- bounded reads from the source ---- */
 
-typedef struct {
-    const ds_source *src;
-    uint32_t base, fill; /* buf holds the bytes [base, base + fill) */
-    uint8_t buf[CACHE];
-} cache;
-
-/* Copies n bytes at off; DS_ERR_PSBT if they are not all inside the source. */
-static int32_t get(cache *c, uint32_t off, uint8_t *out, size_t n)
+int32_t ds_psbt_get(ds_psbt_cache *c, uint32_t off, uint8_t *out, size_t n)
 {
     const ds_source *s = c->src;
 
@@ -38,7 +31,8 @@ static int32_t get(cache *c, uint32_t off, uint8_t *out, size_t n)
     while (n > 0) {
         size_t k;
         if (off < c->base || off - c->base >= c->fill) {
-            uint32_t want = s->len - off < CACHE ? s->len - off : CACHE;
+            uint32_t want = s->len - off < DS_PSBT_CACHE ? s->len - off
+                                                         : DS_PSBT_CACHE;
             int32_t got = s->read(s->ctx, off, c->buf, want);
             if (got < 0) {
                 c->fill = 0;
@@ -74,19 +68,17 @@ static uint64_t le64(const uint8_t *p)
     return (uint64_t)le32(p) | (uint64_t)le32(p + 4) << 32;
 }
 
-/* Reads a compact size at *off, advancing it; values that cannot fit in the
- * rest of the source are rejected by the callers' range checks. */
-static int32_t get_compact(cache *c, uint32_t *off, uint64_t *v)
+int32_t ds_psbt_get_compact(ds_psbt_cache *c, uint32_t *off, uint64_t *v)
 {
     uint8_t b[9];
     size_t n;
-    int32_t e = get(c, *off, b, 1);
+    int32_t e = ds_psbt_get(c, *off, b, 1);
 
     if (e < 0) {
         return e;
     }
     n = b[0] < 0xfd ? 1 : b[0] == 0xfd ? 3 : b[0] == 0xfe ? 5 : 9;
-    if (n > 1 && (e = get(c, *off + 1, b + 1, n - 1)) < 0) {
+    if (n > 1 && (e = ds_psbt_get(c, *off + 1, b + 1, n - 1)) < 0) {
         return e;
     }
     (void)ds_compact_decode(b, n, v);
@@ -95,14 +87,14 @@ static int32_t get_compact(cache *c, uint32_t *off, uint64_t *v)
 }
 
 /* Whether [a, a + n) and [b, b + n) hold the same bytes. */
-static int32_t same_bytes(cache *c, uint32_t a, uint32_t b, uint32_t n)
+static int32_t same_bytes(ds_psbt_cache *c, uint32_t a, uint32_t b, uint32_t n)
 {
     uint8_t x[32], y[32];
 
     while (n > 0) {
         uint32_t k = n < 32 ? n : 32;
-        int32_t e = get(c, a, x, k);
-        if (e < 0 || (e = get(c, b, y, k)) < 0) {
+        int32_t e = ds_psbt_get(c, a, x, k);
+        if (e < 0 || (e = ds_psbt_get(c, b, y, k)) < 0) {
             return e;
         }
         if (memcmp(x, y, k) != 0) {
@@ -117,18 +109,11 @@ static int32_t same_bytes(cache *c, uint32_t a, uint32_t b, uint32_t n)
 
 /* ---- key-value maps ---- */
 
-typedef struct {
-    uint32_t key, key_len, val, val_len, next;
-    uint8_t type; /* first key byte */
-} entry;
-
-/* Reads the pair at off: 1 and *e, or 0 at the map's separator (e->next is
- * then just past it), or an error. */
-static int32_t read_entry(cache *c, uint32_t off, entry *e)
+int32_t ds_psbt_read_entry(ds_psbt_cache *c, uint32_t off, ds_psbt_entry *e)
 {
     uint64_t v;
     uint32_t len = c->src->len;
-    int32_t r = get_compact(c, &off, &v);
+    int32_t r = ds_psbt_get_compact(c, &off, &v);
 
     if (r < 0) {
         return r;
@@ -142,11 +127,11 @@ static int32_t read_entry(cache *c, uint32_t off, entry *e)
     }
     e->key = off;
     e->key_len = (uint32_t)v;
-    if ((r = get(c, off, &e->type, 1)) < 0) {
+    if ((r = ds_psbt_get(c, off, &e->type, 1)) < 0) {
         return r;
     }
     off += e->key_len;
-    if ((r = get_compact(c, &off, &v)) < 0) {
+    if ((r = ds_psbt_get_compact(c, &off, &v)) < 0) {
         return r;
     }
     if (v > len - off) {
@@ -160,13 +145,13 @@ static int32_t read_entry(cache *c, uint32_t off, entry *e)
 
 /* Checks the map at start (count, no repeated key) and sets *end just past
  * its separator. */
-static int32_t scan_map(cache *c, uint32_t start, uint32_t *end)
+static int32_t scan_map(ds_psbt_cache *c, uint32_t start, uint32_t *end)
 {
-    entry a, b;
+    ds_psbt_entry a, b;
     uint32_t off = start, count = 0;
     int32_t r;
 
-    while ((r = read_entry(c, off, &a)) == 1) {
+    while ((r = ds_psbt_read_entry(c, off, &a)) == 1) {
         if (++count > DS_PSBT_MAX_KEYS) {
             return DS_ERR_LIMIT;
         }
@@ -177,9 +162,9 @@ static int32_t scan_map(cache *c, uint32_t start, uint32_t *end)
     }
     *end = a.next;
 
-    for (off = start; read_entry(c, off, &a) == 1; off = a.next) {
+    for (off = start; ds_psbt_read_entry(c, off, &a) == 1; off = a.next) {
         uint32_t o2;
-        for (o2 = a.next; read_entry(c, o2, &b) == 1; o2 = b.next) {
+        for (o2 = a.next; ds_psbt_read_entry(c, o2, &b) == 1; o2 = b.next) {
             if (a.key_len == b.key_len) {
                 r = same_bytes(c, a.key, b.key, a.key_len);
                 if (r < 0) {
@@ -200,8 +185,8 @@ static int32_t scan_map(cache *c, uint32_t start, uint32_t *end)
 #define OUR_PATH 1 /* our fingerprint and the account path + /chain/index */
 
 /* Classifies a BIP 32 derivation value (fingerprint and path). */
-static int32_t classify(cache *c, const entry *e, const ds_wallet *w,
-                        uint32_t *chain, uint32_t *index)
+static int32_t classify(ds_psbt_cache *c, const ds_psbt_entry *e,
+                        const ds_wallet *w, uint32_t *chain, uint32_t *index)
 {
     uint8_t v[4 + 4 * 5];
     uint32_t n, fp, k, p[5];
@@ -211,7 +196,7 @@ static int32_t classify(cache *c, const entry *e, const ds_wallet *w,
         return DS_ERR_PSBT;
     }
     n = e->val_len / 4 - 1;
-    if ((r = get(c, e->val, v, n < 5 ? e->val_len : sizeof v)) < 0) {
+    if ((r = ds_psbt_get(c, e->val, v, n < 5 ? e->val_len : sizeof v)) < 0) {
         return r;
     }
     fp = (uint32_t)v[0] << 24 | (uint32_t)v[1] << 16 | (uint32_t)v[2] << 8 |
@@ -285,16 +270,17 @@ static int32_t on_unsigned_output(void *user, uint32_t i, uint64_t amount,
 
 /* Streams [off, off + len) through a transaction reader, one byte per feed so
  * that callbacks know the position (*pos) of the byte that triggered them. */
-static int32_t read_tx(cache *c, uint32_t off, uint32_t len, ds_tx_reader *r,
-                       uint32_t *pos)
+static int32_t read_tx(ds_psbt_cache *c, uint32_t off, uint32_t len,
+                       ds_tx_reader *r, uint32_t *pos)
 {
-    uint8_t b[CACHE];
+    uint8_t b[DS_PSBT_CACHE];
     uint32_t end = off + len;
     int32_t e;
 
     while (off < end) {
-        uint32_t k, n = end - off < CACHE ? end - off : CACHE;
-        if ((e = get(c, off, b, n)) < 0) {
+        uint32_t k;
+        uint32_t n = end - off < DS_PSBT_CACHE ? end - off : DS_PSBT_CACHE;
+        if ((e = ds_psbt_get(c, off, b, n)) < 0) {
             return e;
         }
         for (k = 0; k < n; k++) {
@@ -314,7 +300,8 @@ static uint32_t compact_size(uint64_t v)
     return v < 0xfd ? 1 : v <= 0xffff ? 3 : v <= 0xffffffffu ? 5 : 9;
 }
 
-static int32_t parse_unsigned_tx(cache *c, const entry *e, ds_psbt_review *rv)
+static int32_t parse_unsigned_tx(ds_psbt_cache *c, const ds_psbt_entry *e,
+                                 ds_psbt_review *rv)
 {
     ds_tx_reader r;
     const ds_tx_result *res;
@@ -383,8 +370,8 @@ static int32_t on_prev_end(void *user, const ds_tx_result *res)
 
 /* Reads a non_witness_utxo: its txid must be the outpoint's, and it must have
  * the output the outpoint names. */
-static int32_t check_prev_tx(cache *c, const entry *e, const uint8_t op[36],
-                             prev_out *p)
+static int32_t check_prev_tx(ds_psbt_cache *c, const ds_psbt_entry *e,
+                             const uint8_t op[36], prev_out *p)
 {
     ds_tx_reader r;
     uint32_t pos = 0;
@@ -411,11 +398,12 @@ static int32_t check_prev_tx(cache *c, const entry *e, const uint8_t op[36],
 
 /* ---- input and output maps ---- */
 
-static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
-                             ds_psbt_review *rv, uint32_t i)
+static int32_t analyze_input(ds_psbt_cache *c, uint32_t start,
+                             const ds_wallet *w, ds_psbt_review *rv,
+                             uint32_t i)
 {
     ds_psbt_input *in = &rv->in[i];
-    entry e, nonwit, wit, sighash;
+    ds_psbt_entry e, nonwit, wit, sighash;
     int has_nonwit = 0, has_wit = 0, has_sighash = 0;
     uint32_t off, wit_script = 0, wit_script_len = 0;
     uint64_t wit_amount = 0, v;
@@ -425,11 +413,11 @@ static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
     memset(&nonwit, 0, sizeof nonwit);
     memset(&wit, 0, sizeof wit);
     memset(&sighash, 0, sizeof sighash);
-    for (off = start; (r = read_entry(c, off, &e)) == 1; off = e.next) {
-        entry *keep = e.type == I_NON_WITNESS_UTXO ? &nonwit
-                      : e.type == I_WITNESS_UTXO   ? &wit
-                      : e.type == I_SIGHASH        ? &sighash
-                                                   : NULL;
+    for (off = start; (r = ds_psbt_read_entry(c, off, &e)) == 1; off = e.next) {
+        ds_psbt_entry *keep = e.type == I_NON_WITNESS_UTXO ? &nonwit
+                              : e.type == I_WITNESS_UTXO   ? &wit
+                              : e.type == I_SIGHASH        ? &sighash
+                                                           : NULL;
         if (keep == NULL) {
             continue;
         }
@@ -449,7 +437,7 @@ static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
         if (sighash.val_len != 4) {
             return DS_ERR_PSBT;
         }
-        if ((r = get(c, sighash.val, b, 4)) < 0) {
+        if ((r = ds_psbt_get(c, sighash.val, b, 4)) < 0) {
             return r;
         }
         if (le32(b) != 1) {
@@ -459,11 +447,11 @@ static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
 
     if (has_wit) { /* amount, then the length-prefixed script */
         off = wit.val + 8;
-        if (wit.val_len < 9 || (r = get(c, wit.val, b, 8)) < 0) {
+        if (wit.val_len < 9 || (r = ds_psbt_get(c, wit.val, b, 8)) < 0) {
             return wit.val_len < 9 ? DS_ERR_PSBT : r;
         }
         wit_amount = le64(b);
-        if ((r = get_compact(c, &off, &v)) < 0) {
+        if ((r = ds_psbt_get_compact(c, &off, &v)) < 0) {
             return r;
         }
         if (off > wit.val + wit.val_len ||
@@ -500,13 +488,13 @@ static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
 
     /* Ours: witness_utxo is P2WPKH of a key we derive for a declared path. */
     if (has_wit && wit_script_len == 22) {
-        if ((r = get(c, wit_script, b, 22)) < 0) {
+        if ((r = ds_psbt_get(c, wit_script, b, 22)) < 0) {
             return r;
         }
     } else {
         b[0] = 0xff; /* matches no P2WPKH script */
     }
-    for (off = start; read_entry(c, off, &e) == 1; off = e.next) {
+    for (off = start; ds_psbt_read_entry(c, off, &e) == 1; off = e.next) {
         uint32_t chain, index;
         uint8_t mine[22];
         if (e.type != I_BIP32) {
@@ -534,14 +522,14 @@ static int32_t analyze_input(cache *c, uint32_t start, const ds_wallet *w,
     return DS_OK;
 }
 
-static int32_t analyze_output(cache *c, uint32_t start, const ds_wallet *w,
-                              ds_out *o)
+static int32_t analyze_output(ds_psbt_cache *c, uint32_t start,
+                              const ds_wallet *w, ds_out *o)
 {
-    entry e;
+    ds_psbt_entry e;
     uint32_t off;
     int32_t r;
 
-    for (off = start; (r = read_entry(c, off, &e)) == 1; off = e.next) {
+    for (off = start; (r = ds_psbt_read_entry(c, off, &e)) == 1; off = e.next) {
         uint32_t chain, index;
         uint8_t mine[22];
         if (e.type != O_BIP32) {
@@ -569,17 +557,17 @@ static int32_t analyze_output(cache *c, uint32_t start, const ds_wallet *w,
 
 /* ---- the whole PSBT ---- */
 
-static int32_t hash_source(cache *c, uint8_t out[32])
+int32_t ds_psbt_hash_source(ds_psbt_cache *c, uint8_t out[32])
 {
     ds_sha256_ctx h;
-    uint8_t b[CACHE];
+    uint8_t b[DS_PSBT_CACHE];
     uint32_t off = 0, len = c->src->len;
     int32_t e = DS_OK;
 
     ds_sha256_init(&h);
     while (off < len) {
-        uint32_t n = len - off < CACHE ? len - off : CACHE;
-        if ((e = get(c, off, b, n)) < 0) {
+        uint32_t n = len - off < DS_PSBT_CACHE ? len - off : DS_PSBT_CACHE;
+        if ((e = ds_psbt_get(c, off, b, n)) < 0) {
             break;
         }
         ds_sha256_update(&h, b, n);
@@ -589,11 +577,11 @@ static int32_t hash_source(cache *c, uint8_t out[32])
     return e;
 }
 
-static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
+static int32_t analyze(ds_psbt_cache *c, const ds_wallet *w, ds_psbt_review *rv)
 {
     static const uint8_t magic[5] = {0x70, 0x73, 0x62, 0x74, 0xff};
     uint8_t b[5];
-    entry e, tx;
+    ds_psbt_entry e, tx;
     int has_tx = 0;
     uint32_t off, end, k;
     uint64_t total_out = 0, external = 0;
@@ -601,10 +589,10 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
     int32_t r;
 
     memset(&tx, 0, sizeof tx);
-    if ((r = hash_source(c, rv->psbt_sha256)) < 0) {
+    if ((r = ds_psbt_hash_source(c, rv->psbt_sha256)) < 0) {
         return r;
     }
-    if ((r = get(c, 0, b, 5)) < 0) {
+    if ((r = ds_psbt_get(c, 0, b, 5)) < 0) {
         return r;
     }
     if (memcmp(b, magic, 5) != 0) {
@@ -615,12 +603,12 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
     if ((r = scan_map(c, 5, &end)) < 0) {
         return r;
     }
-    for (off = 5; read_entry(c, off, &e) == 1; off = e.next) {
+    for (off = 5; ds_psbt_read_entry(c, off, &e) == 1; off = e.next) {
         if (e.type == G_VERSION) {
             if (e.key_len != 1 || e.val_len != 4) {
                 return DS_ERR_PSBT;
             }
-            if ((r = get(c, e.val, b, 4)) < 0) {
+            if ((r = ds_psbt_get(c, e.val, b, 4)) < 0) {
                 return r;
             }
             if (le32(b) != 0) {
@@ -674,7 +662,7 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
     /* The bytes analyzed must be the bytes hashed: hash the source again,
      * bypassing the cache, and compare. */
     c->fill = 0;
-    if ((r = hash_source(c, again)) < 0) {
+    if ((r = ds_psbt_hash_source(c, again)) < 0) {
         return r;
     }
     if (memcmp(again, rv->psbt_sha256, 32) != 0) {
@@ -686,7 +674,7 @@ static int32_t analyze(cache *c, const ds_wallet *w, ds_psbt_review *rv)
 int32_t ds_psbt_analyze(const ds_source *src, const ds_wallet *w,
                         ds_psbt_review *out)
 {
-    cache c;
+    ds_psbt_cache c;
     int32_t r;
 
     if (out == NULL) {

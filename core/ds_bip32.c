@@ -3,47 +3,24 @@
 #include <string.h>
 
 #include "ds_hash.h"
-#include "secp256k1.h"
-#include "secp256k1_preallocated.h"
-
-/* secp256k1_context_static only verifies: pubkey_create needs the signing
- * tables, which the static context lacks. So fill_pub builds a context in a
- * stack buffer (no malloc, no globals; about 216 bytes). It is never
- * randomized (no entropy source), so there is no blinding: a side-channel
- * consideration for the Pico port. seckey_verify and seckey_tweak_add work with
- * secp256k1_context_static. */
-#define DS_CTX_BYTES 512
-
-/* The preallocated context needs memory aligned for any type: a union with the
- * widest scalar types guarantees it in C99. */
-typedef union {
-    uint8_t bytes[DS_CTX_BYTES];
-    uint64_t u64;
-    long double ld;
-    void *ptr;
-} ctx_buf;
+#include "ds_secp.h"
 
 static int fill_pub(const uint8_t key[32], uint8_t pub[33], uint32_t *fp)
 {
-    ctx_buf buf;
-    secp256k1_context *ctx;
+    ds_secp_buf buf;
+    secp256k1_context *ctx = ds_secp_create(&buf);
     secp256k1_pubkey pk;
     size_t len = 33;
     uint8_t h[20];
     int ok = 0;
 
-    if (secp256k1_context_preallocated_size(SECP256K1_CONTEXT_NONE) > sizeof buf) {
-        return 0;
-    }
-    ctx = secp256k1_context_preallocated_create(&buf, SECP256K1_CONTEXT_NONE);
     if (ctx != NULL) {
         ok = secp256k1_ec_pubkey_create(ctx, &pk, key) &&
              secp256k1_ec_pubkey_serialize(ctx, pub, &len, &pk,
                                            SECP256K1_EC_COMPRESSED) &&
              len == 33;
-        secp256k1_context_preallocated_destroy(ctx);
     }
-    ds_wipe(&buf, sizeof buf);
+    ds_secp_destroy(ctx, &buf);
     ds_wipe(&pk, sizeof pk);
     if (ok) {
         ds_hash160(pub, 33, h);
