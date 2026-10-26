@@ -179,7 +179,8 @@ El análisis completo, por formato de distribución y por uso, está en
 - [ ] Esquema, guías de protoboard y placa perforada, y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
-- [ ] Firmware: audio, ur-tones, PSBT, firma, pantallas
+- [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
+- [ ] Firmware: audio, ur-tones, PSBT, firma, pantallas (falta el port a la Pico de la parte de PSBT)
 - [ ] Protocolo serie para terminales vintage
 - [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente
@@ -205,14 +206,17 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   riesgos: cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
 - [`core/`](core/): el núcleo portable en C99: SHA-512, HMAC, PBKDF2, BIP39,
-  BIP32 y la cartera BIP84, de una semilla a sus huellas y su XPUB.
+  BIP32 y la cartera BIP84, de una semilla a sus huellas y su XPUB; el análisis
+  y la firma de PSBT, la política de canales y la sesión.
 - [`ports/host/`](ports/host/): la versión para ordenador,
   `dtmf-signer-host keys`: de un UR, tonos o un WAV a las huellas, la XPUB y
-  el descriptor. Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
+  el descriptor; y `dtmf-signer-host sign`: una PSBT (base64, binaria o un
+  UR) de entrada, el resumen por la salida de error, "yes" por la entrada
+  estándar y la PSBT firmada de salida. Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
   otros procesos y quedan en el historial del shell; usa solo semillas de
   prueba con ella.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
-  públicas.
+  públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el
   catálogo o portar DTMF-Signer (en inglés).
 

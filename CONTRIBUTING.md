@@ -15,9 +15,13 @@ issue or pull request here, under the same rules.
   [`docs/es/catalogo.md`](docs/es/catalogo.md): the capabilities, what each
   one needs and costs, and the profiles that combine them.
 - **The test vectors**, `vectors/`: the contract. A build that reproduces
-  them does what the specification says. So far `keys-v0.json` (PSBT
-  vectors are still planned).
-- **The reference firmware**: a portable core (`core/`, the keys so far) and
+  them does what the specification says. So far `keys-v0.json` and
+  `psbt-v0.json` (PSBTs to sign and malicious PSBTs to reject, generated with
+  embit, an independent implementation). To regenerate the latter, in a
+  separate environment: `pip install -r tools/requirements-vectors.txt`, then
+  `python3 tools/gen_psbt_vectors.py`; with `--check` it only verifies that
+  the file is up to date. CI does not need embit.
+- **The reference firmware**: a portable core (`core/`: keys, PSBT signing and the session) and
   a build for a computer (`ports/host`) exist; the port for the Raspberry
   Pi Pico is still planned.
 - **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md),

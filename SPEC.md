@@ -322,13 +322,23 @@ Test vectors live in `vectors/`, as JSON, like ur-tones'.
   the BIP84 xpub of public test seeds. Its seed fingerprints are checked
   against ur-tones' own JavaScript, an implementation independent of the C
   core (`tests/check_fingerprints.mjs`).
+- **Done:** `vectors/psbt-v0.json` has PSBT version 0 vectors: `14` that a
+  build MUST sign, with the amounts, addresses, change, fee and signatures
+  expected, and `9` that it MUST reject, with the error expected. They are
+  generated with embit, an implementation independent of the C core
+  (`tools/gen_psbt_vectors.py`, whose dependency is pinned in
+  `tools/requirements-vectors.txt`).
 - **Planned, for every core operation:** decrypting the seed with a PIN;
-  BIP39 to seed with a passphrase; the summary and the signature of a PSBT.
-- **Malicious PSBTs**, which a build MUST reject or flag: fake change (our
-  path, someone else's key), change to another address type, the wrong
-  network, a sighash other than `SIGHASH_ALL`, an out-of-proportion fee,
-  duplicate or malformed fields, false amounts with `2` or more inputs and
-  no `non_witness_utxo`.
+  BIP39 to seed with a passphrase.
+- **Malicious PSBTs**, which a build MUST reject or flag. Covered by
+  `vectors/psbt-v0.json`: fake change (our path, someone else's key), change
+  to another address type (P2SH-P2WPKH), the wrong network, a sighash other
+  than `SIGHASH_ALL`, an out-of-proportion fee (flagged, not rejected, over
+  `10%` of the external outputs or `1000000` sat), a duplicate key, false
+  amounts with `2` or more inputs and no `non_witness_utxo` (also a wrong
+  txid or amount in it), and a PSBT of version 2. Not covered yet: other
+  malformed fields (truncated maps, lengths that overrun, a malformed
+  transaction).
 
 ## 11. Security considerations
 

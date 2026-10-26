@@ -167,7 +167,8 @@ The whole analysis, by distribution format and by use, is in
 - [ ] Schematic, breadboard and perfboard guides, and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
-- [ ] Firmware: audio, ur-tones, PSBT, signing, screens
+- [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
+- [ ] Firmware: audio, ur-tones, PSBT, signing, screens (the Pico port of the PSBT part is still to come)
 - [ ] Serial protocol for vintage terminals
 - [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review
@@ -191,12 +192,15 @@ for the use anyone makes of this design.
 - [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): the risk analysis:
   supply chain, buyer privacy, firmware, use and physical threats (Spanish).
 - [`core/`](core/): the portable C99 core: SHA-512, HMAC, PBKDF2, BIP39,
-  BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub.
+  BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub; PSBT
+  analysis and signing, the channel policy and the session.
 - [`ports/host/`](ports/host/): the computer build, `dtmf-signer-host keys`:
-  from a UR, tones or a WAV to the fingerprints, the xpub and the descriptor.
+  from a UR, tones or a WAV to the fingerprints, the xpub and the descriptor;
+  and `dtmf-signer-host sign`: a PSBT (base64, binary or a UR) in, the summary
+  on standard error, "yes" on standard input, the signed PSBT out.
   Warning: its arguments (seed, PIN, passphrase) are visible to other
   processes and are kept in the shell history; use only test seeds with it.
-- [`vectors/`](vectors/): test vectors (JSON), public test seeds only.
+- [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.
 

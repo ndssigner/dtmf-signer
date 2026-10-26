@@ -334,13 +334,24 @@ Los vectores de prueba están en `vectors/`, en JSON, como los de ur-tones.
   semilla están comprobadas con el JavaScript de ur-tones, una
   implementación independiente del núcleo en C
   (`tests/check_fingerprints.mjs`).
+- **Hecho:** `vectors/psbt-v0.json` tiene vectores de PSBT versión 0: `14`
+  que un montaje DEBE firmar, con los importes, las direcciones, el cambio,
+  la comisión y las firmas esperados, y `9` que DEBE rechazar, con el error
+  esperado. Están generados con embit, una implementación independiente del
+  núcleo en C (`tools/gen_psbt_vectors.py`, cuya dependencia está fijada en
+  `tools/requirements-vectors.txt`).
 - **Previsto, para cada operación del núcleo:** descifrar la semilla con un
-  PIN; de BIP39 a semilla con passphrase; el resumen y la firma de una PSBT.
-- **PSBT malintencionadas**, que un montaje DEBE rechazar o marcar: un
-  cambio falso (nuestra ruta, la clave de otro), un cambio a otro tipo de
-  dirección, la red equivocada, un sighash distinto de `SIGHASH_ALL`, una
-  comisión desproporcionada, campos duplicados o mal formados, importes
-  falsos con `2` entradas o más y sin `non_witness_utxo`.
+  PIN; de BIP39 a semilla con passphrase.
+- **PSBT malintencionadas**, que un montaje DEBE rechazar o marcar. Cubiertas
+  por `vectors/psbt-v0.json`: un cambio falso (nuestra ruta, la clave de
+  otro), un cambio a otro tipo de dirección (P2SH-P2WPKH), la red
+  equivocada, un sighash distinto de `SIGHASH_ALL`, una comisión
+  desproporcionada (se marca, no se rechaza, por encima del `10%` de las
+  salidas externas o de `1000000` sat), una clave duplicada, importes falsos
+  con `2` entradas o más y sin `non_witness_utxo` (también un txid o un
+  importe erróneo en él) y una PSBT de versión 2. Aún sin cubrir: otros
+  campos mal formados (mapas truncados, longitudes que se pasan, una
+  transacción mal formada).
 
 ## 11. Consideraciones de seguridad
 
