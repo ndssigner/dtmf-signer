@@ -34,3 +34,9 @@ target_include_directories(test_sign PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 ds_add_test(test_session)
 target_sources(test_session PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_session PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+# The tone receiver test needs the app layer and the PSBT vectors.
+ds_add_test(test_rx)
+target_sources(test_rx PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_rx PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_rx PRIVATE dtmf_app)

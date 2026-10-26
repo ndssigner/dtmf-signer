@@ -29,5 +29,6 @@ target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror)
 
 enable_testing()
 add_subdirectory(core)
+add_subdirectory(app)
 add_subdirectory(ports/host)
 add_subdirectory(tests/c)
