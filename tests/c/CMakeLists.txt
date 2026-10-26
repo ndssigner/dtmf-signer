@@ -46,3 +46,12 @@ ds_add_test(test_qr)
 target_sources(test_qr PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_qr PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_qr PRIVATE dtmf_app)
+
+# The button debouncer and the screen model/drawing need only the app layer
+# (the UI test also takes the PSBT summary from the vectors).
+ds_add_test(test_btn)
+target_link_libraries(test_btn PRIVATE dtmf_app)
+ds_add_test(test_ui)
+target_sources(test_ui PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_ui PRIVATE dtmf_app)
