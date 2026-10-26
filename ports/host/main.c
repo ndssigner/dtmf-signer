@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "base64.h"
+#include "ds_base64.h"
 #include "ds_rx.h"
 #include "ds_session.h"
 #include "ds_wallet.h"
@@ -490,9 +490,9 @@ static uint8_t *load_psbt(const char *path, size_t *len)
         text++;
     n -= (size_t)(text - (char *)raw);
     if (starts_with(text, "cHNidP")) {
-        long got;
+        int32_t got;
         psbt = malloc(n);
-        got = psbt == NULL ? -1 : ds_b64_decode(text, n, psbt, n);
+        got = psbt == NULL ? -1 : ds_base64_decode(text, n, psbt, n);
         if (got <= 0) {
             fputs("dtmf-signer-host: the PSBT is not valid base64\n", stderr);
             free(psbt);
@@ -641,7 +641,7 @@ static int do_sign(const options *o, const uint8_t *entropy, size_t n, const cha
         goto ds_error;
     if ((r = ds_session_sign(&s, &src, &dst)) != DS_OK)
         goto ds_error;
-    if (ds_b64_encode(out.p, out.len, text, out.cap / 3 * 4 + 8) < 0 ||
+    if (ds_base64_encode(out.p, out.len, text, out.cap / 3 * 4 + 8) < 0 ||
         emit(text, o->out) != 0)
         goto done;
     exit_code = 0;

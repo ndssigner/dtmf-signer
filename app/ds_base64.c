@@ -1,14 +1,15 @@
-#include "base64.h"
+/* DTMF-Signer device logic: base64. See ds_base64.h. */
+#include "ds_base64.h"
 
 static const char ALPHABET[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-long ds_b64_encode(const uint8_t *in, size_t n, char *out, size_t cap)
+int32_t ds_base64_encode(const uint8_t *in, size_t n, char *out, size_t cap)
 {
     size_t i, o = 0;
 
-    if (cap < (n + 2) / 3 * 4 + 1)
-        return -1;
+    if (cap < DS_BASE64_LEN(n) + 1)
+        return DS_ERR_SPACE;
     for (i = 0; i < n; i += 3) {
         uint32_t v = (uint32_t)in[i] << 16;
         if (i + 1 < n) v |= (uint32_t)in[i + 1] << 8;
@@ -19,7 +20,7 @@ long ds_b64_encode(const uint8_t *in, size_t n, char *out, size_t cap)
         out[o++] = i + 2 < n ? ALPHABET[v & 63] : '=';
     }
     out[o] = '\0';
-    return (long)o;
+    return (int32_t)o;
 }
 
 static int value(char c)
@@ -32,7 +33,7 @@ static int value(char c)
     return -1;
 }
 
-long ds_b64_decode(const char *in, size_t n, uint8_t *out, size_t cap)
+int32_t ds_base64_decode(const char *in, size_t n, uint8_t *out, size_t cap)
 {
     size_t i, o = 0;
     uint32_t acc = 0;
@@ -48,13 +49,13 @@ long ds_b64_decode(const char *in, size_t n, uint8_t *out, size_t cap)
         }
         v = value(in[i]);
         if (v < 0 || pad)
-            return -1;
+            return DS_ERR_ARG;
         acc = acc << 6 | (uint32_t)v;
         bits += 6;
         if (bits >= 8) {
             bits -= 8;
             if (o >= cap)
-                return -1;
+                return DS_ERR_SPACE;
             out[o++] = (uint8_t)(acc >> bits);
             acc &= (1u << bits) - 1;
         }
@@ -62,6 +63,6 @@ long ds_b64_decode(const char *in, size_t n, uint8_t *out, size_t cap)
     /* Leftover bits are the zero tail of the last group: 4 after one byte
      * (two '=' follow), 2 after two bytes (one '='), none otherwise. */
     if (acc != 0 || pad != (bits == 4 ? 2 : bits == 2 ? 1 : bits == 0 ? 0 : -1))
-        return -1;
-    return (long)o;
+        return DS_ERR_ARG;
+    return (int32_t)o;
 }
