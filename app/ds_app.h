@@ -21,7 +21,17 @@
  *    release that armed the review happened after the review was drawn,
  *    and so did the start of the hold that confirms. A hold of OK carried
  *    over from "Listening" or "Working...", or a tap made then, never
- *    confirms; until armed, the last page says "Tap OK, then hold OK";
+ *    confirms; until armed, the last page says "Tap OK, then hold OK".
+ *    One limit, accepted: ds_btn counts a change of button class as a
+ *    release, so tapping another button while OK is held splits that hold
+ *    in two. A hold begun before the review can thus become a new OK press
+ *    after the arming tap and confirm. That takes deliberate use of the
+ *    buttons on the visible review, so it is no carried-over accident;
+ *  - every other screen a job puts up (Seed fingerprint, Wallet
+ *    fingerprint, the error screens, the QR screens) ignores the buttons
+ *    by the same rule until DS_APP_ARM_MS of tick time have passed since
+ *    the first tick after the port took it: a tap made during "Working..."
+ *    cannot pass the seed fingerprint unseen;
  *  - before the review can be confirmed, the signed PSBT's upper bound
  *    (PSBT + 112 bytes per input of ours + 8) must fit an animated QR at
  *    1 px, or the review is cancelled ("Too big for QR"): the device never
@@ -37,7 +47,11 @@
  * Heavy work (PIN and seed decoding, the wallet derivation, the review, the
  * signing, starting a QR) runs in the ds_app_tick after the one that put
  * "Working..." on screen, so the port can draw it first. Buttons are ignored
- * while working, except DS_BTN_WIPE.
+ * while working, except DS_BTN_WIPE. The port runs the job inside that
+ * tick, so it reads no buttons meanwhile and, after a job of several
+ * seconds, restarts its debounce (the samples have a gap): an emergency
+ * wipe held during "Working..." starts counting its 3 s only once the job
+ * has finished.
  *
  * The echo (ds_app_take_echo) is public data only, one line per take: the
  * state names ("state ready"), the timings "t pin|derive|review|sign|qr
@@ -85,8 +99,9 @@
 
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
-/* A PRESS arms the review only this long after the port took it (see
- * above): button events may come from samples up to 200 ms old. */
+/* A PRESS arms the review, and any event acts on a screen a job put up,
+ * only this long after the port took it (see above): button events may
+ * come from samples up to 200 ms old. */
 #define DS_APP_ARM_MS 300
 #define DS_APP_UI_CONTRAST 0x80
 
@@ -119,9 +134,10 @@ typedef struct {
     uint32_t now, msg_until, part_at, lost;
     int msg;                      /* 1 while "Not a ..." is shown */
     int armed;                    /* a late enough PRESS was taken in the review */
-    int pager_taken;              /* the port took the review screen */
-    int pager_shown;              /* a tick ran after that, at pager_at */
-    uint32_t pager_at;
+    int gated;                    /* a job put this screen up (see DS_APP_ARM_MS) */
+    int gate_taken;               /* the port took it */
+    int gate_shown;               /* a tick ran after that, at gate_at */
+    uint32_t gate_at;
     uint32_t echo_dropped;        /* lines dropped from the full queue */
     uint32_t sig_id;              /* signed PSBTs so far, for the echo */
     int sig_phase;                /* the signed PSBT's echo: where it is */

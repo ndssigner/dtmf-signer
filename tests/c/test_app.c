@@ -100,6 +100,13 @@ static int feed_tones(const char *t)
     return feed(audio, n);
 }
 
+/* Waits as a reader would: a screen a job put up takes no button until
+ * DS_APP_ARM_MS after it was drawn. */
+static void look(void)
+{
+    idle(DS_APP_ARM_MS + 16);
+}
+
 /* Ticks until "Working..." is gone (the heavy work ran). */
 static void work_done(void)
 {
@@ -253,6 +260,7 @@ static void to_ready(const char *passphrase, uint32_t fp)
 {
     char hex[9];
     to_seed_fp();
+    look();
     press(DS_BTN_OK);
     CHECK(shows("Passphrase?"));
     CHECK(shows("OK: none"));
@@ -269,6 +277,7 @@ static void to_ready(const char *passphrase, uint32_t fp)
     snprintf(hex, sizeof hex, "%08x", (unsigned)fp);
     CHECK(shows(hex));
     CHECK_EQ_INT(app.s.state, DS_S_READY);
+    look();
     press(DS_BTN_OK);
     CHECK(shows("Wallet "));
     CHECK(shows(hex));
@@ -285,8 +294,9 @@ static void send_psbt(const psbt_vector *v)
     CHECK(n > 0);
     CHECK(ut_fountain_encoder_init(&enc, cbor, (size_t)n, 100) >= 0);
     CHECK(shows("Sign PSBT"));
-    while (!(shows("Sign PSBT") && app.screen.highlight >= 0 &&
-             strstr(app.screen.line[app.screen.highlight], "Sign PSBT"))) {
+    for (i = 0; i < 8 && !(shows("Sign PSBT") && app.screen.highlight >= 0 &&
+                           strstr(app.screen.line[app.screen.highlight], "Sign PSBT"));
+         i++) {
         press(DS_BTN_UP);
     }
     press(DS_BTN_OK);
@@ -315,6 +325,7 @@ static void test_app_seed_flow(void)
 static void test_app_seed_discard(void)
 {
     to_seed_fp();
+    look();
     press(DS_BTN_LEFT);
     CHECK(shows("Load seed"));
     CHECK(app.s.state != DS_S_SEED && app.s.state != DS_S_READY);
@@ -643,6 +654,7 @@ static void test_app_echo_abort(void)
         CHECK(chunks);
         CHECK_EQ_INT(ds_app_take_echo(&app, line, 10), DS_ERR_SPACE);
     }
+    look();
     press(DS_BTN_LEFT);
     CHECK_EQ_INT(take_signed(raw, sizeof raw, &id), -2);
     ds_app_init(&app, TONES_RATE);
@@ -802,8 +814,74 @@ static void test_app_reject(void)
     tick();
     CHECK_EQ_INT(app.s.state, DS_S_READY);
     CHECK(all_zero(app.out, sizeof app.out));
+    look();
     press(DS_BTN_OK);
     CHECK(shows("Sign PSBT"));
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* A tap carried over from "Working..." (its event lags the samples) must
+ * not act on the screen the job put up before the user could see it: the
+ * seed fingerprint, the wallet fingerprint and the error screens take a
+ * button only DS_APP_ARM_MS after the port drew them. */
+static void test_app_job_screens_wait(void)
+{
+    int i;
+
+    /* Seed fingerprint: neither OK nor LEFT acts at once or 100 ms in. */
+    to_seed_fp();
+    press(DS_BTN_OK);
+    CHECK(shows("Seed fingerprint"));
+    press(DS_BTN_LEFT);
+    CHECK(shows("Seed fingerprint"));
+    CHECK_EQ_INT(app.s.state, DS_S_SEED);
+    idle(100);
+    press(DS_BTN_OK);
+    CHECK(shows("Seed fingerprint"));
+    look();
+    press(DS_BTN_OK);
+    CHECK(shows("Passphrase?"));
+
+    /* Wallet fingerprint. */
+    press(DS_BTN_OK);
+    work_done();
+    CHECK(shows("Wallet fingerprint"));
+    press(DS_BTN_OK);
+    CHECK(shows("Wallet fingerprint"));
+    look();
+    press(DS_BTN_OK);
+    CHECK(shows("Sign PSBT"));
+
+    /* An error screen. */
+    send_psbt(vector("fake change: our path, foreign key"));
+    work_done();
+    CHECK(shows("Rejected"));
+    press(DS_BTN_OK);
+    CHECK(shows("Rejected"));
+    look();
+    press(DS_BTN_OK);
+    CHECK(shows("Sign PSBT"));
+    ds_app_init(&app, TONES_RATE);
+
+    /* A port that never takes the screen: no button ever acts on it. */
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    press(DS_BTN_OK);
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    CHECK(feed_tones(tones));
+    type(DS_PICK_PIN, "TEST");
+    press(DS_BTN_OK);
+    CHECK(shows("Working..."));
+    for (i = 0; i < 100; i++) {
+        now += 16;
+        ds_app_tick(&app, now); /* never taken, never drawn */
+    }
+    CHECK(shows("Seed fingerprint"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
+    ds_app_button(&app, DS_BTN_LEFT, DS_BTN_PRESS);
+    CHECK(shows("Seed fingerprint"));
+    CHECK_EQ_INT(app.s.state, DS_S_SEED);
     ds_app_init(&app, TONES_RATE);
 }
 
@@ -1044,4 +1122,4 @@ TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
           test_app_fits_qr, test_app_settings, test_app_single_page,
           test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
-          test_app_wipe_anywhere, test_app_arm_delay)
+          test_app_wipe_anywhere, test_app_arm_delay, test_app_job_screens_wait)

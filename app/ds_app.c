@@ -358,6 +358,8 @@ static void refresh(ds_app *a)
 static void set_state(ds_app *a, int st)
 {
     char l[40];
+    /* A new screen: run_job gates it again if a job put it up. */
+    a->gated = 0;
     if (a->state != st) {
         a->state = st;
         snprintf(l, sizeof l, "state %s", state_name(st));
@@ -587,9 +589,6 @@ static void job_review(ds_app *a)
     ds_pager_init(&a->pager, a->summary);
     /* A hold or a tap carried over from before the review cannot arm it. */
     a->armed = 0;
-    a->pager_taken = 0;
-    a->pager_shown = 0;
-    a->pager_at = 0;
     set_state(a, ST_PAGER);
 }
 
@@ -689,6 +688,25 @@ static void run_job(ds_app *a)
     }
     a->t_kind = kinds[job];
     a->t_at = a->now;
+    /* The screen the job put up (not "Working..." again) starts gated: see
+     * gate_open. */
+    if (a->state != ST_WORKING && a->state != ST_WIPED) {
+        a->gated = 1;
+        a->gate_taken = 0;
+        a->gate_shown = 0;
+        a->gate_at = 0;
+    }
+}
+
+/* 1 once a screen a job put up (the fingerprints, an error, the review, a
+ * QR) has been taken by the port, a tick followed (gate_at) and
+ * DS_APP_ARM_MS have passed since: an event delivered earlier may come from
+ * a press made during "Working..." (events lag their samples by up to
+ * 200 ms), so it must not act on a screen the user has not seen. Always 1 on
+ * the other screens. */
+static int gate_open(const ds_app *a)
+{
+    return !a->gated || (a->gate_shown && a->now - a->gate_at >= DS_APP_ARM_MS);
 }
 
 /* ---- the public calls ---- */
@@ -783,7 +801,7 @@ static void button_ready(ds_app *a, int btn)
 
 /* The review. ds_btn sends at most one LONG per press, and a PRESS ends
  * its press. A PRESS arms the review only DS_APP_ARM_MS after the review
- * was taken by the port and a tick followed (pager_at): events lag their
+ * was taken by the port and a tick followed (gate_open): events lag their
  * samples by up to 200 ms, so its release happened after the review was
  * drawn, and every later LONG belongs to a press begun after that. A LONG
  * before (a hold or a tap carried over from "Listening" or "Working...")
@@ -802,7 +820,7 @@ static void button_pager(ds_app *a, int btn, int kind)
     if (kind != DS_BTN_PRESS) {
         return;
     }
-    if (a->pager_shown && a->now - a->pager_at >= DS_APP_ARM_MS) {
+    if (gate_open(a)) {
         a->armed = 1;
     }
     if (btn == DS_BTN_UP) {
@@ -865,8 +883,8 @@ void ds_app_button(ds_app *a, int btn, int kind)
         refresh(a);
         return;
     }
-    if (kind != DS_BTN_PRESS) {
-        return;
+    if (kind != DS_BTN_PRESS || !gate_open(a)) {
+        return; /* a tap carried over from "Working..." is dropped */
     }
     switch (a->state) {
     case ST_HOME:
@@ -958,9 +976,9 @@ void ds_app_tick(ds_app *a, uint32_t now_ms)
         echo_line(a, l);
         a->t_kind = NULL;
     }
-    if (a->state == ST_PAGER && a->pager_taken && !a->pager_shown) {
-        a->pager_shown = 1;
-        a->pager_at = now_ms;
+    if (a->gated && a->gate_taken && !a->gate_shown) {
+        a->gate_shown = 1;
+        a->gate_at = now_ms;
     }
     if (a->job != JOB_NONE && a->job_seen) {
         run_job(a);
@@ -988,8 +1006,8 @@ int ds_app_take_dirty(ds_app *a)
 {
     int d = a->dirty;
     a->dirty = 0;
-    if (d && a->state == ST_PAGER) {
-        a->pager_taken = 1; /* the port draws the review now */
+    if (d && a->gated) {
+        a->gate_taken = 1; /* the port draws the job's screen now */
     }
     return d;
 }
