@@ -316,7 +316,8 @@ class; its risks; the vectors that check it.
 ## 10. Test vectors
 
 Test vectors live in `vectors/`, as JSON, like ur-tones'.
-**Public test seeds and testnet PSBTs only.**
+**Public test seeds only; the PSBTs spend invented previous transactions,
+never real funds.**
 
 - **Done:** `vectors/keys-v0.json` has the seed and wallet fingerprints and
   the BIP84 xpub of public test seeds. Its seed fingerprints are checked

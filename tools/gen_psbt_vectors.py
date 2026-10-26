@@ -414,7 +414,7 @@ def generate():
     return {
         "format": "dtmf-signer-psbt",
         "version": 0,
-        "note": "Public test seeds and testnet-style data only.",
+        "note": "Public test seeds only; mainnet and testnet PSBTs over invented previous transactions, never real funds.",
         "vectors": vs,
     }
 

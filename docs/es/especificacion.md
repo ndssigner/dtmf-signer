@@ -327,7 +327,8 @@ procesador; sus riesgos; los vectores que la comprueban.
 ## 10. Vectores de prueba
 
 Los vectores de prueba están en `vectors/`, en JSON, como los de ur-tones.
-**Solo semillas de prueba públicas y PSBT de testnet.**
+**Solo semillas de prueba públicas; las PSBT gastan transacciones previas
+inventadas, nunca fondos reales.**
 
 - **Hecho:** `vectors/keys-v0.json` tiene las huellas de la semilla y de la
   cartera y la XPUB BIP84 de semillas de prueba públicas. Sus huellas de la

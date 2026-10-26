@@ -80,8 +80,8 @@ All of them must pass; CI runs them on every pull request.
 
 ## Rules
 
-- **Test data only:** public test seeds and testnet PSBTs, in documents,
-  code, tests, issues and recordings. A recording of a real seed is a copy
+- **Test data only:** public test seeds and PSBTs over invented previous
+  transactions, in documents, code, tests, issues and recordings. A recording of a real seed is a copy
   of it.
 - **Nothing reaches a network.** The signer and its tools work offline.
 - **The style of the file you touch:** its wording, its tables, its tests.
