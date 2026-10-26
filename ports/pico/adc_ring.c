@@ -24,3 +24,8 @@ size_t ds_ring_take(ds_ring *r, uint32_t written_total, uint32_t ring_n,
     r->read_total += avail;
     return avail;
 }
+
+int ds_ring_intact(uint32_t written_total, uint32_t first_total, uint32_t ring_n)
+{
+    return (uint32_t)(written_total - first_total) <= ring_n - DS_RING_MARGIN;
+}

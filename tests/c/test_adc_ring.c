@@ -90,5 +90,19 @@ static void test_counter_wraps_32_bits(void) {
     CHECK_EQ_INT(start & 1u, 0);
 }
 
+static void test_intact_after_reading(void) {
+    /* A batch read from position 1000 is intact while the DMA has written
+     * at most ring_n - margin samples since: its oldest slot is not yet
+     * overwritten. */
+    CHECK(ds_ring_intact(1000 + 100, 1000, N));
+    CHECK(ds_ring_intact(1000 + N - DS_RING_MARGIN, 1000, N));
+    CHECK(!ds_ring_intact(1000 + N - DS_RING_MARGIN + 1, 1000, N));
+    CHECK(!ds_ring_intact(1000 + N, 1000, N));
+    CHECK(!ds_ring_intact(1000 + 3 * N, 1000, N));
+    /* Across the 32-bit wrap of the counter. */
+    CHECK(ds_ring_intact(0x20u, 0xFFFFFFF0u, N));
+    CHECK(!ds_ring_intact(0x20u + N, 0xFFFFFFF0u, N));
+}
+
 TEST_MAIN(test_no_loss, test_wraps_the_ring_index, test_overflow_is_detected,
-          test_counter_wraps_32_bits)
+          test_counter_wraps_32_bits, test_intact_after_reading)

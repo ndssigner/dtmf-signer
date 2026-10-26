@@ -33,4 +33,11 @@ typedef struct {
 size_t ds_ring_take(ds_ring *r, uint32_t written_total, uint32_t ring_n,
                     uint32_t *start, uint32_t *lost);
 
+/* 1 if samples read starting at stream position first_total are still what
+ * the DMA wrote there, judged after reading them with the DMA's count
+ * written_total at that moment: it has not written ring_n - DS_RING_MARGIN
+ * samples past first_total, so it has not begun overwriting the slot of the
+ * first one. Read a batch, then ask; if 0, throw the batch away as lost. */
+int ds_ring_intact(uint32_t written_total, uint32_t first_total, uint32_t ring_n);
+
 #endif

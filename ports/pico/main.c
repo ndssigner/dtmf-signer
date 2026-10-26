@@ -23,6 +23,7 @@
 #include "display.h"
 #include "ds_app.h"
 #include "ds_btn.h"
+#include "ds_core.h"
 
 /* Samples of the line handed to ds_app_audio at once. */
 #define AUDIO_CHUNK 256
@@ -31,7 +32,13 @@
 
 /* The ring, aligned to its size so the DMA can wrap its write address. */
 static volatile uint16_t ring[DS_RING_SAMPLES] __attribute__((aligned(1u << DS_RING_BYTES_LOG2)));
-static int dma_chan;
+static int dma_chan, dma_reload_chan;
+static uint32_t dma_count_reload = 0xFFFFFFFFu;
+
+/* Scratch for pump_samples: the chunk as copied from the ring (line, ladder
+ * pairs) and as handed to the app. Static, and wiped before a reboot. */
+static uint16_t raw[2 * AUDIO_CHUNK];
+static int16_t block[AUDIO_CHUNK];
 static ds_ring ring_state;
 
 /* Big and long-lived: never on the stack. */
@@ -96,8 +103,26 @@ static void adc_dma_start(void)
     channel_config_set_write_increment(&c, true);
     channel_config_set_ring(&c, true, DS_RING_BYTES_LOG2); /* wrap the write address */
     channel_config_set_dreq(&c, DREQ_ADC);
-    /* The longest transfer count: ds_ring counts samples written from it
-     * (about 37 hours at 32 kHz before the channel would stop). */
+    /* The longest transfer count: ds_ring counts samples written from it.
+     * The RP2040 has no endless mode and a channel cannot chain to itself, so
+     * when the count (2^32 samples, about 37 hours) runs out the channel
+     * chains to a second one that copies the full count back into the first
+     * one's trigger register: the first restarts at once, its write address
+     * carrying on in the ring, and 2^32 being a multiple of the ring size the
+     * written count 0xFFFFFFFF - count just wraps. The ADC's FIFO holds the
+     * few samples that arrive meanwhile. */
+    dma_reload_chan = dma_claim_unused_channel(true);
+    {
+        dma_channel_config r = dma_channel_get_default_config((uint)dma_reload_chan);
+
+        channel_config_set_transfer_data_size(&r, DMA_SIZE_32);
+        channel_config_set_read_increment(&r, false);
+        channel_config_set_write_increment(&r, false);
+        dma_channel_configure((uint)dma_reload_chan, &r,
+                              &dma_hw->ch[dma_chan].al1_transfer_count_trig,
+                              &dma_count_reload, 1, false);
+    }
+    channel_config_set_chain_to(&c, (uint)dma_reload_chan);
     dma_channel_configure((uint)dma_chan, &c, ring, &adc_hw->fifo, 0xFFFFFFFFu, true);
     adc_run(true);
 }
@@ -121,32 +146,73 @@ static int ladder_class(uint16_t raw)
     return DS_BTN_NONE;
 }
 
+/* Forgets everything about the buttons: after a gap in the samples no event
+ * may come from a press that began before it. */
+static void ladder_reset(void)
+{
+    ds_btn_init(&btn);
+    ladder_phase = 0;
+}
+
 /* Hands the new samples to ds_app: the line in chunks, the ladder one in 16
- * to ds_btn, whose events go to ds_app_button at once. */
+ * to ds_btn, whose events go to ds_app_button at once.
+ *
+ * The DMA keeps writing while we work, so nothing read from the ring is
+ * trusted until it is checked: each chunk is copied out, then ds_ring_intact
+ * says whether the DMA has begun to overwrite what was copied. If it has, or
+ * if the ring had already overflowed, the samples are given up as lost
+ * (ds_app_audio_lost, which may itself take long, so a fresh look at the
+ * ring follows) and the buttons restart from zero, so no event is made of
+ * samples from both sides of a gap. */
 static void pump_samples(void)
 {
-    static int16_t block[AUDIO_CHUNK];
-    uint32_t start, lost;
-    size_t n = ds_ring_take(&ring_state, ring_written_total(), DS_RING_SAMPLES,
-                            &start, &lost);
-    size_t i = 0;
+    uint32_t start, lost, first_total;
+    size_t n, i;
+    int round;
 
-    if (lost > 0) {
-        /* Pairs of samples were lost: lost / 2 of the line. The ladder's
-         * clock is not advanced for them: a button held across the gap
-         * can only look shorter, never longer. */
+    for (round = 0;; round++) {
+        n = ds_ring_take(&ring_state, ring_written_total(), DS_RING_SAMPLES,
+                         &start, &lost);
+        if (lost == 0) {
+            break;
+        }
+        ladder_reset();
+        /* lost / 2 samples of the line. */
         ds_app_audio_lost(&app, lost / 2);
+        if (round == 3) {
+            /* Never spin here: the buttons (the wipe) must stay served.
+             * Whatever is left is checked chunk by chunk below. */
+            n = 0;
+            break;
+        }
     }
-    while (i < n) {
-        size_t k = 0;
+    first_total = ring_state.read_total - (uint32_t)n;
 
-        while (i < n && k < AUDIO_CHUNK) {
-            uint32_t pos = (start + (uint32_t)i) % DS_RING_SAMPLES;
-            uint16_t line = ring[pos] & 0x0FFF;
-            uint16_t lad = ring[(pos + 1) % DS_RING_SAMPLES] & 0x0FFF;
+    for (i = 0; i < n;) {
+        size_t pairs = 0, k = 0, j;
 
-            block[k++] = (int16_t)(((int32_t)line - 2048) * 16);
-            i += 2;
+        /* Copy out up to a chunk. */
+        while (i + 2 * pairs < n && pairs < AUDIO_CHUNK) {
+            uint32_t pos = (start + (uint32_t)(i + 2 * pairs)) % DS_RING_SAMPLES;
+
+            raw[2 * pairs] = ring[pos] & 0x0FFF;
+            raw[2 * pairs + 1] = ring[(pos + 1) % DS_RING_SAMPLES] & 0x0FFF;
+            pairs++;
+        }
+        /* Still what the DMA wrote? Else give up this chunk and all that
+         * follows it in this batch: a fresh look at the ring comes next. */
+        if (!ds_ring_intact(ring_written_total(), first_total + (uint32_t)i,
+                            DS_RING_SAMPLES)) {
+            uint32_t gone = (uint32_t)(n - i);
+
+            ladder_reset();
+            ds_app_audio_lost(&app, gone / 2);
+            break;
+        }
+        i += 2 * pairs;
+
+        for (j = 0; j < pairs; j++) {
+            block[k++] = (int16_t)(((int32_t)raw[2 * j] - 2048) * 16);
             if (++ladder_phase == DS_LADDER_DECIMATE) {
                 int kind = 0;
                 int b;
@@ -154,12 +220,15 @@ static void pump_samples(void)
                 ladder_phase = 0;
                 /* The clock follows the samples, not the wall time, so the
                  * debounce and the hold times are exact. */
-                b = ds_btn_feed(&btn, ladder_class(lad), ladder_ms++, &kind);
+                b = ds_btn_feed(&btn, ladder_class(raw[2 * j + 1]), ladder_ms++,
+                                &kind);
                 if (b != DS_BTN_NONE) {
-                    /* Deliver now: the chunk's audio first, so the app sees
-                     * events and audio in the order they happened. */
-                    ds_app_audio(&app, block, k);
-                    k = 0;
+                    /* Deliver now: the audio before it first, so the app
+                     * sees events and audio in the order they happened. */
+                    if (k > 0) {
+                        ds_app_audio(&app, block, k);
+                        k = 0;
+                    }
                     ds_app_button(&app, b, kind);
                 }
             }
@@ -168,6 +237,22 @@ static void pump_samples(void)
             ds_app_audio(&app, block, k);
         }
     }
+}
+
+/* After a wipe the SRAM survives the watchdog reset: stop the DMA and zero
+ * what held line audio. */
+static void scrub_buffers(void)
+{
+    size_t i;
+
+    adc_run(false);
+    dma_channel_abort((uint)dma_chan);
+    dma_channel_abort((uint)dma_reload_chan);
+    for (i = 0; i < DS_RING_SAMPLES; i++) {
+        ring[i] = 0;
+    }
+    ds_wipe(block, sizeof block);
+    ds_wipe(raw, sizeof raw);
 }
 
 int main(void)
@@ -228,6 +313,7 @@ int main(void)
 
         /* 7: a wipe asks for a reboot (everything is already zeroed). */
         if (ds_app_wants_reboot(&app)) {
+            scrub_buffers();
             watchdog_reboot(0, 0, 0);
         }
 

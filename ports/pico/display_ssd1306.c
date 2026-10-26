@@ -85,6 +85,7 @@ void ds_display_init(void)
         0xA6,       /* normal, not inverted */
     };
     static const uint8_t on[] = {0xAF};
+    static const uint8_t blank[8][128];
 
 #if defined(DS_DISPLAY_SSD1306_I2C)
     i2c_init(OLED_I2C, 400 * 1000);
@@ -111,6 +112,8 @@ void ds_display_init(void)
     sleep_ms(10);
 #endif
     cmd(init, sizeof init);
+    /* The RAM holds noise after power-up: blank it before turning on. */
+    ds_display_flush(blank);
     cmd(on, 1);
 }
 

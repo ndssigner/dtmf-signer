@@ -50,6 +50,7 @@ void ds_display_init(void)
         0xA6,       /* normal, not inverted */
     };
     static const uint8_t on[] = {0xAF};
+    static const uint8_t blank[8][128];
     const uint pins[] = {DS_PIN_OLED_CS, DS_PIN_OLED_DC, DS_PIN_OLED_RES};
     size_t i;
 
@@ -68,6 +69,8 @@ void ds_display_init(void)
 
     cmd(init, sizeof init);
     sleep_ms(100); /* let the pump settle */
+    /* The RAM holds noise after power-up: blank it before turning on. */
+    ds_display_flush(blank);
     cmd(on, 1);
 }
 
