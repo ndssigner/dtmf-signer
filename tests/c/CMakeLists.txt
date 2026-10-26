@@ -55,3 +55,9 @@ ds_add_test(test_ui)
 target_sources(test_ui PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_ui PRIVATE dtmf_app)
+
+# The device flow: the app layer, the PSBT vectors and synthesized tones.
+ds_add_test(test_app)
+target_sources(test_app PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_app PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_app PRIVATE dtmf_app)
