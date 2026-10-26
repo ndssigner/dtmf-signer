@@ -40,3 +40,9 @@ ds_add_test(test_rx)
 target_sources(test_rx PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_rx PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_rx PRIVATE dtmf_app)
+
+# The QR test needs the app layer and the PSBT vectors.
+ds_add_test(test_qr)
+target_sources(test_qr PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_qr PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_qr PRIVATE dtmf_app)

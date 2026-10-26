@@ -23,6 +23,10 @@ add_subdirectory(third_party/secp256k1)
 add_library(ur_tones STATIC third_party/ur-tones/c/ur_tones.c)
 target_include_directories(ur_tones PUBLIC third_party/ur-tones/c)
 
+# qrcodegen: its own target, built without our warning flags.
+add_library(qrcodegen STATIC third_party/qrcodegen/c/qrcodegen.c)
+target_include_directories(qrcodegen PUBLIC third_party/qrcodegen/c)
+
 # Warning flags apply to our own targets only.
 add_library(ds_warnings INTERFACE)
 target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror)

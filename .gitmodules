@@ -4,3 +4,6 @@
 [submodule "third_party/secp256k1"]
 	path = third_party/secp256k1
 	url = https://github.com/bitcoin-core/secp256k1.git
+[submodule "third_party/qrcodegen"]
+	path = third_party/qrcodegen
+	url = https://github.com/nayuki/QR-Code-generator.git
