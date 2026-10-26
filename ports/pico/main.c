@@ -175,8 +175,10 @@ static void pump_samples(void)
     int round;
 
     for (round = 0;; round++) {
-        n = ds_ring_take(&ring_state, ring_written_total(), DS_RING_SAMPLES,
-                         &start, &lost);
+        /* The newest pair stays in the ring until the next take: its slot
+         * may be counted a moment before the DMA's write lands. */
+        n = ds_ring_take(&ring_state, ds_ring_hold(&ring_state, ring_written_total()),
+                         DS_RING_SAMPLES, &start, &lost);
         if (lost == 0) {
             break;
         }

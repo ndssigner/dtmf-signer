@@ -33,6 +33,17 @@ typedef struct {
 size_t ds_ring_take(ds_ring *r, uint32_t written_total, uint32_t ring_n,
                     uint32_t *start, uint32_t *lost);
 
+/* The newest samples the consumer leaves for its next take: one pair. The
+ * DMA's transfer count may say a sample is written a moment before its
+ * write has landed in the ring, so the slot it reports last is not read
+ * yet. */
+#define DS_RING_HOLD 2u
+
+/* The written total to hand to ds_ring_take: written_total less the newest
+ * DS_RING_HOLD samples, but never behind what was already taken (so nothing
+ * new rather than a false overflow while fewer are waiting). */
+uint32_t ds_ring_hold(const ds_ring *r, uint32_t written_total);
+
 /* 1 if samples read starting at stream position first_total are still what
  * the DMA wrote there, judged after reading them with the DMA's count
  * written_total at that moment. A conservative bound: the DMA overwrites the

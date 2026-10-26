@@ -25,6 +25,13 @@ size_t ds_ring_take(ds_ring *r, uint32_t written_total, uint32_t ring_n,
     return avail;
 }
 
+uint32_t ds_ring_hold(const ds_ring *r, uint32_t written_total)
+{
+    uint32_t pending = written_total - r->read_total; /* wraps correctly */
+
+    return pending < DS_RING_HOLD ? r->read_total : written_total - DS_RING_HOLD;
+}
+
 int ds_ring_intact(uint32_t written_total, uint32_t first_total, uint32_t ring_n)
 {
     return (uint32_t)(written_total - first_total) <= ring_n - DS_RING_MARGIN;

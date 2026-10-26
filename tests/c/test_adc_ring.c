@@ -104,6 +104,56 @@ static void test_intact_after_reading(void) {
     CHECK(!ds_ring_intact(0x20u + N, 0xFFFFFFF0u, N));
 }
 
+/* The newest pair is held back for the next take: the DMA may count a
+ * sample a moment before its write lands. */
+static void test_hold_back_newest_pair(void) {
+    ds_ring r = {0};
+    uint32_t start = 99, lost = 99;
+
+    /* Fewer than a pair past what was taken: nothing new, no overflow. */
+    CHECK_EQ_INT(ds_ring_hold(&r, 0), 0);
+    CHECK_EQ_INT(ds_ring_hold(&r, 1), 0);
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 1), N, &start, &lost), 0);
+    CHECK_EQ_INT(lost, 0);
+    CHECK_EQ_INT(ds_ring_hold(&r, 2), 0);
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 3), N, &start, &lost), 0);
+    CHECK_EQ_INT(lost, 0);
+    /* 100 written: 98 taken, the pair 98-99 waits. */
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 100), N, &start, &lost), 98);
+    CHECK_EQ_INT(start, 0);
+    CHECK_EQ_INT(lost, 0);
+    /* 101 written: still nothing (98-99 is now the newest whole pair). */
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 101), N, &start, &lost), 0);
+    /* 102: the pair 98-99 comes, from an even position. */
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 102), N, &start, &lost), 2);
+    CHECK_EQ_INT(start, 98);
+    CHECK_EQ_INT(r.read_total, 100);
+    /* Never reads the slot written last: whatever was written, the take ends
+     * at least DS_RING_HOLD before it. */
+    {
+        uint32_t w;
+        for (w = 100; w < 100 + 3 * N; w += 37) {
+            size_t n = ds_ring_take(&r, ds_ring_hold(&r, w), N, &start, &lost);
+            CHECK(n == 0 || w - r.read_total >= DS_RING_HOLD);
+            CHECK_EQ_INT(n & 1u, 0);
+            CHECK_EQ_INT(r.read_total & 1u, 0);
+            CHECK_EQ_INT(lost, 0);
+        }
+    }
+    /* Across the 32-bit wrap. */
+    r.read_total = 0xFFFFFFFEu;
+    CHECK_EQ_INT(ds_ring_hold(&r, 0xFFFFFFFFu), 0xFFFFFFFEu);
+    CHECK_EQ_INT(ds_ring_hold(&r, 0x00000004u), 0x00000002u);
+    CHECK_EQ_INT(ds_ring_take(&r, ds_ring_hold(&r, 0x4u), N, &start, &lost), 4);
+    CHECK_EQ_INT(lost, 0);
+    /* A stall still counts as an overflow. */
+    r.read_total = 0;
+    CHECK(ds_ring_take(&r, ds_ring_hold(&r, N + 100), N, &start, &lost) <= N - 64);
+    CHECK(lost > 0);
+    CHECK_EQ_INT(start & 1u, 0);
+    CHECK_EQ_INT(r.read_total, N + 98);
+}
+
 #define RELOAD 0x80000000u
 
 /* The DMA's count as it runs: from RELOAD down to 0, then back to RELOAD. */
@@ -146,4 +196,4 @@ static void test_dma_total_across_reloads(void) {
 
 TEST_MAIN(test_no_loss, test_wraps_the_ring_index, test_overflow_is_detected,
           test_counter_wraps_32_bits, test_intact_after_reading,
-          test_dma_total_across_reloads)
+          test_dma_total_across_reloads, test_hold_back_newest_pair)
