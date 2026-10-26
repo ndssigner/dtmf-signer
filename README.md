@@ -196,8 +196,10 @@ for the use anyone makes of this design.
   analysis and signing, the channel policy and the session.
 - [`ports/host/`](ports/host/): the computer build, `dtmf-signer-host keys`:
   from a UR, tones or a WAV to the fingerprints, the xpub and the descriptor;
-  and `dtmf-signer-host sign`: a PSBT (base64, binary or a UR) in, the summary
-  on standard error, "yes" on standard input, the signed PSBT out.
+  and `dtmf-signer-host sign`: a PSBT (base64, binary, a UR or a WAV of its
+  tones) in, the summary on standard error, "yes" on standard input, the
+  signed PSBT out. `dtmf-signer-host tones seed|psbt … --out FILE.wav` is a
+  test tool that records a seed or a PSBT as tones (cable or air timing).
   Warning: its arguments (seed, PIN, passphrase) are visible to other
   processes and are kept in the shell history; use only test seeds with it.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.

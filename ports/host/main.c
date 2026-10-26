@@ -4,6 +4,9 @@
  *   keys  prints its fingerprints, the BIP-84 account xpub and the descriptor;
  *   sign  reads a PSBT, prints its review, asks for "yes" on standard input
  *         (the stand-in for the signer's button) and writes the signed PSBT.
+ *   tones writes a WAV recording of a seed or a PSBT as ur-tones tones (a test
+ *         tool: the recordings are played into the prototype, and read back
+ *         by keys --wav and sign --psbt FILE.wav).
  *
  * Exit codes: 0 done, 1 error (message on stderr), 2 wrong usage, 3 signing
  * refused by the user. */
@@ -12,6 +15,7 @@
 #include <string.h>
 
 #include "base64.h"
+#include "ds_rx.h"
 #include "ds_session.h"
 #include "ds_wallet.h"
 #include "ur_tones.h"
@@ -42,9 +46,17 @@ static void usage(void)
     fputs("usage: dtmf-signer-host keys SEED [--pin PIN] [--passphrase TEXT] [--testnet]\n"
           "       dtmf-signer-host sign SEED --psbt FILE [--out FILE]\n"
           "                             [--pin PIN] [--passphrase TEXT] [--testnet]\n"
+          "       dtmf-signer-host tones seed ENTROPY_HEX [--pin PIN] [--keypad] --out FILE.wav\n"
+          "                                 [--rate 16000|44100] [--timing cable|air]\n"
+          "       dtmf-signer-host tones psbt FILE --out FILE.wav\n"
+          "                                 [--rate 16000|44100] [--timing cable|air]\n"
           "SEED is --ur UR, --keypad TONES, --frame TONES or --wav FILE.\n"
-          "sign reads a PSBT (base64, binary, or ur:crypto-psbt / ur:psbt lines),\n"
-          "shows what it would sign and signs after \"yes\" on standard input.\n"
+          "sign reads a PSBT (base64, binary, ur:crypto-psbt / ur:psbt lines, or a\n"
+          "WAV recording of its tones), shows what it would sign and signs after\n"
+          "\"yes\" on standard input.\n"
+          "tones writes a recording of a seed (a UR frame, or keypad tones with\n"
+          "--keypad) or of a PSBT (a file as for sign) for testing; cable timing\n"
+          "(40/20/400 ms) by default, air timing is 80/80/600 ms.\n"
           "warning: arguments are visible to other processes (ps) and are kept in\n"
           "the shell history. Use only test seeds with this tool.\n",
           stderr);
@@ -379,15 +391,89 @@ done:
     return psbt;
 }
 
-/* The PSBT of a file, binary, base64 or UR text, as bytes in a new buffer;
+/* The PSBT heard in a WAV recording of its tones, as bytes in a new buffer;
  * NULL after a message. */
+static uint8_t *psbt_from_wav(const char *path, size_t *len)
+{
+    ds_rx *rx = malloc(sizeof *rx); /* about 40 KB: never on the stack */
+    int16_t *samples = NULL;
+    uint8_t *psbt = NULL;
+    const uint8_t *bytes;
+    size_t bytes_len, pos, step, k;
+    uint32_t rate = 0;
+    int32_t count, r = DS_RX_NONE;
+
+    count = ds_wav_read(path, NULL, 0, &rate);
+    if (count < 0) {
+        fprintf(stderr, "dtmf-signer-host: cannot read %s as a 16-bit PCM WAV\n", path);
+        goto done;
+    }
+    samples = malloc((size_t)count * sizeof *samples + 1);
+    if (rx == NULL || samples == NULL) {
+        fputs("dtmf-signer-host: out of memory\n", stderr);
+        goto done;
+    }
+    count = ds_wav_read(path, samples, (size_t)count, &rate);
+    if (count < 0) {
+        fprintf(stderr, "dtmf-signer-host: cannot read %s as a 16-bit PCM WAV\n", path);
+        goto done;
+    }
+    ds_rx_init(rx, rate, DS_RX_PSBT);
+    step = rate / 10 + 1; /* short pieces: groups are taken as they come */
+    for (pos = 0; pos < (size_t)count && r != DS_RX_DONE; pos += step) {
+        k = (size_t)count - pos < step ? (size_t)count - pos : step;
+        ds_rx_push(rx, samples + pos, k);
+        while (r != DS_RX_DONE && (r = ds_rx_poll(rx)) != DS_RX_NONE)
+            ;
+        if (r == DS_RX_NONE)
+            r = DS_RX_PART; /* not done: keep listening */
+    }
+    if (r != DS_RX_DONE || ds_rx_psbt(rx, &bytes, &bytes_len) < 0 || bytes_len == 0) {
+        fputs("dtmf-signer-host: no complete PSBT found in the recording\n", stderr);
+        goto done;
+    }
+    psbt = malloc(bytes_len);
+    if (psbt == NULL) {
+        fputs("dtmf-signer-host: out of memory\n", stderr);
+        goto done;
+    }
+    memcpy(psbt, bytes, bytes_len);
+    *len = bytes_len;
+done:
+    if (rx != NULL) {
+        ds_rx_wipe(rx);
+        free(rx);
+    }
+    free(samples);
+    return psbt;
+}
+
+/* True if the file starts with the RIFF tag of a WAV. */
+static int is_wav(const char *path)
+{
+    char tag[4];
+    FILE *f = fopen(path, "rb");
+    int yes;
+
+    if (f == NULL)
+        return 0;
+    yes = fread(tag, 1, sizeof tag, f) == sizeof tag && !memcmp(tag, "RIFF", 4);
+    fclose(f);
+    return yes;
+}
+
+/* The PSBT of a file, binary, base64, UR text or a WAV of its tones, as bytes
+ * in a new buffer; NULL after a message. */
 static uint8_t *load_psbt(const char *path, size_t *len)
 {
     static const uint8_t magic[5] = {0x70, 0x73, 0x62, 0x74, 0xff};
     size_t n = 0;
-    uint8_t *raw = read_file(path, &n), *psbt = NULL;
+    uint8_t *raw, *psbt = NULL;
     char *text;
 
+    if (is_wav(path))
+        return psbt_from_wav(path, len);
+    raw = read_file(path, &n);
     if (raw == NULL)
         return NULL;
     if (n >= sizeof magic && !memcmp(raw, magic, sizeof magic)) {
@@ -566,6 +652,213 @@ done:
     return exit_code;
 }
 
+/* ---- tones --------------------------------------------------------------- */
+
+typedef struct {
+    int16_t *p;
+    size_t len, cap;
+} audio_buf;
+
+/* Appends the audio of one group of tones (a pause, the tones, a pause). */
+static int audio_add(audio_buf *a, const char *tones, uint32_t rate, const ut_timing *t)
+{
+    ut_synth s;
+    size_t got;
+
+    ut_synth_init(&s, tones, rate, t->tone_ms, t->gap_ms, t->pause_ms);
+    for (;;) {
+        if (a->cap - a->len < 4096) {
+            size_t cap = a->cap ? a->cap * 2 : 65536;
+            int16_t *bigger = realloc(a->p, cap * sizeof *a->p);
+            if (bigger == NULL) {
+                fputs("dtmf-signer-host: out of memory\n", stderr);
+                return -1;
+            }
+            a->p = bigger;
+            a->cap = cap;
+        }
+        got = ut_synth_read(&s, a->p + a->len, a->cap - a->len);
+        if (got == 0)
+            return 0;
+        a->len += got;
+    }
+}
+
+/* The PSBT as audio: its CBOR as a fountain code with 100-byte fragments, the
+ * first seq_len parts plus TONES_EXTRA_PARTS mixed ones, so that a receiver
+ * that misses one frame can still rebuild it. */
+#define TONES_EXTRA_PARTS 2
+#define TONES_FRAGMENT 100
+
+static int psbt_audio(const uint8_t *psbt, size_t len, uint32_t rate, const ut_timing *t,
+                      audio_buf *a)
+{
+    static ut_fountain_encoder e;
+    uint8_t *cbor = malloc(len + 64);
+    char group[UT_GROUP + 1];
+    ut_frame f;
+    int32_t n;
+    uint32_t i;
+    int ok = -1;
+
+    if (cbor == NULL) {
+        fputs("dtmf-signer-host: out of memory\n", stderr);
+        return -1;
+    }
+    if ((n = ut_psbt_to_cbor(psbt, len, cbor, len + 64)) < 0 ||
+        (n = ut_fountain_encoder_init(&e, cbor, (size_t)n, TONES_FRAGMENT)) < 0) {
+        fprintf(stderr, "dtmf-signer-host: %s\n", ut_message(n));
+        goto done;
+    }
+    for (i = 0; i < e.seq_len + TONES_EXTRA_PARTS; i++) {
+        if ((n = ut_fountain_next_frame(&e, "crypto-psbt", &f)) < 0 ||
+            (n = ut_frame_encode(&f, group, sizeof group)) < 0) {
+            fprintf(stderr, "dtmf-signer-host: %s\n", ut_message(n));
+            goto done;
+        }
+        if (audio_add(a, group, rate, t) != 0)
+            goto done;
+    }
+    ok = 0;
+done:
+    free(cbor);
+    return ok;
+}
+
+/* A hex string of 2 * cap digits at most as bytes; the length, or -1. */
+static int hex_bytes(const char *hex, uint8_t *out, size_t cap)
+{
+    size_t n = strlen(hex), i;
+
+    if (n == 0 || n % 2 != 0 || n / 2 > cap)
+        return -1;
+    for (i = 0; i < n; i++) {
+        char c = hex[i];
+        int v = c >= '0' && c <= '9' ? c - '0'
+              : c >= 'a' && c <= 'f' ? c - 'a' + 10
+              : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+        if (v < 0)
+            return -1;
+        if (i % 2 == 0)
+            out[i / 2] = (uint8_t)(v << 4);
+        else
+            out[i / 2] |= (uint8_t)v;
+    }
+    return (int)(n / 2);
+}
+
+/* tones seed|psbt: argv[2] is the kind, argv[3] its argument. Any argument
+ * may hold a secret, so all of them are wiped on every path. */
+static int tones_main(int argc, char **argv)
+{
+    static const ut_timing cable = UT_TIMING_CABLE, air = UT_TIMING_AIR;
+    const ut_timing *timing = &cable;
+    const char *out = NULL, *kind, *arg;
+    char *pin = NULL;
+    uint32_t rate = 16000;
+    int keypad = 0, seed, have_rate = 0, have_timing = 0, i;
+    int exit_code = EXIT_FAIL;
+    uint8_t entropy[32];
+    char group[UT_GROUP + 1];
+    audio_buf a;
+    int usage_error = 1;
+
+    memset(&a, 0, sizeof a);
+    memset(entropy, 0, sizeof entropy);
+    memset(group, 0, sizeof group);
+    if (argc < 4)
+        goto done;
+    kind = argv[2];
+    arg = argv[3];
+    if (!strcmp(kind, "seed"))
+        seed = 1;
+    else if (!strcmp(kind, "psbt"))
+        seed = 0;
+    else
+        goto done;
+    for (i = 4; i < argc; i++) {
+        const char *o = argv[i];
+        if (!strcmp(o, "--keypad") && seed && !keypad) {
+            keypad = 1;
+        } else if (i + 1 < argc && !strcmp(o, "--out") && out == NULL) {
+            out = argv[++i];
+        } else if (i + 1 < argc && !strcmp(o, "--pin") && seed && pin == NULL) {
+            pin = argv[++i];
+        } else if (i + 1 < argc && !strcmp(o, "--rate") && !have_rate) {
+            const char *v = argv[++i];
+            if (!strcmp(v, "16000")) rate = 16000;
+            else if (!strcmp(v, "44100")) rate = 44100;
+            else goto done;
+            have_rate = 1;
+        } else if (i + 1 < argc && !strcmp(o, "--timing") && !have_timing) {
+            const char *v = argv[++i];
+            if (!strcmp(v, "cable")) timing = &cable;
+            else if (!strcmp(v, "air")) timing = &air;
+            else goto done;
+            have_timing = 1;
+        } else {
+            goto done;
+        }
+    }
+    if (out == NULL)
+        goto done;
+    usage_error = 0;
+
+    if (seed) {
+        int n = hex_bytes(arg, entropy, sizeof entropy);
+        int32_t r;
+        if (n < 0) {
+            fputs("dtmf-signer-host: the entropy is 16 or 32 bytes of hex\n", stderr);
+            goto done;
+        }
+        if (keypad) {
+            r = ut_seed_to_keypad(entropy, (size_t)n, pin, group, sizeof group);
+        } else {
+            char ur[UT_MAX_UR + 1];
+            r = ut_seed_to_ur(entropy, (size_t)n, pin, ur, sizeof ur);
+            if (r >= 0)
+                r = ut_ur_to_frame(ur, group, sizeof group);
+            ds_wipe(ur, sizeof ur);
+        }
+        if (r < 0) {
+            fprintf(stderr, "dtmf-signer-host: %s\n", ut_message(r));
+            goto done;
+        }
+        if (audio_add(&a, group, rate, timing) != 0)
+            goto done;
+    } else {
+        size_t len = 0;
+        uint8_t *psbt = load_psbt(arg, &len);
+        int r;
+        if (psbt == NULL)
+            goto done;
+        r = psbt_audio(psbt, len, rate, timing, &a);
+        free(psbt);
+        if (r != 0)
+            goto done;
+    }
+    if (ds_wav_write(out, a.p, a.len, rate) != DS_OK) {
+        fprintf(stderr, "dtmf-signer-host: cannot write %s\n", out);
+        goto done;
+    }
+    exit_code = 0;
+done:
+    /* the tones of a seed are the seed: wipe them with the entropy */
+    if (a.p != NULL) {
+        ds_wipe(a.p, a.cap * sizeof *a.p);
+        free(a.p);
+    }
+    ds_wipe(entropy, sizeof entropy);
+    ds_wipe(group, sizeof group);
+    for (i = 2; i < argc; i++)
+        ds_wipe(argv[i], strlen(argv[i]));
+    if (usage_error) {
+        usage();
+        return EXIT_USAGE;
+    }
+    return exit_code;
+}
+
 /* ---- main ---------------------------------------------------------------- */
 
 int main(int argc, char **argv)
@@ -578,6 +871,8 @@ int main(int argc, char **argv)
     int exit_code = EXIT_FAIL;
     const char *pass_arg;
 
+    if (argc >= 2 && !strcmp(argv[1], "tones"))
+        return tones_main(argc, argv);
     memset(pass, 0, sizeof pass);
     memset(entropy, 0, sizeof entropy);
     if (argc < 2 || (strcmp(argv[1], "keys") && strcmp(argv[1], "sign")) ||

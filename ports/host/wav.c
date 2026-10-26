@@ -97,3 +97,58 @@ done:
     fclose(f);
     return result;
 }
+
+static void put32(uint8_t *p, uint32_t v)
+{
+    p[0] = (uint8_t)v;
+    p[1] = (uint8_t)(v >> 8);
+    p[2] = (uint8_t)(v >> 16);
+    p[3] = (uint8_t)(v >> 24);
+}
+
+int32_t ds_wav_write(const char *path, const int16_t *samples, size_t count, uint32_t rate)
+{
+    uint8_t h[44];
+    uint32_t bytes;
+    size_t i;
+    FILE *f;
+    int ok;
+
+    if (path == NULL || (samples == NULL && count != 0) || rate == 0 ||
+        count > (0xFFFFFFFFu - 36) / 2)
+        return DS_ERR_ARG;
+    bytes = (uint32_t)(count * 2);
+    memcpy(h, "RIFF", 4);
+    put32(h + 4, 36 + bytes);
+    memcpy(h + 8, "WAVEfmt ", 8);
+    put32(h + 16, 16);
+    h[20] = 1; /* PCM */
+    h[21] = 0;
+    h[22] = 1; /* mono */
+    h[23] = 0;
+    put32(h + 24, rate);
+    put32(h + 28, rate * 2);
+    h[32] = 2; /* block align */
+    h[33] = 0;
+    h[34] = 16; /* bits */
+    h[35] = 0;
+    memcpy(h + 36, "data", 4);
+    put32(h + 40, bytes);
+    f = fopen(path, "wb");
+    if (f == NULL)
+        return DS_ERR_SPACE;
+    ok = fwrite(h, 1, sizeof h, f) == sizeof h;
+    for (i = 0; ok && i < count; i++) {
+        uint8_t b[2];
+        b[0] = (uint8_t)((uint16_t)samples[i] & 0xFF);
+        b[1] = (uint8_t)((uint16_t)samples[i] >> 8);
+        ok = fwrite(b, 1, 2, f) == 2;
+    }
+    if (fclose(f) != 0)
+        ok = 0;
+    if (!ok) {
+        remove(path);
+        return DS_ERR_SPACE;
+    }
+    return DS_OK;
+}
