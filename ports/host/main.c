@@ -535,6 +535,11 @@ static int do_sign(const options *o, const uint8_t *entropy, size_t n, const cha
     if ((r = ds_psbt_summary_text(&s.r, summary, sizeof summary)) < 0)
         goto ds_error;
     fputs(summary, stderr); /* the review comes before the question */
+    if (s.r.n_ours == 0) { /* not a signature: fail before asking */
+        ds_session_cancel(&s);
+        fputs("dtmf-signer-host: nothing to sign: no input of this wallet\n", stderr);
+        goto done;
+    }
     if (!user_says_yes()) {
         ds_session_cancel(&s);
         fputs("dtmf-signer-host: not confirmed, nothing signed\n", stderr);

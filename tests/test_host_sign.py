@@ -181,6 +181,21 @@ class HostSignTest(unittest.TestCase):
         self.assertEqual(code, 3)
         self.assertFalse(outfile.exists())
 
+    def test_host_sign_nothing_to_sign(self):
+        # a PSBT none of whose inputs is ours (the wallet has another
+        # passphrase): not a signature, so no question, no output, exit 1
+        v = dict(VECTORS[0], passphrase="another passphrase")
+        f = self.path("in.psbt", v["psbt"])
+        outfile = Path(self.tmp.name) / "signed.psbt"
+        code, out, err = self.sign(v, f, "yes\n", ["--out", str(outfile)])
+        self.assertEqual(code, 1, err)
+        self.assertEqual(out, "")
+        self.assertFalse(outfile.exists())
+        self.assertIn("FEE:", err)  # the review is still shown
+        self.assertIn("NOT SIGNED", err)
+        self.assertIn("nothing to sign: no input of this wallet", err)
+        self.assertNotIn("Type yes", err)  # nothing was asked
+
     def test_host_sign_summary_before_question(self):
         v = VECTORS[0]
         f = self.path("in.psbt", v["psbt"])
