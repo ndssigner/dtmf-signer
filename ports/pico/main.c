@@ -33,7 +33,8 @@
 /* The ring, aligned to its size so the DMA can wrap its write address. */
 static volatile uint16_t ring[DS_RING_SAMPLES] __attribute__((aligned(1u << DS_RING_BYTES_LOG2)));
 static int dma_chan, dma_reload_chan;
-static uint32_t dma_count_reload = 0xFFFFFFFFu;
+static uint32_t dma_count_reload = DS_DMA_RELOAD;
+static ds_dma_total dma_total;
 
 /* Scratch for pump_samples: the chunk as copied from the ring (line, ladder
  * pairs) and as handed to the app. Static, and wiped before a reboot. */
@@ -103,14 +104,14 @@ static void adc_dma_start(void)
     channel_config_set_write_increment(&c, true);
     channel_config_set_ring(&c, true, DS_RING_BYTES_LOG2); /* wrap the write address */
     channel_config_set_dreq(&c, DREQ_ADC);
-    /* The longest transfer count: ds_ring counts samples written from it.
-     * The RP2040 has no endless mode and a channel cannot chain to itself, so
-     * when the count (2^32 samples, about 37 hours) runs out the channel
-     * chains to a second one that copies the full count back into the first
-     * one's trigger register: the first restarts at once, its write address
-     * carrying on in the ring, and 2^32 being a multiple of the ring size the
-     * written count 0xFFFFFFFF - count just wraps. The ADC's FIFO holds the
-     * few samples that arrive meanwhile. */
+    /* The RP2040 has no endless mode and a channel cannot chain to itself, so
+     * the count (DS_DMA_RELOAD, even and a multiple of the ring size) is
+     * renewed by a second channel: when the first finishes it chains to the
+     * second, which copies the full count into the first's trigger register.
+     * The first restarts at once, its write address carrying on in the ring;
+     * the ADC's FIFO holds the few samples that arrive meanwhile. The reloads
+     * are counted in software (ds_dma_total) so the written total keeps
+     * growing without a step. */
     dma_reload_chan = dma_claim_unused_channel(true);
     {
         dma_channel_config r = dma_channel_get_default_config((uint)dma_reload_chan);
@@ -123,13 +124,14 @@ static void adc_dma_start(void)
                               &dma_count_reload, 1, false);
     }
     channel_config_set_chain_to(&c, (uint)dma_reload_chan);
-    dma_channel_configure((uint)dma_chan, &c, ring, &adc_hw->fifo, 0xFFFFFFFFu, true);
+    ds_dma_total_init(&dma_total, DS_DMA_RELOAD);
+    dma_channel_configure((uint)dma_chan, &c, ring, &adc_hw->fifo, DS_DMA_RELOAD, true);
     adc_run(true);
 }
 
 static uint32_t ring_written_total(void)
 {
-    return 0xFFFFFFFFu - dma_hw->ch[dma_chan].transfer_count;
+    return ds_dma_total_update(&dma_total, dma_hw->ch[dma_chan].transfer_count);
 }
 
 /* Which button the ladder reading (12 bits) is: DS_BTN_NONE to DS_BTN_RIGHT. */
@@ -180,9 +182,10 @@ static void pump_samples(void)
         /* lost / 2 samples of the line. */
         ds_app_audio_lost(&app, lost / 2);
         if (round == 3) {
-            /* Never spin here: the buttons (the wipe) must stay served.
-             * Whatever is left is checked chunk by chunk below. */
-            n = 0;
+            /* Never spin here: the buttons (the wipe) must stay served. The
+             * samples of this last take are kept, not dropped; they are
+             * checked chunk by chunk below and given up as lost if the DMA
+             * has caught up with them. */
             break;
         }
     }

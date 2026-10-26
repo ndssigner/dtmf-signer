@@ -35,9 +35,31 @@ size_t ds_ring_take(ds_ring *r, uint32_t written_total, uint32_t ring_n,
 
 /* 1 if samples read starting at stream position first_total are still what
  * the DMA wrote there, judged after reading them with the DMA's count
- * written_total at that moment: it has not written ring_n - DS_RING_MARGIN
- * samples past first_total, so it has not begun overwriting the slot of the
- * first one. Read a batch, then ask; if 0, throw the batch away as lost. */
+ * written_total at that moment. A conservative bound: the DMA overwrites the
+ * slot of the first sample only after ring_n more samples; this answers 1
+ * only while fewer than ring_n - DS_RING_MARGIN have been written past it,
+ * leaving the margin for the reading itself and the count's lag. Read a
+ * batch, then ask; if 0, throw the batch away as lost. */
 int ds_ring_intact(uint32_t written_total, uint32_t first_total, uint32_t ring_n);
+
+/* The DMA channel counts its transfers down from DS_DMA_RELOAD to 0 and is
+ * then reloaded with the same count (a second channel does it), so its
+ * register alone does not say how many samples were written in all.
+ * ds_dma_total keeps that total (mod 2^32), counting the reloads in software;
+ * poll it at least once per cycle (2^31 samples, about 18 hours).
+ * DS_DMA_RELOAD is even and a multiple of any ring size used, so the total
+ * keeps the ring index and the line/button parity of the transfers. */
+#define DS_DMA_RELOAD 0x80000000u
+
+typedef struct {
+    uint32_t base, reload, last;
+} ds_dma_total;
+
+void ds_dma_total_init(ds_dma_total *t, uint32_t reload);
+
+/* The samples written so far, given the channel's current transfer count.
+ * Equal to the transfers done; at the moment of a reload (count 0, then
+ * reload) it does not move. */
+uint32_t ds_dma_total_update(ds_dma_total *t, uint32_t count);
 
 #endif

@@ -29,3 +29,19 @@ int ds_ring_intact(uint32_t written_total, uint32_t first_total, uint32_t ring_n
 {
     return (uint32_t)(written_total - first_total) <= ring_n - DS_RING_MARGIN;
 }
+
+void ds_dma_total_init(ds_dma_total *t, uint32_t reload)
+{
+    t->base = 0;
+    t->reload = reload;
+    t->last = reload;
+}
+
+uint32_t ds_dma_total_update(ds_dma_total *t, uint32_t count)
+{
+    if (count > t->last) { /* the count went back up: a reload happened */
+        t->base += t->reload;
+    }
+    t->last = count;
+    return t->base + (t->reload - count);
+}
