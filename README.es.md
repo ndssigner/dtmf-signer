@@ -7,7 +7,9 @@ versión inglesa.*
 
 Un firmador de Bitcoin mínimo, barato y de hardware abierto que cualquiera
 puede montar. La placa completa: una Raspberry Pi Pico, una pantalla pequeña,
-cinco botones, un micrófono y un piezo. Se comunica con tu cartera mediante tonos de
+cinco botones, un micrófono y un piezo; el montaje de referencia que ya
+funciona, **Cable y QR**, prescinde del micrófono y del piezo: escucha por
+cable y responde con códigos QR. Se comunica con tu cartera mediante tonos de
 teléfono (DTMF) a través de [ur-tones](https://github.com/ndssigner/ur-tones),
 al aire o por cable. Sin cámara, sin datos por USB, sin elemento seguro y sin
 almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
@@ -28,11 +30,13 @@ y cuánto tarda. El [catálogo](docs/es/catalogo.md) enumera las capacidades
 y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
 Pico 2 vendrá después.
 
-> **Estado: prototipo.** El firmware de la Pico funciona en una protoboard, pero
-> aún no hay hardware terminado. Este
-> repositorio contiene la especificación y su catálogo (en inglés y en
-> español), y la especificación de hardware de la Pico y el análisis de
-> riesgos (de momento en español). No lo uses con fondos.
+> **Estado: prototipo que funciona.** El montaje de referencia, Cable y QR,
+> funciona en una protoboard: carga una semilla por tonos con su PIN,
+> muestra las huellas, exporta la XPUB y devuelve las PSBT firmadas como
+> códigos QR que Sparrow lee. Su disposición y una plantilla imprimible a
+> escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
+> Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
+> independiente. No lo uses con fondos.
 
 ## Motivación
 
@@ -121,7 +125,25 @@ PINs sin conexión, así que usa un PIN largo. Y **no debe ser tu única copia
 de seguridad**: los reproductores se estropean. Guarda también la semilla
 por otra vía (papel, metal, [SeedCraft](https://github.com/ndssigner/seedcraft)…).
 
-## La placa básica
+## El montaje de referencia: Cable y QR
+
+![La disposición en protoboard: la Pico a la izquierda, la pantalla arriba, los cinco botones debajo y la bornera de audio a la derecha](docs/images/breadboard-layout.png)
+
+Lo que ya funciona, en una protoboard de tamaño completo
+([disposición y plantilla](hardware/breadboard/README.es.md)):
+
+| Pieza | Para qué |
+|---|---|
+| Raspberry Pi Pico (RP2040) | El microcontrolador. La compras y la flasheas tú |
+| OLED SH1106 de 1,3", 128 × 64, por SPI | Revisar lo que firmas, introducir PIN y passphrase, mostrar códigos QR |
+| Cinco botones en un pin del ADC | Moverse, teclear, confirmar |
+| Bornera de audio (IN, COM, OUT) | Tonos por cable desde un móvil o un ordenador, con un cable de auriculares |
+
+Escucha por cable y habla por QR: la semilla y las PSBT entran como tonos,
+y la XPUB y las PSBT firmadas salen como códigos QR animados en su
+pantalla. Una docena de resistencias y condensadores lo completan.
+
+## La placa completa (prevista)
 
 | Pieza | Para qué |
 |---|---|
@@ -158,14 +180,16 @@ salida de línea, pilas y una tira con los GPIO libres.
 El análisis completo, por formato de distribución y por uso, está en
 [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md).
 
-## Formas de montarlo (previstas)
+## Formas de montarlo
 
-- **Protoboard + lista de materiales**, con módulos comerciales comunes.
-- **Placa perforada:** los mismos módulos soldados en una placa de
-  prototipos con el trazado de una protoboard, con la Pico y la pantalla en
-  tiras hembra. El montaje de la protoboard se pasa tal cual. Más sólida y
-  portátil, sin pedir ninguna PCB.
-- **PCB "shell":** montada en fábrica, sin la Pico ni la pantalla. Las
+- **Protoboard** (disponible: la [disposición](hardware/breadboard/README.es.md)),
+  con módulos comerciales comunes.
+- **Placa perforada** (disponible: la misma disposición y su plantilla
+  imprimible 1:1): los mismos módulos soldados en una placa de prototipos con
+  el trazado de una protoboard, con la Pico y la pantalla en tiras hembra. El
+  montaje de la protoboard se pasa tal cual. Más sólida y portátil, sin pedir
+  ninguna PCB.
+- **PCB "shell"** (prevista): montada en fábrica, sin la Pico ni la pantalla. Las
   compras tú, flasheas la Pico y las pinchas.
 - **La misma PCB con la Pico y la pantalla en sus zócalos**, la Pico sin
   flashear, por comodidad. Reflashéala antes de usarla.
@@ -175,9 +199,10 @@ El análisis completo, por formato de distribución y por uso, está en
 
 - [x] Especificación independiente del hardware y catálogo de capacidades
 - [x] Núcleo: de la semilla a las huellas y la XPUB, y una versión para ordenador (`ports/host`)
-- [ ] Firmware del núcleo, probado con grabaciones de ur-tones
-- [ ] Decodificador de tonos por software en la referencia Pico, probado con ur-tones
-- [ ] Esquema, guías de protoboard y placa perforada, y lista de materiales
+- [x] Firmware del núcleo, probado con grabaciones de ur-tones
+- [x] Decodificador de tonos por software en la referencia Pico, probado con ur-tones
+- [x] Disposición en protoboard (DIY Layout Creator), comprobada por sus conexiones, y una plantilla imprimible 1:1 para la placa perforada
+- [ ] Esquema, guía de montaje paso a paso y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
@@ -230,6 +255,11 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   compilan para la SSD1306 pero no están probadas en hardware;
   `-DDS_DISPLAY_FLIP=ON` gira la pantalla. El serie USB es solo de salida (el
   eco público y `stack-free`). Ver el [README de la Pico](ports/pico/README.es.md).
+- [`hardware/breadboard/`](hardware/breadboard/README.es.md): la disposición
+  en protoboard del montaje de referencia (DIY Layout Creator, CERN-OHL-S v2)
+  y sus plantillas imprimibles 1:1. `tools/check_diy.py` lee la disposición y
+  muestra qué conecta cada pieza; `tools/breadboard_template.py` genera las
+  plantillas.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el

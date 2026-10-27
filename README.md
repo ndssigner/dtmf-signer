@@ -4,7 +4,9 @@ English · [Español](README.es.md)
 
 A minimal, cheap, open-hardware Bitcoin signer that anyone can build. The
 full board: a Raspberry Pi Pico, a small screen, five buttons, a microphone
-and a piezo.
+and a piezo; the reference build that works today, **Cable and QR**, leaves
+out the microphone and the piezo: it listens by cable and answers with QR
+codes.
 It talks to your wallet with telephone tones (DTMF) through
 [ur-tones](https://github.com/ndssigner/ur-tones), through the air or by
 cable. No camera, no USB data, no secure element and no storage: the seed
@@ -25,11 +27,13 @@ it takes. The [catalog](docs/catalog.md) lists the capabilities and the
 profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
 comes later.
 
-> **Status: prototype.** The Pico firmware works on a breadboard, but there is
-> no finished hardware yet. This
-> repository holds the specification and its catalog (in English and
-> Spanish), and the Pico hardware specification and the risk analysis (in
-> Spanish for now). Do not use it with funds.
+> **Status: working prototype.** The reference build, Cable and QR, runs on
+> a breadboard: it loads a seed by tones with its PIN, shows the
+> fingerprints, exports the xpub and returns signed PSBTs as QR codes that
+> Sparrow reads. Its layout and a printable 1:1 template are in
+> [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
+> air (microphone and speaker), the PCBs and an independent review are still
+> to come. Do not use it with funds.
 
 ## Motivation
 
@@ -110,7 +114,25 @@ offline, so make the PIN long. And it **must not be your only backup**:
 players break. Keep the seed itself some other way too (paper, metal,
 [SeedCraft](https://github.com/ndssigner/seedcraft)…).
 
-## The basic board
+## The reference build: Cable and QR
+
+![The breadboard layout: the Pico on the left, the screen at the top, the five buttons below it and the audio terminal block on the right](docs/images/breadboard-layout.png)
+
+What works today, on one full-size breadboard
+([layout and template](hardware/breadboard/README.md)):
+
+| Part | What for |
+|---|---|
+| Raspberry Pi Pico (RP2040) | The microcontroller. You buy it and flash it |
+| 1.3" SH1106 OLED, 128 × 64, over SPI | Reviewing what you sign, entering PIN and passphrase, showing QR codes |
+| Five buttons on one ADC pin | Moving around, typing, confirming |
+| Audio terminal block (IN, COM, OUT) | Tones by cable from a phone or a computer, through a headset cable |
+
+It listens by cable and speaks by QR: the seed and the PSBTs come in as
+tones, and the xpub and the signed PSBTs go out as animated QR codes on its
+screen. A dozen resistors and capacitors complete it.
+
+## The full board (planned)
 
 | Part | What for |
 |---|---|
@@ -146,14 +168,16 @@ out, batteries, and a header with the free GPIO pins.
 The whole analysis, by distribution format and by use, is in
 [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md) (Spanish).
 
-## Ways to build it (planned)
+## Ways to build it
 
-- **Breadboard + bill of materials**, with common off-the-shelf modules.
-- **Perfboard:** the same modules soldered onto a prototyping board laid out
+- **Breadboard** (available: the [layout](hardware/breadboard/README.md)),
+  with common off-the-shelf modules.
+- **Perfboard** (available: the same layout and its printable 1:1
+  template): the same modules soldered onto a prototyping board laid out
   like a breadboard, with the Pico and the screen on socket headers. The
   breadboard layout carries over as is. Sturdier and portable, with no PCB
   to order.
-- **"Shell" PCB:** factory-assembled, without the Pico or the screen. You buy
+- **"Shell" PCB** (planned): factory-assembled, without the Pico or the screen. You buy
   those yourself, flash the Pico and plug them in.
 - **The same PCB with the Pico and the screen in their sockets**, the Pico
   unflashed, for convenience. Reflash it before use.
@@ -163,9 +187,10 @@ The whole analysis, by distribution format and by use, is in
 
 - [x] Hardware-independent specification and capability catalog
 - [x] Core: seed to fingerprints and xpub, and a computer build (`ports/host`)
-- [ ] Core firmware, tested with ur-tones recordings
-- [ ] Software tone decoder on the Pico reference, tested with ur-tones
-- [ ] Schematic, breadboard and perfboard guides, and bill of materials
+- [x] Core firmware, tested with ur-tones recordings
+- [x] Software tone decoder on the Pico reference, tested with ur-tones
+- [x] Breadboard layout (DIY Layout Creator), checked by its connections, and a printable 1:1 template for the perfboard
+- [ ] Schematic, step-by-step assembly guide and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
@@ -215,6 +240,11 @@ for the use anyone makes of this design.
   SSD1306 but are not tested on hardware; `-DDS_DISPLAY_FLIP=ON` rotates the
   screen. The USB serial is output only (the public echo and `stack-free`).
   See the [Pico README](ports/pico/README.md).
+- [`hardware/breadboard/`](hardware/breadboard/README.md): the breadboard
+  layout of the reference build (DIY Layout Creator, CERN-OHL-S v2) and its
+  printable 1:1 templates. `tools/check_diy.py` reads the layout and prints
+  what each part connects; `tools/breadboard_template.py` makes the
+  templates.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.
