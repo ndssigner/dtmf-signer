@@ -32,7 +32,7 @@ build someone makes and measures.
   algorithm, as the ur-tones C library does.
 - **Needs:** an ADC sampling at 8 kHz or more, and the CPU to filter in
   real time. An analog anti-aliasing filter before the pin.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones).
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s. The headphone output of a laptop needed about 30 % volume there (at 19 % only 107 of 120 tones arrived). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s.
 - **Risks:** an ADC fed beyond its range is damaged or clips; the input
   stage must protect it. A slow processor misses tones: then use
   `TONES-CHIP`.
@@ -182,7 +182,14 @@ build someone makes and measures.
     but the webcam does not reliably. So 2 pixels per module is the default,
     with long data as animated URs, and 1 pixel per module a fast mode for
     phones. A 128 × 128 screen fits a descriptor at 2 pixels per module.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+  - **Animated URs on a 128 × 64 screen:** the parts of an xpub or a PSBT do
+    not fit at 2 pixels per module (64 pixels high allow a version 3 code at
+    most, with fragments of about 10 bytes), so they go at 1 pixel per
+    module. On the Pico prototype, Sparrow on a laptop webcam read the xpub
+    and a signed PSBT only with the QR contrast at its minimum (`0x01`), and
+    more slowly than a phone. A 128 × 128 screen would allow 2 pixels per
+    module.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` starting a QR (choosing the fountain fragment and building the first part) takes 119–125 ms for a signed PSBT of about 387 bytes or an xpub account, and 297 ms for one of 906 bytes (RP2040 at 125 MHz).
 - **Risks:** any camera that sees the screen can read it: never sensitive
   data (§4 of the specification). It is not a verification output: the
   device that reads it is the one that is not trusted. A wallet needs a
@@ -282,7 +289,7 @@ build someone makes and measures.
 - **Needs:** to hash each previous transaction while reading it in parts;
   more data to receive (a previous transaction is usually a few hundred
   bytes, but can be tens of kilobytes).
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` reviewing a PSBT of 2 inputs with their full previous transactions takes 315 ms (RP2040 at 125 MHz).
 - **Risks:** without it, the signer shows "fee NOT verified" and every
   input's declared amount, and the user checks them elsewhere before
   confirming. See
@@ -353,6 +360,20 @@ build someone makes and measures.
   not yet tested).
 - **What it lacks:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`,
   `IN-UART` and the other ports, for now.
+- **Measured** on the breadboard prototype with the firmware of
+  [`ports/pico/`](../ports/pico/README.md) (RP2040 at 125 MHz, `CPU-32`):
+  - Seed PIN (PBKDF2, 10 000 iterations) and seed decoding: 4412 ms.
+  - BIP-39 and BIP-32 derivation (seed and wallet fingerprints, account):
+    2595 ms.
+  - Reviewing a PSBT of 1 input and 2 outputs (372 base64 bytes): 226 ms;
+    of 2 inputs with their full previous transactions: 315 ms; rejecting a
+    fake change: 164 ms.
+  - Signing: 123 ms with 1 input, 240 ms with 2.
+  - Starting a QR: 119–125 ms (a signed PSBT of about 387 bytes, or an xpub
+    account), 297 ms (a signed PSBT of 906 bytes).
+  - Minimum free stack seen: 2692 of 8192 bytes (the deepest flows are the
+    review and the signing). Static RAM (`.data` and `.bss`): about 116 KB of
+    264 KB.
 
 ### `PROFILE-PICO-FULL` — Full Pico
 

@@ -320,7 +320,7 @@ procesador; sus riesgos; los vectores que la comprueban.
   jack de entrada, unos pocos botones y una pantalla gráfica, sin ningún
   camino por el aire.
 - `PROFILE-PICO-REF` — **Referencia Pico:** el prototipo actual, sobre una
-  Raspberry Pi Pico.
+  Raspberry Pi Pico. Su firmware (`ports/pico`) está probado en una protoboard.
 - `PROFILE-PICO-FULL` — **Pico completo:** la placa de
   [`docs/hardware-minimo.md`](../hardware-minimo.md).
 

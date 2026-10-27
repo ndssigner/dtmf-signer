@@ -180,7 +180,7 @@ El análisis completo, por formato de distribución y por uso, está en
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
-- [ ] Firmware: audio, ur-tones, PSBT, firma, pantallas (falta el port a la Pico de la parte de PSBT)
+- [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia
 - [ ] Protocolo serie para terminales vintage
 - [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente
@@ -228,7 +228,7 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   (los pines, en `board.h`). `-DDS_DISPLAY=SSD1306_SPI` y `SSD1306_I2C`
   compilan para la SSD1306 pero no están probadas en hardware;
   `-DDS_DISPLAY_FLIP=ON` gira la pantalla. El serie USB es solo de salida (el
-  eco público y `stack-free`).
+  eco público y `stack-free`). Ver el [README de la Pico](ports/pico/README.es.md).
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el

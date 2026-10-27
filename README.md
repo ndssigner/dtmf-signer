@@ -168,7 +168,7 @@ The whole analysis, by distribution format and by use, is in
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
-- [ ] Firmware: audio, ur-tones, PSBT, signing, screens (the Pico port of the PSBT part is still to come)
+- [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe
 - [ ] Serial protocol for vintage terminals
 - [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review
@@ -213,6 +213,7 @@ for the use anyone makes of this design.
   `board.h`). `-DDS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C` build for the
   SSD1306 but are not tested on hardware; `-DDS_DISPLAY_FLIP=ON` rotates the
   screen. The USB serial is output only (the public echo and `stack-free`).
+  See the [Pico README](ports/pico/README.md).
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.

@@ -22,8 +22,8 @@ issue or pull request here, under the same rules.
   `python3 tools/gen_psbt_vectors.py`; with `--check` it only verifies that
   the file is up to date. CI does not need embit.
 - **The reference firmware**: a portable core (`core/`: keys, PSBT signing and the session) and
-  a build for a computer (`ports/host`) exist; the port for the Raspberry
-  Pi Pico is still planned.
+  a build for a computer (`ports/host`) and the firmware for the Raspberry
+  Pi Pico (`ports/pico`) exist.
 - **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md),
   and the risk analysis, [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md)
   (both in Spanish for now).
@@ -75,6 +75,18 @@ ctest --test-dir build --output-on-failure   # the core's C tests
 python3 -m unittest discover -s tests   # the tests (they run the host tool built above)
 python3 tools/check_docs.py             # links, anchors, English/Spanish parity
 ```
+
+The Pico firmware is a project of its own and is not part of that build. To
+check that a change still builds for it, you need the Raspberry Pi Pico SDK
+(2.3.1) and an Arm GCC toolchain:
+
+```bash
+cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<path to the Pico SDK>
+cmake --build build-pico
+```
+
+See [`ports/pico/README.md`](ports/pico/README.md) for flashing and the
+display options.
 
 All of them must pass; CI runs them on every pull request.
 

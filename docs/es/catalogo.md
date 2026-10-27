@@ -32,7 +32,7 @@ Crece con cada montaje que alguien haga y mida.
   algoritmo de Goertzel, como la librería C de ur-tones.
 - **Necesita:** un ADC que muestree a 8 kHz o más, y CPU para filtrar en
   tiempo real. Un filtro antialiasing analógico antes del pin.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos).
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s. La salida de auriculares de un portátil necesitó allí cerca del 30 % de volumen (con el 19 % solo llegaron 107 de 120 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s.
 - **Riesgos:** un ADC alimentado fuera de su rango se daña o recorta; la
   etapa de entrada debe protegerlo. Un procesador lento pierde tonos:
   entonces, `TONES-CHIP`.
@@ -193,7 +193,14 @@ Crece con cada montaje que alguien haga y mida.
     largos en URs animados, y 1 píxel por módulo como modo rápido para
     móviles. En una pantalla de 128 × 128 cabe un descriptor a 2 píxeles por
     módulo.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+  - **URs animados en una pantalla de 128 × 64:** las partes de una XPUB o de
+    una PSBT no caben a 2 píxeles por módulo (64 píxeles de alto dan, como
+    mucho, un código de versión 3, con fragmentos de unos 10 bytes), así que
+    van a 1 píxel por módulo. En el prototipo con Pico, Sparrow con la webcam
+    de un portátil leyó la XPUB y una PSBT firmada solo con el contraste del
+    QR al mínimo (`0x01`), y más despacio que un móvil. Una pantalla de
+    128 × 128 permitiría 2 píxeles por módulo.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` empezar un QR (elegir el fragmento de la fuente y construir la primera parte) tarda 119–125 ms con una PSBT firmada de unos 387 bytes o una cuenta XPUB, y 297 ms con una de 906 bytes (RP2040 a 125 MHz).
 - **Riesgos:** cualquier cámara que vea la pantalla puede leerlo: nunca datos
   sensibles (§4 de la especificación). No sirve como verificación: el
   aparato que lo lee es justo aquel del que no nos fiamos. Una cartera
@@ -297,7 +304,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Necesita:** calcular el hash de cada transacción anterior mientras se
   lee por partes; recibir más datos (una transacción anterior suele ocupar
   unos cientos de bytes, pero puede llegar a decenas de kilobytes).
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` revisar una PSBT de 2 entradas con sus transacciones anteriores completas tarda 315 ms (RP2040 a 125 MHz).
 - **Riesgos:** sin ella, el firmador muestra "comisión NO verificada" y el
   importe declarado de cada entrada, y el usuario los comprueba en otro
   sitio antes de confirmar. Ver la
@@ -370,6 +377,21 @@ Crece con cada montaje que alguien haga y mida.
   (GP15) y un módulo de micrófono MAX9814 (GP26, aún sin probar).
 - **Qué le falta:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`, `IN-UART`
   y los demás puertos, de momento.
+- **Medido** en el prototipo de protoboard con el firmware de
+  [`ports/pico/`](../../ports/pico/README.es.md) (RP2040 a 125 MHz, `CPU-32`):
+  - PIN de la semilla (PBKDF2, 10 000 iteraciones) y decodificación de la
+    semilla: 4412 ms.
+  - Derivación BIP-39 y BIP-32 (huellas de la semilla y de la cartera,
+    cuenta): 2595 ms.
+  - Revisar una PSBT de 1 entrada y 2 salidas (372 bytes en base64): 226 ms;
+    de 2 entradas con sus transacciones anteriores completas: 315 ms;
+    rechazar un cambio falso: 164 ms.
+  - Firma: 123 ms con 1 entrada, 240 ms con 2.
+  - Empezar un QR: 119–125 ms (una PSBT firmada de unos 387 bytes, o una
+    cuenta XPUB), 297 ms (una PSBT firmada de 906 bytes).
+  - Pila libre mínima vista: 2692 de 8192 bytes (los flujos más profundos son
+    la revisión y la firma). RAM estática (`.data` y `.bss`): unos 116 KB de
+    264 KB.
 
 ### `PROFILE-PICO-FULL` — Pico completo
 

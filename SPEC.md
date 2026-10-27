@@ -309,7 +309,7 @@ class; its risks; the vectors that check it.
   an input jack, a few buttons and one graphic screen, with no air path at
   all.
 - `PROFILE-PICO-REF` — **Pico reference:** the current prototype, on a
-  Raspberry Pi Pico.
+  Raspberry Pi Pico. Its firmware (`ports/pico`) is tested on a breadboard.
 - `PROFILE-PICO-FULL` — **Full Pico:** the board in
   [`docs/hardware-minimo.md`](docs/hardware-minimo.md).
 
