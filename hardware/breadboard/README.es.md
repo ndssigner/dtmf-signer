@@ -28,17 +28,17 @@ entrada de línea) se probaron en una protoboard anterior.
 ## Plantilla imprimible
 
 Imprímela al 100 %, sin escalar, y comprueba que la barra del pie de la
-página mide 100 mm. Recorta la placa y pégala sobre la protoboard soldable,
-agujero sobre agujero, antes de poner las piezas; perfora los agujeros que
-uses. Marca:
+página mide 100 mm. Recorta la placa por su contorno (todo lo que necesita
+está dentro) y pégala sobre la protoboard soldable, agujero sobre agujero,
+antes de poner las piezas; perfora los agujeros que uses. Marca:
 
 - cada pieza en su sitio, con su valor; el + y el − de los condensadores
   electrolíticos, con una banda en el lado −, como en la pieza; el pin 1 y
   el extremo del USB de la Pico; los pines de la pantalla y el contorno del
   módulo, que sobresale de la placa;
-- los botones (una flecha cada uno) y los contactos de la bornera de audio
-  (OUT, COM, IN), sobre la pieza y otra vez fuera de la placa, donde se leen
-  con todo montado; qué es cada raíl;
+- los botones (flecha y nombre, en el canal central) y los contactos de la
+  bornera de audio (icono y nombre), junto a la pieza, para que se lean con
+  todo montado; qué es cada raíl, a su lado;
 - los agujeros que se usan, bien visibles; los demás, apenas marcados, solo
   para encajar la hoja;
 - en el extremo libre de la placa: el proyecto, los controles principales y

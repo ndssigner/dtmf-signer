@@ -27,17 +27,18 @@ earlier breadboard.
 ## Printable template
 
 Print it at 100 %, with no scaling, and check that the bar at the bottom of
-the page measures 100 mm. Cut out the board and paste it on the solderable
-breadboard, hole on hole, before fitting the parts; pierce the holes you
-use. It marks:
+the page measures 100 mm. Cut out the board along its outline (everything
+it needs is inside it) and paste it on the solderable breadboard, hole on
+hole, before fitting the parts; pierce the holes you use. It marks:
 
 - every part where it goes, with its value; the + and − of the electrolytic
   capacitors, with a band on the − side as on the part; pin 1 and the USB
   end of the Pico; the screen's pins and the outline of the module, which
   overhangs the board;
-- the buttons (an arrow each) and the terminals of the audio block (OUT, COM,
-  IN), on the part and again outside the board, where they stay readable
-  once everything is fitted; what each rail is;
+- the buttons (an arrow and the name each, in the centre channel) and the
+  terminals of the audio block (an icon and the name each), beside the part
+  so they stay readable once everything is fitted; what each rail is, next
+  to it;
 - the holes in use, clearly; the others only faintly, to line the sheet up;
 - in the free end of the board: the project, the main controls, and a QR
   code of the [ur-tones web tool](https://ndssigner.github.io/ur-tones/),

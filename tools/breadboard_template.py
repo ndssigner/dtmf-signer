@@ -216,19 +216,16 @@ def draw(path, out, lang):
     for i, u in enumerate([0.6 + 0.1 * k for k in range(5)] + [1.3 + 0.1 * k for k in range(5)]):
         for row in (0, 64):
             s.text(*board.point(row, u), letters[i], size=4)
-    for row in range(5, 64, 5):
-        for u in (-0.05, 2.35):
-            s.text(*board.point(row, u), str(row), size=3.6)
-    # Rail names outside the long edges: outer rail first.
-    for (u, lab_outer, lab_inner) in ((-0.17, t["rails"][0], t["rails"][1]),
-                                      (2.75, t["rails"][3], t["rails"][2])):
-        for row in (12, 52):
-            s.text(*board.point(row, u), f"{lab_outer} (outer)  ·  {lab_inner} (inner)"
-                   if TEXT["en"] is t else f"{lab_outer} (exterior)  ·  {lab_inner} (interior)",
-                   size=4.2, bold=True)
+    # Everything stays on the board: the sheet is cut along its outline. Rail
+    # names go beside their rail (outer rails in the margin, inner rails in the
+    # gap before the strips); they are drawn last, over the wires.
+    late = []
+    for u, lab, rows in ((0.12, t["rails"][0], (21, 53)), (0.42, t["rails"][1], (21, 53)),
+                         (1.88, t["rails"][2], (47, 58)), (2.18, t["rails"][3], (21, 53))):
+        for row in rows:
+            late.append(lambda r=row, u=u, lab=lab: s.text(*board.point(r, u), lab, size=4, bold=True, bg=True))
 
-    # Parts. Polarity signs are drawn last, over the wires.
-    signs = []
+    # Parts. Their signs and names are drawn last, over the wires.
     for el in comps:
         kind = el.tag.split(".")[-1]
         name = el.findtext("name")
@@ -272,8 +269,8 @@ def draw(path, out, lang):
                 k = 0.12 / ((ox * ox + oy * oy) ** 0.5 or 1)
                 if oy > 0:  # always on the upper side of the page
                     ox, oy = -ox, -oy
-                signs.append((xb + ox * k, yb + oy * k, "\u2212"))
-                signs.append((xa + ox * k, ya + oy * k, "+"))
+                for x, y, sign in ((xb + ox * k, yb + oy * k, "\u2212"), (xa + ox * k, ya + oy * k, "+")):
+                    late.append(lambda x=x, y=y, sign=sign: s.text(x, y, sign, size=8, bold=True, bg=True))
             else:
                 c.rect(cx - 2 * mm, cy - 1.2 * mm, 4 * mm, 2.4 * mm, fill=1)
                 c.setFillGray(0)
@@ -287,14 +284,19 @@ def draw(path, out, lang):
             c.rect(cx - 3 * mm, cy - 3 * mm, 6 * mm, 6 * mm)
             c.circle(cx, cy, 1.7 * mm)
             key = el.findtext("value") or ""
-            icon(c, key, cx, cy, 2.6 * mm)
             label = t["buttons"].get(key, "")
-            lx, ly = board.point(0, 1.235)
-            s.text(mx if board.rot else lx, ly if board.rot else my, label, size=5.5, bold=True, bg=True)
-            if board.rot:  # outside the long edge, where it can be read
-                ox, oy = s.xy(mx, board.point(0, 2.5)[1])
-                icon(c, key, ox, oy, 3.2 * mm)
-                s.text(mx, board.point(0, 2.6)[1], label, size=5.5, bold=True)
+            # Beside the switch, in the centre channel, where it stays visible.
+            lx, ly = (mx, board.point(0, 1.235)[1]) if board.rot else (board.point(0, 1.235)[0], my)
+
+            def button_label(lx=lx, ly=ly, key=key, label=label):
+                w = c.stringWidth(label, "Helvetica-Bold", 5) / INCH
+                bx, by = s.xy(lx - w / 2 - 0.035, ly)
+                c.setFillGray(1)
+                c.rect(bx - 1.5 * mm, by - 1.5 * mm, (w + 0.07) * INCH + 3.2 * mm, 3 * mm, fill=1, stroke=0)
+                c.setFillGray(0)
+                icon(c, key, bx, by, 2.4 * mm)
+                s.text(lx + 0.035, ly, label, size=5, bold=True)
+            late.append(button_label)
         elif kind == "PCBTerminalBlock":
             p = pts(el, "controlPoints")
             xs = [s.xy(*q)[0] for q in p]
@@ -303,11 +305,17 @@ def draw(path, out, lang):
             c.rect(min(xs) - 2.5 * mm, min(ys) - 3.8 * mm, max(xs) - min(xs) + 5 * mm,
                    max(ys) - min(ys) + 7.6 * mm)
             for q, lab, key in zip(p, t["tb"], ("OUT", "COM", "IN")):
-                s.text(q[0], q[1] - 0.17, lab, size=4.5, bold=True, bg=True)
-                if board.rot:
-                    ox, oy = s.xy(q[0], board.point(0, 2.5)[1])
-                    icon(c, key, ox, oy, 3.2 * mm)
-                    s.text(q[0], board.point(0, 2.6)[1], lab, size=5.5, bold=True)
+                def tb_label(q=q, lab=lab, key=key):
+                    # Icon and name on one line beside the terminal, clear of the parts around.
+                    w = c.stringWidth(lab, "Helvetica-Bold", 3.7) / INCH
+                    x0 = q[0] - (w + 0.08) / 2
+                    ix, iy = s.xy(x0 + 0.03, q[1] - 0.15)
+                    c.setFillGray(1)
+                    c.rect(ix - 1.1 * mm, iy - 1.3 * mm, (w + 0.08) * INCH + 0.6 * mm, 2.6 * mm, fill=1, stroke=0)
+                    c.setFillGray(0)
+                    icon(c, key, ix, iy, 1.8 * mm)
+                    s.text(x0 + 0.07, q[1] - 0.15, lab, size=3.7, bold=True, anchor="start")
+                late.append(tb_label)
         elif kind == "RaspberryPiPico":
             p = pts(el, "controlPoints")[:40]
             xs = [s.xy(*q)[0] for q in p]
@@ -326,15 +334,17 @@ def draw(path, out, lang):
             c.drawCentredString(p1x, p1y + 1.6 * mm, "1")
             # DIYLC lists pins 1..20, then 40..21: p[20] is pin 40, beside pin 1.
             ux, uy = (s.xy(*p[0])[0] + s.xy(*p[20])[0]) / 2, (s.xy(*p[0])[1] + s.xy(*p[20])[1]) / 2
-            ex = ux - (cx - ux) / abs(cx - ux) * 4 * mm if horiz and cx != ux else ux
+            ex = ux + (cx - ux) / abs(cx - ux) * 6 * mm if horiz and cx != ux else ux
             out_angle = (180 if cx > ux else 0) if horiz else (270 if cy > uy else 90)
-            arrow(c, ex, uy + 3 * mm, out_angle, 3.2 * mm)
-            c.saveState()
-            c.translate(ex, uy - 1.5 * mm)
-            c.rotate(90 if horiz else 0)
-            c.setFont("Helvetica-Bold", 6)
-            c.drawCentredString(0, -2, t["usb"])
-            c.restoreState()
+
+            def usb_label(ex=ex, uy=uy, out_angle=out_angle):
+                c.setFillGray(1)
+                c.rect(ex - 3.5 * mm, uy - 4.2 * mm, 7 * mm, 8.6 * mm, fill=1, stroke=0)
+                c.setFillGray(0)
+                arrow(c, ex, uy + 2 * mm, out_angle, 3.4 * mm)
+                c.setFont("Helvetica-Bold", 6)
+                c.drawCentredString(ex, uy - 3 * mm, t["usb"])
+            late.append(usb_label)
         elif kind == "OLEDDisplay":
             p = pts(el, "controlPoints")
             for q, lab in zip(p, ["GND", "VCC", "CLK", "MOSI", "RES", "DC", "CS"]):
@@ -347,8 +357,9 @@ def draw(path, out, lang):
             # The module (35.4 x 33.5 mm) lies on the side of its pins away from the channel.
             c.rect(cx - 35.4 * mm / 2, max(ys) + 1.5 * mm, 35.4 * mm, 33.5 * mm)
             c.setDash()
-            c.setFont("Helvetica", 6)
-            c.drawCentredString(cx, max(ys) + 31 * mm, "OLED SH1106 1.3\" - " + t["screen"])
+            if board.rot:
+                late.append(lambda mx=sum(q[0] for q in p) / len(p): s.text(
+                    mx, board.point(0, 0.48)[1], "OLED SH1106 1.3\" - " + t["screen"], size=4.5, bg=True))
 
     # Wires last, thin, over everything: an orthogonal path through the points.
     c.setLineWidth(0.3)
@@ -368,8 +379,8 @@ def draw(path, out, lang):
             for q in (p[0], p[-1]):
                 c.circle(*q, 0.7 * mm, fill=1)
     c.setStrokeGray(0)
-    for x, y, sign in signs:
-        s.text(x, y, sign, size=8, bold=True, bg=True)
+    for draw_late in late:
+        draw_late()
 
     # The free end of the board (rows 1..10): project, controls, QR of the web tool.
     (ix0, iy0), (ix1, iy1) = s.xy(*board.point(10.5, 0.1)), s.xy(*board.point(0.5, 2.2))
