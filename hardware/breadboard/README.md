@@ -31,11 +31,14 @@ the page measures 100 mm. Cut out the board and paste it on the solderable
 breadboard, hole on hole, before fitting the parts; pierce the holes you
 use. It marks:
 
-- every part where it goes, with its value; the + of the electrolytic
-  capacitors; pin 1 and the USB end of the Pico; the screen's pins and the
-  outline of the module, which overhangs the board;
-- the buttons' names, the terminals of the audio block (OUT, COM, IN) and
-  what each rail is;
+- every part where it goes, with its value; the + and − of the electrolytic
+  capacitors, with a band on the − side as on the part; pin 1 and the USB
+  end of the Pico; the screen's pins and the outline of the module, which
+  overhangs the board;
+- the buttons (an arrow each) and the terminals of the audio block (OUT, COM,
+  IN), on the part and again outside the board, where they stay readable
+  once everything is fitted; what each rail is;
+- the holes in use, clearly; the others only faintly, to line the sheet up;
 - in the free end of the board: the project, the main controls, and a QR
   code of the [ur-tones web tool](https://ndssigner.github.io/ur-tones/),
   which sends the tones to the signer and reads what it returns.

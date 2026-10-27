@@ -61,6 +61,48 @@ def pts(el, tag):
     return [] if h is None else [(float(p.get("x")), float(p.get("y"))) for p in h.findall("point")]
 
 
+def arrow(c, x, y, angle, size):
+    """A filled arrow centred on (x, y) pointing at angle (degrees, 0 = right)."""
+    c.saveState()
+    c.translate(x, y)
+    c.rotate(angle)
+    h = size / 2
+    p = c.beginPath()
+    p.moveTo(h, 0)
+    p.lineTo(0, h * 0.8)
+    p.lineTo(0, h * 0.3)
+    p.lineTo(-h, h * 0.3)
+    p.lineTo(-h, -h * 0.3)
+    p.lineTo(0, -h * 0.3)
+    p.lineTo(0, -h * 0.8)
+    p.close()
+    c.drawPath(p, fill=1, stroke=0)
+    c.restoreState()
+
+
+def ground(c, x, y, size):
+    """The ground symbol, centred on (x, y)."""
+    h = size / 2
+    c.saveState()
+    c.setLineWidth(size * 0.09)
+    c.line(x, y + h, x, y + h * 0.15)
+    for i, w in enumerate((1.0, 0.62, 0.25)):
+        yy = y + h * 0.15 - i * h * 0.42
+        c.line(x - h * w, yy, x + h * w, yy)
+    c.restoreState()
+
+
+def icon(c, name, x, y, size):
+    """Button and terminal icons."""
+    angles = {"LEFT": 180, "UP": 90, "DOWN": 270, "RIGHT": 0, "IN": 90, "OUT": 270}
+    if name == "OK":
+        c.circle(x, y, size * 0.32, fill=1, stroke=0)
+    elif name == "COM":
+        ground(c, x, y, size)
+    elif name in angles:
+        arrow(c, x, y, angles[name], size)
+
+
 class Board:
     """DIYLC Full breadboard geometry: rows 1..63 along the board, u across."""
 
@@ -144,11 +186,32 @@ def draw(path, out, lang):
     (ax, ay), (bx2, by2) = s.xy(x0, y0), s.xy(x1, y1)
     c.setLineWidth(0.6)
     c.rect(ax, by2, bx2 - ax, ay - by2)
-    c.setLineWidth(0.25)
+    used = set()
+    for el in comps:
+        kind = el.tag.split(".")[-1]
+        if kind == "OrthogonalWire":
+            q = pts(el, "controlPoints")
+            used.update([q[0], q[-1]])
+        elif kind in ("Resistor", "RadialElectrolytic", "RadialMicaCapacitor"):
+            used.update(pts(el, "points")[:2])
+        elif kind in ("TactileMicroSwitch", "PCBTerminalBlock", "OLEDDisplay"):
+            used.update(pts(el, "controlPoints"))
+        elif kind == "RaspberryPiPico":
+            used.update(pts(el, "controlPoints")[:40])
+    used = {(round(x, 2), round(y, 2)) for x, y in used}
     for row in range(1, 64):
         for u in Board.U_HOLES:
-            hx, hy = s.xy(*board.point(row, u))
-            c.circle(hx, hy, 0.45 * mm)
+            x, y = board.point(row, u)
+            hx, hy = s.xy(x, y)
+            if (round(x, 2), round(y, 2)) in used:
+                c.setStrokeGray(0)
+                c.setLineWidth(0.5)
+                c.circle(hx, hy, 0.55 * mm)
+            else:  # unused: barely there, only to line the sheet up with the board
+                c.setStrokeGray(0.85)
+                c.setLineWidth(0.15)
+                c.circle(hx, hy, 0.4 * mm)
+    c.setStrokeGray(0)
     letters = "abcdefghij"
     for i, u in enumerate([0.6 + 0.1 * k for k in range(5)] + [1.3 + 0.1 * k for k in range(5)]):
         for row in (0, 64):
@@ -158,13 +221,14 @@ def draw(path, out, lang):
             s.text(*board.point(row, u), str(row), size=3.6)
     # Rail names outside the long edges: outer rail first.
     for (u, lab_outer, lab_inner) in ((-0.17, t["rails"][0], t["rails"][1]),
-                                      (2.47, t["rails"][3], t["rails"][2])):
+                                      (2.75, t["rails"][3], t["rails"][2])):
         for row in (12, 52):
             s.text(*board.point(row, u), f"{lab_outer} (outer)  ·  {lab_inner} (inner)"
                    if TEXT["en"] is t else f"{lab_outer} (exterior)  ·  {lab_inner} (interior)",
                    size=4.2, bold=True)
 
-    # Parts.
+    # Parts. Polarity signs are drawn last, over the wires.
+    signs = []
     for el in comps:
         kind = el.tag.split(".")[-1]
         name = el.findtext("name")
@@ -189,9 +253,27 @@ def draw(path, out, lang):
             c.line(*s.xy(xa, ya), *s.xy(xb, yb))
             c.setFillGray(1)
             if kind == "RadialElectrolytic":
+                # The first lead is +. A black band on the - side, as on the part itself.
                 c.circle(cx, cy, 2.6 * mm, fill=1)
                 c.setFillGray(0)
-                s.text(xa + (xa - mx) * 0.6, ya + (ya - my) * 0.6, "+", size=6, bold=True)
+                pbx, pby = s.xy(xb, yb)
+                dx, dy = pbx - cx, pby - cy
+                n = (dx * dx + dy * dy) ** 0.5 or 1
+                c.saveState()
+                p = c.beginPath()
+                p.circle(cx, cy, 2.6 * mm)
+                c.clipPath(p, stroke=0)
+                c.translate(cx, cy)
+                c.rotate(__import__("math").degrees(__import__("math").atan2(dy, dx)))
+                c.rect(1.3 * mm, -3 * mm, 1.4 * mm, 6 * mm, fill=1, stroke=0)
+                c.restoreState()
+                # The signs beside each lead, off the line, so they cover nothing next to it.
+                ox, oy = -(yb - ya), xb - xa
+                k = 0.12 / ((ox * ox + oy * oy) ** 0.5 or 1)
+                if oy > 0:  # always on the upper side of the page
+                    ox, oy = -ox, -oy
+                signs.append((xb + ox * k, yb + oy * k, "\u2212"))
+                signs.append((xa + ox * k, ya + oy * k, "+"))
             else:
                 c.rect(cx - 2 * mm, cy - 1.2 * mm, 4 * mm, 2.4 * mm, fill=1)
                 c.setFillGray(0)
@@ -204,9 +286,15 @@ def draw(path, out, lang):
             c.setLineWidth(0.6)
             c.rect(cx - 3 * mm, cy - 3 * mm, 6 * mm, 6 * mm)
             c.circle(cx, cy, 1.7 * mm)
-            label = t["buttons"].get(el.findtext("value") or "", "")
+            key = el.findtext("value") or ""
+            icon(c, key, cx, cy, 2.6 * mm)
+            label = t["buttons"].get(key, "")
             lx, ly = board.point(0, 1.235)
             s.text(mx if board.rot else lx, ly if board.rot else my, label, size=5.5, bold=True, bg=True)
+            if board.rot:  # outside the long edge, where it can be read
+                ox, oy = s.xy(mx, board.point(0, 2.5)[1])
+                icon(c, key, ox, oy, 3.2 * mm)
+                s.text(mx, board.point(0, 2.6)[1], label, size=5.5, bold=True)
         elif kind == "PCBTerminalBlock":
             p = pts(el, "controlPoints")
             xs = [s.xy(*q)[0] for q in p]
@@ -214,8 +302,12 @@ def draw(path, out, lang):
             c.setLineWidth(0.6)
             c.rect(min(xs) - 2.5 * mm, min(ys) - 3.8 * mm, max(xs) - min(xs) + 5 * mm,
                    max(ys) - min(ys) + 7.6 * mm)
-            for q, lab in zip(p, t["tb"]):
+            for q, lab, key in zip(p, t["tb"], ("OUT", "COM", "IN")):
                 s.text(q[0], q[1] - 0.17, lab, size=4.5, bold=True, bg=True)
+                if board.rot:
+                    ox, oy = s.xy(q[0], board.point(0, 2.5)[1])
+                    icon(c, key, ox, oy, 3.2 * mm)
+                    s.text(q[0], board.point(0, 2.6)[1], lab, size=5.5, bold=True)
         elif kind == "RaspberryPiPico":
             p = pts(el, "controlPoints")[:40]
             xs = [s.xy(*q)[0] for q in p]
@@ -235,8 +327,10 @@ def draw(path, out, lang):
             # DIYLC lists pins 1..20, then 40..21: p[20] is pin 40, beside pin 1.
             ux, uy = (s.xy(*p[0])[0] + s.xy(*p[20])[0]) / 2, (s.xy(*p[0])[1] + s.xy(*p[20])[1]) / 2
             ex = ux - (cx - ux) / abs(cx - ux) * 4 * mm if horiz and cx != ux else ux
+            out_angle = (180 if cx > ux else 0) if horiz else (270 if cy > uy else 90)
+            arrow(c, ex, uy + 3 * mm, out_angle, 3.2 * mm)
             c.saveState()
-            c.translate(ex, uy)
+            c.translate(ex, uy - 1.5 * mm)
             c.rotate(90 if horiz else 0)
             c.setFont("Helvetica-Bold", 6)
             c.drawCentredString(0, -2, t["usb"])
@@ -274,6 +368,8 @@ def draw(path, out, lang):
             for q in (p[0], p[-1]):
                 c.circle(*q, 0.7 * mm, fill=1)
     c.setStrokeGray(0)
+    for x, y, sign in signs:
+        s.text(x, y, sign, size=8, bold=True, bg=True)
 
     # The free end of the board (rows 1..10): project, controls, QR of the web tool.
     (ix0, iy0), (ix1, iy1) = s.xy(*board.point(10.5, 0.1)), s.xy(*board.point(0.5, 2.2))
