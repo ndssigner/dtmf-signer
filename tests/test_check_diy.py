@@ -23,7 +23,7 @@ EXPECTED = {
     "R10": ("~C", "pico:GP27"), "C2": (GND, "pico:GP27"),
     "R11": ("pico:GP15", "~O"), "C3": ("~O", "tb:1"),
 }
-VALUES = {"R1": "1.0K", "R2": "2.2K", "R3": "4.7K", "R4": "10.0K", "R5": "22.0K",
+VALUES = {"R1": "22.0K", "R2": "10.0K", "R3": "4.7K", "R4": "2.2K", "R5": "1.0K",
           "R6": "10.0K", "R7": "10.0K", "R8": "10.0K", "R9": "1.0K", "R10": "4.7K",
           "R11": "1.0K", "C1": "1.0uF", "C2": "10.0nF", "C3": "10.0uF"}
 
@@ -71,15 +71,20 @@ class CheckDiyTest(unittest.TestCase):
         self.assertEqual(len({node["~B"], node["~C"], node["~O"]}), 3)
 
     def test_buttons_to_gnd_through_their_resistor(self):
+        # The firmware tells the buttons apart by their resistor (ds_btn).
+        want = {"LEFT": "1.0K", "UP": "2.2K", "OK": "4.7K", "DOWN": "10.0K", "RIGHT": "22.0K"}
+        ladder = {n: v for n, v in self.parts.items() if n in ("R1", "R2", "R3", "R4", "R5")}
         for i in range(1, 6):
-            value, a, b = self.parts[f"SW{i}"]
+            label, a, b = self.parts[f"SW{i}"]
             self.assertIn(GND, (a, b), f"SW{i}")
-            other = b if a == GND else a
-            self.assertIn(other, self.parts[f"R{i}"][1:], f"SW{i} and R{i}")
+            node = b if a == GND else a
+            values = [v[0] for v in ladder.values() if node in v[1:]]
+            self.assertEqual(values, [want[label]], f"SW{i} {label}")
 
-    def test_no_author_in_the_file(self):
+    def test_project_credits(self):
         text = LAYOUT.read_text()
-        self.assertIn("<author></author>", text)
+        self.assertIn("<author>NDS-Signer</author>", text)
+        self.assertIn("https://github.com/ndssigner/dtmf-signer", text)
 
 
 if __name__ == "__main__":

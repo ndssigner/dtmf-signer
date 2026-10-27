@@ -18,13 +18,40 @@ earlier breadboard.
 - [`dtmf-signer-breadboard.diy`](dtmf-signer-breadboard.diy): the layout,
   for [DIY Layout Creator](https://github.com/bancika/diy-layout-creator)
   6.8 or later (free).
+- [`template-en.pdf`](template-en.pdf) and [`template-es.pdf`](template-es.pdf):
+  the printable template, at 1:1 on A4 landscape.
 - [`tools/check_diy.py`](../../tools/check_diy.py) reads it and prints what
   each part connects; `tests/test_check_diy.py` checks those connections
   against what the firmware expects.
 
+## Printable template
+
+Print it at 100 %, with no scaling, and check that the bar at the bottom of
+the page measures 100 mm. Cut out the board and paste it on the solderable
+breadboard, hole on hole, before fitting the parts; pierce the holes you
+use. It marks:
+
+- every part where it goes, with its value; the + of the electrolytic
+  capacitors; pin 1 and the USB end of the Pico; the screen's pins and the
+  outline of the module, which overhangs the board;
+- the buttons' names, the terminals of the audio block (OUT, COM, IN) and
+  what each rail is;
+- in the free end of the board: the project, the main controls, and a QR
+  code of the [ur-tones web tool](https://ndssigner.github.io/ur-tones/),
+  which sends the tones to the signer and reads what it returns.
+
+To make it again after changing the layout:
+
+```
+pip install -r tools/requirements-template.txt
+python3 tools/breadboard_template.py hardware/breadboard/dtmf-signer-breadboard.diy --lang en --out hardware/breadboard/template-en.pdf
+```
+
+The PDF carries no date, so the same layout always gives the same file.
+
 ## How it is laid out
 
-Hold the board landscape, with the Pico on the right:
+Hold the board landscape, as in the template: the Pico on the left, the screen at the top:
 
 - **Screen:** its pins next to the centre channel; its body covers that half
   of the board and overhangs the edge. Wires run under it (there are 2–3 mm
@@ -39,7 +66,7 @@ Hold the board landscape, with the Pico on the right:
     10 nF to ground.
   - The output (OUT) comes from GP15 through 1 k and 10 µF (its − to the
     terminal). The firmware does not drive it yet.
-- **Pico:** at the right end, with the USB on the board's edge.
+- **Pico:** at the left end, with the USB on the board's edge.
 - **Rails:** the layout takes each rail as continuous from end to end. Check
   yours with a multimeter; if a rail is split in the middle, bridge it.
 

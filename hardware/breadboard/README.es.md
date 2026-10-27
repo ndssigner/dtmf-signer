@@ -19,13 +19,41 @@ entrada de línea) se probaron en una protoboard anterior.
   disposición, para
   [DIY Layout Creator](https://github.com/bancika/diy-layout-creator) 6.8 o
   posterior (gratuito).
+- [`template-en.pdf`](template-en.pdf) y [`template-es.pdf`](template-es.pdf):
+  la plantilla imprimible, a escala 1:1 en A4 apaisado.
 - [`tools/check_diy.py`](../../tools/check_diy.py) la lee y muestra qué
   conecta cada pieza; `tests/test_check_diy.py` compara esas conexiones con
   lo que espera el firmware.
 
+## Plantilla imprimible
+
+Imprímela al 100 %, sin escalar, y comprueba que la barra del pie de la
+página mide 100 mm. Recorta la placa y pégala sobre la protoboard soldable,
+agujero sobre agujero, antes de poner las piezas; perfora los agujeros que
+uses. Marca:
+
+- cada pieza en su sitio, con su valor; el + de los condensadores
+  electrolíticos; el pin 1 y el extremo del USB de la Pico; los pines de la
+  pantalla y el contorno del módulo, que sobresale de la placa;
+- los nombres de los botones, los contactos de la bornera de audio (OUT,
+  COM, IN) y qué es cada raíl;
+- en el extremo libre de la placa: el proyecto, los controles principales y
+  un código QR de la [herramienta web de ur-tones](https://ndssigner.github.io/ur-tones/),
+  que envía los tonos al firmador y lee lo que devuelve.
+
+Para generarla de nuevo tras cambiar la disposición:
+
+```
+pip install -r tools/requirements-template.txt
+python3 tools/breadboard_template.py hardware/breadboard/dtmf-signer-breadboard.diy --lang es --out hardware/breadboard/template-es.pdf
+```
+
+El PDF no lleva fecha, así que la misma disposición da siempre el mismo
+fichero.
+
 ## Cómo está colocada
 
-Sujeta la placa en horizontal, con la Pico a la derecha:
+Sujeta la placa en horizontal, como en la plantilla: la Pico a la izquierda y la pantalla arriba:
 
 - **Pantalla:** sus pines junto al canal central; su cuerpo tapa esa mitad
   de la placa y sobresale por el borde. Por debajo pasan cables (quedan 2–3
@@ -41,7 +69,7 @@ Sujeta la placa en horizontal, con la Pico a la derecha:
     masa.
   - La salida (OUT) sale de GP15 por 1 k y 10 µF (su − hacia la bornera). El
     firmware todavía no la usa.
-- **Pico:** en el extremo derecho, con el USB en el borde de la placa.
+- **Pico:** en el extremo izquierdo, con el USB en el borde de la placa.
 - **Raíles:** la disposición da cada raíl por continuo de punta a punta.
   Compruébalo en la tuya con el multímetro; si un raíl se corta a la mitad,
   puentéalo.

@@ -5,8 +5,8 @@
     <minor>8</minor>
     <build>0</build>
   </fileVersion>
-  <title>DTMF-Signer, Cable and QR, breadboard</title>
-  <author></author>
+  <title>DTMF-Signer, Cable and QR, breadboard - https://github.com/ndssigner/dtmf-signer</title>
+  <author>NDS-Signer</author>
   <width value="29.0" unit="cm"/>
   <height value="21.0" unit="cm"/>
   <gridSpacing value="0.1" unit="in"/>
@@ -104,7 +104,7 @@
       <alphaPercent>
         <value>100</value>
       </alphaPercent>
-      <value>LEFT</value>
+      <value>RIGHT</value>
       <orientation>_90</orientation>
       <controlPoints>
         <point x="7.7" y="3.4"/>
@@ -128,7 +128,7 @@
       <alphaPercent>
         <value>100</value>
       </alphaPercent>
-      <value>UP</value>
+      <value>DOWN</value>
       <orientation>_90</orientation>
       <controlPoints>
         <point x="7.3" y="3.4"/>
@@ -176,7 +176,7 @@
       <alphaPercent>
         <value>100</value>
       </alphaPercent>
-      <value>DOWN</value>
+      <value>UP</value>
       <orientation>_90</orientation>
       <controlPoints>
         <point x="6.5" y="3.4"/>
@@ -200,7 +200,7 @@
       <alphaPercent>
         <value>100</value>
       </alphaPercent>
-      <value>RIGHT</value>
+      <value>LEFT</value>
       <orientation>_90</orientation>
       <controlPoints>
         <point x="6.1" y="3.4"/>
@@ -240,7 +240,7 @@
       <labelOrientation>Directional</labelOrientation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="1.0" unit="K"/>
+      <value value="22.0" unit="K"/>
       <power>QUARTER</power>
       <colorCode>_4_BAND</colorCode>
       <shape>Standard</shape>
@@ -287,7 +287,7 @@
       <labelOrientation>Directional</labelOrientation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="2.2" unit="K"/>
+      <value value="10.0" unit="K"/>
       <power>QUARTER</power>
       <colorCode>_4_BAND</colorCode>
       <shape>Standard</shape>
@@ -381,7 +381,7 @@
       <labelOrientation>Directional</labelOrientation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="10.0" unit="K"/>
+      <value value="2.2" unit="K"/>
       <power>QUARTER</power>
       <colorCode>_4_BAND</colorCode>
       <shape>Standard</shape>
@@ -428,7 +428,7 @@
       <labelOrientation>Directional</labelOrientation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="22.0" unit="K"/>
+      <value value="1.0" unit="K"/>
       <power>QUARTER</power>
       <colorCode>_4_BAND</colorCode>
       <shape>Standard</shape>
