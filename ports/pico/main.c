@@ -252,9 +252,13 @@ static void scrub_buffers(void)
 {
     size_t i;
 
+    /* Stop the ADC and drain its FIFO: with no DREQ the DMA writes nothing
+     * more. Aborting the channels instead hangs here: the capture channel is
+     * chained to the reload channel, and an abort can fire the chain (RP2040
+     * erratum E13). The watchdog reboot resets the DMA anyway. */
     adc_run(false);
-    dma_channel_abort((uint)dma_chan);
-    dma_channel_abort((uint)dma_reload_chan);
+    sleep_us(10); /* let the conversion in progress finish */
+    adc_fifo_drain();
     for (i = 0; i < DS_RING_SAMPLES; i++) {
         ring[i] = 0;
     }
