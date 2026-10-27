@@ -241,8 +241,13 @@ The same addresses as [NDS-Signer](https://github.com/ndssigner/nds-signer#donat
 
 ## License
 
-Not decided yet. The hardware is planned under
-[CERN-OHL-S v2](https://ohwr.org/cern_ohl_s_v2.txt).
+- **Software** (the core, `app/`, the ports, the tools and the tests) and
+  its documentation: the [MIT licence](LICENSE).
+- **Hardware** (circuits, board layouts, printable templates and, later,
+  PCB designs, such as [docs/hardware-minimo.md](docs/hardware-minimo.md)):
+  the [CERN-OHL-S v2](LICENSE-HARDWARE), a strongly reciprocal open hardware
+  licence. Whoever makes and distributes a modified design must publish its
+  sources too.
 
 Third-party parts keep their own terms: libsecp256k1 and qrcodegen (in
 `third_party/`) are under the MIT licence, and
