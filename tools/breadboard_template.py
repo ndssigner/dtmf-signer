@@ -33,6 +33,7 @@ TEXT = {
         "licence": "Hardware: CERN-OHL-S v2",
         "buttons": {"LEFT": "LEFT", "UP": "UP", "OK": "OK", "DOWN": "DOWN", "RIGHT": "RIGHT"},
         "tb": ["OUT", "COM", "IN"],
+        "tb_name": "DTMF Audio",
         "rails": ["+3V3", "GND", "L (buttons) - NOT 3V3", "GND"],
         "info": ["DTMF-Signer", "Cable and QR", "", "Hold OK: sign", "Hold LEFT 3 s: wipe",
                  "Audio: IN / COM / OUT", ""],
@@ -46,6 +47,7 @@ TEXT = {
         "licence": "Hardware: CERN-OHL-S v2",
         "buttons": {"LEFT": "IZQ", "UP": "ARRIBA", "OK": "OK", "DOWN": "ABAJO", "RIGHT": "DCHA"},
         "tb": ["OUT", "COM", "IN"],
+        "tb_name": "DTMF Audio",
         "rails": ["+3V3", "GND", "L (botones) - NO es 3V3", "GND"],
         "info": ["DTMF-Signer", "Cable y QR", "", "Mantener OK: firmar", "Mantener IZQ 3 s: borrar",
                  "Audio: IN / COM / OUT", ""],
@@ -264,18 +266,22 @@ def draw(path, out, lang):
                 c.rotate(__import__("math").degrees(__import__("math").atan2(dy, dx)))
                 c.rect(1.3 * mm, -3 * mm, 1.4 * mm, 6 * mm, fill=1, stroke=0)
                 c.restoreState()
-                # The signs beside each lead, off the line, so they cover nothing next to it.
-                ox, oy = -(yb - ya), xb - xa
-                k = 0.12 / ((ox * ox + oy * oy) ** 0.5 or 1)
-                if oy > 0:  # always on the upper side of the page
-                    ox, oy = -ox, -oy
-                for x, y, sign in ((xb + ox * k, yb + oy * k, "\u2212"), (xa + ox * k, ya + oy * k, "+")):
-                    late.append(lambda x=x, y=y, sign=sign: s.text(x, y, sign, size=8, bold=True, bg=True))
+                # A + inside the circle, on the + lead's side; the band marks the - side.
+                pax, pay = s.xy(xa, ya)
+                ux_, uy_ = pax - cx, pay - cy
+                n = (ux_ * ux_ + uy_ * uy_) ** 0.5 or 1
+                px_, py_ = cx + ux_ / n * 1.75 * mm, cy + uy_ / n * 1.75 * mm
+
+                def plus(px_=px_, py_=py_):
+                    c.setFont("Helvetica-Bold", 6)
+                    c.drawCentredString(px_, py_ - 2.1, "+")
+                late.append(plus)
             else:
                 c.rect(cx - 2 * mm, cy - 1.2 * mm, 4 * mm, 2.4 * mm, fill=1)
                 c.setFillGray(0)
             v = el.find("value")
-            s.text(mx, my, f"{float(v.get('value')):g}{v.get('unit').replace('u', 'µ')}", size=3.2, bold=True)
+            vx, vy = (mx + (xb - xa) * 0.02, my + (yb - ya) * 0.02) if kind == "RadialElectrolytic" else (mx, my)
+            s.text(vx, vy, f"{float(v.get('value')):g}{v.get('unit').replace('u', 'µ')}", size=2.6 if kind == "RadialElectrolytic" else 3.0, bold=True)
         elif kind == "TactileMicroSwitch":
             p = pts(el, "controlPoints")
             mx, my = sum(q[0] for q in p) / 4, sum(q[1] for q in p) / 4
@@ -285,17 +291,17 @@ def draw(path, out, lang):
             c.circle(cx, cy, 1.7 * mm)
             key = el.findtext("value") or ""
             label = t["buttons"].get(key, "")
-            # Just below the switch, between rows i and j, where it stays visible.
+            # Just below the switch: the name between rows i and j, the icon under it.
             lx, ly = (mx, board.point(0, 1.65)[1]) if board.rot else (board.point(0, 1.65)[0], my)
+            ix_, iy_ = (mx, board.point(0, 1.765)[1]) if board.rot else (board.point(0, 1.765)[0], my)
 
-            def button_label(lx=lx, ly=ly, key=key, label=label):
-                w = c.stringWidth(label, "Helvetica-Bold", 3.6) / INCH
-                bx, by = s.xy(lx - w / 2 - 0.03, ly)
+            def button_label(lx=lx, ly=ly, ix_=ix_, iy_=iy_, key=key, label=label):
+                s.text(lx, ly, label, size=3.6, bold=True, bg=True)
+                bx, by = s.xy(ix_, iy_)
                 c.setFillGray(1)
-                c.rect(bx - 1.1 * mm, by - 1.0 * mm, (w + 0.06) * INCH + 2.3 * mm, 2.0 * mm, fill=1, stroke=0)
+                c.circle(bx, by, 1.2 * mm, fill=1, stroke=0)
                 c.setFillGray(0)
-                icon(c, key, bx, by, 1.8 * mm)
-                s.text(lx + 0.03, ly, label, size=3.6, bold=True)
+                icon(c, key, bx, by, 1.9 * mm)
             late.append(button_label)
         elif kind == "PCBTerminalBlock":
             p = pts(el, "controlPoints")
@@ -309,7 +315,7 @@ def draw(path, out, lang):
                     # Icon and name on one line, between the block's lower edge and the rail below.
                     w = c.stringWidth(lab, "Helvetica-Bold", 3.7) / INCH
                     x0 = q[0] - (w + 0.08) / 2
-                    ty = q[1] + 0.225
+                    ty = q[1] + 0.193
                     ix, iy = s.xy(x0 + 0.03, ty)
                     c.setFillGray(1)
                     c.rect(ix - 1.1 * mm, iy - 1.3 * mm, (w + 0.08) * INCH + 0.6 * mm, 2.6 * mm, fill=1, stroke=0)
@@ -317,6 +323,9 @@ def draw(path, out, lang):
                     icon(c, key, ix, iy, 1.8 * mm)
                     s.text(x0 + 0.07, ty, lab, size=3.7, bold=True, anchor="start")
                 late.append(tb_label)
+            # The block's name under its terminals, just above the rail.
+            late.append(lambda p=p: s.text(sum(q[0] for q in p) / len(p), p[0][1] + 0.257,
+                                           t["tb_name"], size=3.2, bold=True, bg=True))
         elif kind == "RaspberryPiPico":
             p = pts(el, "controlPoints")[:40]
             xs = [s.xy(*q)[0] for q in p]

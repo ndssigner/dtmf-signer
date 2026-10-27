@@ -31,13 +31,14 @@ the page measures 100 mm. Cut out the board along its outline (everything
 it needs is inside it) and paste it on the solderable breadboard, hole on
 hole, before fitting the parts; pierce the holes you use. It marks:
 
-- every part where it goes, with its value; the + and − of the electrolytic
-  capacitors, with a band on the − side as on the part; pin 1 and the USB
+- every part where it goes, with its value; the + of the electrolytic
+  capacitors inside their outline, and a band on the − side as on the part; pin 1 and the USB
   end of the Pico; the screen's pins and the outline of the module, which
   overhangs the board;
-- the buttons (an arrow and the name each, just below the switch, between
-  rows i and j) and the terminals of the audio block (an icon and the name
-  each, between the block's lower edge and the rail below), so they stay
+- the buttons (the name just below the switch, between rows i and j, and an
+  arrow under it) and the terminals of the audio block (an icon and the
+  name each, and "DTMF Audio" under them, between the block's lower edge and
+  the rail below), so they stay
   readable once everything is fitted; what each rail is, next to it;
 - the holes in use, clearly; the others only faintly, to line the sheet up;
 - in the free end of the board: the project, the main controls, and a QR
