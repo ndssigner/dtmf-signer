@@ -35,10 +35,10 @@ hole, before fitting the parts; pierce the holes you use. It marks:
   capacitors, with a band on the − side as on the part; pin 1 and the USB
   end of the Pico; the screen's pins and the outline of the module, which
   overhangs the board;
-- the buttons (an arrow and the name each, in the centre channel) and the
-  terminals of the audio block (an icon and the name each), beside the part
-  so they stay readable once everything is fitted; what each rail is, next
-  to it;
+- the buttons (an arrow and the name each, just below the switch, between
+  rows i and j) and the terminals of the audio block (an icon and the name
+  each, between the block's lower edge and the rail below), so they stay
+  readable once everything is fitted; what each rail is, next to it;
 - the holes in use, clearly; the others only faintly, to line the sheet up;
 - in the free end of the board: the project, the main controls, and a QR
   code of the [ur-tones web tool](https://ndssigner.github.io/ur-tones/),

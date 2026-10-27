@@ -36,8 +36,9 @@ antes de poner las piezas; perfora los agujeros que uses. Marca:
   electrolíticos, con una banda en el lado −, como en la pieza; el pin 1 y
   el extremo del USB de la Pico; los pines de la pantalla y el contorno del
   módulo, que sobresale de la placa;
-- los botones (flecha y nombre, en el canal central) y los contactos de la
-  bornera de audio (icono y nombre), junto a la pieza, para que se lean con
+- los botones (flecha y nombre, justo debajo del pulsador, entre las filas
+  i y j) y los contactos de la bornera de audio (icono y nombre, entre el
+  borde inferior de la bornera y el raíl de debajo), para que se lean con
   todo montado; qué es cada raíl, a su lado;
 - los agujeros que se usan, bien visibles; los demás, apenas marcados, solo
   para encajar la hoja;

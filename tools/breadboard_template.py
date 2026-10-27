@@ -285,17 +285,17 @@ def draw(path, out, lang):
             c.circle(cx, cy, 1.7 * mm)
             key = el.findtext("value") or ""
             label = t["buttons"].get(key, "")
-            # Beside the switch, in the centre channel, where it stays visible.
-            lx, ly = (mx, board.point(0, 1.235)[1]) if board.rot else (board.point(0, 1.235)[0], my)
+            # Just below the switch, between rows i and j, where it stays visible.
+            lx, ly = (mx, board.point(0, 1.65)[1]) if board.rot else (board.point(0, 1.65)[0], my)
 
             def button_label(lx=lx, ly=ly, key=key, label=label):
-                w = c.stringWidth(label, "Helvetica-Bold", 5) / INCH
-                bx, by = s.xy(lx - w / 2 - 0.035, ly)
+                w = c.stringWidth(label, "Helvetica-Bold", 3.6) / INCH
+                bx, by = s.xy(lx - w / 2 - 0.03, ly)
                 c.setFillGray(1)
-                c.rect(bx - 1.5 * mm, by - 1.5 * mm, (w + 0.07) * INCH + 3.2 * mm, 3 * mm, fill=1, stroke=0)
+                c.rect(bx - 1.1 * mm, by - 1.0 * mm, (w + 0.06) * INCH + 2.3 * mm, 2.0 * mm, fill=1, stroke=0)
                 c.setFillGray(0)
-                icon(c, key, bx, by, 2.4 * mm)
-                s.text(lx + 0.035, ly, label, size=5, bold=True)
+                icon(c, key, bx, by, 1.8 * mm)
+                s.text(lx + 0.03, ly, label, size=3.6, bold=True)
             late.append(button_label)
         elif kind == "PCBTerminalBlock":
             p = pts(el, "controlPoints")
@@ -306,15 +306,16 @@ def draw(path, out, lang):
                    max(ys) - min(ys) + 7.6 * mm)
             for q, lab, key in zip(p, t["tb"], ("OUT", "COM", "IN")):
                 def tb_label(q=q, lab=lab, key=key):
-                    # Icon and name on one line beside the terminal, clear of the parts around.
+                    # Icon and name on one line, between the block's lower edge and the rail below.
                     w = c.stringWidth(lab, "Helvetica-Bold", 3.7) / INCH
                     x0 = q[0] - (w + 0.08) / 2
-                    ix, iy = s.xy(x0 + 0.03, q[1] - 0.15)
+                    ty = q[1] + 0.225
+                    ix, iy = s.xy(x0 + 0.03, ty)
                     c.setFillGray(1)
                     c.rect(ix - 1.1 * mm, iy - 1.3 * mm, (w + 0.08) * INCH + 0.6 * mm, 2.6 * mm, fill=1, stroke=0)
                     c.setFillGray(0)
                     icon(c, key, ix, iy, 1.8 * mm)
-                    s.text(x0 + 0.07, q[1] - 0.15, lab, size=3.7, bold=True, anchor="start")
+                    s.text(x0 + 0.07, ty, lab, size=3.7, bold=True, anchor="start")
                 late.append(tb_label)
         elif kind == "RaspberryPiPico":
             p = pts(el, "controlPoints")[:40]
