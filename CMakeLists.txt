@@ -30,6 +30,9 @@ target_include_directories(qrcodegen PUBLIC third_party/qrcodegen/c)
 # Warning flags apply to our own targets only.
 add_library(ds_warnings INTERFACE)
 target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror)
+# GCC flags the screen lines that snprintf truncates on purpose (fixed width).
+target_compile_options(ds_warnings INTERFACE
+  $<$<C_COMPILER_ID:GNU>:-Wno-format-truncation>)
 
 enable_testing()
 add_subdirectory(core)
