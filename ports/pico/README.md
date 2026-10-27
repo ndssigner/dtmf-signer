@@ -68,8 +68,13 @@ The ladder gives five buttons: LEFT, UP, OK, DOWN and RIGHT.
   of any button, at least 300 ms after the review appears, and then hold OK
   for 1.5 s. A hold begun before the review was on screen never confirms.
   Nothing is signed otherwise.
+- **Screens a job puts up** (the fingerprints, the errors, the QR) ignore
+  button presses for the first 300 ms.
+- **On the seed-fingerprint screen,** LEFT discards the seed and wipes
+  everything.
 - **Emergency wipe:** hold LEFT for 3 s, on any screen. Everything is zeroed
-  and the board reboots.
+  and the board reboots. While "Working..." is on screen the buttons are not
+  read, so the 3 s only start counting once the job has finished.
 
 ## The USB echo
 

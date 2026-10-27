@@ -32,7 +32,7 @@ build someone makes and measures.
   algorithm, as the ur-tones C library does.
 - **Needs:** an ADC sampling at 8 kHz or more, and the CPU to filter in
   real time. An analog anti-aliasing filter before the pin.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s. The headphone output of a laptop needed about 30 % volume there (at 19 % only 107 of 120 tones arrived). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s. The headphone output of a laptop needed about 30 % volume there (at 19 % only 107 of 120 tones arrived).
 - **Risks:** an ADC fed beyond its range is damaged or clips; the input
   stage must protect it. A slow processor misses tones: then use
   `TONES-CHIP`.
@@ -71,7 +71,7 @@ build someone makes and measures.
   input of `TONES-CHIP`. Measured: it decodes from about 90 of 4095 counts
   peak to peak (idle noise about 30), so a laptop's headphone output at a
   quarter of its volume is enough.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones).
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live, up to 30 ms tone + 10 ms silence without errors (RP2040 at 16 kHz, 900 tones). On the Pico prototype (RP2040 at 125 MHz), receiving by cable at 40 ms tone + 20 ms silence: a PSBT of 372 base64 bytes in about 1 min 7 s, one of 920 bytes in 2 min 31 s, a seed UR frame (120 tones) in about 8 s. The headphone output of a laptop needed about 30 % volume there (at 19 % only 107 of 120 tones arrived).
 - **Risks:** a wrong cable, or a loudspeaker output, can push the pin out of
   range: series resistors, a DC-blocking capacitor and clamping diodes
   protect it. Fixed attenuation is not needed with headphone outputs: it
@@ -185,9 +185,9 @@ build someone makes and measures.
   - **Animated URs on a 128 × 64 screen:** the parts of an xpub or a PSBT do
     not fit at 2 pixels per module (64 pixels high allow a version 3 code at
     most, with fragments of about 10 bytes), so they go at 1 pixel per
-    module. On the Pico prototype, Sparrow on a laptop webcam read the xpub
-    and a signed PSBT only with the QR contrast at its minimum (`0x01`), and
-    more slowly than a phone. A 128 × 128 screen would allow 2 pixels per
+    module. Measured on the Pico prototype: Sparrow on a laptop webcam read
+    the xpub and a signed PSBT at 1 pixel per module only with the QR
+    contrast at its minimum (`0x01`). A 128 × 128 screen would allow 2 pixels per
     module.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` starting a QR (choosing the fountain fragment and building the first part) takes 119–125 ms for a signed PSBT of about 387 bytes or an xpub account, and 297 ms for one of 906 bytes (RP2040 at 125 MHz).
 - **Risks:** any camera that sees the screen can read it: never sensitive

@@ -32,7 +32,7 @@ Crece con cada montaje que alguien haga y mida.
   algoritmo de Goertzel, como la librería C de ur-tones.
 - **Necesita:** un ADC que muestree a 8 kHz o más, y CPU para filtrar en
   tiempo real. Un filtro antialiasing analógico antes del pin.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s. La salida de auriculares de un portátil necesitó allí cerca del 30 % de volumen (con el 19 % solo llegaron 107 de 120 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s. La salida de auriculares de un portátil necesitó allí cerca del 30 % de volumen (con el 19 % solo llegaron 107 de 120 tonos).
 - **Riesgos:** un ADC alimentado fuera de su rango se daña o recorta; la
   etapa de entrada debe protegerlo. Un procesador lento pierde tonos:
   entonces, `TONES-CHIP`.
@@ -72,7 +72,7 @@ Crece con cada montaje que alguien haga y mida.
   `TONES-CHIP`. Medido: decodifica desde unas 90 de 4095 cuentas pico a
   pico (con un ruido en reposo de unas 30), así que basta la salida de
   auriculares de un portátil a una cuarta parte de su volumen.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos).
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo, hasta 30 ms de tono + 10 ms de silencio sin errores (RP2040 a 16 kHz, 900 tonos). En el prototipo con Pico (RP2040 a 125 MHz), recibiendo por cable a 40 ms de tono + 20 ms de silencio: una PSBT de 372 bytes en base64 en cerca de 1 min 7 s, una de 920 bytes en 2 min 31 s, un cuadro UR de semilla (120 tonos) en cerca de 8 s. La salida de auriculares de un portátil necesitó allí cerca del 30 % de volumen (con el 19 % solo llegaron 107 de 120 tonos).
 - **Riesgos:** un cable equivocado, o una salida de altavoz, pueden sacar el
   pin de su rango: lo protegen las resistencias en serie, un condensador que
   bloquea la continua y diodos de protección. Con salidas de auriculares no
@@ -196,9 +196,9 @@ Crece con cada montaje que alguien haga y mida.
   - **URs animados en una pantalla de 128 × 64:** las partes de una XPUB o de
     una PSBT no caben a 2 píxeles por módulo (64 píxeles de alto dan, como
     mucho, un código de versión 3, con fragmentos de unos 10 bytes), así que
-    van a 1 píxel por módulo. En el prototipo con Pico, Sparrow con la webcam
-    de un portátil leyó la XPUB y una PSBT firmada solo con el contraste del
-    QR al mínimo (`0x01`), y más despacio que un móvil. Una pantalla de
+    van a 1 píxel por módulo. Medido en el prototipo con Pico: Sparrow con la
+    webcam de un portátil leyó la XPUB y una PSBT firmada a 1 píxel por módulo
+    solo con el contraste del QR al mínimo (`0x01`). Una pantalla de
     128 × 128 permitiría 2 píxeles por módulo.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` empezar un QR (elegir el fragmento de la fuente y construir la primera parte) tarda 119–125 ms con una PSBT firmada de unos 387 bytes o una cuenta XPUB, y 297 ms con una de 906 bytes (RP2040 a 125 MHz).
 - **Riesgos:** cualquier cámara que vea la pantalla puede leerlo: nunca datos

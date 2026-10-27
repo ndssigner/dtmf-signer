@@ -4,7 +4,8 @@
 #   cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<path to pico-sdk>
 #   cmake --build build-pico
 #
-# gives build-pico/dtmf-signer-pico.uf2. Options:
+# gives build-pico/dtmf-signer-pico.uf2. Built and tested with Pico SDK 2.3.1.
+# Options:
 #   DS_DISPLAY       SH1106_SPI (default, tested on hardware), SSD1306_SPI or
 #                    SSD1306_I2C (not tested on hardware)
 #   DS_DISPLAY_FLIP  rotate the picture 180 degrees (OFF)

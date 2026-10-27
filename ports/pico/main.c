@@ -72,6 +72,20 @@ static void stack_paint(void)
     }
 }
 
+/* Zeroes the stack below the current stack pointer (same margin as
+ * stack_paint): the frames of earlier, deeper calls are dead, and may hold
+ * key material or PSBT bytes. */
+static void stack_paint_zero(void)
+{
+    volatile uint32_t *p = (volatile uint32_t *)__StackBottom;
+    uint32_t *sp;
+
+    __asm volatile("mov %0, sp" : "=r"(sp));
+    for (; p + 16 < sp; p++) {
+        *p = 0;
+    }
+}
+
 /* Bytes at the low end of the stack that were never touched. */
 static uint32_t stack_free(void)
 {
@@ -246,8 +260,10 @@ static void pump_samples(void)
     }
 }
 
-/* After a wipe the SRAM survives the watchdog reset: stop the DMA and zero
- * what held line audio. */
+/* After a wipe the SRAM survives the watchdog reset (only the chip's
+ * peripherals are reset), so whatever it held would be readable after the
+ * reboot: stop the ADC and zero what held line audio, the framebuffer and
+ * the unused part of the stack (old frames of the review and the signing). */
 static void scrub_buffers(void)
 {
     size_t i;
@@ -264,6 +280,8 @@ static void scrub_buffers(void)
     }
     ds_wipe(block, sizeof block);
     ds_wipe(raw, sizeof raw);
+    ds_wipe(fb, sizeof fb);
+    stack_paint_zero();
 }
 
 int main(void)

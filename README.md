@@ -25,7 +25,8 @@ it takes. The [catalog](docs/catalog.md) lists the capabilities and the
 profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
 comes later.
 
-> **Status: design stage.** There is no device firmware or hardware yet. This
+> **Status: prototype.** The Pico firmware works on a breadboard, but there is
+> no finished hardware yet. This
 > repository holds the specification and its catalog (in English and
 > Spanish), and the Pico hardware specification and the risk analysis (in
 > Spanish for now). Do not use it with funds.
@@ -176,8 +177,8 @@ The whole analysis, by distribution format and by use, is in
 ## Notice
 
 DTMF-Signer is an experimental design and is offered as is, without any
-warranty. There is no working device yet, and no one independent has
-reviewed it. We are not liable for any loss of funds or any other harm, nor
+warranty. The firmware is tested only on a breadboard prototype, it is not
+for real funds, and no one independent has reviewed it. We are not liable for any loss of funds or any other harm, nor
 for the use anyone makes of this design.
 
 ## In this repository

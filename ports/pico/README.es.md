@@ -72,8 +72,14 @@ ABAJO (DOWN) y DERECHA (RIGHT).
   revisión, y luego mantener OK 1,5 s. Una pulsación larga empezada antes de
   que la revisión estuviera en pantalla nunca confirma. Si no, no se firma
   nada.
+- **Pantallas que pone un trabajo** (las huellas, los errores, el QR)
+  ignoran las pulsaciones durante los primeros 300 ms.
+- **En la pantalla de la huella de la semilla,** IZQUIERDA descarta la
+  semilla y lo borra todo.
 - **Borrado de emergencia:** mantener IZQUIERDA 3 s, en cualquier pantalla.
-  Todo se pone a cero y la placa se reinicia.
+  Todo se pone a cero y la placa se reinicia. Mientras "Working..." está en
+  pantalla no se leen los botones, así que los 3 s solo empiezan a contar
+  cuando el trabajo ha terminado.
 
 ## El eco por USB
 
