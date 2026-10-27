@@ -237,8 +237,8 @@ for the use anyone makes of this design.
   gives `dtmf-signer-pico.uf2`. Line-in on GP27,
   buttons on a resistor ladder on GP28, an SH1106 OLED over SPI (pins in
   `board.h`). `-DDS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C` build for the
-  SSD1306 but are not tested on hardware; `-DDS_DISPLAY_FLIP=ON` rotates the
-  screen. The USB serial is output only (the public echo and `stack-free`).
+  SSD1306 but are not tested on hardware; the screen is turned 180 degrees by default, as the breadboard layout
+  mounts it (`-DDS_DISPLAY_FLIP=OFF` for the other way round). The USB serial is output only (the public echo and `stack-free`).
   See the [Pico README](ports/pico/README.md).
 - [`hardware/breadboard/`](hardware/breadboard/README.md): the breadboard
   layout of the reference build (DIY Layout Creator, CERN-OHL-S v2) and its

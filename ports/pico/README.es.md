@@ -26,7 +26,7 @@ Da `build-pico/dtmf-signer-pico.uf2`. Opciones:
 | Opción | Valores | |
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (por defecto), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` es la probada en hardware. `SSD1306_SPI` y `SSD1306_I2C` compilan, pero **no están probadas** en hardware. `SSD1306_I2C` usa I2C0 con SDA en GP4, SCL en GP5 y la dirección 0x3C. |
-| `DS_DISPLAY_FLIP` | `OFF` (por defecto), `ON` | Gira la imagen 180 grados. `OFF` es lo correcto para el prototipo. |
+| `DS_DISPLAY_FLIP` | `ON` (por defecto), `OFF` | Gira la imagen 180 grados. `ON` es lo correcto para la [disposición en protoboard](../../hardware/breadboard/README.es.md); `OFF`, para una pantalla montada al revés. Las dos están probadas. |
 
 ## Cargar el firmware
 
@@ -107,4 +107,4 @@ byte a byte igual que la versión para ordenador, un cambio falso rechazado y
 el borrado de emergencia.
 
 **Sin probar en hardware:** `DS_DISPLAY=SSD1306_SPI` y `SSD1306_I2C`,
-`DS_DISPLAY_FLIP=ON`, otras etapas de entrada de línea y la RP2350.
+otras etapas de entrada de línea y la RP2350.

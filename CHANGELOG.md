@@ -6,6 +6,9 @@ No release yet. The firmware is a prototype: do not use it with funds.
 
 ### Hardware
 
+- The screen is turned 180 degrees by default (`DS_DISPLAY_FLIP=ON`), as
+  the breadboard layout mounts it; checked on the board built from the
+  layout.
 - The reference build, **Cable and QR**, on one full-size breadboard: a
   Raspberry Pi Pico, a 1.3" SH1106 OLED over SPI, five buttons on one ADC
   pin and a three-way audio terminal block
@@ -22,8 +25,9 @@ No release yet. The firmware is a prototype: do not use it with funds.
   fingerprint; the xpub as an animated UR QR code; a PSBT by tones, its
   summary page by page, confirmation by holding OK, the signed PSBT as an
   animated UR QR code. Emergency wipe: hold LEFT for 3 s.
-- Tested on the breadboard: the seed and its PIN, the xpub read by
-  Sparrow, two PSBTs signed byte for byte as the computer build signs them,
+- Tested on the breadboard: the seed and its PIN (also sent as tones from
+  a Nintendo DSi running [NDS-Signer](https://github.com/ndssigner/nds-signer)),
+  the xpub read by Sparrow, two PSBTs signed byte for byte as the computer build signs them,
   a fake change rejected, the emergency wipe. Times on the RP2040: PIN and
   seed 4.4 s, derivation 2.6 s, review 0.2–0.3 s, signing 0.1–0.25 s.
 

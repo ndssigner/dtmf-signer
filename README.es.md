@@ -253,7 +253,8 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   botones en una escalera de resistencias en GP28, una OLED SH1106 por SPI
   (los pines, en `board.h`). `-DDS_DISPLAY=SSD1306_SPI` y `SSD1306_I2C`
   compilan para la SSD1306 pero no están probadas en hardware;
-  `-DDS_DISPLAY_FLIP=ON` gira la pantalla. El serie USB es solo de salida (el
+  la pantalla va girada 180 grados por defecto, como la monta la disposición en
+  protoboard (`-DDS_DISPLAY_FLIP=OFF` para el otro sentido). El serie USB es solo de salida (el
   eco público y `stack-free`). Ver el [README de la Pico](ports/pico/README.es.md).
 - [`hardware/breadboard/`](hardware/breadboard/README.es.md): la disposición
   en protoboard del montaje de referencia (DIY Layout Creator, CERN-OHL-S v2)

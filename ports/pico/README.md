@@ -24,7 +24,7 @@ This gives `build-pico/dtmf-signer-pico.uf2`. Options:
 | Option | Values | |
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (default), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` is the one tested on hardware. `SSD1306_SPI` and `SSD1306_I2C` build, but are **not tested** on hardware. `SSD1306_I2C` uses I2C0 with SDA on GP4, SCL on GP5 and address 0x3C. |
-| `DS_DISPLAY_FLIP` | `OFF` (default), `ON` | Rotates the picture 180 degrees. `OFF` is right for the prototype. |
+| `DS_DISPLAY_FLIP` | `ON` (default), `OFF` | Rotates the picture 180 degrees. `ON` is right for the [breadboard layout](../../hardware/breadboard/README.md); `OFF` for a screen mounted the other way round. Both are tested. |
 
 ## Flashing
 
@@ -102,4 +102,4 @@ byte for byte as the computer build does, a fake change rejected, and the
 emergency wipe.
 
 **Not tested on hardware:** `DS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C`,
-`DS_DISPLAY_FLIP=ON`, other line-in stages, and the RP2350.
+other line-in stages, and the RP2350.

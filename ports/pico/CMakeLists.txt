@@ -8,7 +8,8 @@
 # Options:
 #   DS_DISPLAY       SH1106_SPI (default, tested on hardware), SSD1306_SPI or
 #                    SSD1306_I2C (not tested on hardware)
-#   DS_DISPLAY_FLIP  rotate the picture 180 degrees (OFF)
+#   DS_DISPLAY_FLIP  rotate the picture 180 degrees (ON: the breadboard layout
+#                    in hardware/breadboard mounts the screen that way round)
 #
 # The stack of core 0 is 8 KB (see "The stack" below): core 1 must never be
 # started.
@@ -22,7 +23,7 @@ project(dtmf_signer_pico C CXX ASM)
 
 set(DS_DISPLAY "SH1106_SPI" CACHE STRING "Display: SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
 set_property(CACHE DS_DISPLAY PROPERTY STRINGS SH1106_SPI SSD1306_SPI SSD1306_I2C)
-option(DS_DISPLAY_FLIP "Rotate the display 180 degrees" OFF)
+option(DS_DISPLAY_FLIP "Rotate the display 180 degrees" ON)
 
 if(NOT DS_DISPLAY MATCHES "^(SH1106_SPI|SSD1306_SPI|SSD1306_I2C)$")
   message(FATAL_ERROR "DS_DISPLAY must be SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
