@@ -351,8 +351,7 @@ never real funds.**
 - What a build cannot check, it says (principle 2), and the catalog gives
   the outside check.
 - The full risk analysis, including the supply chain and the buyer's
-  privacy, is in [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md)
-  (in Spanish).
+  privacy, is in [the risk analysis](docs/risk-analysis.md).
 
 ## 12. Open questions
 

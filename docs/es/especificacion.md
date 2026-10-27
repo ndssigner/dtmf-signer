@@ -366,7 +366,7 @@ inventadas, nunca fondos reales.**
   catálogo indica la comprobación externa.
 - El análisis de riesgos completo, incluidos la cadena de suministro y la
   privacidad del comprador, está en
-  [`docs/analisis-riesgos.md`](../analisis-riesgos.md).
+  [el análisis de riesgos](analisis-riesgos.md).
 
 ## 12. Preguntas abiertas
 

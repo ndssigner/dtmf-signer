@@ -166,7 +166,7 @@ out, batteries, and a header with the free GPIO pins.
   separately for the breadboard version are the most private path.
 
 The whole analysis, by distribution format and by use, is in
-[`docs/analisis-riesgos.md`](docs/analisis-riesgos.md) (Spanish).
+[the risk analysis](docs/risk-analysis.md).
 
 ## Ways to build it
 
@@ -215,8 +215,8 @@ for the use anyone makes of this design.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): the hardware
   specification of the full Pico board: pins, audio, screens, distribution
   formats (Spanish).
-- [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): the risk analysis:
-  supply chain, buyer privacy, firmware, use and physical threats (Spanish).
+- [Risk analysis](docs/risk-analysis.md) ([Spanish](docs/es/analisis-riesgos.md)):
+  supply chain, buyer privacy, firmware, use and physical threats.
 - [`core/`](core/): the portable C99 core: SHA-512, HMAC, PBKDF2, BIP39,
   BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub; PSBT
   analysis and signing, the channel policy and the session.
@@ -248,6 +248,11 @@ for the use anyone makes of this design.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.
+- [`AUDIT.md`](AUDIT.md): a map for reviewers: the critical files by
+  priority, the pinned dependencies and the known gaps.
+  [`SECURITY.md`](SECURITY.md): how to report a vulnerability privately.
+  [`THIRD_PARTY.md`](THIRD_PARTY.md): third-party code and its licences.
+  [`CHANGELOG.md`](CHANGELOG.md): what has changed.
 
 ## Sister projects
 

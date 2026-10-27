@@ -24,9 +24,9 @@ issue or pull request here, under the same rules.
 - **The reference firmware**: a portable core (`core/`: keys, PSBT signing and the session) and
   a build for a computer (`ports/host`) and the firmware for the Raspberry
   Pi Pico (`ports/pico`) exist.
-- **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md),
-  and the risk analysis, [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md)
-  (both in Spanish for now).
+- **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md)
+  (in Spanish for now), and the risk analysis,
+  [`docs/risk-analysis.md`](docs/risk-analysis.md) (in English and Spanish).
 
 ## Kinds of change
 

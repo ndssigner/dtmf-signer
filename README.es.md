@@ -178,7 +178,7 @@ salida de línea, pilas y una tira con los GPIO libres.
   camino más privado.
 
 El análisis completo, por formato de distribución y por uso, está en
-[`docs/analisis-riesgos.md`](docs/analisis-riesgos.md).
+[el análisis de riesgos](docs/es/analisis-riesgos.md).
 
 ## Formas de montarlo
 
@@ -228,8 +228,8 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): la especificación de
   hardware de la placa Pico completa: pines, audio, pantallas, formatos de
   distribución.
-- [`docs/analisis-riesgos.md`](docs/analisis-riesgos.md): el análisis de
-  riesgos: cadena de suministro, privacidad del comprador, firmware, uso y
+- [Análisis de riesgos](docs/es/analisis-riesgos.md) ([inglés](docs/risk-analysis.md)):
+  cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
 - [`core/`](core/): el núcleo portable en C99: SHA-512, HMAC, PBKDF2, BIP39,
   BIP32 y la cartera BIP84, de una semilla a sus huellas y su XPUB; el análisis
@@ -264,6 +264,12 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el
   catálogo o portar DTMF-Signer (en inglés).
+- [`AUDIT.md`](AUDIT.md): un mapa para revisores: los ficheros críticos por
+  prioridad, las dependencias fijadas y las carencias conocidas.
+  [`SECURITY.md`](SECURITY.md): cómo avisar en privado de una
+  vulnerabilidad. [`THIRD_PARTY.md`](THIRD_PARTY.md): el código de terceros
+  y sus licencias. [`CHANGELOG.md`](CHANGELOG.md): qué ha cambiado. Los
+  cuatro, en inglés.
 
 ## Proyectos hermanos
 

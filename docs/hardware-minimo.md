@@ -238,7 +238,7 @@ Los puertos de la placa traen su protección prevista: el MAX3232 para RS-232 y 
 
 ## 13. Formatos de distribución
 
-El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. El análisis de riesgos de cada formato (manipulación, cadena de suministro y **privacidad del comprador**) está en [analisis-riesgos.md](analisis-riesgos.md).
+El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. El análisis de riesgos de cada formato (manipulación, cadena de suministro y **privacidad del comprador**) está en [analisis-riesgos.md](es/analisis-riesgos.md).
 
 | Formato | Contenido | Para quién |
 |---|---|---|
