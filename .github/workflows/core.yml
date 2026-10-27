@@ -59,8 +59,26 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+      # Arm's own toolchain, checked by its SHA-256 and cached (as ur-tones
+      # does): apt's gcc-arm-none-eabi pulls in hundreds of megabytes of C++
+      # libraries the firmware does not use, and stalled the job.
+      - id: arm-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/arm-gnu-toolchain
+          key: arm-gnu-toolchain-14.3.rel1-x86_64
+      - name: Arm GNU Toolchain
+        if: steps.arm-cache.outputs.cache-hit != 'true'
+        run: |
+          f=arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
+          curl -fsSL -o "$f" "https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/$f"
+          echo "8f6903f8ceb084d9227b9ef991490413014d991874a1e34074443c2a72b14dbd  $f" | sha256sum -c -
+          mkdir -p ~/arm-gnu-toolchain
+          tar -xJf "$f" -C ~/arm-gnu-toolchain --strip-components=1
+      - run: echo "$HOME/arm-gnu-toolchain/bin" >> "$GITHUB_PATH"
+      # picotool, which the SDK builds, needs libusb; nothing recommended.
       - run: sudo apt-get update
-      - run: sudo apt-get install -y cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libusb-1.0-0-dev pkg-config
+      - run: sudo apt-get install -y --no-install-recommends ninja-build libusb-1.0-0-dev pkg-config
       - name: Fetch the Pico SDK
         run: |
           git clone --depth 1 --branch 2.3.1 https://github.com/raspberrypi/pico-sdk "$RUNNER_TEMP/pico-sdk"
