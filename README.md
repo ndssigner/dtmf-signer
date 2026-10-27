@@ -244,7 +244,8 @@ The same addresses as [NDS-Signer](https://github.com/ndssigner/nds-signer#donat
 - **Software** (the core, `app/`, the ports, the tools and the tests) and
   its documentation: the [MIT licence](LICENSE).
 - **Hardware** (circuits, board layouts, printable templates and, later,
-  PCB designs, such as [docs/hardware-minimo.md](docs/hardware-minimo.md)):
+  PCB designs, such as [the breadboard layout](hardware/breadboard/README.md)
+  and [docs/hardware-minimo.md](docs/hardware-minimo.md)):
   the [CERN-OHL-S v2](LICENSE-HARDWARE), a strongly reciprocal open hardware
   licence. Whoever makes and distributes a modified design must publish its
   sources too.

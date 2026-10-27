@@ -263,6 +263,7 @@ Las mismas direcciones que [NDS-Signer](https://github.com/ndssigner/nds-signer#
   pruebas) y su documentación: la [licencia MIT](LICENSE).
 - **Hardware** (circuitos, disposiciones de placa, plantillas imprimibles y,
   más adelante, diseños de PCB, como
+  [la disposición en protoboard](hardware/breadboard/README.es.md) y
   [docs/hardware-minimo.md](docs/hardware-minimo.md)): la
   [CERN-OHL-S v2](LICENSE-HARDWARE), una licencia de hardware abierto de
   reciprocidad fuerte. Quien fabrique y distribuya un diseño modificado debe
