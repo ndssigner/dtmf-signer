@@ -15,7 +15,10 @@ independent has reviewed it.
 - The breadboard was built from the layout file and its printed template.
   The template carries no QR code on the board itself: Sparrow, reading the
   signer's screen, read the printed one first. The web tool's QR code is on
-  the sheet, outside the board.
+  the sheet, outside the board. The free end of the board shows the DTMF
+  Audio block in its real order and short electrical warnings; the sheet
+  carries the parts list and a warning to print at actual size (it also
+  prints whole on Letter paper).
   The parts list with rough costs (about US$13 from multipacks, around US$45
   at retail) is in hardware/breadboard.
 - The reference build, **Cable and QR**, on one full-size breadboard: a

@@ -66,12 +66,19 @@ difference. It marks:
   the rail below), so they stay
   readable once everything is fitted; what each rail is, next to it;
 - the holes in use, clearly; the others only faintly, to line the sheet up;
-- in the free end of the board: the project, the main controls, and the
+- in the free end of the board: the project, the main controls, the DTMF
+  Audio block drawn with its terminals in their real order, short
+  electrical warnings (USB power, the voltages on each terminal), and the
   addresses of the repository and of the
   [ur-tones web tool](https://ndssigner.github.io/ur-tones/), which sends
   the tones to the signer. Its QR code is printed outside the board, on the
   part you cut away: on the board, a wallet's camera reading the signer's
   screen would read it first.
+
+Around the board, on the part you cut away, the page carries the parts
+list (counted from the layout) and a boxed warning to print at actual
+size. The page keeps its content away from the sides, so it also prints
+whole at actual size on Letter paper.
 
 To make it again after changing the layout:
 

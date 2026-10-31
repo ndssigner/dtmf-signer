@@ -71,12 +71,19 @@ diferencia. Marca:
   todo montado; qué es cada raíl, a su lado;
 - los agujeros que se usan, bien visibles; los demás, apenas marcados, solo
   para encajar la hoja;
-- en el extremo libre de la placa: el proyecto, los controles principales y
+- en el extremo libre de la placa: el proyecto, los controles principales,
+  la bornera DTMF Audio dibujada con sus contactos en su orden real, avisos
+  eléctricos breves (la alimentación USB, las tensiones de cada contacto) y
   las direcciones del repositorio y de la
   [herramienta web de ur-tones](https://ndssigner.github.io/ur-tones/), que
   envía los tonos al firmador. Su código QR va impreso fuera de la placa, en
   la parte que se recorta: dentro, la cámara de la cartera que lee la
   pantalla del firmador lo leería antes.
+
+Alrededor de la placa, en la parte que se recorta, la página lleva la lista
+de piezas (contada a partir de la disposición) y un aviso recuadrado para
+imprimir a tamaño real. La página deja libres los lados, así que también se
+imprime entera a tamaño real en papel Carta (Letter).
 
 Para generarla de nuevo tras cambiar la disposición:
 
