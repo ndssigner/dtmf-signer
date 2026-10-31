@@ -28,6 +28,7 @@
 /* Samples of the line handed to ds_app_audio at once. */
 #define AUDIO_CHUNK 256
 #define STACK_REPORT_MS 5000
+#define LED_FLASH_MS 15 /* a short, dim flash per key heard */
 #define STACK_PAINT 0xC5C5C5C5u
 
 /* The ring, aligned to its size so the DMA can wrap its write address. */
@@ -287,14 +288,15 @@ static void scrub_buffers(void)
 int main(void)
 {
     static char line[DS_APP_ECHO_MAX];
-    uint32_t now, next_report, last_contrast = 0x100;
+    uint32_t now, next_report, last_contrast = 0x100, keys = 0, led_off = 0;
+    int led = 0;
     int first = 1;
 
     stack_paint();
     stdio_init_all();
     gpio_init(DS_PIN_LED);
     gpio_set_dir(DS_PIN_LED, GPIO_OUT);
-    gpio_put(DS_PIN_LED, 0); /* off: a blinking light that tells nothing only distracts */
+    gpio_put(DS_PIN_LED, 0); /* off, but for a flash per key heard */
     ds_display_init();
     ds_btn_init(&btn);
     ds_app_init(&app, DS_AUDIO_RATE);
@@ -314,6 +316,20 @@ int main(void)
          * the end of the previous iteration. */
         now = to_ms_since_boot(get_absolute_time());
         ds_app_tick(&app, now);
+
+        /* The LED flashes once per key heard while listening, else off. */
+        if (ds_app_keys(&app) != keys) {
+            keys = ds_app_keys(&app);
+            if (keys != 0) {
+                led = 1;
+                led_off = now + LED_FLASH_MS;
+                gpio_put(DS_PIN_LED, 1);
+            }
+        }
+        if (led && (int32_t)(now - led_off) >= 0) {
+            led = 0;
+            gpio_put(DS_PIN_LED, 0);
+        }
 
         /* 5: draw what changed NOW, before the next tick. ds_app.h makes the
          * signing review depend on this: its arming delay counts from the

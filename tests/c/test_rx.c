@@ -212,6 +212,33 @@ static void test_rx_wrong_kind(void)
     ds_rx_wipe(&rx);
 }
 
+/* The keys come live as they are heard: counted always, and the last ones
+ * kept to be shown only for a PSBT (public); a seed's keys are never kept. */
+static void test_rx_live_keys(void)
+{
+    static ut_fountain_encoder e;
+    size_t n, k;
+
+    encoder_for(&psbt_vectors[0], &e);
+    CHECK(tones_next_part(&e, tones, sizeof tones) > 0);
+    n = strlen(tones);
+    ds_rx_init(&rx, TONES_RATE, DS_RX_PSBT);
+    CHECK_EQ_INT(rx.keys, 0);
+    CHECK_EQ_STR(rx.live, "");
+    CHECK_EQ_INT(hear(&rx, tones), DS_RX_PART);
+    CHECK_EQ_INT(rx.keys, n);
+    k = n < DS_RX_LIVE ? n : DS_RX_LIVE;
+    CHECK_EQ_STR(rx.live, tones + n - k);
+    ds_rx_wipe(&rx);
+
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    ds_rx_init(&rx, TONES_RATE, DS_RX_SEED);
+    CHECK_EQ_INT(hear(&rx, tones), DS_RX_GOT_SEED);
+    CHECK_EQ_INT(rx.keys, strlen(tones));
+    CHECK(all_zero(rx.live, sizeof rx.live));
+    ds_rx_wipe(&rx);
+}
+
 TEST_MAIN(test_rx_seed_ur_pin, test_rx_seed_wrong_pin_wipes, test_rx_seed_keypad,
           test_rx_seed_replaced, test_rx_psbt_parts, test_rx_psbt_lost_frame,
-          test_rx_wrong_kind)
+          test_rx_wrong_kind, test_rx_live_keys)

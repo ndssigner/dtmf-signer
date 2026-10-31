@@ -27,9 +27,35 @@ void ds_rx_init(ds_rx *rx, uint32_t rate, int mode)
     rx->mode = mode;
 }
 
+/* Adds the keys heard to the shown ones, dropping the oldest. */
+static void keep_live(ds_rx *rx, const char *k, size_t n)
+{
+    size_t have = strlen(rx->live), drop;
+    if (n >= DS_RX_LIVE) {
+        memcpy(rx->live, k + n - DS_RX_LIVE, DS_RX_LIVE);
+        rx->live[DS_RX_LIVE] = '\0';
+        return;
+    }
+    drop = have + n > DS_RX_LIVE ? have + n - DS_RX_LIVE : 0;
+    memmove(rx->live, rx->live + drop, have - drop);
+    memcpy(rx->live + have - drop, k, n);
+    rx->live[have - drop + n] = '\0';
+}
+
 void ds_rx_push(ds_rx *rx, const int16_t *x, size_t n)
 {
+    char k[UT_LIVE + 1];
+    int32_t got;
+
     ut_listener_push(&rx->l, x, n);
+    got = ut_listener_live(&rx->l, k, sizeof k);
+    if (got > 0) {
+        rx->keys += (uint32_t)got;
+        if (rx->mode == DS_RX_PSBT) {
+            keep_live(rx, k, (size_t)got);
+        }
+    }
+    ds_wipe(k, sizeof k); /* a seed's digits */
 }
 
 /* Seed mode: keep a keypad group or a frame holding a seed UR. */
@@ -100,7 +126,6 @@ int32_t ds_rx_poll(ds_rx *rx)
         ds_wipe(group, sizeof group);
         return DS_RX_NONE;
     }
-    rx->tones += (uint32_t)n;
     if (rx->mode == DS_RX_SEED) {
         res = poll_seed(rx, group);
     } else {

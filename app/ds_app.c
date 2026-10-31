@@ -180,27 +180,49 @@ static void menu(const ds_app *a, ds_screen *s, int first, const char *const *it
     s->highlight = first + a->cursor;
 }
 
+/* Row 1 says whether tones are coming in; for a PSBT row 2 shows the last
+ * keys as they come (public), a seed's keys are never shown. */
 static void listening(const ds_app *a, ds_screen *s, int psbt)
 {
+    int heard = a->rx.keys > 0 && a->now - a->key_at < DS_APP_HEARD_MS;
     line(s, 0, "Listening (cable)");
+    line(s, 1, heard ? "* receiving" : "  waiting");
     if (psbt) {
         uint32_t have = 0, need = 0;
+        line(s, 2, a->rx.live);
         ds_rx_progress(&a->rx, &have, &need);
         if (need == 0) {
-            snprintf(s->line[1], sizeof s->line[1], "parts 0/?  lost %u",
-                     (unsigned)a->lost);
+            line(s, 4, "parts 0/?");
         } else {
-            snprintf(s->line[1], sizeof s->line[1], "parts %u/%u  lost %u",
-                     (unsigned)have, (unsigned)need, (unsigned)a->lost);
+            snprintf(s->line[4], sizeof s->line[4], "parts %u/%u", (unsigned)have,
+                     (unsigned)need);
         }
-    } else {
-        snprintf(s->line[1], sizeof s->line[1], "tones %u  lost %u",
-                 (unsigned)a->rx.tones, (unsigned)a->lost);
     }
+    snprintf(s->line[3], sizeof s->line[3], "keys %u  lost %u", (unsigned)a->rx.keys,
+             (unsigned)a->lost);
     if (a->msg) {
-        line(s, 3, psbt ? "Not a PSBT" : "Not a seed");
+        line(s, 5, psbt ? "Not a PSBT" : "Not a seed");
     }
     line(s, 7, "<: back");
+}
+
+/* The right column of a QR screen: how many parts, the first pass through
+ * them, then that they loop (a scanner may need a few more). */
+static void qr_parts(const ds_app *a, ds_screen *s)
+{
+    uint32_t n = a->qr.e.seq_len, k = a->qr.shown;
+    if (n <= 1) {
+        line(s, 3, "1 part");
+        return;
+    }
+    snprintf(s->line[3], sizeof s->line[3], "%u parts", (unsigned)n);
+    if (k > n) {
+        line(s, 4, "looping");
+    } else if (n < 100) {
+        snprintf(s->line[4], sizeof s->line[4], "part %u/%u", (unsigned)k, (unsigned)n);
+    } else {
+        snprintf(s->line[4], sizeof s->line[4], "%u/%u", (unsigned)k, (unsigned)n);
+    }
 }
 
 static void error_screen(const ds_app *a, ds_screen *s)
@@ -315,9 +337,8 @@ static void build(const ds_app *a, ds_screen *s)
         } else {
             line(s, 0, "Signed");
         }
-        snprintf(buf, sizeof buf, "part %u", (unsigned)a->qr.shown);
-        line(s, 3, buf);
-        line(s, 4, a->qr_scale == 1 ? "1px" : "2px");
+        qr_parts(a, s);
+        line(s, 5, a->qr_scale == 1 ? "1px" : "2px");
         line(s, 7, a->state == ST_XPUB ? "<: back" : "<: done");
         break;
     case ST_LISTEN:
@@ -735,7 +756,16 @@ void ds_app_audio(ds_app *a, const int16_t *x, size_t n)
 {
     if (listening_now(a)) {
         ds_rx_push(&a->rx, x, n);
+        if (a->rx.keys != a->keys_seen) {
+            a->keys_seen = a->rx.keys;
+            a->key_at = a->now;
+        }
     }
+}
+
+uint32_t ds_app_keys(const ds_app *a)
+{
+    return listening_now(a) ? a->rx.keys : 0;
 }
 
 void ds_app_audio_lost(ds_app *a, uint32_t samples)
@@ -762,6 +792,7 @@ static void start_listening(ds_app *a, int mode, int st)
 {
     ds_rx_init(&a->rx, a->rate, mode);
     a->lost = 0;
+    a->keys_seen = 0;
     set_state(a, st);
 }
 

@@ -58,7 +58,7 @@ The only place the pins are named is [`board.h`](board.h).
 | GP20 | OLED DC |
 | GP21 | OLED RES |
 | GP4, GP5 | OLED SDA, SCL (only with `SSD1306_I2C`, I2C0, address 0x3C) |
-| GP25 | The board's LED, kept off |
+| GP25 | The board's LED: a short flash per tone heard, off otherwise |
 | GP27 (ADC1) | Line-in |
 | GP28 (ADC2) | Button ladder |
 

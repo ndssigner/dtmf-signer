@@ -18,6 +18,8 @@
 #define DS_APP_PSBT_MAX 16384 /* bytes of the largest PSBT received */
 #endif
 
+#define DS_RX_LIVE 20 /* the last keys kept for the screen (PSBT only) */
+
 /* What the receiver waits for. */
 enum { DS_RX_SEED = 1, DS_RX_PSBT };
 
@@ -33,14 +35,18 @@ typedef struct {
     ut_fountain_decoder d;
     uint8_t work[UT_FOUNTAIN_WORK(DS_APP_PSBT_MAX)];
     char group[UT_GROUP + 1]; /* the held seed group (a secret) */
+    char live[DS_RX_LIVE + 1]; /* the last keys heard, oldest first: PSBT only */
     int mode, has_group;
-    uint32_t tones, parts;
+    uint32_t keys, parts; /* keys heard as they come; PSBT parts taken */
 } ds_rx;
 
 /* mode: DS_RX_SEED or DS_RX_PSBT. rate: the sample rate of ds_rx_push. */
 void ds_rx_init(ds_rx *rx, uint32_t rate, int mode);
 
-/* Feeds the listener; no heavy work. */
+/* Feeds the listener; no heavy work. Every key heard counts in rx->keys, as
+ * it comes (a rough view: a group may still be rejected). In PSBT mode the
+ * last DS_RX_LIVE keys also go in rx->live, which is public; a seed's keys
+ * are counted only, never kept. */
 void ds_rx_push(ds_rx *rx, const int16_t *x, size_t n);
 
 /* Takes at most one group and processes it. In seed mode a keypad group or a

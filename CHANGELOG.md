@@ -37,6 +37,14 @@ independent has reviewed it.
   fingerprint; the xpub as an animated UR QR code; a PSBT by tones, its
   summary page by page, confirmation by holding OK, the signed PSBT as an
   animated UR QR code. Emergency wipe: hold LEFT for 3 s.
+- While listening, the screen says whether tones are coming in
+  ("receiving" or "waiting") and counts the keys heard; for a PSBT it also
+  shows the last keys and the parts received. A seed's keys are counted,
+  never shown. The board's LED gives a short flash per key and is off
+  otherwise.
+- The QR screens give the number of parts and the first pass through them
+  ("part 3/7"), then say "looping", instead of a part number that kept
+  growing.
 - Tested on the breadboard: the seed and its PIN (also sent as tones from
   a Nintendo DSi running [NDS-Signer](https://github.com/ndssigner/nds-signer)),
   the xpub read by Sparrow, two PSBTs signed byte for byte as the computer build signs them,

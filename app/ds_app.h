@@ -99,6 +99,7 @@
 
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
+#define DS_APP_HEARD_MS 500 /* "receiving" this long after the last key */
 /* A PRESS arms the review, and any event acts on a screen a job put up,
  * only this long after the port took it (see above): button events may
  * come from samples up to 200 ms old. */
@@ -132,6 +133,7 @@ typedef struct {
     const char *t_kind;           /* the timing to echo at the next tick */
     uint32_t t_at;
     uint32_t now, msg_until, part_at, lost;
+    uint32_t keys_seen, key_at;   /* rx.keys at the last key, and when */
     int msg;                      /* 1 while "Not a ..." is shown */
     int armed;                    /* a late enough PRESS was taken in the review */
     int gated;                    /* a job put this screen up (see DS_APP_ARM_MS) */
@@ -178,6 +180,10 @@ uint8_t ds_app_contrast(const ds_app *a);
  * when there is none, or DS_ERR_SPACE (nothing taken) when cap is under
  * DS_APP_ECHO_MAX. */
 int32_t ds_app_take_echo(ds_app *a, char *out, size_t cap);
+
+/* Keys heard since listening started (0 when not listening): the port may
+ * flash a light each time it grows. A count only, never the keys. */
+uint32_t ds_app_keys(const ds_app *a);
 
 /* 1 after a wipe: the port reboots the device. */
 int ds_app_wants_reboot(const ds_app *a);

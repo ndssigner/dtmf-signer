@@ -236,7 +236,8 @@ static void to_seed_fp(void)
     CHECK_EQ_INT(ds_app_contrast(&app), DS_APP_UI_CONTRAST);
     press(DS_BTN_OK);
     CHECK(shows("Listening (cable)"));
-    CHECK(shows("tones 0  lost 0"));
+    CHECK(shows("waiting"));
+    CHECK(shows("keys 0  lost 0"));
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     CHECK(feed_tones(tones));
     CHECK(shows("PIN (none: OK)"));
@@ -402,6 +403,29 @@ static void lower(char *s)
     }
 }
 
+/* The QR screen says how many parts there are and where the first pass is,
+ * then that the parts loop: never a count that only grows. */
+static void check_qr_text(size_t i)
+{
+    char want_s[16];
+    uint32_t n = app.qr.e.seq_len;
+    if (n == 1) {
+        CHECK(shows("1 part"));
+        CHECK(!shows("looping"));
+        return;
+    }
+    snprintf(want_s, sizeof want_s, "%u parts", (unsigned)n);
+    CHECK(shows(want_s));
+    if (i < n) {
+        snprintf(want_s, sizeof want_s, "part %u/%u", (unsigned)(i + 1), (unsigned)n);
+        CHECK(shows(want_s));
+        CHECK(!shows("looping"));
+    } else {
+        CHECK(shows("looping"));
+        CHECK(!shows("part "));
+    }
+}
+
 /* Reads the QR's URs for seq_len + 3 parts of 250 ms: the decoded message. */
 static size_t read_qr(const char *type, const uint8_t **msg)
 {
@@ -418,6 +442,7 @@ static size_t read_qr(const char *type, const uint8_t **msg)
         }
         CHECK(app.screen.qr);
         CHECK_EQ_INT(app.qr.shown, i + 1);
+        check_qr_text(i);
         strcpy(ur, app.qr.ur);
         lower(ur);
         r = ut_fountain_receive(&dec, ur);
@@ -1058,7 +1083,6 @@ static void test_app_xpub(void)
     CHECK(app.screen.qr);
     CHECK(shows("XPUB"));
     CHECK(shows("73c5da0a"));
-    CHECK(shows("part 1"));
     CHECK_EQ_INT(ds_app_contrast(&app), 0x20);
     m_len = read_qr("crypto-account", &m);
     CHECK_EQ_INT(m_len, n);
@@ -1112,9 +1136,63 @@ static void test_app_settings(void)
     ds_app_init(&app, TONES_RATE);
 }
 
+/* While listening the screen tells whether tones are coming in: "receiving"
+ * within 0.5 s of a key, "waiting" otherwise, and the keys heard. A PSBT's
+ * last keys are shown as they come; a seed's never are. */
+static void test_app_activity(void)
+{
+    size_t n, i;
+    static const int16_t silence[CHUNK];
+
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    press(DS_BTN_OK);
+    CHECK(shows("waiting"));
+    CHECK(!shows("receiving"));
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
+    for (i = 0; i < n / 2; i += CHUNK) {
+        ds_app_audio(&app, audio + i, CHUNK);
+        tick();
+    }
+    CHECK(shows("receiving"));
+    CHECK(!shows("keys 0 "));
+    CHECK_EQ_STR(app.screen.line[2], "");
+    for (i = 0; i < TONES_RATE; i += CHUNK) {
+        ds_app_audio(&app, silence, CHUNK);
+        tick();
+    }
+    CHECK(shows("waiting"));
+    CHECK(shows("Listening (cable)"));
+    ds_app_init(&app, TONES_RATE);
+
+    to_ready(NULL, 0x73c5da0au);
+    press(DS_BTN_OK); /* Sign PSBT */
+    CHECK(shows("waiting"));
+    CHECK(shows("parts 0/?"));
+    {
+        int32_t c = ut_psbt_to_cbor(psbt_vectors[0].psbt, psbt_vectors[0].psbt_len,
+                                    cbor, sizeof cbor);
+        CHECK(c > 0);
+        CHECK(ut_fountain_encoder_init(&enc, cbor, (size_t)c, 100) >= 0);
+    }
+    CHECK(tones_next_part(&enc, tones, sizeof tones) > 0);
+    n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
+    for (i = 0; i < n / 2; i += CHUNK) {
+        ds_app_audio(&app, audio + i, CHUNK);
+        tick();
+    }
+    CHECK(shows("receiving"));
+    CHECK(strlen(app.screen.line[2]) > 0);
+    CHECK(strstr(tones, app.screen.line[2]) != NULL);
+    ds_app_init(&app, TONES_RATE);
+}
+
 TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
           test_app_sign_flow, test_app_timings, test_app_reject, test_app_cancel,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
           test_app_fits_qr, test_app_settings, test_app_single_page,
           test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
-          test_app_wipe_anywhere, test_app_arm_delay, test_app_job_screens_wait)
+          test_app_wipe_anywhere, test_app_arm_delay, test_app_job_screens_wait,
+          test_app_activity)
