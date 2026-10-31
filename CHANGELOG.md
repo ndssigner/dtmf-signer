@@ -1,14 +1,20 @@
 # Changelog
 
-No release yet. The firmware is a prototype: do not use it with funds.
+The firmware is a prototype: do not use it with funds.
 
-## Unreleased
+## v0.1.0-alpha (2026-10-31)
+
+First tagged version: a working prototype, not a product. Nobody
+independent has reviewed it.
 
 ### Hardware
 
 - The screen is turned 180 degrees by default (`DS_DISPLAY_FLIP=ON`), as
   the breadboard layout mounts it; checked on the board built from the
   layout.
+- The breadboard was built from the layout file and its printed template.
+  The parts list with rough costs (about US$13 from multipacks, around US$45
+  at retail) is in hardware/breadboard.
 - The reference build, **Cable and QR**, on one full-size breadboard: a
   Raspberry Pi Pico, a 1.3" SH1106 OLED over SPI, five buttons on one ADC
   pin and a three-way audio terminal block
