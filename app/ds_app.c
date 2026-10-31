@@ -206,22 +206,25 @@ static void listening(const ds_app *a, ds_screen *s, int psbt)
     line(s, 7, "<: back");
 }
 
-/* The right column of a QR screen: how many parts, the first pass through
- * them, then that they loop (a scanner may need a few more). */
+/* The right column of a QR screen: how many parts and which one of them is
+ * shown, cycling; after the first pass, that they loop (a scanner may need a
+ * few more, and the later parts mix fragments). */
 static void qr_parts(const ds_app *a, ds_screen *s)
 {
-    uint32_t n = a->qr.e.seq_len, k = a->qr.shown;
+    uint32_t n = a->qr.e.seq_len, k;
     if (n <= 1) {
         line(s, 3, "1 part");
         return;
     }
+    k = (a->qr.shown - 1) % n + 1;
     snprintf(s->line[3], sizeof s->line[3], "%u parts", (unsigned)n);
-    if (k > n) {
-        line(s, 4, "looping");
-    } else if (n < 100) {
+    if (n < 100) {
         snprintf(s->line[4], sizeof s->line[4], "part %u/%u", (unsigned)k, (unsigned)n);
     } else {
         snprintf(s->line[4], sizeof s->line[4], "%u/%u", (unsigned)k, (unsigned)n);
+    }
+    if (a->qr.shown > n) {
+        line(s, 5, "looping");
     }
 }
 

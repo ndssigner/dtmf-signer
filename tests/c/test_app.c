@@ -403,8 +403,9 @@ static void lower(char *s)
     }
 }
 
-/* The QR screen says how many parts there are and where the first pass is,
- * then that the parts loop: never a count that only grows. */
+/* The QR screen says how many parts there are and which one is shown,
+ * cycling, and after the first pass that they loop: never a count that only
+ * grows. */
 static void check_qr_text(size_t i)
 {
     char want_s[16];
@@ -416,14 +417,9 @@ static void check_qr_text(size_t i)
     }
     snprintf(want_s, sizeof want_s, "%u parts", (unsigned)n);
     CHECK(shows(want_s));
-    if (i < n) {
-        snprintf(want_s, sizeof want_s, "part %u/%u", (unsigned)(i + 1), (unsigned)n);
-        CHECK(shows(want_s));
-        CHECK(!shows("looping"));
-    } else {
-        CHECK(shows("looping"));
-        CHECK(!shows("part "));
-    }
+    snprintf(want_s, sizeof want_s, "part %u/%u", (unsigned)(i % n + 1), (unsigned)n);
+    CHECK(shows(want_s));
+    CHECK(shows("looping") == (i >= n));
 }
 
 /* Reads the QR's URs for seq_len + 3 parts of 250 ms: the decoded message. */
