@@ -13,6 +13,9 @@ independent has reviewed it.
   the breadboard layout mounts it; checked on the board built from the
   layout.
 - The breadboard was built from the layout file and its printed template.
+  The template carries no QR code on the board itself: Sparrow, reading the
+  signer's screen, read the printed one first. The web tool's QR code is on
+  the sheet, outside the board.
   The parts list with rough costs (about US$13 from multipacks, around US$45
   at retail) is in hardware/breadboard.
 - The reference build, **Cable and QR**, on one full-size breadboard: a
@@ -34,7 +37,8 @@ independent has reviewed it.
 - Tested on the breadboard: the seed and its PIN (also sent as tones from
   a Nintendo DSi running [NDS-Signer](https://github.com/ndssigner/nds-signer)),
   the xpub read by Sparrow, two PSBTs signed byte for byte as the computer build signs them,
-  a fake change rejected, the emergency wipe. Times on the RP2040: PIN and
+  a fake change rejected, the emergency wipe, and a signet transaction from
+  Sparrow through ur-tones, signed on the breadboard. Times on the RP2040: PIN and
   seed 4.4 s, derivation 2.6 s, review 0.2–0.3 s, signing 0.1–0.25 s.
 
 ### Device logic (`app/`) and core (`core/`)

@@ -66,9 +66,12 @@ difference. It marks:
   the rail below), so they stay
   readable once everything is fitted; what each rail is, next to it;
 - the holes in use, clearly; the others only faintly, to line the sheet up;
-- in the free end of the board: the project, the main controls, and a QR
-  code of the [ur-tones web tool](https://ndssigner.github.io/ur-tones/),
-  which sends the tones to the signer and reads what it returns.
+- in the free end of the board: the project, the main controls, and the
+  addresses of the repository and of the
+  [ur-tones web tool](https://ndssigner.github.io/ur-tones/), which sends
+  the tones to the signer. Its QR code is printed outside the board, on the
+  part you cut away: on the board, a wallet's camera reading the signer's
+  screen would read it first.
 
 To make it again after changing the layout:
 

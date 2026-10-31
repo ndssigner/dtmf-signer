@@ -72,8 +72,11 @@ diferencia. Marca:
 - los agujeros que se usan, bien visibles; los demás, apenas marcados, solo
   para encajar la hoja;
 - en el extremo libre de la placa: el proyecto, los controles principales y
-  un código QR de la [herramienta web de ur-tones](https://ndssigner.github.io/ur-tones/),
-  que envía los tonos al firmador y lee lo que devuelve.
+  las direcciones del repositorio y de la
+  [herramienta web de ur-tones](https://ndssigner.github.io/ur-tones/), que
+  envía los tonos al firmador. Su código QR va impreso fuera de la placa, en
+  la parte que se recorta: dentro, la cámara de la cartera que lee la
+  pantalla del firmador lo leería antes.
 
 Para generarla de nuevo tras cambiar la disposición:
 

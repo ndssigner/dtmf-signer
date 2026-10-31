@@ -38,6 +38,7 @@ TEXT = {
         "info": ["DTMF-Signer", "Cable and QR", "", "Hold OK: sign", "Hold LEFT 3 s: wipe",
                  "Audio: IN / COM / OUT", ""],
         "qr": "ur-tones web tool",
+        "qr_note": "Not on the board: it would confuse a wallet's camera.",
         "usb": "USB",
         "screen": "screen (overhangs)",
     },
@@ -52,6 +53,7 @@ TEXT = {
         "info": ["DTMF-Signer", "Cable y QR", "", "Mantener OK: firmar", "Mantener IZQ 3 s: borrar",
                  "Audio: IN / COM / OUT", ""],
         "qr": "herramienta web ur-tones",
+        "qr_note": "Fuera de la placa: confundiría a la cámara de la cartera.",
         "usb": "USB",
         "screen": "pantalla (sobresale)",
     },
@@ -392,7 +394,10 @@ def draw(path, out, lang):
     for draw_late in late:
         draw_late()
 
-    # The free end of the board (rows 1..10): project, controls, QR of the web tool.
+    # The free end of the board (rows 1..10): project, controls, addresses.
+    # No QR code on the board: a wallet's camera reading the signer's screen
+    # would read it first. The web tool's QR goes on the sheet, outside the
+    # board, and is cut away with it.
     (ix0, iy0), (ix1, iy1) = s.xy(*board.point(10.5, 0.1)), s.xy(*board.point(0.5, 2.2))
     lx, rx = min(ix0, ix1), max(ix0, ix1)
     ty, bty = max(iy0, iy1), min(iy0, iy1)
@@ -405,15 +410,25 @@ def draw(path, out, lang):
         c.setFont("Helvetica-Bold" if i == 0 else "Helvetica", 6 if i == 0 else 4.4)
         c.drawCentredString(cx, yy, line)
         yy -= 3 * mm
+    c.setFont("Helvetica-Bold", 4.4)
+    c.drawCentredString(cx, bty + 13 * mm, t["qr"])
+    c.setFont("Helvetica", 4.2)
+    c.drawCentredString(cx, bty + 10.5 * mm, WEB_TOOL.replace("https://", ""))
+    c.setFont("Helvetica", 4.2)
+    c.drawCentredString(cx, bty + 4 * mm, REPO.replace("https://", ""))
+
+    # The web tool's QR code on the sheet, outside the board (cut away).
     qr = QrCodeWidget(WEB_TOOL, barLevel="M")
     x_a, y_a, x_b, y_b = qr.getBounds()
-    size = min(rx - lx - 3 * mm, 19 * mm)
+    size = 22 * mm
     d = Drawing(size, size, transform=[size / (x_b - x_a), 0, 0, size / (y_b - y_a), 0, 0])
     d.add(qr)
-    renderPDF.draw(d, c, cx - size / 2, bty + 6 * mm)
-    c.setFont("Helvetica", 4.2)
-    c.drawCentredString(cx, bty + 3.6 * mm, t["qr"])
-    c.drawCentredString(cx, bty + 1.6 * mm, WEB_TOOL.replace("https://", ""))
+    qx, qy = pw - 15 * mm - size, ph - 12 * mm - size
+    renderPDF.draw(d, c, qx, qy)
+    c.setFont("Helvetica", 6)
+    c.drawRightString(qx - 2 * mm, qy + size - 4 * mm, t["qr"])
+    c.drawRightString(qx - 2 * mm, qy + size - 8 * mm, WEB_TOOL)
+    c.drawRightString(qx - 2 * mm, qy + size - 12 * mm, t["qr_note"])
 
     c.showPage()
     c.save()
