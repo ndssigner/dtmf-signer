@@ -12,8 +12,9 @@ protoboard), y su plantilla impresa saldrá de este fichero.
 **Estado:** montada a partir de este fichero y de su plantilla impresa, y
 probada con el firmware: una semilla por tonos (desde un ordenador y desde
 una Nintendo DSi con NDS-Signer), y la XPUB y las PSBT firmadas leídas por
-Sparrow. La salida de audio (OUT) está cableada, pero el firmware todavía no
-la usa.
+Sparrow. La salida de audio (OUT) está cableada y comprobada con un programa
+de prueba (teclas DTMF desde GP15, oídas en unos auriculares y decodificadas
+por ur-tones en un móvil), pero el firmware del firmador todavía no la usa.
 
 ## Piezas y coste
 

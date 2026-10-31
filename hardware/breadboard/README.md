@@ -12,7 +12,9 @@ will come from this file.
 **Status:** built from this file and its printed template, and tested with
 the firmware: a seed by tones (from a computer and from a Nintendo DSi
 running NDS-Signer), the xpub and signed PSBTs read by Sparrow. The audio
-output (OUT) is wired but the firmware does not use it yet.
+output (OUT) is wired and checked with a test program (DTMF keys from GP15,
+heard on a headset and decoded by ur-tones on a phone), but the signer's
+firmware does not use it yet.
 
 ## Parts and cost
 

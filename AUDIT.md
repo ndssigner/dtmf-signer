@@ -130,8 +130,9 @@ ReportLab 5.1.0 for the printable templates. Licences:
   state and timing lines. Public data, but
   it tells that computer which wallet this is. Power the board from a
   charger or a power bank when that matters.
-- The audio output (OUT) is wired but not used by the firmware yet, and not
-  tested. The SSD1306 screen drivers build but are untested on hardware.
+- The audio output (OUT) is wired and checked with a test tone (DTMF keys
+  from GP15, heard on a headset and decoded by ur-tones on a phone), but
+  the firmware does not use it yet. The SSD1306 screen drivers build but are untested on hardware.
 - The confirmation rule has one accepted limit: tapping another button
   while OK is held splits the hold, so deliberate use of the buttons on the
   visible review can still confirm (`app/ds_app.h`).

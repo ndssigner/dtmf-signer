@@ -40,7 +40,9 @@ independent has reviewed it.
 - Tested on the breadboard: the seed and its PIN (also sent as tones from
   a Nintendo DSi running [NDS-Signer](https://github.com/ndssigner/nds-signer)),
   the xpub read by Sparrow, two PSBTs signed byte for byte as the computer build signs them,
-  a fake change rejected, the emergency wipe, and a signet transaction from
+  a fake change rejected, the emergency wipe, the audio output's wiring
+  (DTMF keys from a test program, decoded by ur-tones on a phone), and a
+  signet transaction from
   Sparrow through ur-tones, signed on the breadboard. Times on the RP2040: PIN and
   seed 4.4 s, derivation 2.6 s, review 0.2–0.3 s, signing 0.1–0.25 s.
 
