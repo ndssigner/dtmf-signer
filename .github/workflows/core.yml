@@ -63,7 +63,7 @@ jobs:
       # does): apt's gcc-arm-none-eabi pulls in hundreds of megabytes of C++
       # libraries the firmware does not use, and stalled the job.
       - id: arm-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/arm-gnu-toolchain
           key: arm-gnu-toolchain-14.3.rel1-x86_64
