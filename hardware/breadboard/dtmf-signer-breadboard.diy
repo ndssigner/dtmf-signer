@@ -629,8 +629,8 @@
       </alphaPercent>
       <controlPoints>
         <point x="6.9" y="3.0"/>
-        <point x="5.7" y="3.0"/>
-        <point x="5.3" y="3.1"/>
+        <point x="5.3" y="2.55"/>
+        <point x="5.3" y="2.8"/>
       </controlPoints>
       <color hex="1e88e5"/>
       <pointCount>THREE</pointCount>
@@ -892,12 +892,13 @@
         <value>100</value>
       </alphaPercent>
       <controlPoints>
-        <point x="8.4" y="2.7"/>
-        <point x="4.5" y="2.5"/>
         <point x="4.5" y="3.1"/>
+        <point x="4.5" y="3.25"/>
+        <point x="8.35" y="3.25"/>
+        <point x="8.4" y="3.0"/>
       </controlPoints>
       <color hex="ffb300"/>
-      <pointCount>THREE</pointCount>
+      <pointCount>FOUR</pointCount>
       <startDirection>VERTICAL</startDirection>
       <style>SOLID</style>
       <cornerRadius value="0.05" unit="in"/>
