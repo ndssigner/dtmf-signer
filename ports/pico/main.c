@@ -294,6 +294,7 @@ int main(void)
     stdio_init_all();
     gpio_init(DS_PIN_LED);
     gpio_set_dir(DS_PIN_LED, GPIO_OUT);
+    gpio_put(DS_PIN_LED, 0); /* off: a blinking light that tells nothing only distracts */
     ds_display_init();
     ds_btn_init(&btn);
     ds_app_init(&app, DS_AUDIO_RATE);
@@ -349,7 +350,6 @@ int main(void)
         if ((int32_t)(now - next_report) >= 0) {
             next_report = now + STACK_REPORT_MS;
             printf("stack-free %" PRIu32 "\n", stack_free());
-            gpio_put(DS_PIN_LED, !gpio_get(DS_PIN_LED));
         }
     }
 }

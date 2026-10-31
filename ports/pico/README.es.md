@@ -61,7 +61,7 @@ El único sitio donde se nombran los pines es [`board.h`](board.h).
 | GP20 | DC de la OLED |
 | GP21 | RES de la OLED |
 | GP4, GP5 | SDA, SCL de la OLED (solo con `SSD1306_I2C`, I2C0, dirección 0x3C) |
-| GP25 | El LED de la placa |
+| GP25 | El LED de la placa, siempre apagado |
 | GP27 (ADC1) | Entrada de línea |
 | GP28 (ADC2) | Escalera de botones |
 
