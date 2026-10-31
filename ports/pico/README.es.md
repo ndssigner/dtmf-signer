@@ -28,6 +28,15 @@ Da `build-pico/dtmf-signer-pico.uf2`. Opciones:
 | `DS_DISPLAY` | `SH1106_SPI` (por defecto), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` es la probada en hardware. `SSD1306_SPI` y `SSD1306_I2C` compilan, pero **no están probadas** en hardware. `SSD1306_I2C` usa I2C0 con SDA en GP4, SCL en GP5 y la dirección 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (por defecto), `OFF` | Gira la imagen 180 grados. `ON` es lo correcto para la [disposición en protoboard](../../hardware/breadboard/README.es.md); `OFF`, para una pantalla montada al revés. Las dos están probadas. |
 
+## Alimentación
+
+Muchas placas RP2040 baratas con conector USB-C no llevan las dos
+resistencias de 5,1 kΩ que le piden corriente a un cargador USB-C, así que
+un cargador USB-C a USB-C (el de un portátil, por ejemplo) no las enciende.
+Un cargador USB-A con un cable USB-A a USB-C funciona. Un cargador o una
+batería externa, en vez de un ordenador, también deja el eco por USB lejos
+de cualquier ordenador.
+
 ## Cargar el firmware
 
 Mantén pulsado BOOTSEL mientras enchufas el cable USB y luego:

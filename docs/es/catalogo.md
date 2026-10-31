@@ -374,7 +374,10 @@ Crece con cada montaje que alguien haga y mida.
   disposición de la Pico y USB-C (la RP2350 más adelante), una OLED SH1106
   de 1,3" por SPI (GP17 a GP21), pulsadores, un conector macho de 3,5 mm como
   entrada de línea (GP27), un auricular de cable como salida por el aire
-  (GP15) y un módulo de micrófono MAX9814 (GP26, aún sin probar).
+  (GP15) y un módulo de micrófono MAX9814 (GP26, aún sin probar). Las
+  placas RP2040 más pequeñas, como la RP2040-Zero, llevan el mismo chip pero
+  tienen los pines por todo el borde: sirven para placa perforada o PCB, no
+  para protoboard.
 - **Qué le falta:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`, `IN-UART`
   y los demás puertos, de momento.
 - **Medido** en el prototipo de protoboard con el firmware de

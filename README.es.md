@@ -43,9 +43,10 @@ Pico 2 vendrá después.
 - **Un firmador para todos.** Funciona solo, con cualquier móvil u
   ordenador que pueda reproducir y oír sonido. Sin cámara, sin cables
   especiales, sin tiendas de aplicaciones.
-- **Bajo coste.** Unos 13 $ en piezas para la placa básica (una
-  estimación), más o menos un tercio de un firmador que lee códigos QR con
-  un módulo lector.
+- **Bajo coste.** Unos 13 $ en piezas para el montaje Cable y QR si las
+  compras en lotes, como suelen hacer los aficionados; unos 45 $ comprando
+  cada pieza suelta en una tienda. Los precios cambian mucho de un vendedor
+  a otro ([las piezas y su coste](hardware/breadboard/README.es.md#piezas-y-coste)).
 - **Hazlo tú mismo, fácil y a prueba de torpes.** Pincha una Pico en una
   placa ya montada, sin soldar, o conecta módulos comunes en una
   protoboard. Piezas genéricas que se compran en cualquier parte: la
@@ -163,14 +164,15 @@ salida de línea, pilas y una tira con los GPIO libres.
 - **La semilla nunca se muestra.** Ni en la pantalla, ni por la salida de
   vídeo, ni por el puerto serie, ni por audio. Solo su huella.
 - **Sin estado.** La semilla vive solo en memoria. Nada se escribe en la
-  flash. Desenchufarlo, apagarlo o dejarlo inactivo la borra.
+  flash. Desenchufarlo o apagarlo la borra, igual que el borrado de
+  emergencia (mantener IZQUIERDA 3 s).
 - **El PIN y la passphrase nunca van por el aire.** Los datos sensibles
   llegan por cable o se teclean en el firmador, y nunca salen de él, por
   ningún canal.
 - **Lo revisas en el firmador.** Cada salida se muestra en su propia
   pantalla, y nada se firma sin su botón físico.
 - **Ningún generador de números aleatorios que pueda fallar.** Las firmas
-  usan nonces deterministas (RFC 6979, BIP 340).
+  usan nonces deterministas (RFC 6979).
 - **Sin elemento seguro, a propósito.** Apagado, no hay nada que extraer.
 - **Comprar te vincula a Bitcoin.** Cualquier pedido de una placa montada
   deja tu nombre y tu dirección en la base de datos de alguien. Las piezas

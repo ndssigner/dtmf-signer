@@ -9,9 +9,31 @@ the audio cable. The same layout fits a solderable breadboard (a perfboard
 with the breadboard's strips and rails), and the printed template for it
 will come from this file.
 
-**Status:** designed and checked by its nets; not yet built from this file.
-The circuits themselves (screen, buttons, line input) were tested on an
-earlier breadboard.
+**Status:** built from this file and its printed template, and tested with
+the firmware: a seed by tones (from a computer and from a Nintendo DSi
+running NDS-Signer), the xpub and signed PSBTs read by Sparrow. The audio
+output (OUT) is wired but the firmware does not use it yet.
+
+## Parts and cost
+
+Prices vary a lot by seller and by quantity: a Pico or a screen sold alone
+costs four or five times as much as one from a pack of three. Rough
+figures, in US dollars:
+
+| Part | Qty | From a multipack | Single, at retail |
+|---|---|---|---|
+| Raspberry Pi Pico (RP2040), or a clone with its layout | 1 | ~3.5 | ~15 |
+| 1.3" SH1106 OLED, 128 × 64, SPI (7 pins) | 1 | ~3.5 | ~18 |
+| Full-size breadboard, or a solderable one | 1 | ~3 | ~6 |
+| 6 × 6 mm push buttons | 5 | | |
+| Resistors: 1 k ×3, 2.2 k, 4.7 k ×2, 10 k ×4, 22 k | 11 | | |
+| Capacitors: 1 µF and 10 µF electrolytic, 10 nF film | 3 | | |
+| Three-way screw terminal block, 5.08 mm | 1 | | |
+| Jumper wire | | | |
+| **The small parts above, together** | | ~3 | ~6 |
+| **Total** | | **~13** | **~45** |
+
+Plus a USB cable and, for the audio, a cheap wired headset to cut up.
 
 ## Files
 
@@ -29,7 +51,10 @@ earlier breadboard.
 Print it at 100 %, with no scaling, and check that the bar at the bottom of
 the page measures 100 mm. Cut out the board along its outline (everything
 it needs is inside it) and paste it on the solderable breadboard, hole on
-hole, before fitting the parts; pierce the holes you use. It marks:
+hole, before fitting the parts; pierce the holes you use with something
+thin (a multimeter probe, a needle). On a real board the printed holes land
+within about a millimetre of the real ones, and the leads take up the
+difference. It marks:
 
 - every part where it goes, with its value; the + of the electrolytic
   capacitors inside their outline, and a band on the − side as on the part; pin 1 and the USB

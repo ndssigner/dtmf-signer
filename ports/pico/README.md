@@ -26,6 +26,14 @@ This gives `build-pico/dtmf-signer-pico.uf2`. Options:
 | `DS_DISPLAY` | `SH1106_SPI` (default), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` is the one tested on hardware. `SSD1306_SPI` and `SSD1306_I2C` build, but are **not tested** on hardware. `SSD1306_I2C` uses I2C0 with SDA on GP4, SCL on GP5 and address 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (default), `OFF` | Rotates the picture 180 degrees. `ON` is right for the [breadboard layout](../../hardware/breadboard/README.md); `OFF` for a screen mounted the other way round. Both are tested. |
 
+## Power
+
+Many cheap RP2040 boards with a USB-C socket lack the two 5.1 kΩ resistors
+that tell a USB-C charger to give power, so a USB-C to USB-C charger (a
+laptop's, for instance) leaves them off. A USB-A charger with a USB-A to
+USB-C cable works. A charger or a power bank, rather than a computer, also
+keeps the USB echo away from a computer.
+
 ## Flashing
 
 Hold BOOTSEL while plugging in the USB cable, then:

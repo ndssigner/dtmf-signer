@@ -357,7 +357,9 @@ build someone makes and measures.
   the Pico's layout and USB-C (the RP2350 later), a 1.3" SH1106 OLED over
   SPI (GP17 to GP21), push buttons, a 3.5 mm plug as line input (GP27), a
   wired earbud as air output (GP15), and a MAX9814 microphone module (GP26,
-  not yet tested).
+  not yet tested). Smaller RP2040 boards, such as the RP2040-Zero, run the
+  same chip but have their pins round the edge: they suit a perfboard or a
+  PCB, not a breadboard.
 - **What it lacks:** `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`,
   `IN-UART` and the other ports, for now.
 - **Measured** on the breadboard prototype with the firmware of

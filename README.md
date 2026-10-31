@@ -39,8 +39,10 @@ comes later.
 
 - **A signer for everyone.** It works on its own, with any phone or computer
   that can play and hear sound. No camera, no special cable, no app store.
-- **Low cost.** About US$13 in parts for the basic board (an estimate),
-  roughly a third of a signer that reads QR codes with a scanner module.
+- **Low cost.** About US$13 in parts for the Cable and QR build when you
+  buy multipacks, as hobbyists usually do; around US$45 buying single parts
+  at retail. Prices vary a lot by seller
+  ([the parts and their cost](hardware/breadboard/README.md#parts-and-cost)).
 - **Easy, foolproof DIY.** Plug a Pico into a ready-made board, with no
   soldering, or wire common modules on a breadboard. Generic parts you can
   buy anywhere: the reference decodes the tones in software, so it needs no
@@ -152,13 +154,14 @@ out, batteries, and a header with the free GPIO pins.
 - **The seed is never shown.** Not on the screen, the video output, the
   serial port or the audio. Only its fingerprint.
 - **Stateless.** The seed lives in memory only. Nothing is written to flash.
-  Unplugging, switching off or leaving it idle wipes it.
+  Unplugging or switching it off wipes it, and so does the emergency wipe
+  (hold LEFT for 3 s).
 - **PIN and passphrase never go through the air.** Sensitive data comes by
   cable or is typed on the signer, and never leaves it, on any channel.
 - **You review it on the signer.** Every output is shown on its own screen,
   and nothing is signed without its physical button.
 - **No random number generator to get wrong.** Signatures use deterministic
-  nonces (RFC 6979, BIP 340).
+  nonces (RFC 6979).
 - **No secure element, by design.** There is nothing to extract when it is
   off.
 - **Buying ties you to Bitcoin.** Any order for a ready-made board leaves
