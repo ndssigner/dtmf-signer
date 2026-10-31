@@ -338,7 +338,6 @@ static void build(const ds_app *a, ds_screen *s)
             line(s, 0, "Signed");
         }
         qr_parts(a, s);
-        line(s, 5, a->qr_scale == 1 ? "1px" : "2px");
         line(s, 7, a->state == ST_XPUB ? "<: back" : "<: done");
         break;
     case ST_LISTEN:

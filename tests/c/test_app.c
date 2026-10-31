@@ -515,7 +515,7 @@ static void test_app_sign_flow(void)
     CHECK(app.screen.qr);
     CHECK_EQ_INT(app.s.state, DS_S_READY);
     CHECK(app.qr_scale == 1 || app.qr_scale == 2);
-    CHECK(shows(app.qr_scale == 1 ? "1px" : "2px"));
+    CHECK(!shows("1px") && !shows("2px")); /* a test detail, not for the user */
     CHECK_EQ_INT(ds_app_contrast(&app), 0x20);
     ds_app_draw(&app, fb);
     CHECK(!all_zero(fb, sizeof fb));
