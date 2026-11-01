@@ -134,6 +134,15 @@ It listens by cable and speaks by QR: the seed and the PSBTs come in as
 tones, and the xpub and the signed PSBTs go out as animated QR codes on its
 screen. A dozen resistors and capacitors complete it.
 
+| ![Listening to a seed's tones: "Receiving", the level bar past its mark, the keys counted](docs/images/screens/seed-receiving.png) | ![Typing the PIN on a grid of letters and digits, the chosen one magnified](docs/images/screens/pin-typing.png) |
+| :---: | :---: |
+| Listening, with the level meter | The PIN, with its magnifier |
+| ![Reviewing an output: "Send to", the amount twice as tall and the whole address in groups of 4](docs/images/screens/review-send.png) | ![The signed PSBT as an animated QR code, with its parts and "looping"](docs/images/screens/signed.png) |
+| Each output: amount and whole address | The signed PSBT, as a QR code |
+
+Every screen, and how to move through them: [the screens](docs/screens.md)
+(drawn by the firmware's own code).
+
 To flash the Pico, take the UF2 attached to a release and copy it onto the
 Pico in BOOTSEL mode, or build it yourself with `tools/build-pico.sh`;
 built on Linux x86_64, as the published one is, it gives the same file byte

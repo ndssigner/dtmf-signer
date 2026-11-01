@@ -144,6 +144,15 @@ Escucha por cable y habla por QR: la semilla y las PSBT entran como tonos,
 y la XPUB y las PSBT firmadas salen como códigos QR animados en su
 pantalla. Una docena de resistencias y condensadores lo completan.
 
+| ![Escuchando los tonos de una semilla: "Receiving", la barra de nivel pasando su marca, las teclas contadas](docs/images/screens/seed-receiving.png) | ![Escribiendo el PIN en una rejilla de letras y dígitos, con el elegido ampliado](docs/images/screens/pin-typing.png) |
+| :---: | :---: |
+| Escuchando, con el medidor de nivel | El PIN, con su lupa |
+| ![Revisando una salida: "Send to", el importe el doble de alto y la dirección completa en grupos de 4](docs/images/screens/review-send.png) | ![La PSBT firmada como QR animado, con sus partes y "looping"](docs/images/screens/signed.png) |
+| Cada salida: importe y dirección completa | La PSBT firmada, como QR |
+
+Todas las pantallas y cómo se navega por ellas: [las pantallas](docs/es/pantallas.md)
+(dibujadas por el propio código del firmware).
+
 Para grabar la Pico, toma el UF2 adjunto a una versión y cópialo en la Pico
 en modo BOOTSEL, o compílalo tú con `tools/build-pico.sh`; compilado en
 Linux x86_64, como el publicado, da el mismo archivo byte a byte

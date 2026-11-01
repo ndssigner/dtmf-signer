@@ -1,0 +1,49 @@
+# Builds the Pico firmware for a release tag: the UF2 that is attached to
+# the release, made with tools/build-pico.sh on Linux x86_64, so anyone can
+# build the same tag there (or in a Linux x86_64 container) and compare.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  uf2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # git describe needs the tags: the version is in the firmware
+      # The SDK builds picotool, which wants libusb; nothing recommended.
+      # A hung mirror is cut after 2 minutes and tried again.
+      - name: Packages
+        timeout-minutes: 8
+        run: |
+          for i in 1 2 3; do
+            timeout 120 sudo apt-get update &&
+              timeout 120 sudo apt-get install -y --no-install-recommends ninja-build libusb-1.0-0-dev pkg-config &&
+              exit 0
+            sleep 10
+          done
+          exit 1
+      # No cache here: a release is built from what the script downloads and
+      # checks, nothing kept from earlier runs.
+      - run: tools/build-pico.sh
+      - name: SHA256SUMS
+        run: |
+          cd build-pico-release
+          sha256sum dtmf-signer-pico.uf2 > SHA256SUMS
+          cat SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dtmf-signer-pico-release
+          path: |
+            build-pico-release/dtmf-signer-pico.uf2
+            build-pico-release/SHA256SUMS
+          if-no-files-found: error

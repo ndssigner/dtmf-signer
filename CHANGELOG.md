@@ -2,7 +2,12 @@
 
 The firmware is a prototype: do not use it with funds.
 
-## Unreleased
+## v0.2.0-alpha (2026-11-01)
+
+Still a prototype, still not reviewed by anyone independent. The first
+version with the firmware attached (`dtmf-signer-pico.uf2`, built by the CI
+on Linux x86_64, and its SHA-256), for those who would rather flash it than
+build it; anyone can build the same tag and compare.
 
 - A new picker for the PIN and the passphrase: pages of 10 columns moved
   through with the arrows (the PIN on one page, the passphrase's printable
