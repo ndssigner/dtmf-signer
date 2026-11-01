@@ -69,6 +69,8 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_compile_options(-ffile-prefix-map=${DS_ROOT}=dtmf-signer
+                    -ffile-prefix-map=${PICO_SDK_PATH}=pico-sdk)
 add_subdirectory(${DS_ROOT}/third_party/secp256k1 secp256k1)
 
 # ur-tones and qrcodegen: their own targets, built without our warning flags.
@@ -101,6 +103,10 @@ else()
 endif()
 
 add_executable(dtmf-signer-pico main.c adc_ring.c ${DS_DISPLAY_SRC})
+# A reproducible build: no build date in the binary info, and no paths of
+# this machine in any string, so the same commit, SDK and toolchain give the
+# same UF2 byte for byte (tools/build-pico.sh).
+target_compile_definitions(dtmf-signer-pico PRIVATE PICO_NO_BI_PROGRAM_BUILD_DATE=1)
 target_include_directories(dtmf-signer-pico PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(dtmf-signer-pico PRIVATE DS_DISPLAY_${DS_DISPLAY}=1)
 if(DS_DISPLAY_FLIP)
