@@ -89,6 +89,7 @@ The ladder gives five buttons: LEFT, UP, OK, DOWN and RIGHT.
 The USB serial port is **output only**: the signer never reads from it. It
 prints public data and never a secret: the state names, the timings
 (`t pin|derive|review|sign|qr <ms>`), the fingerprints, the descriptor, the
+tone level of each group heard (`level -32.6 dBFS`), the
 signed PSBT in chunks of base64 between `signed-psbt-begin` and
 `signed-psbt-end`, and, every 5 s, `stack-free`. Compare the signed PSBT with
 the output of the computer build to check the firmware (see

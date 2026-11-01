@@ -94,7 +94,8 @@ ABAJO (DOWN) y DERECHA (RIGHT).
 
 El puerto serie USB es **solo de salida**: el firmador nunca lee de él.
 Imprime datos públicos y nunca un secreto: los nombres de estado, los
-tiempos (`t pin|derive|review|sign|qr <ms>`), las huellas, el descriptor, la
+tiempos (`t pin|derive|review|sign|qr <ms>`), las huellas, el descriptor, el
+nivel de los tonos de cada grupo oído (`level -32.6 dBFS`), la
 PSBT firmada en trozos de base64 entre `signed-psbt-begin` y
 `signed-psbt-end` y, cada 5 s, `stack-free`. Compara la PSBT firmada con la
 salida de la versión para ordenador para comprobar el firmware (las líneas

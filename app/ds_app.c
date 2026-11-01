@@ -203,6 +203,9 @@ static void listening(const ds_app *a, ds_screen *s, int psbt)
     if (a->msg) {
         line(s, 5, psbt ? "Not a PSBT" : "Not a seed");
     }
+    if (heard && ds_rx_level(&a->rx) < DS_APP_LOW_LEVEL) {
+        line(s, 6, "Signal low: volume up");
+    }
     line(s, 7, "<: back");
 }
 
@@ -983,8 +986,16 @@ static void poll_rx(ds_app *a)
 {
     while (listening_now(a)) {
         int32_t r = ds_rx_poll(&a->rx);
+        int lv;
+        char l[32];
         if (r == DS_RX_NONE) {
             break;
+        }
+        lv = a->rx.group_level;
+        if (lv > -990) {
+            snprintf(l, sizeof l, "level %s%d.%d dBFS", lv < 0 ? "-" : "",
+                     (lv < 0 ? -lv : lv) / 10, (lv < 0 ? -lv : lv) % 10);
+            echo_line(a, l);
         }
         if (r == DS_RX_OTHER) {
             a->msg = 1;

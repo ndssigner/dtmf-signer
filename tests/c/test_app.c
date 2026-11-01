@@ -1154,6 +1154,7 @@ static void test_app_activity(void)
     }
     CHECK(shows("receiving"));
     CHECK(!shows("keys 0 "));
+    CHECK(!shows("Signal low"));
     CHECK_EQ_STR(app.screen.line[2], "");
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
@@ -1161,6 +1162,24 @@ static void test_app_activity(void)
     }
     CHECK(shows("waiting"));
     CHECK(shows("Listening (cable)"));
+    CHECK(!shows("Signal low"));
+
+    /* The same tones 30 dB quieter: heard, with a request for more volume
+     * while they come. */
+    for (i = 0; i < n; i++) {
+        audio[i] = (int16_t)(audio[i] / 32);
+    }
+    for (i = 0; i < n / 2; i += CHUNK) {
+        ds_app_audio(&app, audio + i, CHUNK);
+        tick();
+    }
+    CHECK(shows("receiving"));
+    CHECK(shows("Signal low: volume up"));
+    for (i = 0; i < TONES_RATE; i += CHUNK) {
+        ds_app_audio(&app, silence, CHUNK);
+        tick();
+    }
+    CHECK(!shows("Signal low"));
     ds_app_init(&app, TONES_RATE);
 
     to_ready(NULL, 0x73c5da0au);

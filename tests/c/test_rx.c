@@ -287,6 +287,40 @@ static void test_rx_fast_cable(void)
     ds_rx_wipe(&rx);
 }
 
+/* The tones' level: the group's mean in 0.1 dBFS, 30 dB lower when the
+ * audio is 30 dB quieter; -990 before any tone. */
+static void test_rx_level(void)
+{
+    size_t n, i;
+    int loud, quiet;
+
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    ds_rx_init(&rx, TONES_RATE, DS_RX_SEED);
+    CHECK_EQ_INT(ds_rx_level(&rx), -990);
+    CHECK_EQ_INT(hear(&rx, tones), DS_RX_GOT_SEED);
+    loud = rx.group_level;
+    CHECK(loud > -300 && loud < 0);
+    ds_rx_wipe(&rx);
+
+    n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
+    for (i = 0; i < n; i++) {
+        audio[i] = (int16_t)(audio[i] / 32); /* -30.1 dB */
+    }
+    ds_rx_init(&rx, TONES_RATE, DS_RX_SEED);
+    for (i = 0; i < n / 2; i += 1000) {
+        ds_rx_push(&rx, audio + i, 1000);
+    }
+    CHECK(ds_rx_level(&rx) < loud - 250); /* live, before the group ends */
+    for (; i < n; i += 1000) {
+        ds_rx_push(&rx, audio + i, n - i < 1000 ? n - i : 1000);
+    }
+    CHECK_EQ_INT(ds_rx_poll(&rx), DS_RX_GOT_SEED);
+    quiet = rx.group_level;
+    CHECK(quiet < loud - 280 && quiet > loud - 320);
+    ds_rx_wipe(&rx);
+}
+
 TEST_MAIN(test_rx_seed_ur_pin, test_rx_seed_wrong_pin_wipes, test_rx_seed_keypad,
           test_rx_seed_replaced, test_rx_psbt_parts, test_rx_psbt_lost_frame,
-          test_rx_wrong_kind, test_rx_live_keys, test_rx_fast_cable)
+          test_rx_wrong_kind, test_rx_live_keys, test_rx_fast_cable,
+          test_rx_level)

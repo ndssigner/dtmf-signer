@@ -23,6 +23,7 @@ void ds_rx_init(ds_rx *rx, uint32_t rate, int mode)
 {
     memset(rx, 0, sizeof *rx);
     ut_listener_init(&rx->l, rate);
+    rx->group_level = -990;
     ut_fountain_decoder_init(&rx->d, rx->work, sizeof rx->work);
     rx->mode = mode;
 }
@@ -50,6 +51,11 @@ void ds_rx_push(ds_rx *rx, const int16_t *x, size_t n)
     ut_listener_push(&rx->l, x, n);
     got = ut_listener_live(&rx->l, k, sizeof k);
     if (got > 0) {
+        /* the level while a key sounds, not of the noise between groups */
+        if (rx->l.level > -990 && rx->level_n < 0x10000) {
+            rx->level_sum += rx->l.level;
+            rx->level_n++;
+        }
         rx->keys += (uint32_t)got;
         if (rx->mode == DS_RX_PSBT) {
             keep_live(rx, k, (size_t)got);
@@ -126,6 +132,11 @@ int32_t ds_rx_poll(ds_rx *rx)
         ds_wipe(group, sizeof group);
         return DS_RX_NONE;
     }
+    if (rx->level_n > 0) {
+        rx->group_level = (int)(rx->level_sum / (int32_t)rx->level_n);
+        rx->level_sum = 0;
+        rx->level_n = 0;
+    }
     if (rx->mode == DS_RX_SEED) {
         res = poll_seed(rx, group);
     } else {
@@ -169,6 +180,11 @@ int32_t ds_rx_psbt(const ds_rx *rx, const uint8_t **psbt, size_t *len)
         return DS_ERR_STATE;
     }
     return DS_OK;
+}
+
+int ds_rx_level(const ds_rx *rx)
+{
+    return rx->level_n > 0 ? (int)(rx->level_sum / (int32_t)rx->level_n) : rx->group_level;
 }
 
 void ds_rx_progress(const ds_rx *rx, uint32_t *have, uint32_t *need)

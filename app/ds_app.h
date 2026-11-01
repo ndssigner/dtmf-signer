@@ -55,7 +55,8 @@
  *
  * The echo (ds_app_take_echo) is public data only, one line per take: the
  * state names ("state ready"), the timings "t pin|derive|review|sign|qr
- * <ms>", "fingerprint xxxxxxxx", the descriptor, "echo-dropped N" when the
+ * <ms>", "fingerprint xxxxxxxx", the descriptor, "level -NN.N dBFS" (the
+ * mean tone level of each group heard), "echo-dropped N" when the
  * queue was full, and the signed PSBT as
  *   signed-psbt-begin <id> <bytes>
  *   signed-psbt <base64 of up to 48 bytes>     (in order, as many as needed)
@@ -100,6 +101,10 @@
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
 #define DS_APP_HEARD_MS 500 /* "receiving" this long after the last key */
+/* Below this tone level (0.1 dBFS) the listening screen asks for more
+ * volume. Measured on the Pico by cable: a seed frame at -35.8 dBFS failed,
+ * at -32.6 dBFS it loaded. */
+#define DS_APP_LOW_LEVEL (-330)
 /* A PRESS arms the review, and any event acts on a screen a job put up,
  * only this long after the port took it (see above): button events may
  * come from samples up to 200 ms old. */
