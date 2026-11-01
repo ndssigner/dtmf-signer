@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "ds_bitcoin.h"
-#include "ds_font5x7.h"
 
 #define GROUPS_PER_ROW 4
 
@@ -170,7 +169,7 @@ static void confirm_card(const ds_psbt_review *r, uint32_t i, int armed, ds_scre
     strcpy(s->line[2], "out, fee included");
     strcpy(s->line[4], armed ? "    Hold OK: sign" : "Tap OK, then hold OK");
     s->highlight = 4;
-    strcpy(s->line[5], "<: cancel");
+    strcpy(s->line[5], DS_ICON_LEFT " cancel");
 }
 
 void ds_review_card(const ds_psbt_review *r, uint32_t i, int armed, ds_screen *s)
@@ -192,33 +191,10 @@ void ds_review_card(const ds_psbt_review *r, uint32_t i, int armed, ds_screen *s
 
 /* ---- the drawing ---- */
 
-/* Address glyphs with a tail below the line (rows 2-7), as column bytes. */
-static const struct {
-    char c;
-    uint8_t col[5];
-} TAILS[] = {
-    { 'g', { 0x18, 0xA4, 0xA4, 0xA8, 0x7C } },
-    { 'j', { 0x40, 0x80, 0x84, 0x7D, 0x00 } },
-    { 'p', { 0xFC, 0x24, 0x24, 0x24, 0x18 } },
-    { 'q', { 0x18, 0x24, 0x24, 0x28, 0xFC } },
-    { 'y', { 0x1C, 0xA0, 0xA0, 0xA0, 0x7C } },
-};
-
 static const uint8_t *glyph_of(char c, int addr)
 {
-    unsigned char u = (unsigned char)c;
-    size_t k;
-    if (addr) {
-        for (k = 0; k < sizeof TAILS / sizeof TAILS[0]; k++) {
-            if (TAILS[k].c == c) {
-                return TAILS[k].col;
-            }
-        }
-    }
-    if (u < 0x20 || u > 0x7E) {
-        u = '?';
-    }
-    return ds_font5x7[u - 0x20];
+    (void)addr; /* the font itself has the tails now */
+    return ds_glyph(c);
 }
 
 static void put(uint8_t fb[8][128], int x, int y, int on)

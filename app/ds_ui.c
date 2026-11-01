@@ -10,13 +10,54 @@
 #define QR_COLS 10
 #define QR_X 66
 
-static const uint8_t *glyph(char c)
+static const uint8_t ICONS[8][5] = {
+    {0x3E, 0x3E, 0x3E, 0x3E, 0x3E}, /* box, filled */
+    {0x3E, 0x22, 0x22, 0x22, 0x3E}, /* box, empty */
+    {0x08, 0x1C, 0x3E, 0x7F, 0x00}, /* left */
+    {0x00, 0x7F, 0x3E, 0x1C, 0x08}, /* right */
+    {0x08, 0x0C, 0x0E, 0x0C, 0x08}, /* up */
+    {0x08, 0x18, 0x38, 0x18, 0x08}, /* down */
+    {0x1C, 0x3E, 0x3E, 0x3E, 0x1C}, /* dot, filled */
+    {0x1C, 0x22, 0x22, 0x22, 0x1C}, /* dot, empty */
+};
+
+const uint8_t *ds_glyph(char c)
 {
     unsigned char u = (unsigned char)c;
+    if (u >= 1 && u <= 8) {
+        return ICONS[u - 1];
+    }
     if (u < 0x20 || u > 0x7E) {
         u = '?';
     }
     return ds_font5x7[u - 0x20];
+}
+
+static const uint8_t *glyph(char c)
+{
+    return ds_glyph(c);
+}
+
+/* One glyph at (x, y) in fb, sx times wider and sy times taller. */
+static void put_glyph(uint8_t fb[8][128], int x, int y, char ch, int sx, int sy)
+{
+    const uint8_t *g = glyph(ch);
+    int c, r, dx, dy;
+    for (c = 0; c < 5; c++) {
+        for (r = 0; r < 8; r++) {
+            if (!((g[c] >> r) & 1)) {
+                continue;
+            }
+            for (dx = 0; dx < sx; dx++) {
+                for (dy = 0; dy < sy; dy++) {
+                    int px = x + c * sx + dx, py = y + r * sy + dy;
+                    if (px >= 0 && px < 128 && py >= 0 && py < 64) {
+                        fb[py / 8][px] |= (uint8_t)(1u << (py % 8));
+                    }
+                }
+            }
+        }
+    }
 }
 
 void ds_ui_render(const ds_screen *s, uint8_t fb[8][128])
@@ -32,11 +73,26 @@ void ds_ui_render(const ds_screen *s, uint8_t fb[8][128])
         const char *t = s->line[row];
 
         memset(page + from, inv, (size_t)(128 - from));
+        if (s->big > 0 && (row == s->big || row == s->big + 1)) {
+            continue;
+        }
         for (c = 0; c < cols && t[c] != '\0'; c++) {
             const uint8_t *g = glyph(t[c]);
             for (i = 0; i < 5; i++) {
                 page[x0 + 6 * c + i] = (uint8_t)(g[i] ^ inv);
             }
+        }
+    }
+    if (s->big > 0 && s->big + 1 < DS_UI_ROWS) {
+        const char *t = s->line[s->big];
+        int n = (int)strlen(t), x = (128 - (12 * n - 2)) / 2;
+        for (c = 0; c < n && c < 10; c++) {
+            put_glyph(fb, x + 12 * c, 8 * s->big, t[c], 2, 2);
+        }
+    }
+    if (s->footer) {
+        for (i = 0; i < 128; i += 2) {
+            fb[6][i] |= 0x80; /* y 55 */
         }
     }
 }

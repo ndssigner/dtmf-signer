@@ -173,6 +173,7 @@ static void quick_ready(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
     tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones);
     n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
@@ -196,10 +197,25 @@ int main(void)
 
     (void)tones_seed_keypad; /* a helper of tones.h not used here */
 
-    /* Loading the seed. */
+    /* Power-up: the warning, the About pages, then HOME. */
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    shot("welcome");
+    press(DS_BTN_DOWN);
+    shot("about-version");
+    press(DS_BTN_DOWN);
+    shot("about-caps-1");
+    press(DS_BTN_DOWN);
+    shot("about-caps-2");
+    press(DS_BTN_UP);
+    press(DS_BTN_UP);
+    press(DS_BTN_UP);
+    shot("about-repo");
+    press(DS_BTN_LEFT);
+    press(DS_BTN_OK);
+
+    /* Loading the seed. */
     shot("home");
     press(DS_BTN_OK);
     shot("seed-waiting");
@@ -286,6 +302,7 @@ int main(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
     start_psbt(vector("one input with change"));
     expect(tones_next_part(&enc, tones, sizeof tones) > 0, "a PSBT part");

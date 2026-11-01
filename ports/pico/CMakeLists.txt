@@ -87,6 +87,9 @@ target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror
 
 add_subdirectory(${DS_ROOT}/core core)
 add_subdirectory(${DS_ROOT}/app app)
+# What the About pages say about this build (its capabilities are the
+# Cable and QR profile's, the default in app/ds_about.h).
+target_compile_definitions(dtmf_app PUBLIC "DS_HARDWARE=\"Pico, OLED 128x64\"")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS ON)

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "ds_about.h"
 #include "ds_app.h"
 #include "ds_base64.h"
 #include "ds_btn.h"
@@ -239,6 +240,7 @@ static void to_seed_fp(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     CHECK(shows("Load seed"));
     CHECK_EQ_INT(ds_app_contrast(&app), DS_APP_UI_CONTRAST);
     press(DS_BTN_OK);
@@ -258,8 +260,8 @@ static void to_seed_fp(void)
     work_done();
     CHECK(shows("Seed fingerprint"));
     CHECK(shows("73c5da0a"));
-    CHECK(shows("OK: continue"));
-    CHECK(shows("<: discard"));
+    CHECK(shows("OK yes"));
+    CHECK(shows("discard"));
     CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     CHECK(all_zero(&app.rx, sizeof app.rx));
 }
@@ -272,8 +274,8 @@ static void to_ready(const char *passphrase, uint32_t fp)
     look();
     press(DS_BTN_OK);
     CHECK(shows("Passphrase?"));
-    CHECK(shows("OK: none"));
-    CHECK(shows(">: type it"));
+    CHECK(shows("OK  none"));
+    CHECK(shows("type one"));
     if (passphrase != NULL) {
         press(DS_BTN_RIGHT);
         type(passphrase);
@@ -724,6 +726,7 @@ static void test_app_echo_dropped(void)
     ds_app_init(&app, TONES_RATE);
     now = 0;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     for (i = 0; i < 100; i++) {
         press(DS_BTN_OK);   /* Load seed */
         press(DS_BTN_LEFT); /* back HOME */
@@ -922,6 +925,7 @@ static void test_app_job_screens_wait(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     CHECK(feed_tones(tones));
@@ -1015,6 +1019,7 @@ static void test_app_wrong_seed_data(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
     CHECK(shows("Listening (cable)"));
     CHECK(ut_fountain_encoder_init(&enc, cbor, (size_t)n, 100) >= 0);
@@ -1141,28 +1146,87 @@ static void test_app_fits_qr(void)
     CHECK(app.qr.type == NULL);
 }
 
+/* Settings: their values between arrows, moved with LEFT and RIGHT (OK
+ * moves them on too). */
 static void test_app_settings(void)
 {
     ds_app_init(&app, TONES_RATE);
     now = 0;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     ds_app_audio_lost(&app, 100); /* not listening: ignored */
     CHECK_EQ_INT(app.lost, 0);
-    CHECK(shows("Network: mainnet"));
-    CHECK(shows("QR contrast: 20"));
-    CHECK(shows("QR size: 2px"));
+    CHECK(strstr(app.screen.line[2], "Network") && strstr(app.screen.line[2], "mainnet"));
+    CHECK(strstr(app.screen.line[3], "QR contrast") && strstr(app.screen.line[3], "20"));
+    CHECK(strstr(app.screen.line[4], "QR size") && strstr(app.screen.line[4], "2px"));
+    CHECK(strstr(app.screen.line[0], "mainnet") != NULL);
     press(DS_BTN_DOWN);
-    press(DS_BTN_OK);
-    CHECK(shows("Network: testnet"));
+    press(DS_BTN_RIGHT);
+    CHECK(strstr(app.screen.line[2], "testnet") != NULL);
+    CHECK(strstr(app.screen.line[0], "testnet") != NULL);
+    press(DS_BTN_LEFT);
+    CHECK(strstr(app.screen.line[2], "mainnet") != NULL);
     press(DS_BTN_DOWN);
+    press(DS_BTN_RIGHT);
+    CHECK(strstr(app.screen.line[3], "40") != NULL);
+    press(DS_BTN_LEFT);
+    press(DS_BTN_LEFT);
+    CHECK(strstr(app.screen.line[3], "10") != NULL);
     press(DS_BTN_OK);
-    CHECK(shows("QR contrast: 40"));
+    CHECK(strstr(app.screen.line[3], "20") != NULL);
     press(DS_BTN_DOWN);
-    press(DS_BTN_OK);
-    CHECK(shows("QR size: 1px"));
+    press(DS_BTN_RIGHT);
+    CHECK(strstr(app.screen.line[4], "1px") != NULL);
     ds_app_button(&app, DS_BTN_DOWN, DS_BTN_PRESS);
     CHECK(ds_app_take_dirty(&app));
     CHECK(!ds_app_take_dirty(&app));
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* At power-up: the warning to flash it oneself, then HOME; the About pages
+ * from both, with the version, the capabilities of this build ticked, and
+ * the repository's QR code. */
+static void test_app_welcome_about(void)
+{
+    uint32_t i, ticked = 0, boxes = 0;
+    int r;
+    ds_app_init(&app, TONES_RATE);
+    now = 0;
+    tick();
+    CHECK(shows("Flashed it yourself?"));
+    CHECK(shows("the source code."));
+    press(DS_BTN_DOWN);
+    CHECK(shows("About"));
+    {
+        char v[2 * DS_UI_COLS + 1];
+        snprintf(v, sizeof v, "%s%s", app.screen.line[2], app.screen.line[3]);
+        CHECK_EQ_STR(v, DS_VERSION); /* the version, whole, over one or two rows */
+    }
+    CHECK(shows(DS_PROFILE));
+    for (i = 1; i < ds_about_pages(); i++) {
+        press(DS_BTN_DOWN);
+        for (r = 1; r < DS_UI_ROWS; r++) {
+            ticked += app.screen.line[r][0] == DS_ICON_ON[0];
+            boxes += app.screen.line[r][0] == DS_ICON_ON[0] || app.screen.line[r][0] == DS_ICON_OFF[0];
+        }
+    }
+    CHECK_EQ_INT(boxes, 23);  /* every capability of the catalog */
+    CHECK_EQ_INT(ticked, 6);  /* Cable and QR's */
+    CHECK(shows("dtmf-signer"));
+    ds_app_draw(&app, fb);
+    CHECK(fb[1][10] != 0 || fb[2][10] != 0); /* the QR code on the left */
+    press(DS_BTN_LEFT);
+    CHECK(shows("Flashed it yourself?"));
+    press(DS_BTN_OK);
+    CHECK(shows("Load seed"));
+    for (i = 0; i < 4; i++) {
+        press(DS_BTN_DOWN);
+    }
+    press(DS_BTN_OK);
+    CHECK(shows("Firmware"));
+    press(DS_BTN_LEFT);
+    CHECK(shows("Load seed"));
+    CHECK(strstr(app.screen.line[app.screen.highlight], "About") != NULL);
     ds_app_init(&app, TONES_RATE);
 }
 
@@ -1178,6 +1242,7 @@ static void test_app_activity(void)
     ds_app_init(&app, TONES_RATE);
     now = 1000;
     tick();
+    press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
     CHECK(shows("waiting"));
     CHECK(!shows("receiving"));
@@ -1279,4 +1344,4 @@ TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
           test_app_fits_qr, test_app_settings, test_app_single_page,
           test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
           test_app_wipe_anywhere, test_app_arm_delay, test_app_job_screens_wait,
-          test_app_activity)
+          test_app_activity, test_app_welcome_about)

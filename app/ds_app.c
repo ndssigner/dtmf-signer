@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "ds_about.h"
 #include "ds_base64.h"
 #include "ds_btn.h"
 #include "ds_review.h"
@@ -23,7 +24,9 @@ enum {
     ST_SIGNED,
     ST_ERROR,     /* a message; OK goes to err_to */
     ST_WORKING,
-    ST_WIPED
+    ST_WIPED,
+    ST_WELCOME,   /* at power-up: flash it yourself */
+    ST_ABOUT      /* the About pages */
 };
 
 /* Heavy work, run in the tick after "Working..." was shown. */
@@ -47,7 +50,7 @@ static const uint8_t CONTRASTS[] = {0x01, 0x04, 0x10, 0x20, 0x40, 0x80, 0xFF};
 #define N_CONTRASTS ((int)(sizeof CONTRASTS / sizeof CONTRASTS[0]))
 #define DEFAULT_CONTRAST 3 /* 0x20 */
 
-#define HOME_ITEMS 4
+#define HOME_ITEMS 5
 #define READY_ITEMS 5
 
 static const char *state_name(int st)
@@ -68,6 +71,8 @@ static const char *state_name(int st)
     case ST_ERROR: return "error";
     case ST_WORKING: return "working";
     case ST_WIPED: return "wiped";
+    case ST_WELCOME: return "welcome";
+    case ST_ABOUT: return "about";
     default: return "?";
     }
 }
@@ -181,6 +186,53 @@ static void menu(const ds_app *a, ds_screen *s, int first, const char *const *it
     s->highlight = first + a->cursor;
 }
 
+/* The button hints on row 7, under a dotted line. */
+static void footer(ds_screen *s, const char *text)
+{
+    line(s, 7, text);
+    s->footer = 1;
+}
+
+/* The steps of loading a seed (the seed, the passphrase, the wallet) as
+ * dots at the right of row 7. */
+static void steps(ds_screen *s, int k)
+{
+    char *l = s->line[7];
+    size_t n = strlen(l);
+    int i;
+    while (n < DS_UI_COLS - 3) {
+        l[n++] = ' ';
+    }
+    for (i = 1; i <= 3; i++) {
+        l[n++] = (i <= k ? DS_ICON_DOT : DS_ICON_NODOT)[0];
+    }
+    l[n] = '\0';
+    s->footer = 1;
+}
+
+/* A setting: its name at the left, its value between arrows at the right. */
+static void setting(char *out, const char *name, const char *value)
+{
+    char v[22];
+    size_t lv, ln = strlen(name);
+    snprintf(v, sizeof v, DS_ICON_LEFT " %s " DS_ICON_RIGHT, value);
+    lv = strlen(v);
+    memset(out, ' ', DS_UI_COLS);
+    memcpy(out, name, ln);
+    memcpy(out + DS_UI_COLS - lv, v, lv);
+    out[DS_UI_COLS] = '\0';
+}
+
+/* Row 0: a title, and a word at the right. */
+static void title_right(ds_screen *s, const char *t, const char *right)
+{
+    size_t lr = strlen(right);
+    memset(s->line[0], ' ', DS_UI_COLS);
+    memcpy(s->line[0], t, strlen(t));
+    memcpy(s->line[0] + DS_UI_COLS - lr, right, lr);
+    s->line[0][DS_UI_COLS] = '\0';
+}
+
 /* Row 1 says whether tones are coming in, or sound that cannot be read;
  * for a PSBT row 2 shows the last keys as they come (public), a seed's keys
  * are never shown. More volume is asked for only when reading fails: sound
@@ -219,7 +271,7 @@ static void listening(const ds_app *a, ds_screen *s, int psbt)
     if (a->msg && a->rx.group_level < DS_APP_LOW_LEVEL) {
         line(s, 6, "Too quiet: volume up");
     }
-    line(s, 7, "<: back");
+    footer(s, DS_ICON_LEFT " back");
 }
 
 /* The right column of a QR screen: how many parts and which one of them is
@@ -244,42 +296,66 @@ static void qr_parts(const ds_app *a, ds_screen *s)
     }
 }
 
+/* An error: what happened, inverted, then what it means and what to do. */
 static void error_screen(const ds_app *a, ds_screen *s)
 {
     switch (a->err_kind) {
     case E_SEED:
-        line(s, 0, "Seed not loaded");
-        line(s, 1, "Wrong PIN or data");
+        line(s, 0, "! Seed not loaded");
+        line(s, 2, "Wrong PIN or data,");
+        line(s, 3, "or tones were lost.");
+        line(s, 5, "Check the PIN and");
+        line(s, 6, "the volume.");
         break;
     case E_PASS:
-        line(s, 0, "Bad passphrase");
+        line(s, 0, "! Bad passphrase");
+        line(s, 2, "Type it again.");
         break;
     case E_REJECTED:
-        line(s, 0, "Rejected");
-        line(s, 1, ds_error_name(a->err));
+        line(s, 0, "! Rejected");
+        line(s, 2, ds_error_name(a->err));
+        line(s, 4, "Nothing was signed.");
         break;
     case E_NOTHING:
-        line(s, 0, "Rejected");
-        line(s, 1, "No input of this");
-        line(s, 2, "wallet to sign");
+        line(s, 0, "! Rejected");
+        line(s, 2, "No input of this");
+        line(s, 3, "wallet to sign.");
+        line(s, 5, "Right seed and");
+        line(s, 6, "passphrase?");
         break;
     case E_TOO_BIG:
-        line(s, 0, "Too big for QR");
-        line(s, 1, "Nothing signed");
+        line(s, 0, "! Too big for QR");
+        line(s, 2, "Nothing signed.");
+        line(s, 4, "Spend fewer inputs");
+        line(s, 5, "at a time.");
         break;
     case E_SIGN:
-        line(s, 0, "Sign failed");
-        line(s, 1, ds_error_name(a->err));
+        line(s, 0, "! Sign failed");
+        line(s, 2, ds_error_name(a->err));
         break;
     case E_NO_QR:
-        line(s, 0, "Signed, but no QR:");
-        line(s, 1, "output discarded");
+        line(s, 0, "! Signed, but no QR");
+        line(s, 2, "The signature was");
+        line(s, 3, "discarded.");
         break;
     default:
-        line(s, 0, "Error");
+        line(s, 0, "! Error");
         break;
     }
-    line(s, 7, "OK: back");
+    s->highlight = 0;
+    footer(s, "OK back");
+}
+
+/* What the heavy work is doing, for "Working...". */
+static const char *job_name(int job)
+{
+    switch (job) {
+    case JOB_PIN: return "Decrypting the seed";
+    case JOB_DERIVE: return "Deriving the wallet";
+    case JOB_REVIEW: return "Checking the PSBT";
+    case JOB_SIGN: return "Signing";
+    default: return "Making the QR code";
+    }
 }
 
 static void build(const ds_app *a, ds_screen *s)
@@ -289,18 +365,34 @@ static void build(const ds_app *a, ds_screen *s)
     memset(s, 0, sizeof *s);
     s->highlight = -1;
     switch (a->state) {
+    case ST_WELCOME:
+        line(s, 0, "DTMF-Signer");
+        line(s, 2, "Flashed it yourself?");
+        s->highlight = 2;
+        line(s, 3, "If someone else did,");
+        line(s, 4, "flash it again from");
+        line(s, 5, "the source code.");
+        footer(s, "OK go on  " DS_ICON_DOWN " About");
+        break;
+    case ST_ABOUT:
+        ds_about_page((uint32_t)a->about_page, s);
+        break;
     case ST_HOME: {
-        char net[22], con[22], size[22];
+        char net[22], con[22], size[22], v[8];
         const char *items[HOME_ITEMS];
-        snprintf(net, sizeof net, "Network: %s", a->testnet ? "testnet" : "mainnet");
-        snprintf(con, sizeof con, "QR contrast: %02X", CONTRASTS[a->contrast]);
-        snprintf(size, sizeof size, "QR size: %dpx", a->scale);
+        setting(net, "Network", a->testnet ? "testnet" : "mainnet");
+        snprintf(v, sizeof v, "%02X", CONTRASTS[a->contrast]);
+        setting(con, "QR contrast", v);
+        snprintf(v, sizeof v, "%dpx", a->scale);
+        setting(size, "QR size", v);
         items[0] = "Load seed";
         items[1] = net;
         items[2] = con;
         items[3] = size;
-        line(s, 0, "DTMF-Signer");
-        menu(a, s, 2, items, HOME_ITEMS);
+        items[4] = "About";
+        title_right(s, "DTMF-Signer", a->testnet ? "testnet" : "mainnet");
+        menu(a, s, 1, items, HOME_ITEMS);
+        footer(s, DS_ICON_UP DS_ICON_DOWN " move  OK choose");
         break;
     }
     case ST_LOAD:
@@ -313,14 +405,17 @@ static void build(const ds_app *a, ds_screen *s)
         line(s, 0, "Seed fingerprint");
         snprintf(buf, sizeof buf, "%08x", (unsigned)a->seed_fp);
         line(s, 2, buf);
-        line(s, 5, "OK: continue");
-        line(s, 6, "<: discard");
+        s->big = 2;
+        line(s, 5, "Same as the sender?");
+        footer(s, "OK yes  " DS_ICON_LEFT " discard");
+        steps(s, 1);
         break;
     case ST_PASS_ASK:
         line(s, 0, "Passphrase?");
-        line(s, 2, "OK: none");
-        line(s, 3, ">: type it");
-        line(s, 6, "<: discard");
+        line(s, 2, "OK  none");
+        line(s, 3, DS_ICON_RIGHT "   type one");
+        footer(s, DS_ICON_LEFT " discard");
+        steps(s, 2);
         break;
     case ST_PASS:
         ds_picker_screen(&a->pick, "Passphrase", s);
@@ -329,21 +424,27 @@ static void build(const ds_app *a, ds_screen *s)
         line(s, 0, "Wallet fingerprint");
         snprintf(buf, sizeof buf, "%08x", (unsigned)a->s.w.wallet_fp);
         line(s, 2, buf);
-        line(s, 6, "OK: continue");
+        s->big = 2;
+        line(s, 5, "Same in your wallet?");
+        footer(s, "OK continue");
+        steps(s, 3);
         break;
     case ST_READY: {
-        char con[22], size[22];
+        char con[22], size[22], v[8];
         const char *items[READY_ITEMS];
-        snprintf(con, sizeof con, "QR contrast: %02X", CONTRASTS[a->contrast]);
-        snprintf(size, sizeof size, "QR size: %dpx", a->scale);
+        snprintf(v, sizeof v, "%02X", CONTRASTS[a->contrast]);
+        setting(con, "QR contrast", v);
+        snprintf(v, sizeof v, "%dpx", a->scale);
+        setting(size, "QR size", v);
         items[0] = "Sign PSBT";
         items[1] = "Show XPUB";
         items[2] = con;
         items[3] = size;
         items[4] = "Wipe";
         snprintf(buf, sizeof buf, "Wallet %08x", (unsigned)a->s.w.wallet_fp);
-        line(s, 0, buf);
-        menu(a, s, 2, items, READY_ITEMS);
+        title_right(s, buf, a->testnet ? "test" : "main");
+        menu(a, s, 1, items, READY_ITEMS);
+        footer(s, DS_ICON_UP DS_ICON_DOWN " move  OK choose");
         break;
     }
     case ST_XPUB:
@@ -357,7 +458,7 @@ static void build(const ds_app *a, ds_screen *s)
             line(s, 0, "Signed");
         }
         qr_parts(a, s);
-        line(s, 7, a->state == ST_XPUB ? "<: back" : "<: done");
+        line(s, 7, a->state == ST_XPUB ? DS_ICON_LEFT " back" : DS_ICON_LEFT " done");
         break;
     case ST_LISTEN:
         listening(a, s, 1);
@@ -370,9 +471,15 @@ static void build(const ds_app *a, ds_screen *s)
         break;
     case ST_WORKING:
         line(s, 0, "Working...");
+        line(s, 3, job_name(a->job));
+        if (a->job == JOB_PIN || a->job == JOB_DERIVE) {
+            steps(s, a->job == JOB_PIN ? 1 : 3);
+        }
         break;
     case ST_WIPED:
         line(s, 0, "Wiped");
+        line(s, 2, "Everything is erased.");
+        line(s, 3, "Restarting.");
         break;
     default:
         break;
@@ -747,7 +854,7 @@ void ds_app_init(ds_app *a, uint32_t audio_rate)
     a->rate = audio_rate;
     a->contrast = DEFAULT_CONTRAST;
     a->scale = 2;
-    a->state = ST_HOME;
+    a->state = ST_WELCOME;
     refresh(a);
     a->dirty = 1;
 }
@@ -804,21 +911,66 @@ static void start_listening(ds_app *a, int mode, int st)
     set_state(a, st);
 }
 
+/* A setting moved with LEFT (back) or RIGHT (on); OK moves it on too. */
+static void change_setting(ds_app *a, int which, int dir)
+{
+    switch (which) {
+    case 0: a->testnet = !a->testnet; break;
+    case 1: a->contrast = (a->contrast + N_CONTRASTS + dir) % N_CONTRASTS; break;
+    default: a->scale = a->scale == 2 ? 1 : 2; break;
+    }
+}
+
+static void open_about(ds_app *a, int back)
+{
+    a->about_page = 0;
+    a->about_back = back;
+    set_state(a, ST_ABOUT);
+}
+
+static void button_welcome(ds_app *a, int btn)
+{
+    if (btn == DS_BTN_OK) {
+        set_state(a, ST_HOME);
+    } else if (btn == DS_BTN_DOWN) {
+        open_about(a, ST_WELCOME);
+    }
+}
+
+/* UP and DOWN turn the pages (DOWN from the first page of the welcome's
+ * About too); LEFT or OK go back. */
+static void button_about(ds_app *a, int btn)
+{
+    int n = (int)ds_about_pages();
+    if (btn == DS_BTN_DOWN) {
+        a->about_page = (a->about_page + 1) % n;
+    } else if (btn == DS_BTN_UP) {
+        a->about_page = (a->about_page + n - 1) % n;
+    } else if (btn == DS_BTN_LEFT || btn == DS_BTN_OK) {
+        int back = a->about_back;
+        set_state(a, back);
+        if (back == ST_HOME) {
+            a->cursor = HOME_ITEMS - 1; /* back on "About" */
+        }
+    }
+}
+
 static void button_home(ds_app *a, int btn)
 {
     if (btn == DS_BTN_UP) {
         a->cursor = (a->cursor + HOME_ITEMS - 1) % HOME_ITEMS;
     } else if (btn == DS_BTN_DOWN) {
         a->cursor = (a->cursor + 1) % HOME_ITEMS;
+    } else if ((btn == DS_BTN_LEFT || btn == DS_BTN_RIGHT) && a->cursor >= 1 && a->cursor <= 3) {
+        change_setting(a, a->cursor - 1, btn == DS_BTN_LEFT ? -1 : 1);
     } else if (btn == DS_BTN_OK) {
         switch (a->cursor) {
         case 0:
             ds_session_init(&a->s, a->testnet);
             start_listening(a, DS_RX_SEED, ST_LOAD);
             break;
-        case 1: a->testnet = !a->testnet; break;
-        case 2: a->contrast = (a->contrast + 1) % N_CONTRASTS; break;
-        default: a->scale = a->scale == 2 ? 1 : 2; break;
+        case 4: open_about(a, ST_HOME); break;
+        default: change_setting(a, a->cursor - 1, 1); break;
         }
     }
 }
@@ -829,12 +981,14 @@ static void button_ready(ds_app *a, int btn)
         a->cursor = (a->cursor + READY_ITEMS - 1) % READY_ITEMS;
     } else if (btn == DS_BTN_DOWN) {
         a->cursor = (a->cursor + 1) % READY_ITEMS;
+    } else if ((btn == DS_BTN_LEFT || btn == DS_BTN_RIGHT) && (a->cursor == 2 || a->cursor == 3)) {
+        change_setting(a, a->cursor - 1, btn == DS_BTN_LEFT ? -1 : 1);
     } else if (btn == DS_BTN_OK) {
         switch (a->cursor) {
         case 0: start_listening(a, DS_RX_PSBT, ST_LISTEN); break;
         case 1: start_job(a, JOB_QR_XPUB); break;
-        case 2: a->contrast = (a->contrast + 1) % N_CONTRASTS; break;
-        case 3: a->scale = a->scale == 2 ? 1 : 2; break;
+        case 2:
+        case 3: change_setting(a, a->cursor - 1, 1); break;
         default: wipe(a); break;
         }
     }
@@ -928,6 +1082,12 @@ void ds_app_button(ds_app *a, int btn, int kind)
         return; /* a tap carried over from "Working..." is dropped */
     }
     switch (a->state) {
+    case ST_WELCOME:
+        button_welcome(a, btn);
+        break;
+    case ST_ABOUT:
+        button_about(a, btn);
+        break;
     case ST_HOME:
         button_home(a, btn);
         break;
@@ -1076,6 +1236,9 @@ void ds_app_draw(const ds_app *a, uint8_t fb[8][128])
         return;
     }
     ds_ui_render(&a->screen, fb);
+    if (a->screen.about) {
+        ds_about_draw(&a->screen, fb);
+    }
     if (a->screen.pick) {
         ds_picker_draw(&a->pick, fb);
     }

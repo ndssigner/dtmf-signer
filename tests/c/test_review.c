@@ -119,7 +119,7 @@ static void test_review_cards(void)
     CHECK_EQ_STR(scr.line[2], "out, fee included");
     CHECK_EQ_INT(scr.highlight, 4);
     CHECK(strstr(scr.line[4], "Hold OK: sign") != NULL);
-    CHECK_EQ_STR(scr.line[5], "<: cancel");
+    CHECK_EQ_STR(scr.line[5], DS_ICON_LEFT " cancel");
     ds_review_card(&rv, 3, 0, &scr);
     CHECK(strstr(scr.line[4], "Tap OK, then hold OK") != NULL);
 

@@ -129,6 +129,7 @@ typedef struct {
     size_t echo_len;
     uint32_t rate;
     int state, cursor;
+    int about_page, about_back;   /* the About page shown; the state to return to */
     int testnet, contrast, scale; /* settings: contrast index, 2 or 1 px */
     int qr_scale;                 /* the scale the QR really uses */
     int err_kind;                 /* which error screen */

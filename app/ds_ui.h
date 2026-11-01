@@ -23,12 +23,31 @@
 #define DS_APP_TEXT_MAX 100
 #endif
 
+/* Icons, drawn by any text: a filled and an empty box, the four arrows and
+ * a filled and an empty dot (for steps). As strings, to put in text. */
+#define DS_ICON_ON "\x01"
+#define DS_ICON_OFF "\x02"
+#define DS_ICON_LEFT "\x03"
+#define DS_ICON_RIGHT "\x04"
+#define DS_ICON_UP "\x05"
+#define DS_ICON_DOWN "\x06"
+#define DS_ICON_DOT "\x07"
+#define DS_ICON_NODOT "\x08"
+
+/* The 5 columns of c (bit 0 the top row, bit 7 a tail below the line):
+ * printable ASCII, an icon, or '?' for anything else. */
+const uint8_t *ds_glyph(char c);
+
 typedef struct {
     char line[DS_UI_ROWS][DS_UI_COLS + 1];
     int highlight; /* the inverted row, -1 for none */
     int qr;        /* 1: a QR code owns the left 64x64 square */
     int pick;      /* 1: rows 2-7 are the picker's (ds_picker_draw) */
     int pick_page, pick_cur; /* its page and cell, so a move redraws */
+    int footer;    /* 1: a dotted line above row 7 (the button hints) */
+    int big;       /* a row drawn twice as wide and tall over it and the
+                      next, centred; 0 for none (row 0 is never big) */
+    int about;     /* 1: an About page; its QR, if any, by ds_about_draw */
     int review;    /* 1: a review card, drawn by ds_review_draw */
     int chip;      /* review: the first chip characters of row 0 inverted */
     int tall;      /* review: row 1 twice as tall */

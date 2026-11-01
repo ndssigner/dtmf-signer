@@ -18,12 +18,14 @@ static char text[2048];
 static void test_font(void)
 {
     int a, b;
-    /* Every printable glyph but the space has pixels, and none repeats. */
+    /* Every printable glyph but the space has pixels, and none repeats;
+     * only g, j, p, q and y reach below the line (bit 7). */
     for (a = 1; a < 95; a++) {
         int any = 0, i;
+        int tail = strchr("gjpqy", 0x20 + a) != NULL;
         for (i = 0; i < 5; i++) {
             any |= ds_font5x7[a][i];
-            CHECK((ds_font5x7[a][i] & 0x80) == 0);
+            CHECK(tail || (ds_font5x7[a][i] & 0x80) == 0);
         }
         CHECK(any);
         for (b = a + 1; b < 95; b++) {
@@ -68,15 +70,18 @@ static void test_render_text(void)
     CHECK_EQ_INT(fb[2][127], 0xFF);
     CHECK_EQ_INT(fb[0][1], ds_font5x7['A' - 0x20][1]);
 
-    /* The 21st column ends at x 125; non-printable bytes draw as '?'. */
+    /* The 21st column ends at x 125; bytes 1-8 are icons, other
+     * non-printable bytes draw as '?'. */
     memset(&scr, 0, sizeof scr);
     scr.highlight = -1;
     memset(scr.line[1], 'W', DS_UI_COLS);
-    scr.line[3][0] = '\x01';
+    scr.line[3][0] = '\x0e';
+    scr.line[3][1] = DS_ICON_ON[0];
     ds_ui_render(&scr, fb);
     for (i = 0; i < 5; i++) {
         CHECK_EQ_INT(fb[1][120 + i], ds_font5x7['W' - 0x20][i]);
         CHECK_EQ_INT(fb[3][i], ds_font5x7['?' - 0x20][i]);
+        CHECK_EQ_INT(fb[3][6 + i], ds_glyph(DS_ICON_ON[0])[i]);
     }
     CHECK_EQ_INT(fb[1][126], 0);
     CHECK_EQ_INT(fb[1][127], 0);
