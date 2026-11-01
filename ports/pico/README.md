@@ -9,17 +9,50 @@ DMA, display, buttons, the USB echo). The profile is
 and the times measured on this board are in the
 [catalog](../../docs/catalog.md).
 
-## Build
+## Get the firmware
 
-You need the Raspberry Pi Pico SDK 2.3.1, an Arm GCC toolchain, CMake 3.22 or
-later and the repository cloned with `--recurse-submodules`.
+Two ways, both giving the same file, byte for byte.
+
+### The published UF2
+
+The releases after v0.1.0-alpha carry `dtmf-signer-pico.uf2`, built by the
+project's CI from the release's tag, and its SHA-256. Take it if you do not
+want to build it: you are then trusting that build instead of checking it
+yourself, a choice worth making knowingly. Anyone can check it for everyone
+by building the same tag as below and comparing the SHA-256.
+
+### Build it yourself
+
+From a clone of the repository (not a downloaded archive: the version
+shown on the About page comes from git):
+
+```bash
+git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
+cd dtmf-signer
+git checkout v0.2.0-alpha    # the release to build; skip it for the latest code
+tools/build-pico.sh
+```
+
+The script fetches the Pico SDK 2.3.1 and Arm's GNU toolchain 14.3.rel1
+(checked against Arm's SHA-256) into `~/.cache/dtmf-signer`, builds from
+scratch and prints the UF2's path and SHA-256: for a release's tag it
+matches the published one. It needs git, CMake 3.22 or later, Ninja or
+make, Python 3, curl and tar, and picotool 2.3.1 (`brew install picotool`
+on macOS; elsewhere the SDK builds it, which needs a C++ compiler and
+libusb, `build-essential` and `libusb-1.0-0-dev` on Debian or Ubuntu). It
+runs on Linux (x86_64, aarch64), on macOS with Apple silicon, and on
+Windows through WSL. Arm publishes no 14.3 toolchain for Intel Macs: there,
+use the published UF2.
+
+With your own SDK and toolchain the build is the usual one, though its UF2
+will not match the published one byte for byte:
 
 ```bash
 cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<path to the Pico SDK 2.3.1>
 cmake --build build-pico
 ```
 
-This gives `build-pico/dtmf-signer-pico.uf2`. Options:
+Options:
 
 | Option | Values | |
 | --- | --- | --- |
@@ -36,10 +69,12 @@ keeps the USB echo away from a computer.
 
 ## Flashing
 
-Hold BOOTSEL while plugging in the USB cable, then:
+Hold BOOTSEL while plugging in the USB cable: the Pico shows up as a drive
+called `RPI-RP2`. Copy the UF2 onto it; the Pico restarts with the new
+firmware. Or, with picotool:
 
 ```bash
-picotool load -x build-pico/dtmf-signer-pico.uf2
+picotool load -x build-pico-release/dtmf-signer-pico.uf2
 ```
 
 The firmware turns off the USB reset-to-bootloader on purpose (the host

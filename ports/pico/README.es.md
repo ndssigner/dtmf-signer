@@ -10,18 +10,51 @@ perfil es
 y los tiempos medidos en esta placa están en el
 [catálogo](../../docs/es/catalogo.md).
 
-## Compilar
+## Conseguir el firmware
 
-Hace falta el SDK de la Raspberry Pi Pico 2.3.1, una cadena de herramientas
-Arm GCC, CMake 3.22 o posterior y el repositorio clonado con
-`--recurse-submodules`.
+Dos caminos, que dan el mismo archivo byte a byte.
+
+### El UF2 publicado
+
+Las versiones posteriores a la v0.1.0-alpha llevan `dtmf-signer-pico.uf2`,
+compilado por la CI del proyecto desde la etiqueta de la versión, y su
+SHA-256. Úsalo si no quieres compilarlo: en ese caso confías en esa
+compilación en vez de comprobarla tú, una decisión que conviene tomar a
+sabiendas. Cualquiera puede comprobarlo para todos compilando la misma
+etiqueta como se explica abajo y comparando el SHA-256.
+
+### Compilarlo uno mismo
+
+Desde un clon del repositorio (no desde un archivo descargado: la versión
+que muestra la página About sale de git):
+
+```bash
+git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
+cd dtmf-signer
+git checkout v0.2.0-alpha    # the release to build; skip it for the latest code
+tools/build-pico.sh
+```
+
+El script descarga el SDK de la Pico 2.3.1 y la cadena de herramientas GNU
+de Arm 14.3.rel1 (comprobada con el SHA-256 de Arm) en
+`~/.cache/dtmf-signer`, compila desde cero e imprime la ruta y el SHA-256
+del UF2: para la etiqueta de una versión coincide con el publicado.
+Necesita git, CMake 3.22 o posterior, Ninja o make, Python 3, curl y tar, y
+picotool 2.3.1 (`brew install picotool` en macOS; en otros sistemas lo
+compila el SDK, lo que pide un compilador de C++ y libusb, `build-essential`
+y `libusb-1.0-0-dev` en Debian o Ubuntu). Funciona en Linux (x86_64,
+aarch64), en macOS con Apple silicon y en Windows con WSL. Arm no publica la
+cadena 14.3 para Mac con Intel: ahí, usa el UF2 publicado.
+
+Con tu propio SDK y tu cadena de herramientas la compilación es la de
+siempre, aunque su UF2 no coincidirá byte a byte con el publicado:
 
 ```bash
 cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=<ruta al SDK de la Pico 2.3.1>
 cmake --build build-pico
 ```
 
-Da `build-pico/dtmf-signer-pico.uf2`. Opciones:
+Opciones:
 
 | Opción | Valores | |
 | --- | --- | --- |
@@ -39,10 +72,12 @@ de cualquier ordenador.
 
 ## Cargar el firmware
 
-Mantén pulsado BOOTSEL mientras enchufas el cable USB y luego:
+Mantén pulsado BOOTSEL mientras enchufas el cable USB: la Pico aparece como
+una unidad llamada `RPI-RP2`. Copia el UF2 en ella; la Pico se reinicia con
+el firmware nuevo. O, con picotool:
 
 ```bash
-picotool load -x build-pico/dtmf-signer-pico.uf2
+picotool load -x build-pico-release/dtmf-signer-pico.uf2
 ```
 
 El firmware desactiva a propósito el reinicio al cargador por USB (el

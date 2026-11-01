@@ -9,6 +9,11 @@ The firmware is a prototype: do not use it with funds.
   ASCII on four: abc, ABC, 123 and the rarer symbols), OK to add, OK held to
   finish, a delete cell, and a magnifier that shows the chosen character
   three times larger. The entry is shown in the clear instead of as stars.
+- A reproducible Pico build: `tools/build-pico.sh` fetches the pinned
+  Pico SDK and Arm toolchain (checked by SHA-256) and gives the same UF2,
+  byte for byte, from the same tag; CI builds it the same way and keeps
+  the UF2, so releases can carry it. Flashing is also explained the simple
+  way: copy the UF2 onto the Pico's drive in BOOTSEL mode.
 - At power-up the signer asks whether you flashed it yourself (a cheap
   device may be a present from someone with other intentions) and About
   shows the version, the profile, the catalog's capabilities with this

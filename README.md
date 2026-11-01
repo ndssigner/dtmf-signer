@@ -134,6 +134,11 @@ It listens by cable and speaks by QR: the seed and the PSBTs come in as
 tones, and the xpub and the signed PSBTs go out as animated QR codes on its
 screen. A dozen resistors and capacitors complete it.
 
+To flash the Pico, take the UF2 attached to a release and copy it onto the
+Pico in BOOTSEL mode, or build it yourself with `tools/build-pico.sh`,
+which gives the same file byte for byte
+([how](ports/pico/README.md#get-the-firmware)).
+
 ## The full board (planned)
 
 | Part | What for |
