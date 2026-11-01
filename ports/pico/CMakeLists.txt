@@ -62,6 +62,7 @@ set(SECP256K1_ENABLE_MODULE_SILENTPAYMENTS OFF CACHE BOOL "" FORCE)
 set(SECP256K1_ECMULT_WINDOW_SIZE 2 CACHE STRING "" FORCE)
 set(SECP256K1_ECMULT_GEN_KB 2 CACHE STRING "" FORCE)
 set(SECP256K1_ASM OFF CACHE STRING "" FORCE)
+set(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS ON CACHE BOOL "" FORCE) # secp_callbacks.c
 
 # Our libraries are plain C99 (the same as the host build); the port itself
 # uses the SDK's default language level.
@@ -102,7 +103,7 @@ else()
   set(DS_DISPLAY_SRC display_ssd1306.c)
 endif()
 
-add_executable(dtmf-signer-pico main.c adc_ring.c ${DS_DISPLAY_SRC})
+add_executable(dtmf-signer-pico main.c adc_ring.c secp_callbacks.c ${DS_DISPLAY_SRC})
 # A reproducible build: no build date in the binary info, and no paths of
 # this machine in any string, so the same commit, SDK and toolchain give the
 # same UF2 byte for byte (tools/build-pico.sh).
