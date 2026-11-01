@@ -106,7 +106,7 @@ Mitigaciones:
 | Generador de aleatorios débil | **No aplica** | Nonces deterministas (RFC 6979); el firmador no genera semillas |
 | Una PSBT malformada u hostil (longitudes falsas, claves repetidas, demasiadas entradas) | Media | Lectura por partes con límites; las reglas fallan con un error limpio; la segunda pasada vuelve a calcular el hash y no firma si la PSBT no es la revisada. **Pendiente**: fuzzing en el repositorio del receptor de tonos y de la decodificación de tramas |
 | Una pulsación que empezó antes de que se viera el resumen confirma la firma | Baja | La pulsación larga de OK solo cuenta en la última página, tras ver todas, y solo después de una pulsación corta de cualquier botón hecha al menos 300 ms (de tiempo del bucle) después de entregar el resumen a la pantalla, así que una pulsación que viene de antes nunca confirma. Límite aceptado: tocar otro botón mientras se mantiene OK parte la pulsación, así que usar los botones a propósito con el resumen a la vista aún puede confirmar |
-| Secretos que quedan en RAM tras un borrado | Baja | Borrado en todos los caminos; antes de reiniciar se ponen a cero el audio, la pantalla y la parte muerta de la pila, porque la SRAM sobrevive al reinicio; ur-tones v0.4.0 borra sus propias copias |
+| Secretos que quedan en RAM tras un borrado | Baja | Borrado en todos los caminos; antes de reiniciar se ponen a cero el audio, la pantalla y la parte muerta de la pila, porque la SRAM sobrevive al reinicio; ur-tones (desde la v0.4.0) borra sus propias copias |
 | Audio corrompido en silencio si el bucle se retrasa | Baja | Las muestras se comprueban tras copiarlas del anillo DMA; lo que el DMA sobrescribe se cuenta como perdido y no se entrega |
 
 ## 4. Riesgos de uso

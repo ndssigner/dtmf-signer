@@ -242,10 +242,10 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   UR o un WAV con sus tonos) de entrada, el resumen por la salida de error,
   "yes" por la entrada estándar y la PSBT firmada de salida.
   `dtmf-signer-host tones seed|psbt … --out FILE.wav` es una herramienta de
-  pruebas que graba una semilla o una PSBT como tonos (ritmo de cable o de
-  aire; las semillas en modo teclado, `--keypad`, van siempre a ritmo de
-  aire, 80/80/600 ms, porque ur-tones pide ahí al menos 80 ms + 80 ms, y
-  con ellas se rechaza `--timing cable`). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
+  pruebas que graba una semilla o una PSBT como tonos (ritmo de cable, de
+  cable rápido o de aire; las semillas en modo teclado, `--keypad`, van
+  siempre a ritmo de aire, 80/80/600 ms, porque ur-tones pide ahí al menos
+  80 ms + 80 ms, y con ellas se rechaza cualquier otro `--timing`). Aviso: sus argumentos (semilla, PIN, frase de paso) los ven
   otros procesos y quedan en el historial del shell; usa solo semillas de
   prueba con ella.
 - [`ports/pico/`](ports/pico/): el firmware para la Raspberry Pi Pico

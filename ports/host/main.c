@@ -47,18 +47,18 @@ static void usage(void)
           "       dtmf-signer-host sign SEED --psbt FILE [--out FILE]\n"
           "                             [--pin PIN] [--passphrase TEXT] [--testnet]\n"
           "       dtmf-signer-host tones seed ENTROPY_HEX [--pin PIN] [--keypad] --out FILE.wav\n"
-          "                                 [--rate 16000|44100] [--timing cable|air]\n"
+          "                                 [--rate 16000|44100] [--timing cable|fast|air]\n"
           "       dtmf-signer-host tones psbt FILE --out FILE.wav\n"
-          "                                 [--rate 16000|44100] [--timing cable|air]\n"
+          "                                 [--rate 16000|44100] [--timing cable|fast|air]\n"
           "SEED is --ur UR, --keypad TONES, --frame TONES or --wav FILE.\n"
           "sign reads a PSBT (base64, binary, ur:crypto-psbt / ur:psbt lines, or a\n"
           "WAV recording of its tones), shows what it would sign and signs after\n"
           "\"yes\" on standard input.\n"
           "tones writes a recording of a seed (a UR frame, or keypad tones with\n"
           "--keypad) or of a PSBT (a file as for sign) for testing; cable timing\n"
-          "(40/20/400 ms) by default, air timing is 80/80/600 ms. Keypad tones\n"
-          "always use air timing (ur-tones asks for at least 80 ms + 80 ms):\n"
-          "--keypad with --timing cable is refused.\n"
+          "(40/20/400 ms) by default, fast cable 30/10/400 ms, air 80/80/600 ms.\n"
+          "Keypad tones always use air timing (ur-tones asks for at least 80 ms +\n"
+          "80 ms): --keypad with another --timing is refused.\n"
           "warning: arguments are visible to other processes (ps) and are kept in\n"
           "the shell history. Use only test seeds with this tool.\n",
           stderr);
@@ -741,7 +741,8 @@ static int hex_bytes(const char *hex, uint8_t *out, size_t cap)
  * may hold a secret, so all of them are wiped on every path. */
 static int tones_main(int argc, char **argv)
 {
-    static const ut_timing cable = UT_TIMING_CABLE, air = UT_TIMING_AIR;
+    static const ut_timing cable = UT_TIMING_CABLE, air = UT_TIMING_AIR,
+                           fast = { UT_FAST_TONE_MS, UT_FAST_GAP_MS, 400 };
     const ut_timing *timing = &cable;
     const char *out = NULL, *kind, *arg;
     char *pin = NULL;
@@ -784,6 +785,7 @@ static int tones_main(int argc, char **argv)
             const char *v = argv[++i];
             if (!strcmp(v, "cable")) timing = &cable;
             else if (!strcmp(v, "air")) timing = &air;
+            else if (!strcmp(v, "fast")) timing = &fast;
             else goto done;
             have_timing = 1;
         } else {

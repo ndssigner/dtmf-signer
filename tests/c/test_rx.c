@@ -239,6 +239,54 @@ static void test_rx_live_keys(void)
     ds_rx_wipe(&rx);
 }
 
+/* Renders data tones at ur-tones' fast cable pace, 30/10/400 ms (SPEC 1.1,
+ * only to a receiver known to support it). */
+static size_t tones_render_fast(const char *tones, int16_t *out, size_t cap)
+{
+    ut_synth s;
+    ut_synth_init(&s, tones, TONES_RATE, UT_FAST_TONE_MS, UT_FAST_GAP_MS, 400);
+    return ut_synth_read(&s, out, cap);
+}
+
+/* Sends tones at the fast pace and takes the one group heard. */
+static int32_t hear_fast(ds_rx *r, const char *t)
+{
+    size_t n = tones_render_fast(t, audio, sizeof audio / sizeof audio[0]), i;
+    for (i = 0; i < n; i += 1000) {
+        ds_rx_push(r, audio + i, n - i < 1000 ? n - i : 1000);
+    }
+    return ds_rx_poll(r);
+}
+
+/* ur-tones' fast cable pace, 30 ms + 10 ms: a seed and a whole PSBT. */
+static void test_rx_fast_cable(void)
+{
+    static ut_fountain_encoder e;
+    const psbt_vector *v = &psbt_vectors[0];
+    const uint8_t *p = NULL;
+    uint8_t ent[32];
+    size_t len = 0, i;
+    int32_t r = DS_RX_NONE;
+
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    ds_rx_init(&rx, TONES_RATE, DS_RX_SEED);
+    CHECK_EQ_INT(hear_fast(&rx, tones), DS_RX_GOT_SEED);
+    CHECK_EQ_INT(ds_rx_seed(&rx, "TEST", ent), 16);
+    CHECK(memcmp(ent, zero16, 16) == 0);
+    ds_rx_wipe(&rx);
+
+    encoder_for(v, &e);
+    ds_rx_init(&rx, TONES_RATE, DS_RX_PSBT);
+    for (i = 0; i < e.seq_len && r != DS_RX_DONE; i++) {
+        CHECK(tones_next_part(&e, tones, sizeof tones) > 0);
+        r = hear_fast(&rx, tones);
+    }
+    CHECK_EQ_INT(r, DS_RX_DONE); /* no part lost at this pace */
+    CHECK_EQ_INT(ds_rx_psbt(&rx, &p, &len), DS_OK);
+    CHECK(len == v->psbt_len && memcmp(p, v->psbt, len) == 0);
+    ds_rx_wipe(&rx);
+}
+
 TEST_MAIN(test_rx_seed_ur_pin, test_rx_seed_wrong_pin_wipes, test_rx_seed_keypad,
           test_rx_seed_replaced, test_rx_psbt_parts, test_rx_psbt_lost_frame,
-          test_rx_wrong_kind, test_rx_live_keys)
+          test_rx_wrong_kind, test_rx_live_keys, test_rx_fast_cable)

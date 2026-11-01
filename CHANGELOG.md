@@ -2,6 +2,12 @@
 
 The firmware is a prototype: do not use it with funds.
 
+## Unreleased
+
+- ur-tones v0.5.0. Its receiver is unchanged; the new "fast cable" pace
+  (30 ms tone + 10 ms silence) is now tested in the tone receiver's host
+  tests, and `dtmf-signer-host tones` can record it (`--timing fast`).
+
 ## v0.1.0-alpha (2026-10-31)
 
 First tagged version: a working prototype, not a product. Nobody

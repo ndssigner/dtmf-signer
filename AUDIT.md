@@ -105,7 +105,7 @@ Git submodules in `third_party/` (exact commits: `git submodule status`):
 | Dependency | Version |
 | :--- | :--- |
 | libsecp256k1 | v0.8.0 (`6e2c8bc`) |
-| ur-tones | v0.4.0 (`02b58be`) |
+| ur-tones | v0.5.0 (`416d65a`) |
 | QR Code generator (Nayuki) | v1.8.0 (`720f62b`) |
 
 Build only, not in the repository: Pico SDK 2.3.1 (with TinyUSB) and the

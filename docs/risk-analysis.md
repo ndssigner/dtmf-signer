@@ -105,7 +105,7 @@ Mitigations:
 | Weak random number generator | **Not applicable** | Deterministic nonces (RFC 6979); the signer never generates seeds |
 | A malformed or hostile PSBT (false lengths, repeated keys, too many inputs) | Medium | Streamed reading with limits; the rules fail with a clean error; the second pass hashes the PSBT again and does not sign if it is not the one reviewed. **To do**: fuzzing, in the repository, of the tone receiver and the frame decoding |
 | A press that began before the summary was shown confirms the signature | Low | A long press of OK counts only on the last page, after every page was shown, and only after a short press of any button made at least 300 ms (tick time) after the summary was handed to the screen, so a hold or tap carried over from before never confirms. Accepted limit: tapping another button while OK is held splits the hold, so deliberate use of the buttons on the visible summary can still confirm |
-| Secrets left in RAM after a wipe | Low | Wiped on every path; before the reboot, the audio, the screen and the dead part of the stack are zeroed, because SRAM survives the reset; ur-tones v0.4.0 clears its own copies |
+| Secrets left in RAM after a wipe | Low | Wiped on every path; before the reboot, the audio, the screen and the dead part of the stack are zeroed, because SRAM survives the reset; ur-tones (since v0.4.0) clears its own copies |
 | Audio corrupted silently if the loop falls behind | Low | Samples are checked after they are copied from the DMA ring; what the DMA overwrote is counted as lost and never delivered |
 
 ## 4. Risks in use
