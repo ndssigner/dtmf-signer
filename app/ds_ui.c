@@ -160,69 +160,250 @@ void ds_pager_move(ds_pager *p, int delta)
 
 /* ---- picker ---- */
 
-static int set_len(const ds_picker *p)
+#define PICK_COLS 10
+
+/* The pages, 10 cells per row; "\x7f" is delete, "\x01" empty. */
+static const char *const PIN_PAGES[] = {
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\x7f\x01\x01\x01",
+};
+static const char *const TEXT_PAGES[] = {
+    "abcdefghijklmnopqrstuvwxyz .-\x7f",
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ .-\x7f",
+    "0123456789!\"#$%&'()*+,/:;=?@_\x7f",
+    "<>[\\]^`{|}~\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x7f",
+};
+static const char *const TEXT_TABS[] = { "abc", "ABC", "123", "<{~" };
+
+static int pick_pages(const ds_picker *p)
 {
-    return (int)strlen(p->set);
+    return p->kind == DS_PICK_PIN ? 1 : 4;
 }
 
-void ds_picker_init(ds_picker *p, const char *set)
+static const char *pick_page(const ds_picker *p)
+{
+    return p->kind == DS_PICK_PIN ? PIN_PAGES[0] : TEXT_PAGES[p->page];
+}
+
+static int pick_rows(const ds_picker *p)
+{
+    return (int)strlen(pick_page(p)) / PICK_COLS;
+}
+
+void ds_picker_init(ds_picker *p, int kind)
 {
     memset(p->buf, 0, sizeof p->buf);
     p->len = 0;
+    p->page = 0;
     p->cur = 0;
-    p->set = set;
+    p->kind = kind;
+}
+
+char ds_picker_cell(const ds_picker *p)
+{
+    return pick_page(p)[p->cur];
 }
 
 int ds_picker_button(ds_picker *p, int btn, int kind)
 {
-    int n = set_len(p);
+    int rows = pick_rows(p), pages = pick_pages(p);
+    int row = p->cur / PICK_COLS, col = p->cur % PICK_COLS;
+    char c;
 
-    if (kind != DS_BTN_PRESS || n == 0) {
+    if (kind == DS_BTN_LONG) {
+        return btn == DS_BTN_OK ? DS_PICK_DONE : 0;
+    }
+    if (kind != DS_BTN_PRESS) {
         return 0;
     }
     switch (btn) {
-    case DS_BTN_UP:
-        p->cur = (p->cur + 1) % n;
-        break;
-    case DS_BTN_DOWN:
-        p->cur = (p->cur + n - 1) % n;
+    case DS_BTN_LEFT:
+        col = (col + PICK_COLS - 1) % PICK_COLS;
         break;
     case DS_BTN_RIGHT:
-        if (p->len < DS_APP_TEXT_MAX) {
-            p->buf[p->len++] = p->set[p->cur];
-            p->buf[p->len] = '\0';
+        col = (col + 1) % PICK_COLS;
+        break;
+    case DS_BTN_UP:
+        if (row > 0) {
+            row--;
+        } else {
+            p->page = (p->page + pages - 1) % pages;
+            row = pick_rows(p) - 1;
         }
         break;
-    case DS_BTN_LEFT:
-        if (p->len > 0) {
-            p->buf[--p->len] = '\0';
+    case DS_BTN_DOWN:
+        if (row < rows - 1) {
+            row++;
+        } else {
+            p->page = (p->page + 1) % pages;
+            row = 0;
         }
         break;
     case DS_BTN_OK:
-        return 1;
+        c = ds_picker_cell(p);
+        if (c == DS_PICK_DEL) {
+            if (p->len == 0) {
+                return DS_PICK_BACK;
+            }
+            p->buf[--p->len] = '\0';
+        } else if (c != DS_PICK_NONE && p->len < DS_APP_TEXT_MAX) {
+            p->buf[p->len++] = c;
+            p->buf[p->len] = '\0';
+        }
+        return 0;
     default:
-        break;
+        return 0;
     }
+    p->cur = row * PICK_COLS + col;
     return 0;
 }
 
 void ds_picker_screen(const ds_picker *p, const char *title, ds_screen *s)
 {
-    size_t i;
-    size_t total = p->len + 1; /* the stars and the current character */
+    size_t from = p->len > DS_UI_COLS - 1 ? p->len - (DS_UI_COLS - 1) : 0;
 
     screen_clear(s);
     snprintf(s->line[0], sizeof s->line[0], "%.*s", DS_UI_COLS, title);
-    for (i = 0; i < total && i < (size_t)(DS_UI_ROWS - 2) * DS_UI_COLS; i++) {
-        char c = i < p->len ? '*' : p->set[p->cur];
-        s->line[1 + i / DS_UI_COLS][i % DS_UI_COLS] = c;
+    if (p->len > 0) {
+        char n[8];
+        size_t w = (size_t)snprintf(n, sizeof n, "%u", (unsigned)p->len);
+        size_t t = strlen(s->line[0]);
+        if (t + 1 + w <= DS_UI_COLS) {
+            memset(s->line[0] + t, ' ', DS_UI_COLS - w - t);
+            memcpy(s->line[0] + DS_UI_COLS - w, n, w + 1);
+        }
+        snprintf(s->line[1], sizeof s->line[1], "%s_", p->buf + from);
+    } else {
+        strcpy(s->line[1], p->kind == DS_PICK_PIN ? "OK add, hold OK: none"
+                                                  : "OK add, hold OK: done");
     }
-    strcpy(s->line[DS_UI_ROWS - 1], "^v char >add <del OK");
+    s->pick = 1;
+    s->pick_page = p->page;
+    s->pick_cur = p->cur;
+}
+
+static void put(uint8_t fb[8][128], int x, int y, int on)
+{
+    if (x < 0 || x > 127 || y < 0 || y > 63) {
+        return;
+    }
+    if (on) {
+        fb[y / 8][x] |= (uint8_t)(1u << (y % 8));
+    } else {
+        fb[y / 8][x] &= (uint8_t)~(1u << (y % 8));
+    }
+}
+
+/* A character at (x, y), scale times larger, lit or (on 0) dark. */
+static void big_char(uint8_t fb[8][128], int x, int y, char c, int scale, int on)
+{
+    const uint8_t *g = glyph(c);
+    int col, row, dx, dy;
+    for (col = 0; col < 5; col++) {
+        for (row = 0; row < 7; row++) {
+            if ((g[col] >> row) & 1) {
+                for (dx = 0; dx < scale; dx++) {
+                    for (dy = 0; dy < scale; dy++) {
+                        put(fb, x + col * scale + dx, y + row * scale + dy, on);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* A cell's mark: its character, an open box for the space, an arrow for
+ * delete. */
+static void cell_mark(uint8_t fb[8][128], int x, int y, char c, int on)
+{
+    int i;
+    if (c == ' ') {
+        for (i = 0; i < 5; i++) {
+            put(fb, x + i, y + 6, on);
+        }
+        put(fb, x, y + 5, on);
+        put(fb, x + 4, y + 5, on);
+    } else if (c == DS_PICK_DEL) {
+        for (i = 0; i < 5; i++) {
+            put(fb, x + i, y + 3, on);
+        }
+        put(fb, x + 1, y + 2, on);
+        put(fb, x + 1, y + 4, on);
+        put(fb, x + 2, y + 1, on);
+        put(fb, x + 2, y + 5, on);
+    } else if (c != DS_PICK_NONE) {
+        big_char(fb, x, y, c, 1, on);
+    }
+}
+
+static void small_text(uint8_t fb[8][128], int x, int y, const char *t, int on)
+{
+    for (; *t; t++, x += 6) {
+        big_char(fb, x, y, *t, 1, on);
+    }
+}
+
+void ds_picker_draw(const ds_picker *p, uint8_t fb[8][128])
+{
+    const char *cells = pick_page(p);
+    int n = (int)strlen(cells), i, x, y;
+    char c = ds_picker_cell(p);
+
+    for (i = 2; i < 8; i++) {
+        memset(fb[i], 0, 128);
+    }
+    for (x = 0; x < 128; x += 2) {
+        put(fb, x, 17, 1);
+    }
+    for (i = 0; i < n; i++) {
+        int cx = (i % PICK_COLS) * 10 + 2, cy = 20 + (i / PICK_COLS) * 10;
+        int sel = i == p->cur;
+        if (sel) {
+            for (y = cy - 2; y <= cy + 8; y++) {
+                for (x = cx - 2; x <= cx + 6; x++) {
+                    put(fb, x, y, 1);
+                }
+            }
+        }
+        cell_mark(fb, cx, cy, cells[i], !sel);
+    }
+    /* The magnifier. */
+    for (x = 102; x <= 127; x++) {
+        put(fb, x, 19, 1);
+        put(fb, x, 48, 1);
+    }
+    for (y = 19; y <= 48; y++) {
+        put(fb, 102, y, 1);
+        put(fb, 127, y, 1);
+    }
+    if (c == ' ') {
+        small_text(fb, 106, 30, "spc", 1);
+    } else if (c == DS_PICK_DEL) {
+        small_text(fb, 106, 30, "del", 1);
+    } else if (c != DS_PICK_NONE) {
+        big_char(fb, 108, 23, c, 3, 1);
+    }
+    /* The tabs. */
+    if (pick_pages(p) > 1) {
+        for (i = 0, x = 0; i < 4; i++) {
+            int w = 6 * (int)strlen(TEXT_TABS[i]) + 1;
+            if (i == p->page) {
+                for (y = 50; y <= 58; y++) {
+                    int xx;
+                    for (xx = x; xx <= x + w; xx++) {
+                        put(fb, xx, y, 1);
+                    }
+                }
+            }
+            small_text(fb, x + 1, 51, TEXT_TABS[i], i != p->page);
+            x += w + 6;
+        }
+    }
 }
 
 void ds_picker_wipe(ds_picker *p)
 {
     ds_wipe(p->buf, sizeof p->buf);
     p->len = 0;
+    p->page = 0;
     p->cur = 0;
 }

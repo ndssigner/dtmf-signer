@@ -291,87 +291,144 @@ static void press(int btn, int times)
     }
 }
 
+static int lit(int x, int y)
+{
+    return (fb[y / 8][x] >> (y % 8)) & 1;
+}
+
+/* The PIN: one page of 4 rows, A-Z, 0-9 and delete; the cursor wraps. */
 static void test_picker_pin(void)
 {
     size_t i;
 
     ds_picker_init(&pk, DS_PICK_PIN);
     CHECK_EQ_INT(pk.len, 0);
-    press(DS_BTN_UP, 19); /* T */
+    CHECK_EQ_INT(ds_picker_cell(&pk), 'A');
+    ds_picker_screen(&pk, "PIN", &scr);
+    CHECK_EQ_STR(scr.line[0], "PIN");
+    CHECK_EQ_STR(scr.line[1], "OK add, hold OK: none");
+    CHECK(scr.pick);
+    press(DS_BTN_DOWN, 1);
+    press(DS_BTN_LEFT, 1); /* wraps to the end of the row: T */
+    CHECK_EQ_INT(ds_picker_cell(&pk), 'T');
+    press(DS_BTN_OK, 1);
+    press(DS_BTN_OK, 1); /* the cursor stays: a character repeats */
+    CHECK_EQ_STR(pk.buf, "TT");
+    press(DS_BTN_UP, 2); /* row 0, then wrapping up to the last row */
+    CHECK_EQ_INT(ds_picker_cell(&pk), DS_PICK_NONE); /* row 3, column 9 */
+    press(DS_BTN_OK, 1); /* an empty cell does nothing */
+    CHECK_EQ_STR(pk.buf, "TT");
+    press(DS_BTN_LEFT, 3);
+    CHECK_EQ_INT(ds_picker_cell(&pk), DS_PICK_DEL);
+    press(DS_BTN_OK, 1);
+    CHECK_EQ_STR(pk.buf, "T");
+    press(DS_BTN_LEFT, 1);
+    CHECK_EQ_INT(ds_picker_cell(&pk), '9');
+    press(DS_BTN_OK, 1);
+    CHECK_EQ_STR(pk.buf, "T9");
+    ds_picker_screen(&pk, "PIN", &scr);
+    CHECK_EQ_STR(scr.line[1], "T9_");
+    CHECK(strstr(scr.line[0], "2") != NULL); /* the count */
+    /* Holding OK ends; other long presses do nothing. */
+    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_RIGHT, DS_BTN_LONG), 0);
+    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_OK, DS_BTN_LONG), DS_PICK_DONE);
+    CHECK_EQ_STR(pk.buf, "T9");
+    /* Delete on an empty entry asks to go back. */
     press(DS_BTN_RIGHT, 1);
-    press(DS_BTN_UP, 21); /* wraps from T over 9 and back to E */
-    press(DS_BTN_RIGHT, 1);
-    press(DS_BTN_UP, 14); /* S */
-    press(DS_BTN_RIGHT, 1);
-    CHECK_EQ_INT(pk.len, 3);
-    CHECK_EQ_STR(pk.buf, "TES");
-    ds_picker_screen(&pk, "Enter PIN", &scr);
-    CHECK_EQ_STR(scr.line[0], "Enter PIN");
-    CHECK_EQ_STR(scr.line[1], "***S");
-    CHECK_EQ_STR(scr.line[7], "^v char >add <del OK");
-    CHECK_EQ_INT(scr.highlight, -1);
-    CHECK_EQ_INT(scr.qr, 0);
-    press(DS_BTN_UP, 1); /* T */
-    press(DS_BTN_RIGHT, 1);
-    CHECK_EQ_STR(pk.buf, "TEST");
-    ds_picker_screen(&pk, "Enter PIN", &scr);
-    CHECK_EQ_STR(scr.line[1], "****T"); /* four added, T is the current one */
-    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_OK, DS_BTN_PRESS), 1);
-    CHECK_EQ_STR(pk.buf, "TEST");
+    CHECK_EQ_INT(ds_picker_cell(&pk), DS_PICK_DEL);
+    press(DS_BTN_OK, 2);
+    CHECK_EQ_INT(pk.len, 0);
+    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_OK, DS_BTN_PRESS), DS_PICK_BACK);
 
     ds_picker_wipe(&pk);
     for (i = 0; i < sizeof pk.buf; i++) {
         CHECK_EQ_INT(pk.buf[i], 0);
     }
     CHECK_EQ_INT(pk.len, 0);
+    CHECK_EQ_INT(pk.page, 0);
     CHECK_EQ_INT(pk.cur, 0);
 }
 
-static void test_picker_rules(void)
+/* The passphrase: four pages of 3 rows that hold printable ASCII, every
+ * character once (space, '.' and '-' on both letter pages). */
+static void test_picker_text(void)
 {
-    int i;
+    int seen[128] = { 0 };
+    int i, page;
 
-    ds_picker_init(&pk, DS_PICK_PIN);
-    /* DOWN wraps to the last character; LEFT on an empty buffer does nothing. */
-    press(DS_BTN_DOWN, 1);
-    CHECK_EQ_INT(pk.set[pk.cur], '9');
-    press(DS_BTN_LEFT, 1);
-    CHECK_EQ_INT(pk.len, 0);
-    press(DS_BTN_RIGHT, 2);
-    CHECK_EQ_STR(pk.buf, "99");
-    press(DS_BTN_LEFT, 1);
-    CHECK_EQ_STR(pk.buf, "9");
-    CHECK_EQ_INT(pk.buf[1], 0);
-    /* LONG events are ignored. */
-    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_RIGHT, DS_BTN_LONG), 0);
-    CHECK_EQ_INT(ds_picker_button(&pk, DS_BTN_OK, DS_BTN_LONG), 0);
-    CHECK_EQ_INT(pk.len, 1);
-    /* A full buffer ignores RIGHT. */
+    ds_picker_init(&pk, DS_PICK_TEXT);
+    CHECK_EQ_INT(ds_picker_cell(&pk), 'a');
+    for (page = 0; page < 4; page++) {
+        for (i = 0; i < 30; i++) {
+            int c = (unsigned char)ds_picker_cell(&pk);
+            if (c >= 0x20 && c <= 0x7E) {
+                seen[c]++;
+            }
+            press(DS_BTN_RIGHT, 1);
+            if (i % 10 == 9) {
+                press(DS_BTN_DOWN, 1); /* from the last row: the next page */
+            }
+        }
+    }
+    CHECK_EQ_INT(pk.page, 0);
+    for (i = 0x20; i <= 0x7E; i++) {
+        CHECK_EQ_INT(seen[i], (i == ' ' || i == '.' || i == '-') ? 2 : 1);
+    }
+    /* Up from the top row: the previous page's last row, same column. */
+    press(DS_BTN_RIGHT, 3);
+    press(DS_BTN_UP, 1);
+    CHECK_EQ_INT(pk.page, 3);
+    CHECK_EQ_INT(pk.cur, 23);
+    press(DS_BTN_UP, 3);
+    CHECK_EQ_INT(pk.page, 2);
+    CHECK_EQ_INT(pk.cur, 23);
+    CHECK_EQ_INT(ds_picker_cell(&pk), ':');
+    /* The entry shows its last 20 characters, then the cursor. */
+    for (i = 0; i < 30; i++) {
+        press(DS_BTN_OK, 1);
+    }
+    ds_picker_screen(&pk, "Passphrase", &scr);
+    CHECK_EQ_STR(scr.line[1], "::::::::::::::::::::_");
+    CHECK(strstr(scr.line[0], "30") != NULL);
+    /* A full entry takes no more. */
     for (i = 0; i < 200; i++) {
-        ds_picker_button(&pk, DS_BTN_RIGHT, DS_BTN_PRESS);
+        ds_picker_button(&pk, DS_BTN_OK, DS_BTN_PRESS);
     }
     CHECK_EQ_INT(pk.len, DS_APP_TEXT_MAX);
     CHECK_EQ_INT(pk.buf[DS_APP_TEXT_MAX], 0);
-    ds_picker_screen(&pk, "Passphrase", &scr);
-    CHECK_EQ_STR(scr.line[1], "*********************");
-    CHECK_EQ_STR(scr.line[5], "****************9"); /* 100 stars + the current one */
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < DS_UI_ROWS; i++) {
         CHECK(strlen(scr.line[i]) <= DS_UI_COLS);
     }
-    ds_picker_wipe(&pk);
-
-    /* The text set covers 0x20-0x7E, starting at the space. */
     ds_picker_init(&pk, DS_PICK_TEXT);
-    CHECK_EQ_INT(strlen(DS_PICK_TEXT), 95);
-    for (i = 0; i < 95; i++) {
-        CHECK_EQ_INT(DS_PICK_TEXT[i], 0x20 + i);
-    }
-    press(DS_BTN_UP, 33); /* A */
+    ds_picker_screen(&pk, "Passphrase", &scr);
+    CHECK_EQ_STR(scr.line[1], "OK add, hold OK: done");
+    ds_picker_wipe(&pk);
+}
+
+/* The drawing: the chosen cell inverted, the magnifier's frame, and the
+ * page tabs for the passphrase only. */
+static void test_picker_draw(void)
+{
+    memset(fb, 0, sizeof fb);
+    ds_picker_init(&pk, DS_PICK_TEXT);
+    ds_picker_screen(&pk, "Passphrase", &scr);
+    ds_ui_render(&scr, fb);
+    ds_picker_draw(&pk, fb);
+    CHECK(lit(0, 18));    /* the chosen cell's box, top left */
+    CHECK(lit(102, 19));  /* the magnifier's frame */
+    CHECK(lit(127, 48));
+    CHECK(lit(0, 50));    /* the current tab, inverted */
+    CHECK(!lit(1, 63));
+    ds_picker_init(&pk, DS_PICK_PIN);
     press(DS_BTN_RIGHT, 1);
-    CHECK_EQ_STR(pk.buf, "A");
+    memset(fb, 0, sizeof fb);
+    ds_picker_draw(&pk, fb);
+    CHECK(!lit(0, 18));   /* the box moved to column 1 */
+    CHECK(lit(10, 18));
+    CHECK(!lit(0, 50));   /* no tabs */
     ds_picker_wipe(&pk);
 }
 
 TEST_MAIN(test_font, test_render_text, test_render_qr, test_pager_wrap,
           test_pager_words, test_pager_last_page, test_picker_pin,
-          test_picker_rules)
+          test_picker_text, test_picker_draw)

@@ -121,7 +121,7 @@ Mitigations:
 | Stored audio recordings are copies of the seed | Medium | Treat them as paper backups; encrypted with a long PIN |
 | Loss or theft of the player holding the seed's WAV | Medium | A PIN of **12 characters or more** (ur-tones can make up a 60-bit one), kept **apart** from the WAV; the WAV is not the only copy of the seed |
 | An implant that reads the screen (the Ledger case) | Low | **The seed is never shown**: there is nothing to capture. The PIN and passphrase picker is visible; for the highest level, PIN and passphrase by cable |
-| A camera or someone watching the screen | Low | The seed is never shown; the PIN and the passphrase are masked (stars), except the character being chosen |
+| A camera or someone watching the screen | Low | The seed is never shown; the PIN and the passphrase are seen in the clear while typed (so typos show); for the highest level, PIN and passphrase by cable |
 | An encrypted passphrase stored with the encrypted seed lets an attacker check a PIN guess quickly | Medium | The passphrase live by cable or typed on the signer; do not store it encrypted next to the seed |
 | A typo in the PIN or the passphrase gives another valid, empty wallet | High (human error) | Always compare the **fingerprints**: the signer shows the seed's right after the PIN, before asking for the passphrase, and it can be discarded |
 | The signer is left on with the seed loaded | Medium | The emergency wipe (hold LEFT 3 s) or unplugging; **to do**: an inactivity timeout that wipes the seed |

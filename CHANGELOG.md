@@ -4,6 +4,11 @@ The firmware is a prototype: do not use it with funds.
 
 ## Unreleased
 
+- A new picker for the PIN and the passphrase: pages of 10 columns moved
+  through with the arrows (the PIN on one page, the passphrase's printable
+  ASCII on four: abc, ABC, 123 and the rarer symbols), OK to add, OK held to
+  finish, a delete cell, and a magnifier that shows the chosen character
+  three times larger. The entry is shown in the clear instead of as stars.
 - ur-tones v0.5.0. Its receiver is unchanged; the new "fast cable" pace
   (30 ms tone + 10 ms silence) is now tested in the tone receiver's host
   tests, and `dtmf-signer-host tones` can record it (`--timing fast`).

@@ -118,18 +118,25 @@ static void work_done(void)
     CHECK(!shows("Working..."));
 }
 
-/* Types text with the picker: UP/DOWN move through set, RIGHT adds. */
-static void type(const char *set, const char *text)
+/* Types text with the picker: walks the cells row by row (RIGHT along a
+ * row, DOWN to the next row or page) until the character, then OK. */
+static void type(const char *text)
 {
-    int n = (int)strlen(set), cur = 0;
     for (; *text; text++) {
-        int want_i = (int)(strchr(set, *text) - set);
-        while (cur != want_i) {
-            press(DS_BTN_UP);
-            cur = (cur + 1) % n;
+        int steps;
+        for (steps = 0; steps < 200 && ds_picker_cell(&app.pick) != *text; steps++) {
+            press(steps % 10 == 9 ? DS_BTN_DOWN : DS_BTN_RIGHT);
         }
-        press(DS_BTN_RIGHT);
+        CHECK(ds_picker_cell(&app.pick) == *text);
+        press(DS_BTN_OK);
     }
+}
+
+/* Holds OK: ends an entry. */
+static void hold_ok(void)
+{
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
 }
 
 /* Takes every echo line; returns 1 if one starts with prefix (copied to
@@ -240,10 +247,11 @@ static void to_seed_fp(void)
     CHECK(shows("keys 0  lost 0"));
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     CHECK(feed_tones(tones));
-    CHECK(shows("PIN (none: OK)"));
-    type(DS_PICK_PIN, "TEST");
-    CHECK(!shows("TEST"));
-    press(DS_BTN_OK);
+    CHECK(shows("PIN"));
+    CHECK(shows("OK add, hold OK: none"));
+    type("TEST");
+    CHECK(shows("TEST_")); /* in the clear: only the user sees the screen */
+    hold_ok();
     /* The tick after the button only shows "Working...": nothing done yet. */
     CHECK(shows("Working..."));
     CHECK_EQ_INT(app.s.state, DS_S_EMPTY);
@@ -252,7 +260,7 @@ static void to_seed_fp(void)
     CHECK(shows("73c5da0a"));
     CHECK(shows("OK: continue"));
     CHECK(shows("<: discard"));
-    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     CHECK(all_zero(&app.rx, sizeof app.rx));
 }
 
@@ -268,12 +276,14 @@ static void to_ready(const char *passphrase, uint32_t fp)
     CHECK(shows(">: type it"));
     if (passphrase != NULL) {
         press(DS_BTN_RIGHT);
-        type(DS_PICK_TEXT, passphrase);
-        CHECK(!shows(passphrase));
+        type(passphrase);
+        CHECK(shows(passphrase));
+        hold_ok();
+    } else {
+        press(DS_BTN_OK); /* none */
     }
-    press(DS_BTN_OK);
     work_done();
-    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     CHECK(shows("Wallet fingerprint"));
     snprintf(hex, sizeof hex, "%08x", (unsigned)fp);
     CHECK(shows(hex));
@@ -332,7 +342,7 @@ static void test_app_seed_discard(void)
     CHECK(app.s.state != DS_S_SEED && app.s.state != DS_S_READY);
     CHECK(all_zero(&app.s, sizeof app.s));
     CHECK(all_zero(&app.rx, sizeof app.rx));
-    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     ds_app_init(&app, TONES_RATE);
 }
 
@@ -739,7 +749,7 @@ static void check_wiped(void)
     CHECK(all_zero(app.out, sizeof app.out));
     CHECK(all_zero(app.cbor, sizeof app.cbor));
     CHECK(all_zero(&app.qr, sizeof app.qr));
-    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     CHECK_EQ_INT(app.job, 0);
     idle(100);
     CHECK(shows("Wiped"));
@@ -891,8 +901,8 @@ static void test_app_job_screens_wait(void)
     press(DS_BTN_OK);
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     CHECK(feed_tones(tones));
-    type(DS_PICK_PIN, "TEST");
-    press(DS_BTN_OK);
+    type("TEST");
+    hold_ok();
     CHECK(shows("Working..."));
     for (i = 0; i < 100; i++) {
         now += 16;
@@ -1009,8 +1019,8 @@ static void test_app_wrong_seed_data(void)
     /* A keypad seed without PIN, at keypad pace (tones_render: 80 ms + 80 ms,
      * its digits repeat). */
     CHECK(feed_tones(tones));
-    CHECK(shows("PIN (none: OK)"));
-    press(DS_BTN_OK); /* no PIN */
+    CHECK(shows("hold OK: none"));
+    hold_ok(); /* no PIN */
     work_done();
     CHECK(shows("Seed fingerprint"));
     CHECK(shows("73c5da0a"));
@@ -1034,7 +1044,7 @@ static void test_app_wipe(void)
     CHECK(all_zero(&app.rx, sizeof app.rx));
     CHECK(all_zero(app.out, sizeof app.out));
     CHECK(all_zero(app.cbor, sizeof app.cbor));
-    CHECK(all_zero(&app.pick, offsetof(ds_picker, set)));
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
     /* Nothing works any more. */
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
     press(DS_BTN_OK);

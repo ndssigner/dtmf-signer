@@ -306,7 +306,7 @@ static void build(const ds_app *a, ds_screen *s)
         listening(a, s, 0);
         break;
     case ST_PIN:
-        ds_picker_screen(&a->pick, "PIN (none: OK)", s);
+        ds_picker_screen(&a->pick, "PIN", s);
         break;
     case ST_SEED_FP:
         line(s, 0, "Seed fingerprint");
@@ -390,7 +390,7 @@ static void refresh(ds_app *a)
         a->screen = s;
         a->dirty = 1;
     }
-    ds_wipe(&s, sizeof s); /* a picker shows the character being chosen */
+    ds_wipe(&s, sizeof s); /* a picker shows its entry in the clear */
 }
 
 static void set_state(ds_app *a, int st)
@@ -897,19 +897,19 @@ static void button_error(ds_app *a, int btn)
     a->err_kind = 0;
 }
 
-/* The picker for the PIN or the passphrase: LEFT on an empty entry goes back. */
+/* The picker for the PIN or the passphrase: delete on an empty entry goes
+ * back, OK held ends it. */
 static void button_picker(ds_app *a, int btn, int kind, int pin)
 {
-    if (kind == DS_BTN_PRESS && btn == DS_BTN_LEFT && a->pick.len == 0) {
+    int r = ds_picker_button(&a->pick, btn, kind);
+    if (r == DS_PICK_BACK) {
         ds_picker_wipe(&a->pick);
         if (pin) {
             go_home(a);
         } else {
             set_state(a, ST_PASS_ASK);
         }
-        return;
-    }
-    if (ds_picker_button(&a->pick, btn, kind) == 1) {
+    } else if (r == DS_PICK_DONE) {
         start_job(a, pin ? JOB_PIN : JOB_DERIVE);
     }
 }
@@ -1082,6 +1082,9 @@ int ds_app_take_dirty(ds_app *a)
 void ds_app_draw(const ds_app *a, uint8_t fb[8][128])
 {
     ds_ui_render(&a->screen, fb);
+    if (a->screen.pick) {
+        ds_picker_draw(&a->pick, fb);
+    }
     if (a->screen.qr) {
         ds_qr_draw(&a->qr, fb);
     }

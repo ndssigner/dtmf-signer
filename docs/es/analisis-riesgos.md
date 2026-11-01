@@ -122,7 +122,7 @@ Mitigaciones:
 | Las grabaciones de audio guardadas son copias de la semilla | Media | Tratarlas como copias de seguridad en papel; cifradas con PIN largo |
 | Pérdida o robo del reproductor con el WAV de la semilla | Media | PIN de **12 caracteres o más** (ur-tones puede generar uno de 60 bits), guardado **separado** del WAV; el WAV no es la única copia de la semilla |
 | Implante que lee la pantalla (caso Ledger) | Baja | **La semilla nunca se muestra**: no hay nada que capturar. El selector del PIN y la passphrase sí se ve; para el máximo nivel, PIN y passphrase por cable |
-| Cámara o alguien mirando la pantalla | Baja | La semilla nunca se muestra; PIN y passphrase enmascarados (asteriscos), salvo el carácter que se está eligiendo |
+| Cámara o alguien mirando la pantalla | Baja | La semilla nunca se muestra; el PIN y la passphrase se ven en claro mientras se teclean (así se ven las erratas); para el nivel más alto, PIN y passphrase por cable |
 | Una passphrase cifrada guardada junto a la semilla cifrada permite comprobar rápido si se acertó el PIN | Media | Passphrase por cable en directo o tecleada en el firmador; no guardarla cifrada junto a la semilla |
 | PIN o passphrase con un error dan otra cartera válida y vacía | Alta (error humano) | Comparar siempre las **huellas**: el firmador muestra la de la semilla justo después del PIN, antes de pedir la passphrase, y se puede descartar |
 | Se deja el firmador encendido con la semilla cargada | Media | Borrado de emergencia (mantener IZQUIERDA 3 s) o desenchufar; **pendiente**: apagado por inactividad que borre la semilla |

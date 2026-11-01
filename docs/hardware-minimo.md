@@ -140,22 +140,25 @@ Comisión: 1200 sat       0.01500000 BTC
 - **Firmar exige una pulsación larga de 2 s.**
 - El cambio se marca "verificado" solo si el firmador comprueba que pertenece a la seed cargada.
 
-**PIN (A-Z, 0-9):** rejilla de 6×6, que coincide con los 36 símbolos admitidos por ur-tones.
+**PIN (A-Z, 0-9):** una sola página de 4 filas de 10: las 26 letras, los 10 dígitos y una casilla de borrar, los 36 símbolos que admite ur-tones.
 
 ```
- A B C D E F
- G H I J K L
- M N O P Q R
- S T U V W X
- Y Z 0 1 2 3
- 4 5 6 7 8 9      PIN: ••••Q_ _ _ _ _ _ _
+PIN                 4
+TEST_
+. . . . . . . . . . . . . . . . .
+ A B C D E F G H I J    +-----+
+ K L M N O P Q R S T    |  T  |   <- lupa: el carácter elegido,
+ U V W X Y Z 0 1 2 3    |     |      tres veces más grande
+ 4 5 6 7 8 9 <-         +-----+
 ```
 
-- Las flechas mueven el cursor, que da la vuelta por los bordes, y el central añade el carácter. Pulsación larga del central: terminar; de la izquierda: borrar.
-- **Enmascarado por defecto**, salvo el último carácter. El enmascarado se puede desactivar en los ajustes.
-- Un PIN de 12 caracteres, el mínimo que recomienda ur-tones para seeds enviadas por el aire, son ~50 pulsaciones, alrededor de un minuto.
+- Las flechas mueven el cursor, que da la vuelta por los bordes. OK añade el carácter y el cursor se queda donde está, así que un carácter repetido es OK, OK. Mantener OK termina; con el PIN vacío, es "sin PIN". La casilla de borrar quita el último carácter, y con la entrada vacía vuelve atrás. Mantener la izquierda no hace nada aquí: a los 3 s es el borrado de emergencia.
+- **Se ve en claro:** solo lo ve quien tiene el firmador delante, y así se ve lo que se escribe. Contra una cámara que vea la pantalla, el PIN y la passphrase pueden llegar por cable.
+- La lupa de la derecha muestra el carácter elegido tres veces más grande: a 5×7 se confunden `l`, `1`, `I` y `|`, o `O` y `0`.
 
-**Passphrase:** 3 páginas de 6×6 (mayúsculas y dígitos; minúsculas y dígitos; símbolos ASCII y espacio), que se cambian con pulsación larga hacia arriba. 20 caracteres son unas 100-120 pulsaciones. **Enmascarada por defecto** salvo el último carácter, con opción de desactivarlo. **Recomendar passphrases solo ASCII:** sin ñ ni tildes, porque el teclado no las tiene y BIP39 las normaliza (NFKD) de forma no siempre igual entre carteras.
+**Passphrase:** cuatro páginas de 3 filas de 10 con todo el ASCII imprimible: `abc` (minúsculas), `ABC` (mayúsculas), `123` (dígitos y los 19 símbolos más usados) y `<{~` (los 11 restantes). Espacio, punto y guion están en las dos páginas de letras, y la casilla de borrar en la misma esquina de todas. Bajar desde la última fila pasa a la página siguiente y subir desde la primera a la anterior, así que cambiar de página son uno o dos toques. Unas pestañas abajo dicen en qué página se está.
+
+**Solo ASCII, a propósito:** BIP39 normaliza la passphrase (UTF-8 en NFKD) y no todas las carteras lo hacen igual con ñ o tildes, así que la misma frase podría dar otra cartera sin ningún error a la vista. La cartera tiene que poder recuperarse desde cualquier otro aparato. Quien traiga una cartera hecha en otro sistema con una passphrase de otros caracteres no podrá escribirla con la interfaz de serie; para eso habrá otras vías (por cable o por consola).
 
 **Huellas:** tras cargar la seed y el PIN se muestra la **huella de la seed**. Tras la passphrase, la **huella de la cartera final**. Un PIN o una passphrase con una letra mal da otra cartera válida y vacía, así que estas comprobaciones son imprescindibles.
 

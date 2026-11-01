@@ -27,6 +27,8 @@ typedef struct {
     char line[DS_UI_ROWS][DS_UI_COLS + 1];
     int highlight; /* the inverted row, -1 for none */
     int qr;        /* 1: a QR code owns the left 64x64 square */
+    int pick;      /* 1: rows 2-7 are the picker's (ds_picker_draw) */
+    int pick_page, pick_cur; /* its page and cell, so a move redraws */
 } ds_screen;
 
 /* Draws s in fb. Every row is cleared first. Without qr the lines use x 0-125
@@ -60,35 +62,58 @@ void ds_pager_move(ds_pager *p, int delta);
 
 /* ---- picker ---- */
 
-#define DS_PICK_PIN "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-#define DS_PICK_TEXT                                                          \
-    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"    \
-    "abcdefghijklmnopqrstuvwxyz{|}~"
+/* What is typed: the PIN (A-Z and 0-9, one page of 4 rows) or the
+ * passphrase (printable ASCII, the SPEC's OP-PASSPHRASE, in four pages of
+ * 3 rows: abc, ABC, 123 and the rarer symbols; space, '.' and '-' are on
+ * both letter pages). Pages have 10 columns. */
+enum { DS_PICK_PIN = 1, DS_PICK_TEXT };
 
-/* Typing a secret with five buttons. buf and cur are secrets: ds_picker_wipe
- * when done. */
+/* Cells that are not a character. */
+#define DS_PICK_DEL '\x7f'  /* deletes the last character */
+#define DS_PICK_NONE '\x01' /* empty */
+
+/* Results of ds_picker_button. */
+#define DS_PICK_DONE 1 /* OK held: the entry is finished */
+#define DS_PICK_BACK 2 /* delete on an empty entry: leave the picker */
+
+/* Typing a secret with five buttons. buf, page and cur are secrets (cur is
+ * the character being chosen): ds_picker_wipe when done. */
 typedef struct {
     char buf[DS_APP_TEXT_MAX + 1];
     size_t len;
-    int cur; /* index in set of the character being chosen */
-    const char *set;
+    int page, cur; /* the page shown and the chosen cell in it */
+    int kind;      /* DS_PICK_PIN or DS_PICK_TEXT; last, not a secret */
 } ds_picker;
 
-/* Empty buffer; the current character is the first of set. */
-void ds_picker_init(ds_picker *p, const char *set);
+/* Empty entry, the first page, its first cell. */
+void ds_picker_init(ds_picker *p, int kind);
 
-/* btn is a DS_BTN_* class and kind a DS_BTN_PRESS/LONG/WIPE (ds_btn.h); only
- * presses act. UP/DOWN change the current character (wrapping around the
- * set), RIGHT adds it (the current character stays; ignored when the buffer
- * is full), LEFT deletes the last character (nothing when empty). OK returns
- * 1 (done); anything else 0. */
+/* btn is a DS_BTN_* class and kind a DS_BTN_PRESS/LONG/WIPE (ds_btn.h).
+ * Presses: LEFT/RIGHT move along the row and UP/DOWN between rows, wrapping
+ * around; with several pages, up from the top row goes to the previous
+ * page's last row and down from the last row to the next page's top row,
+ * same column. OK adds the chosen character (ignored when the entry is
+ * full), deletes the last one on the delete cell, and does nothing on an
+ * empty cell; the cursor stays. Returns DS_PICK_BACK for delete on an empty
+ * entry. A long OK returns DS_PICK_DONE; other long presses do nothing (a
+ * held LEFT is the emergency wipe). Anything else returns 0. */
 int ds_picker_button(ds_picker *p, int btn, int kind);
 
-/* title on row 0, then the added characters as '*' followed by the current
- * one in the clear (wrapping at 21 columns), and the hint on the last row. */
+/* The chosen cell: a character, DS_PICK_DEL or DS_PICK_NONE. */
+char ds_picker_cell(const ds_picker *p);
+
+/* title and the count on row 0; on row 1 the entry in the clear, its last 20
+ * characters and a cursor, or a hint while it is empty; rows 2-7 are left
+ * to ds_picker_draw (s->pick set). */
 void ds_picker_screen(const ds_picker *p, const char *title, ds_screen *s);
 
-/* Zeroes the buffer, the length and the current character. */
+/* Draws rows 2-7 (y 16-63) of fb: the page's cells with the chosen one
+ * inverted, a magnifier at the right with the chosen character three times
+ * larger (so l, 1, I and | or O and 0 can be told apart), and the page tabs
+ * when there are several. Call it after ds_ui_render. */
+void ds_picker_draw(const ds_picker *p, uint8_t fb[8][128]);
+
+/* Zeroes the entry, its length, the page and the cell. */
 void ds_picker_wipe(ds_picker *p);
 
 #endif
