@@ -6,9 +6,10 @@
 #
 #   tools/build-pico.sh            # build; prints the UF2's path and SHA-256
 #
-# Needs git, cmake (3.22 or later), ninja or make, python3, curl, tar and a
-# C/C++ compiler for the host (Xcode's command line tools on macOS,
-# build-essential on Debian or Ubuntu). Runs on Linux (x86_64, aarch64) and
+# Needs git, cmake (3.22 or later), ninja or make, python3, curl and tar,
+# and picotool 2.3.1: installed (Homebrew: brew install picotool), or else
+# the SDK builds it, which takes a C++ compiler for the host
+# (build-essential and libusb-1.0-0-dev on Debian or Ubuntu). Runs on Linux (x86_64, aarch64) and
 # on macOS with Apple silicon; Windows through WSL. What it downloads goes to
 # ~/.cache/dtmf-signer (or $DS_CACHE); nothing is installed system-wide.
 set -eu
@@ -85,8 +86,7 @@ rm -rf "$BUILD"
 PATH=$GCC_DIR/bin:$PATH
 export PATH
 cmake -S "$ROOT/ports/pico" -B "$BUILD" -G "$GEN" -DCMAKE_BUILD_TYPE=Release \
-    -DPICO_SDK_PATH="$SDK_DIR" -DPICO_TOOLCHAIN_PATH="$GCC_DIR" \
-    -DPICOTOOL_FORCE_FETCH_FROM_GIT=1 >/dev/null
+    -DPICO_SDK_PATH="$SDK_DIR" -DPICO_TOOLCHAIN_PATH="$GCC_DIR" >/dev/null
 cmake --build "$BUILD" >/dev/null
 
 UF2=$BUILD/dtmf-signer-pico.uf2
