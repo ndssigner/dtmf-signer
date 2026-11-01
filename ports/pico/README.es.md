@@ -12,7 +12,7 @@ y los tiempos medidos en esta placa están en el
 
 ## Conseguir el firmware
 
-Dos caminos, que dan el mismo archivo byte a byte.
+Dos caminos, que dan el mismo programa.
 
 ### El UF2 publicado
 
@@ -21,7 +21,7 @@ compilado por la CI del proyecto desde la etiqueta de la versión, y su
 SHA-256. Úsalo si no quieres compilarlo: en ese caso confías en esa
 compilación en vez de comprobarla tú, una decisión que conviene tomar a
 sabiendas. Cualquiera puede comprobarlo para todos compilando la misma
-etiqueta como se explica abajo y comparando el SHA-256.
+etiqueta en Linux x86_64, como se explica abajo, y comparando el SHA-256.
 
 ### Compilarlo uno mismo
 
@@ -38,13 +38,27 @@ tools/build-pico.sh
 El script descarga el SDK de la Pico 2.3.1 y la cadena de herramientas GNU
 de Arm 14.3.rel1 (comprobada con el SHA-256 de Arm) en
 `~/.cache/dtmf-signer`, compila desde cero e imprime la ruta y el SHA-256
-del UF2: para la etiqueta de una versión coincide con el publicado.
+del UF2. Compilado en Linux x86_64, como el publicado, coincide con él byte
+a byte para la etiqueta de una versión. En otros sistemas el firmware es el
+mismo programa, pero la cadena de Arm de cada sistema coloca el código de
+forma un poco distinta, así que el SHA-256 cambia; el script lo avisa.
 Necesita git, CMake 3.22 o posterior, Ninja o make, Python 3, curl y tar, y
 picotool 2.3.1 (`brew install picotool` en macOS; en otros sistemas lo
 compila el SDK, lo que pide un compilador de C++ y libusb, `build-essential`
 y `libusb-1.0-0-dev` en Debian o Ubuntu). Funciona en Linux (x86_64,
 aarch64), en macOS con Apple silicon y en Windows con WSL. Arm no publica la
-cadena 14.3 para Mac con Intel: ahí, usa el UF2 publicado.
+cadena 14.3 para Mac con Intel: ahí, usa el UF2 publicado o el contenedor de
+abajo.
+
+Para comprobar una versión desde un Mac o cualquier otro sistema, compílala
+en un contenedor Linux x86_64 con los mismos paquetes que la CI (en un Mac
+con Apple silicon dio el UF2 de la CI byte a byte, en unos diez minutos con
+emulación):
+
+```bash
+docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src ubuntu:24.04 sh -c \
+  'apt-get update && apt-get install -y --no-install-recommends git ca-certificates cmake ninja-build python3 curl xz-utils build-essential libusb-1.0-0-dev pkg-config && git config --global --add safe.directory "*" && tools/build-pico.sh'
+```
 
 Con tu propio SDK y tu cadena de herramientas la compilación es la de
 siempre, aunque su UF2 no coincidirá byte a byte con el publicado:

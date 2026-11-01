@@ -11,7 +11,7 @@ and the times measured on this board are in the
 
 ## Get the firmware
 
-Two ways, both giving the same file, byte for byte.
+Two ways, both giving the same program.
 
 ### The published UF2
 
@@ -19,7 +19,8 @@ The releases after v0.1.0-alpha carry `dtmf-signer-pico.uf2`, built by the
 project's CI from the release's tag, and its SHA-256. Take it if you do not
 want to build it: you are then trusting that build instead of checking it
 yourself, a choice worth making knowingly. Anyone can check it for everyone
-by building the same tag as below and comparing the SHA-256.
+by building the same tag on Linux x86_64, as below, and comparing the
+SHA-256.
 
 ### Build it yourself
 
@@ -35,14 +36,27 @@ tools/build-pico.sh
 
 The script fetches the Pico SDK 2.3.1 and Arm's GNU toolchain 14.3.rel1
 (checked against Arm's SHA-256) into `~/.cache/dtmf-signer`, builds from
-scratch and prints the UF2's path and SHA-256: for a release's tag it
-matches the published one. It needs git, CMake 3.22 or later, Ninja or
+scratch and prints the UF2's path and SHA-256. Built on Linux x86_64, as
+the published one is, it matches it byte for byte for a release's tag. On
+other hosts the firmware is the same program, but Arm's toolchain for each
+host lays the code out slightly differently, so the SHA-256 differs; the
+script says so. It needs git, CMake 3.22 or later, Ninja or
 make, Python 3, curl and tar, and picotool 2.3.1 (`brew install picotool`
 on macOS; elsewhere the SDK builds it, which needs a C++ compiler and
 libusb, `build-essential` and `libusb-1.0-0-dev` on Debian or Ubuntu). It
 runs on Linux (x86_64, aarch64), on macOS with Apple silicon, and on
 Windows through WSL. Arm publishes no 14.3 toolchain for Intel Macs: there,
-use the published UF2.
+use the published UF2 or the container below.
+
+To check a release from a Mac or any other host, build it in a Linux
+x86_64 container with the same packages as the CI (on a Mac with Apple
+silicon it gave the CI's UF2 byte for byte, in about ten minutes under
+emulation):
+
+```bash
+docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src ubuntu:24.04 sh -c \
+  'apt-get update && apt-get install -y --no-install-recommends git ca-certificates cmake ninja-build python3 curl xz-utils build-essential libusb-1.0-0-dev pkg-config && git config --global --add safe.directory "*" && tools/build-pico.sh'
+```
 
 With your own SDK and toolchain the build is the usual one, though its UF2
 will not match the published one byte for byte:

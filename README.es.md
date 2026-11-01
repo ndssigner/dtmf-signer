@@ -145,8 +145,9 @@ y la XPUB y las PSBT firmadas salen como códigos QR animados en su
 pantalla. Una docena de resistencias y condensadores lo completan.
 
 Para grabar la Pico, toma el UF2 adjunto a una versión y cópialo en la Pico
-en modo BOOTSEL, o compílalo tú con `tools/build-pico.sh`, que da el mismo
-archivo byte a byte ([cómo](ports/pico/README.es.md#conseguir-el-firmware)).
+en modo BOOTSEL, o compílalo tú con `tools/build-pico.sh`; compilado en
+Linux x86_64, como el publicado, da el mismo archivo byte a byte
+([cómo](ports/pico/README.es.md#conseguir-el-firmware)).
 
 ## La placa completa (prevista)
 

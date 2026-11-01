@@ -135,9 +135,9 @@ tones, and the xpub and the signed PSBTs go out as animated QR codes on its
 screen. A dozen resistors and capacitors complete it.
 
 To flash the Pico, take the UF2 attached to a release and copy it onto the
-Pico in BOOTSEL mode, or build it yourself with `tools/build-pico.sh`,
-which gives the same file byte for byte
-([how](ports/pico/README.md#get-the-firmware)).
+Pico in BOOTSEL mode, or build it yourself with `tools/build-pico.sh`;
+built on Linux x86_64, as the published one is, it gives the same file byte
+for byte ([how](ports/pico/README.md#get-the-firmware)).
 
 ## The full board (planned)
 

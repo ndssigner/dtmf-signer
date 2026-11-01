@@ -1,8 +1,12 @@
 #!/bin/sh
 # Builds the Pico firmware the way the published one is built: the Pico SDK
 # 2.3.1 and Arm's GNU toolchain 14.3.rel1, both pinned (the toolchain is
-# checked against Arm's SHA-256), so a clean checkout of a tag gives the same
-# UF2, byte for byte, as the one attached to that release.
+# checked against Arm's SHA-256). The published UF2 is built on Linux x86_64
+# (the project's CI); a clean checkout of a tag built there gives the same
+# UF2, byte for byte. On other hosts the firmware is the same program, but
+# Arm's toolchain for each host lays the code out slightly differently, so
+# the SHA-256 differs: to check a release, build on Linux x86_64 (or in a
+# Linux x86_64 container, see ports/pico/README.md).
 #
 #   tools/build-pico.sh            # build; prints the UF2's path and SHA-256
 #
@@ -95,6 +99,10 @@ say ""
 say "Built: $UF2"
 say "Version: $(git -C "$ROOT" describe --tags --always --dirty)"
 say "SHA-256: $(sha256 "$UF2")"
+if [ "$GCC_HOST" != x86_64 ]; then
+    say "(built on $GCC_HOST: the published UF2 is built on Linux x86_64, and"
+    say " only a build there matches its SHA-256 byte for byte)"
+fi
 say ""
 say "To flash it: hold BOOTSEL while plugging the Pico in, then copy the UF2"
 say "onto the drive that appears (RPI-RP2)."
