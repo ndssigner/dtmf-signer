@@ -9,6 +9,9 @@ The firmware is a prototype: do not use it with funds.
   ASCII on four: abc, ABC, 123 and the rarer symbols), OK to add, OK held to
   finish, a delete cell, and a magnifier that shows the chosen character
   three times larger. The entry is shown in the clear instead of as stars.
+- [docs/screens.md](docs/screens.md) (and in Spanish): every screen of the
+  Pico build and how to move through them, with pictures drawn by the
+  firmware's own code (`tests/c/screens.c`, `tools/render_screens.py`).
 - ur-tones v0.5.0. Its receiver is unchanged; the new "fast cable" pace
   (30 ms tone + 10 ms silence) is now tested in the tone receiver's host
   tests, and `dtmf-signer-host tones` can record it (`--timing fast`).

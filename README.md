@@ -218,6 +218,9 @@ for the use anyone makes of this design.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): the hardware
   specification of the full Pico board: pins, audio, screens, distribution
   formats (Spanish).
+- [The screens](docs/screens.md) ([Spanish](docs/es/pantallas.md)): how the
+  Pico build looks on its 128 × 64 OLED and how you move through it, with
+  pictures of every screen.
 - [Risk analysis](docs/risk-analysis.md) ([Spanish](docs/es/analisis-riesgos.md)):
   supply chain, buyer privacy, firmware, use and physical threats.
 - [`core/`](core/): the portable C99 core: SHA-512, HMAC, PBKDF2, BIP39,

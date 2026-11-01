@@ -66,3 +66,9 @@ target_link_libraries(test_app PRIVATE dtmf_app)
 ds_add_test(test_adc_ring)
 target_sources(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico/adc_ring.c)
 target_include_directories(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico)
+
+# Not a test: prints the device's screens for docs/screens.md
+# (tools/render_screens.py turns them into PNG files).
+add_executable(screens screens.c ${DS_PSBT_VECTORS_H})
+target_include_directories(screens PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(screens PRIVATE dtmf_app ds_warnings)

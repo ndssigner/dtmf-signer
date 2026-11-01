@@ -230,6 +230,9 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 - [`docs/hardware-minimo.md`](docs/hardware-minimo.md): la especificación de
   hardware de la placa Pico completa: pines, audio, pantallas, formatos de
   distribución.
+- [Las pantallas](docs/es/pantallas.md) ([inglés](docs/screens.md)): cómo se
+  ve la versión de la Pico en su OLED de 128 × 64 y cómo se navega, con
+  imágenes de cada pantalla.
 - [Análisis de riesgos](docs/es/analisis-riesgos.md) ([inglés](docs/risk-analysis.md)):
   cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
