@@ -233,45 +233,80 @@ static void title_right(ds_screen *s, const char *t, const char *right)
     s->line[0][DS_UI_COLS] = '\0';
 }
 
-/* Row 1 says whether tones are coming in, or sound that cannot be read;
- * for a PSBT row 2 shows the last keys as they come (public), a seed's keys
- * are never shown. More volume is asked for only when reading fails: sound
+static int permille(int v, int lo, int hi)
+{
+    if (v <= lo) {
+        return 0;
+    }
+    if (v >= hi) {
+        return 1000;
+    }
+    return (v - lo) * 1000 / (hi - lo);
+}
+
+/* What it expects in the title; on row 1 whether tones are coming in, or
+ * sound that cannot be read; a level meter with the mark where tones are
+ * read well; for a PSBT the parts received; the keys heard (a seed's are
+ * never shown). More volume is asked for only when reading fails: sound
  * with no key, or a frame lost with its tones quiet. */
 static void listening(const ds_app *a, ds_screen *s, int psbt)
 {
     int heard = a->rx.keys > 0 && a->now - a->key_at < DS_APP_HEARD_MS;
     int sound = a->sound && a->now - a->sound_at < DS_APP_HEARD_MS;
-    line(s, 0, "Listening (cable)");
+    int quiet = sound && !heard && a->sound_level < DS_APP_LOW_LEVEL;
+    int level = heard ? ds_rx_level(&a->rx) : sound ? a->sound_level : -990;
+    int row = 4;
+
+    line(s, 0, psbt ? "PSBT by cable" : "Seed by cable");
     if (heard) {
-        line(s, 1, "* receiving");
-    } else if (sound && a->sound_level < DS_APP_LOW_LEVEL) {
-        line(s, 1, "! too quiet to read");
-        line(s, 6, "Volume up");
+        line(s, 1, DS_ICON_DOT " Receiving");
+    } else if (quiet) {
+        line(s, 1, "! Too quiet to read");
     } else if (sound) {
-        line(s, 1, "? sound, not tones");
+        line(s, 1, "? Sound, not tones");
     } else {
-        line(s, 1, "  waiting");
+        line(s, 1, DS_ICON_NODOT " Waiting for tones");
     }
+    line(s, 3, "Level");
+    s->bars[0].row = 3;
+    s->bars[0].x1 = 127;
+    s->bars[0].fill = level > -990 ? permille(level, DS_APP_METER_LOW, DS_APP_METER_HIGH) : 0;
+    s->bars[0].mark = permille(DS_APP_READ_LEVEL, DS_APP_METER_LOW, DS_APP_METER_HIGH);
     if (psbt) {
         uint32_t have = 0, need = 0;
-        line(s, 2, a->rx.live);
+        char n[16];
+        int w;
         ds_rx_progress(&a->rx, &have, &need);
         if (need == 0) {
-            line(s, 4, "parts 0/?");
+            snprintf(n, sizeof n, "0/?");
         } else {
-            snprintf(s->line[4], sizeof s->line[4], "parts %u/%u", (unsigned)have,
-                     (unsigned)need);
+            snprintf(n, sizeof n, "%u/%u", (unsigned)have, (unsigned)need);
         }
+        w = (int)strlen(n);
+        snprintf(s->line[4], sizeof s->line[4], "Parts%*s", DS_UI_COLS - 5, n);
+        s->bars[1].row = 4;
+        s->bars[1].x1 = 127 - 6 * w - 3;
+        s->bars[1].fill = need ? (int)(have * 1000 / need) : 0;
+        s->bars[1].mark = -1;
+        row = 5;
     }
-    snprintf(s->line[3], sizeof s->line[3], "keys %u  lost %u", (unsigned)a->rx.keys,
-             (unsigned)a->lost);
-    if (a->msg) {
-        line(s, 5, psbt ? "Not a PSBT" : "Not a seed");
+    if (a->lost > 0) {
+        snprintf(s->line[row], sizeof s->line[row], "Keys %u, lost %u", (unsigned)a->rx.keys,
+                 (unsigned)a->lost);
+    } else {
+        snprintf(s->line[row], sizeof s->line[row], "Keys %u", (unsigned)a->rx.keys);
     }
-    if (a->msg && a->rx.group_level < DS_APP_LOW_LEVEL) {
-        line(s, 6, "Too quiet: volume up");
+    if (quiet || (a->msg && a->rx.group_level < DS_APP_LOW_LEVEL)) {
+        line(s, 6, " Turn the volume up");
+        s->highlight = 6;
+    } else if (a->msg) {
+        line(s, 6, psbt ? " That was not a PSBT" : " That was not a seed");
+        s->highlight = 6;
     }
     footer(s, DS_ICON_LEFT " back");
+    if (!psbt) {
+        steps(s, 1);
+    }
 }
 
 /* The right column of a QR screen: how many parts and which one of them is
@@ -301,45 +336,45 @@ static void error_screen(const ds_app *a, ds_screen *s)
 {
     switch (a->err_kind) {
     case E_SEED:
-        line(s, 0, "! Seed not loaded");
+        line(s, 0, " ! Seed not loaded");
         line(s, 2, "Wrong PIN or data,");
         line(s, 3, "or tones were lost.");
         line(s, 5, "Check the PIN and");
         line(s, 6, "the volume.");
         break;
     case E_PASS:
-        line(s, 0, "! Bad passphrase");
+        line(s, 0, " ! Bad passphrase");
         line(s, 2, "Type it again.");
         break;
     case E_REJECTED:
-        line(s, 0, "! Rejected");
+        line(s, 0, " ! Rejected");
         line(s, 2, ds_error_name(a->err));
         line(s, 4, "Nothing was signed.");
         break;
     case E_NOTHING:
-        line(s, 0, "! Rejected");
+        line(s, 0, " ! Rejected");
         line(s, 2, "No input of this");
         line(s, 3, "wallet to sign.");
         line(s, 5, "Right seed and");
         line(s, 6, "passphrase?");
         break;
     case E_TOO_BIG:
-        line(s, 0, "! Too big for QR");
+        line(s, 0, " ! Too big for QR");
         line(s, 2, "Nothing signed.");
         line(s, 4, "Spend fewer inputs");
         line(s, 5, "at a time.");
         break;
     case E_SIGN:
-        line(s, 0, "! Sign failed");
+        line(s, 0, " ! Sign failed");
         line(s, 2, ds_error_name(a->err));
         break;
     case E_NO_QR:
-        line(s, 0, "! Signed, but no QR");
+        line(s, 0, " ! Signed, but no QR");
         line(s, 2, "The signature was");
         line(s, 3, "discarded.");
         break;
     default:
-        line(s, 0, "! Error");
+        line(s, 0, " ! Error");
         break;
     }
     s->highlight = 0;
@@ -367,7 +402,7 @@ static void build(const ds_app *a, ds_screen *s)
     switch (a->state) {
     case ST_WELCOME:
         line(s, 0, "DTMF-Signer");
-        line(s, 2, "Flashed it yourself?");
+        line(s, 2, " Flashed it yourself?");
         s->highlight = 2;
         line(s, 3, "If someone else did,");
         line(s, 4, "flash it again from");

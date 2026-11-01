@@ -106,6 +106,12 @@
  * receiver cannot read. On the Pico by cable: silence -67.5 dBFS, a seed
  * too faint to load -52. */
 #define DS_APP_SOUND_LEVEL (-600)
+/* The level meter on the listening screens spans -60 to -20 dBFS, with a
+ * mark where tones start to be read well: on the Pico by cable a seed
+ * loaded at -38 to -40 dBFS and failed at -47. */
+#define DS_APP_METER_LOW (-600)
+#define DS_APP_METER_HIGH (-200)
+#define DS_APP_READ_LEVEL (-400)
 /* A PRESS arms the review, and any event acts on a screen a job put up,
  * only this long after the port took it (see above): button events may
  * come from samples up to 200 ms old. */

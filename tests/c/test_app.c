@@ -244,9 +244,10 @@ static void to_seed_fp(void)
     CHECK(shows("Load seed"));
     CHECK_EQ_INT(ds_app_contrast(&app), DS_APP_UI_CONTRAST);
     press(DS_BTN_OK);
-    CHECK(shows("Listening (cable)"));
-    CHECK(shows("waiting"));
-    CHECK(shows("keys 0  lost 0"));
+    CHECK(shows("by cable"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(shows("Keys 0"));
+    CHECK(!shows("lost"));
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     CHECK(feed_tones(tones));
     CHECK(shows("PIN"));
@@ -313,9 +314,9 @@ static void send_psbt(const psbt_vector *v)
         press(DS_BTN_UP);
     }
     press(DS_BTN_OK);
-    CHECK(shows("Listening (cable)"));
-    CHECK(shows("parts 0/"));
-    for (i = 0; i < 10 * enc.seq_len && shows("Listening (cable)"); i++) {
+    CHECK(shows("by cable"));
+    CHECK(shows("Parts") && shows("0/?"));
+    for (i = 0; i < 10 * enc.seq_len && shows("by cable"); i++) {
         CHECK(tones_next_part(&enc, tones, sizeof tones) > 0);
         feed_tones(tones);
     }
@@ -969,34 +970,34 @@ static void test_app_wrong_data(void)
     to_ready(NULL, 0x73c5da0au);
     CHECK(tones_seed_ur(zero16, 16, NULL, tones, sizeof tones) > 0);
     press(DS_BTN_OK); /* Sign PSBT */
-    CHECK(shows("Listening (cable)"));
+    CHECK(shows("by cable"));
     {
         size_t n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
         for (i = 0; i < n; i += CHUNK) {
             ds_app_audio(&app, audio + i, n - i < CHUNK ? n - i : CHUNK);
             tick();
-            if (shows("Not a PSBT")) {
+            if (shows("not a PSBT")) {
                 break;
             }
         }
-        for (i = 0; i < 100 && !shows("Not a PSBT"); i++) {
+        for (i = 0; i < 100 && !shows("not a PSBT"); i++) {
             static const int16_t silence[CHUNK];
             ds_app_audio(&app, silence, CHUNK);
             tick();
         }
     }
-    CHECK(shows("Not a PSBT"));
-    CHECK(shows("Listening (cable)"));
+    CHECK(shows("not a PSBT"));
+    CHECK(shows("by cable"));
     idle(DS_APP_MSG_MS + 32);
-    CHECK(!shows("Not a PSBT"));
-    CHECK(shows("Listening (cable)"));
+    CHECK(!shows("not a PSBT"));
+    CHECK(shows("by cable"));
 
     /* Listening went on: a PSBT still arrives. */
     {
         const psbt_vector *v = vector("one input with change");
         int32_t n = ut_psbt_to_cbor(v->psbt, v->psbt_len, cbor, sizeof cbor);
         CHECK(ut_fountain_encoder_init(&enc, cbor, (size_t)n, 100) >= 0);
-        for (i = 0; i < 10 * enc.seq_len && shows("Listening (cable)"); i++) {
+        for (i = 0; i < 10 * enc.seq_len && shows("by cable"); i++) {
             CHECK(tones_next_part(&enc, tones, sizeof tones) > 0);
             feed_tones(tones);
         }
@@ -1021,7 +1022,7 @@ static void test_app_wrong_seed_data(void)
     tick();
     press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
-    CHECK(shows("Listening (cable)"));
+    CHECK(shows("by cable"));
     CHECK(ut_fountain_encoder_init(&enc, cbor, (size_t)n, 100) >= 0);
     CHECK(tones_next_part(&enc, tones, sizeof tones) > 0);
     len = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
@@ -1032,18 +1033,18 @@ static void test_app_wrong_seed_data(void)
             ds_app_audio(&app, silence, CHUNK);
         }
         tick();
-        got = shows("Not a seed");
+        got = shows("not a seed");
     }
     CHECK(got);
-    CHECK(shows("Listening (cable)"));
+    CHECK(shows("by cable"));
     idle(DS_APP_MSG_MS + 32);
-    CHECK(!shows("Not a seed"));
-    CHECK(shows("Listening (cable)"));
+    CHECK(!shows("not a seed"));
+    CHECK(shows("by cable"));
 
     /* Audio lost by the port: counted on screen, listening goes on. */
     ds_app_audio_lost(&app, TONES_RATE / 4);
     tick();
-    CHECK(shows("lost 1"));
+    CHECK(shows(", lost 1"));
     CHECK(tones_seed_keypad(zero16, 16, NULL, tones, sizeof tones) > 0);
     /* A keypad seed without PIN, at keypad pace (tones_render: 80 ms + 80 ms,
      * its digits repeat). */
@@ -1231,8 +1232,8 @@ static void test_app_welcome_about(void)
 }
 
 /* While listening the screen tells whether tones are coming in: "receiving"
- * within 0.5 s of a key, "waiting" otherwise, and the keys heard. A PSBT's
- * last keys are shown as they come; a seed's never are. */
+ * within 0.5 s of a key, "waiting" otherwise, the level and the keys heard;
+ * for a PSBT the parts. A seed's keys are counted, never shown. */
 static void test_app_activity(void)
 {
     size_t n, i;
@@ -1244,27 +1245,27 @@ static void test_app_activity(void)
     tick();
     press(DS_BTN_OK); /* past the welcome */
     press(DS_BTN_OK);
-    CHECK(shows("waiting"));
-    CHECK(!shows("receiving"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(!shows("Receiving"));
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
     for (i = 0; i < n / 2; i += CHUNK) {
         ds_app_audio(&app, audio + i, CHUNK);
         tick();
     }
-    CHECK(shows("receiving"));
-    CHECK(!shows("keys 0 "));
-    CHECK(!shows("Volume up"));
+    CHECK(shows("Receiving"));
+    CHECK(!shows("Keys 0"));
+    CHECK(!shows("volume up"));
     CHECK_EQ_STR(app.screen.line[2], "");
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
         tick();
     }
-    CHECK(shows("waiting"));
-    CHECK(shows("Listening (cable)"));
-    CHECK(!shows("Volume up"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(shows("by cable"));
+    CHECK(!shows("volume up"));
 
-    CHECK(!shows("Volume up") && !shows("too quiet"));
+    CHECK(!shows("volume up") && !shows("Too quiet"));
 
     /* The same tones 30 dB quieter (-38.7 dBFS): read, so no warning while
      * they come; cut off, the frame fails, and at that level the screen
@@ -1277,16 +1278,15 @@ static void test_app_activity(void)
         ds_app_audio(&app, audio + i, CHUNK);
         tick();
     }
-    CHECK(shows("receiving"));
-    CHECK(!shows("Volume up") && !shows("too quiet"));
+    CHECK(shows("Receiving"));
+    CHECK(!shows("volume up") && !shows("Too quiet"));
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
         tick();
     }
-    CHECK(shows("Not a seed"));
-    CHECK(shows("Too quiet: volume up"));
+    CHECK(shows("Turn the volume up")); /* lost, and quiet: the likely cause */
     idle(DS_APP_MSG_MS);
-    CHECK(!shows("Volume up"));
+    CHECK(!shows("volume up"));
 
     /* Sound too faint for any key (tones at -48 dBFS in noise): not
      * "waiting" but "too quiet to read"; silence again, "waiting". */
@@ -1305,21 +1305,21 @@ static void test_app_activity(void)
         tick();
     }
     CHECK_EQ_INT(app.rx.keys, keys0); /* no key at all */
-    CHECK(shows("! too quiet to read"));
-    CHECK(shows("Volume up"));
-    CHECK(!shows("waiting"));
+    CHECK(shows("! Too quiet to read"));
+    CHECK(shows("volume up"));
+    CHECK(!shows("Waiting for tones"));
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
         tick();
     }
-    CHECK(shows("waiting"));
-    CHECK(!shows("Volume up"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(!shows("volume up"));
     ds_app_init(&app, TONES_RATE);
 
     to_ready(NULL, 0x73c5da0au);
     press(DS_BTN_OK); /* Sign PSBT */
-    CHECK(shows("waiting"));
-    CHECK(shows("parts 0/?"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(shows("0/?"));
     {
         int32_t c = ut_psbt_to_cbor(psbt_vectors[0].psbt, psbt_vectors[0].psbt_len,
                                     cbor, sizeof cbor);
@@ -1332,9 +1332,9 @@ static void test_app_activity(void)
         ds_app_audio(&app, audio + i, CHUNK);
         tick();
     }
-    CHECK(shows("receiving"));
-    CHECK(strlen(app.screen.line[2]) > 0);
-    CHECK(strstr(tones, app.screen.line[2]) != NULL);
+    CHECK(shows("Receiving"));
+    CHECK_EQ_INT(app.screen.bars[1].row, 4);       /* the parts */
+    CHECK(app.screen.bars[0].fill > app.screen.bars[0].mark); /* loud enough */
     ds_app_init(&app, TONES_RATE);
 }
 

@@ -38,6 +38,13 @@
  * printable ASCII, an icon, or '?' for anything else. */
 const uint8_t *ds_glyph(char c);
 
+/* A bar drawn on a text row, after its label: x 38 to x1, filled up to
+ * fill thousandths, with a tick at mark thousandths (-1: none). Row 0 means
+ * no bar. */
+typedef struct {
+    int row, x1, fill, mark;
+} ds_bar;
+
 typedef struct {
     char line[DS_UI_ROWS][DS_UI_COLS + 1];
     int highlight; /* the inverted row, -1 for none */
@@ -45,6 +52,7 @@ typedef struct {
     int pick;      /* 1: rows 2-7 are the picker's (ds_picker_draw) */
     int pick_page, pick_cur; /* its page and cell, so a move redraws */
     int footer;    /* 1: a dotted line above row 7 (the button hints) */
+    ds_bar bars[2]; /* the listening screens' level and parts */
     int big;       /* a row drawn twice as wide and tall over it and the
                       next, centred; 0 for none (row 0 is never big) */
     int about;     /* 1: an About page; its QR, if any, by ds_about_draw */

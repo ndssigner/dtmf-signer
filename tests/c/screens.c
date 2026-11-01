@@ -157,7 +157,7 @@ static void start_psbt(const psbt_vector *v)
 static void send_rest(void)
 {
     uint32_t i;
-    for (i = 0; i < 10 * enc.seq_len && shows("Listening (cable)"); i++) {
+    for (i = 0; i < 10 * enc.seq_len && shows("by cable"); i++) {
         size_t n;
         expect(tones_next_part(&enc, tones, sizeof tones) > 0, "a PSBT part");
         n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
@@ -309,7 +309,7 @@ int main(void)
     n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
     feed_part(0, n);
     silence(500);
-    expect(shows("Not a seed"), "Not a seed");
+    expect(shows("not a seed"), "That was not a seed");
     shot("not-a-seed");
     idle(DS_APP_MSG_MS);
 
@@ -323,7 +323,7 @@ int main(void)
         }
     }
     feed_part(0, n / 2);
-    expect(shows("too quiet"), "too quiet to read");
+    expect(shows("Too quiet"), "too quiet to read");
     shot("too-quiet");
 
     ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);

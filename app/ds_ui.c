@@ -95,6 +95,39 @@ void ds_ui_render(const ds_screen *s, uint8_t fb[8][128])
             fb[6][i] |= 0x80; /* y 55 */
         }
     }
+    for (i = 0; i < 2; i++) {
+        const ds_bar *b = &s->bars[i];
+        int x, y, y0 = 8 * b->row, x0 = 38, end;
+        if (b->row <= 0 || b->row >= DS_UI_ROWS || b->x1 <= x0 + 2) {
+            continue;
+        }
+        end = x0 + 1 + (b->fill < 0 ? 0 : b->fill > 1000 ? 1000 : b->fill) *
+                           (b->x1 - x0 - 2) / 1000;
+        for (x = x0; x <= b->x1; x++) {
+            for (y = y0; y <= y0 + 6; y++) {
+                int edge = x == x0 || x == b->x1 || y == y0 || y == y0 + 6;
+                int on = edge || (b->fill > 0 && x <= end);
+                if (on) {
+                    fb[y / 8][x] |= (uint8_t)(1u << (y % 8));
+                } else {
+                    fb[y / 8][x] &= (uint8_t)~(1u << (y % 8));
+                }
+            }
+        }
+        if (b->mark >= 0) {
+            int t = x0 + 1 + b->mark * (b->x1 - x0 - 2) / 1000;
+            for (y = y0 - 1; y <= y0 + 7; y++) {
+                if (y < 0 || y > 63) {
+                    continue;
+                }
+                if (y > y0 && y < y0 + 6 && b->fill > 0 && t <= end) {
+                    fb[y / 8][t] &= (uint8_t)~(1u << (y % 8)); /* dark on the fill */
+                } else {
+                    fb[y / 8][t] |= (uint8_t)(1u << (y % 8));
+                }
+            }
+        }
+    }
 }
 
 /* ---- pager ---- */

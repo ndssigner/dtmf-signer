@@ -9,6 +9,18 @@ The firmware is a prototype: do not use it with funds.
   ASCII on four: abc, ABC, 123 and the rarer symbols), OK to add, OK held to
   finish, a delete cell, and a magnifier that shows the chosen character
   three times larger. The entry is shown in the clear instead of as stars.
+- At power-up the signer asks whether you flashed it yourself (a cheap
+  device may be a present from someone with other intentions) and About
+  shows the version, the profile, the catalog's capabilities with this
+  build's ticked, and the repository as a QR code. The risk analysis has
+  the gifted device as a risk of its own.
+- A clearer screen: g, j, p, q and y reach below the line everywhere;
+  icons replace the text hints; settings show their value between arrows
+  and change with LEFT and RIGHT; fingerprints are drawn twice as large;
+  dots show the steps of loading a seed; "Working..." says what it is
+  doing; errors are inverted with a hint of what to check. The listening
+  screens say what they expect, show the level with a mark where tones are
+  read well and, for a PSBT, a bar of the parts.
 - The review is now a row of cards: one per output (what it is first,
   `Send to` or, inverted, `Change, yours`/`To this wallet`; the amount
   twice as tall; the whole address in groups of 4, never split across
@@ -23,11 +35,11 @@ The firmware is a prototype: do not use it with funds.
   (30 ms tone + 10 ms silence) is now tested in the tone receiver's host
   tests, and `dtmf-signer-host tones` can record it (`--timing fast`).
 - The listening screen asks for more volume only when reading fails:
-  "too quiet to read" when sound comes in with no key at all (above
-  -60 dBFS in the DTMF bands; silence is about -67 on the Pico by cable),
-  and "Too quiet: volume up" beside "Not a seed" or "Not a PSBT" when a
-  frame was lost with its tones below -33 dBFS. While keys are being read
-  it says nothing. The USB echo gives each group's tone level.
+  "Too quiet to read" and "Turn the volume up" when sound comes in with no
+  key at all (above -60 dBFS in the DTMF bands; silence is about -67 on the
+  Pico by cable), or when a frame was lost with its tones below -33 dBFS.
+  While keys are being read it says nothing. The USB echo gives each
+  group's tone level.
 
 ## v0.1.0-alpha (2026-10-31)
 
