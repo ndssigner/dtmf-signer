@@ -29,6 +29,10 @@ typedef struct {
     int qr;        /* 1: a QR code owns the left 64x64 square */
     int pick;      /* 1: rows 2-7 are the picker's (ds_picker_draw) */
     int pick_page, pick_cur; /* its page and cell, so a move redraws */
+    int review;    /* 1: a review card, drawn by ds_review_draw */
+    int chip;      /* review: the first chip characters of row 0 inverted */
+    int tall;      /* review: row 1 twice as tall */
+    int addr_from, addr_rows; /* review: rows drawn with the address glyphs */
 } ds_screen;
 
 /* Draws s in fb. Every row is cleared first. Without qr the lines use x 0-125
@@ -55,6 +59,10 @@ void ds_pager_init(ds_pager *p, const char *text);
 /* Fills s with the current page: 7 text rows and the footer "p 2/5  ^v  <cancel",
  * or "HOLD OK TO SIGN" on the last page. Does not change p. */
 void ds_pager_page(const ds_pager *p, ds_screen *s);
+
+/* Starts at page 0 of pages pages, with no text (the review cards draw
+ * their own); seen_last as in ds_pager_init. */
+void ds_pager_init_n(ds_pager *p, uint32_t pages);
 
 /* Moves by delta pages, clamped to the first and last page. Reaching the last
  * page (here or in ds_pager_init) sets seen_last; nothing clears it. */

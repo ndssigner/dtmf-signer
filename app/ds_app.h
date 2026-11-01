@@ -87,9 +87,6 @@
 #define DS_APP_OUT_MAX (DS_APP_PSBT_MAX + DS_MAX_INPUTS * 112)
 /* Its CBOR: a byte string header of at most 8 bytes. */
 #define DS_APP_CBOR_MAX (DS_APP_OUT_MAX + 8)
-/* The review text: at most about 120 characters per output line and 40 per
- * input line, plus the fee and its warning. */
-#define DS_APP_SUMMARY_MAX (DS_MAX_OUTPUTS * 128 + DS_MAX_INPUTS * 48 + 128)
 /* Echo lines waiting to be taken (when full, the oldest are dropped and
  * "echo-dropped N" says so). */
 #define DS_APP_ECHO_BUF 1024
@@ -126,7 +123,6 @@ typedef struct {
     size_t out_len;
     uint8_t cbor[DS_APP_CBOR_MAX]; /* the CBOR shown as QR */
     size_t cbor_len;
-    char summary[DS_APP_SUMMARY_MAX];
     const uint8_t *psbt; /* the received PSBT, inside rx.work */
     size_t psbt_len;
     char echo[DS_APP_ECHO_BUF]; /* NUL-separated lines */

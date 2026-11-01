@@ -2,6 +2,7 @@ add_library(dtmf_app STATIC
   ds_qr.c
   ds_rx.c
   ds_ui.c
+  ds_review.c
   ds_btn.c
   ds_base64.c
   ds_app.c

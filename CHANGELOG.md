@@ -9,6 +9,13 @@ The firmware is a prototype: do not use it with funds.
   ASCII on four: abc, ABC, 123 and the rarer symbols), OK to add, OK held to
   finish, a delete cell, and a magnifier that shows the chosen character
   three times larger. The entry is shown in the clear instead of as stars.
+- The review is now a row of cards: one per output (what it is first,
+  `Send to` or, inverted, `Change, yours`/`To this wallet`; the amount
+  twice as tall; the whole address in groups of 4, never split across
+  pages as it could be before), the fee and totals, the warnings when there
+  are any, and the confirmation with `Hold OK: sign`. In addresses g, j, p,
+  q and y get a tail below the line, so g and q no longer look like 9 in
+  the 5x7 font. The arming rules do not change.
 - [docs/screens.md](docs/screens.md) (and in Spanish): every screen of the
   Pico build and how to move through them, with pictures drawn by the
   firmware's own code (`tests/c/screens.c`, `tools/render_screens.py`).

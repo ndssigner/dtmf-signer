@@ -468,7 +468,19 @@ static void read_all_pages(void)
     for (i = 0; i < app.pager.pages; i++) {
         press(DS_BTN_DOWN);
     }
-    CHECK(shows("HOLD OK TO SIGN"));
+    CHECK(shows("Hold OK: sign"));
+}
+
+/* Goes to the last card at once (the presses come before DS_APP_ARM_MS, so
+ * they do not arm the review). */
+static void to_last_card(void)
+{
+    uint32_t i;
+    for (i = 0; i + 1 < app.pager.pages; i++) {
+        ds_app_button(&app, DS_BTN_DOWN, DS_BTN_PRESS);
+    }
+    tick();
+    CHECK_EQ_INT(app.pager.page + 1, app.pager.pages);
 }
 
 static void test_app_sign_flow(void)
@@ -485,15 +497,15 @@ static void test_app_sign_flow(void)
     work_done();
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
     CHECK(app.pager.pages > 1);
-    CHECK(shows("p 1/"));
-    CHECK(shows("OUTPUT 1"));
+    CHECK_EQ_INT(app.pager.page, 0);
+    CHECK(shows("Send to"));
 
     /* Holding OK on page 1 does nothing. */
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
     tick();
     tick();
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
-    CHECK(shows("p 1/"));
+    CHECK_EQ_INT(app.pager.page, 0);
     CHECK(all_zero(app.out, sizeof app.out));
 
     /* A press of OK on the last page does nothing either. */
@@ -502,14 +514,14 @@ static void test_app_sign_flow(void)
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
 
     /* Every page seen, but back on page 1: holding OK does nothing. */
-    while (!shows("p 1/")) {
+    while (app.pager.page != 0) {
         press(DS_BTN_UP);
     }
     CHECK(app.pager.seen_last);
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
     tick();
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
-    CHECK(shows("p 1/"));
+    CHECK_EQ_INT(app.pager.page, 0);
     read_all_pages();
 
     /* On the last page, after every page: hold OK signs. */
@@ -564,8 +576,9 @@ static void test_app_sign_flow(void)
     ds_app_init(&app, TONES_RATE);
 }
 
-/* A review that fits one page: seen_last is set at once, so only the rule
- * that a PRESS must come first keeps a carried-over hold from confirming. */
+/* An OK held from "Working..." into the review, and taps carried over from
+ * before it: the review has several cards, so the hold alone cannot sign,
+ * and taps that came too soon do not arm it, even on the last card. */
 static void test_app_single_page(void)
 {
     const psbt_vector *v = vector("no external outputs, fee under the limit");
@@ -578,7 +591,11 @@ static void test_app_single_page(void)
     to_ready(NULL, 0x73c5da0au);
     send_psbt(v);
     work_done();
-    CHECK_EQ_INT(app.pager.pages, 1);
+    CHECK(app.pager.pages >= 3);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    to_last_card();
     CHECK(app.pager.seen_last);
     CHECK(shows("Tap OK, then hold OK"));
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
@@ -597,7 +614,7 @@ static void test_app_single_page(void)
     idle(DS_APP_ARM_MS);
     press(DS_BTN_OK);
     CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
-    CHECK(shows("HOLD OK TO SIGN"));
+    CHECK(shows("Hold OK: sign"));
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
     CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
     work_done();
@@ -620,9 +637,10 @@ static void test_app_arm_delay(void)
     to_ready(NULL, 0x73c5da0au);
     send_psbt(v);
     /* Ticks until the review is up (the helper takes and draws it). */
-    for (i = 0; i < 4 && !shows("Tap OK"); i++) {
+    for (i = 0; i < 4 && !app.screen.review; i++) {
         tick();
     }
+    to_last_card();
     CHECK(shows("Tap OK, then hold OK"));
     /* A PRESS before any tick in the review, then a LONG: no sign. */
     ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
@@ -639,7 +657,8 @@ static void test_app_arm_delay(void)
     /* A PRESS after DS_APP_ARM_MS, then a LONG: signs. */
     idle(DS_APP_ARM_MS);
     ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
-    CHECK(shows("HOLD OK TO SIGN"));
+    tick();
+    CHECK(shows("Hold OK: sign"));
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
     CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
     work_done();
@@ -653,6 +672,11 @@ static void test_app_arm_delay(void)
         now += 16;
         ds_app_tick(&app, now); /* never taken, never drawn */
     }
+    for (i = 0; i + 1 < (int)app.pager.pages; i++) {
+        ds_app_button(&app, DS_BTN_DOWN, DS_BTN_PRESS);
+    }
+    now += 16;
+    ds_app_tick(&app, now);
     CHECK(shows("Tap OK, then hold OK"));
     ds_app_button(&app, DS_BTN_OK, DS_BTN_PRESS);
     ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
@@ -921,7 +945,7 @@ static void test_app_cancel(void)
     to_ready(NULL, 0x73c5da0au);
     send_psbt(vector("one input with change"));
     work_done();
-    CHECK(shows("p 1/"));
+    CHECK_EQ_INT(app.pager.page, 0);
     read_all_pages();
     press(DS_BTN_LEFT);
     CHECK(shows("Sign PSBT"));
@@ -974,7 +998,7 @@ static void test_app_wrong_data(void)
         }
         CHECK(shows("Working..."));
         work_done();
-        CHECK(shows("p 1/"));
+        CHECK_EQ_INT(app.pager.page, 0);
     }
     ds_app_init(&app, TONES_RATE);
 }
@@ -1032,10 +1056,10 @@ static void test_app_wipe(void)
     to_ready(NULL, 0x73c5da0au);
     send_psbt(vector("one input with change"));
     work_done();
-    CHECK(shows("p 1/"));
+    CHECK_EQ_INT(app.pager.page, 0);
     ds_app_button(&app, DS_BTN_LEFT, DS_BTN_LONG); /* on the way to WIPE */
     tick();
-    CHECK(shows("p 1/"));
+    CHECK_EQ_INT(app.pager.page, 0);
     ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
     tick();
     CHECK(shows("Wiped"));

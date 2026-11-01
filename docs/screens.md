@@ -125,14 +125,31 @@ code takes any of them.
 
 ### The review
 
-![Review, first page](images/screens/review-first.png)
-![Review, last page](images/screens/review-last.png)
+The review is a row of cards, ▲ ▼ to move, ◀ to cancel; each card says
+where you are at the top right.
 
-Every output with its amount and its full address, the change marked as
-`CHANGE` only if it really belongs to this wallet, and the fee. ▲ ▼ turn
-the pages; ◀ cancels. Signing is offered only on the last page, once every
-page has been seen: hold OK there. With a single page, the screen first
-says `Tap OK, then hold OK`.
+![Review, an output sent](images/screens/review-send.png)
+![Review, the change](images/screens/review-change.png)
+
+One card per output. The top says what it is: `Send to`, or, inverted,
+`Change, yours` or `To this wallet` (only for outputs the signer has proved
+belong to this wallet). Then the amount with all 8 decimals, twice as tall,
+and the whole address in groups of 4, never split across cards: compare it
+group by group with the wallet on the computer. In addresses `g`, `j`, `p`,
+`q` and `y` go below the line, so `g` and `q` do not look like `9`.
+
+![Review, the fee](images/screens/review-fee.png)
+
+The fee, then what is sent, the change and the total (sent plus fee). A
+card `Check` follows when there is something to warn about: a high fee, or
+inputs that will not be signed.
+
+![Review, the confirmation](images/screens/review-confirm.png)
+
+The last card: what goes out, fee included, and `Hold OK: sign`. Signing
+is offered only here, once every card has been seen; a tap that came before
+the review was on the screen does not count, and the bar then says
+`Tap OK, then hold OK`.
 
 ![Rejected](images/screens/rejected.png)
 

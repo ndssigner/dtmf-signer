@@ -72,3 +72,9 @@ target_include_directories(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pic
 add_executable(screens screens.c ${DS_PSBT_VECTORS_H})
 target_include_directories(screens PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(screens PRIVATE dtmf_app ds_warnings)
+
+# The review cards: the app layer and the PSBT vectors.
+ds_add_test(test_review)
+target_sources(test_review PRIVATE ${DS_PSBT_VECTORS_H})
+target_include_directories(test_review PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_review PRIVATE dtmf_app)

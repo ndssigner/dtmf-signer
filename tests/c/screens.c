@@ -259,12 +259,15 @@ int main(void)
     silence(1000);
     send_rest();
     work_done();
-    shot("review-first");
+    expect(app.pager.pages == 4, "four review cards");
+    shot("review-send");
     idle(DS_APP_ARM_MS);
-    for (i = 0; i < app.pager.pages; i++) {
-        press(DS_BTN_DOWN);
-    }
-    shot("review-last");
+    press(DS_BTN_DOWN);
+    shot("review-change");
+    press(DS_BTN_DOWN);
+    shot("review-fee");
+    press(DS_BTN_DOWN);
+    shot("review-confirm");
     hold(DS_BTN_OK);
     work_done();
     expect(app.screen.qr, "the signed QR");

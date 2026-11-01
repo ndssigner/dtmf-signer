@@ -118,6 +118,14 @@ void ds_pager_init(ds_pager *p, const char *text)
     p->seen_last = p->pages == 1;
 }
 
+void ds_pager_init_n(ds_pager *p, uint32_t pages)
+{
+    p->text = "";
+    p->page = 0;
+    p->pages = pages == 0 ? 1 : pages;
+    p->seen_last = p->pages == 1;
+}
+
 void ds_pager_page(const ds_pager *p, ds_screen *s)
 {
     size_t pos = 0;

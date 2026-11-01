@@ -6,6 +6,7 @@
 
 #include "ds_base64.h"
 #include "ds_btn.h"
+#include "ds_review.h"
 
 enum {
     ST_HOME = 0,
@@ -362,10 +363,7 @@ static void build(const ds_app *a, ds_screen *s)
         listening(a, s, 1);
         break;
     case ST_PAGER:
-        ds_pager_page(&a->pager, s);
-        if (!a->armed && a->pager.page + 1 >= a->pager.pages) {
-            line(s, 7, "Tap OK, then hold OK");
-        }
+        ds_review_card(&a->s.r, a->pager.page, a->armed, s);
         break;
     case ST_ERROR:
         error_screen(a, s);
@@ -437,7 +435,6 @@ static void clear_work(ds_app *a)
     echo_signed_abort(a);
     ds_wipe(a->out, sizeof a->out);
     a->out_len = 0;
-    ds_wipe(a->summary, sizeof a->summary);
     ds_wipe(&a->pager, sizeof a->pager);
     ds_rx_wipe(&a->rx);
     a->psbt = NULL;
@@ -612,13 +609,6 @@ static void job_review(ds_app *a)
         error_to(a, E_NOTHING, 0);
         return;
     }
-    r = ds_psbt_summary_text(&a->s.r, a->summary, sizeof a->summary);
-    if (r < 0) {
-        ds_session_cancel(&a->s);
-        clear_work(a);
-        error_to(a, E_REJECTED, r);
-        return;
-    }
     /* Never sign what cannot be given back. */
     if (!ds_app_fits_qr(a, len, a->s.r.n_ours)) {
         ds_session_cancel(&a->s);
@@ -626,7 +616,7 @@ static void job_review(ds_app *a)
         error_to(a, E_TOO_BIG, DS_ERR_LIMIT);
         return;
     }
-    ds_pager_init(&a->pager, a->summary);
+    ds_pager_init_n(&a->pager, ds_review_cards(&a->s.r));
     /* A hold or a tap carried over from before the review cannot arm it. */
     a->armed = 0;
     set_state(a, ST_PAGER);
@@ -1081,6 +1071,10 @@ int ds_app_take_dirty(ds_app *a)
 
 void ds_app_draw(const ds_app *a, uint8_t fb[8][128])
 {
+    if (a->screen.review) {
+        ds_review_draw(&a->screen, fb);
+        return;
+    }
     ds_ui_render(&a->screen, fb);
     if (a->screen.pick) {
         ds_picker_draw(&a->pick, fb);

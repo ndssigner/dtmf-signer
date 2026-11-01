@@ -128,14 +128,32 @@ codificación fountain sirve con cualquiera de ellas.
 
 ### La revisión
 
-![Revisión, primera página](../images/screens/review-first.png)
-![Revisión, última página](../images/screens/review-last.png)
+La revisión es una fila de tarjetas: ▲ ▼ para moverse, ◀ para cancelar;
+cada tarjeta dice arriba a la derecha dónde estás.
 
-Cada salida con su importe y su dirección completa, el cambio marcado como
-`CHANGE` solo si de verdad es de esta cartera, y la comisión. ▲ ▼ pasan las
-páginas; ◀ cancela. Firmar solo se ofrece en la última página, después de
-haberlas visto todas: mantén OK ahí. Con una sola página, la pantalla dice
-antes `Tap OK, then hold OK`.
+![Revisión, una salida enviada](../images/screens/review-send.png)
+![Revisión, el cambio](../images/screens/review-change.png)
+
+Una tarjeta por salida. Arriba dice qué es: `Send to`, o, en vídeo inverso,
+`Change, yours` o `To this wallet` (solo para salidas que el firmador ha
+comprobado que son de esta cartera). Luego el importe con los 8 decimales,
+el doble de alto, y la dirección completa en grupos de 4, que nunca se parte
+entre tarjetas: compárala grupo a grupo con la de la cartera del ordenador.
+En las direcciones la `g`, la `j`, la `p`, la `q` y la `y` bajan de la
+línea, para que la `g` y la `q` no se confundan con el `9`.
+
+![Revisión, la comisión](../images/screens/review-fee.png)
+
+La comisión, y debajo lo enviado, el cambio y el total (enviado más
+comisión). Si hay algo que avisar, viene una tarjeta `Check`: una comisión
+alta, o entradas que no se van a firmar.
+
+![Revisión, la confirmación](../images/screens/review-confirm.png)
+
+La última tarjeta: lo que sale, comisión incluida, y `Hold OK: sign`.
+Firmar solo se ofrece aquí, después de ver todas las tarjetas; un toque que
+llegó antes de que la revisión estuviera en pantalla no cuenta, y entonces
+la barra dice `Tap OK, then hold OK`.
 
 ![Rechazada](../images/screens/rejected.png)
 
