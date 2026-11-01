@@ -51,6 +51,7 @@ class HostTonesTest(unittest.TestCase):
 
     def test_seed_wav_keypad_and_options(self):
         for extra in (["--keypad"], ["--rate", "44100"], ["--timing", "air"],
+                      ["--timing", "fast"], ["--pin", "TEST", "--rate", "44100", "--timing", "fast"],
                       ["--keypad", "--pin", "TEST", "--rate", "44100", "--timing", "air"]):
             with self.subTest(extra=extra):
                 wav = str(self.dir / "s.wav")
@@ -92,7 +93,7 @@ class HostTonesTest(unittest.TestCase):
     def test_psbt_wav_options(self):
         seed = self.seed_args()
         _, expected, _ = run(["sign", *seed, "--psbt", self.psbt_file()])
-        for extra in (["--rate", "44100"], ["--timing", "air"]):
+        for extra in (["--rate", "44100"], ["--timing", "air"], ["--timing", "fast"]):
             with self.subTest(extra=extra):
                 wav = str(self.dir / "p.wav")
                 code, _, err = run(["tones", "psbt", self.psbt_file(), *extra, "--out", wav])
@@ -123,10 +124,11 @@ class HostTonesTest(unittest.TestCase):
             ["tones"],
             ["tones", "other", ZERO16, "--out", wav],
             ["tones", "seed", ZERO16, "--rate", "8000", "--out", wav],
-            ["tones", "seed", ZERO16, "--timing", "fast", "--out", wav],
+            ["tones", "seed", ZERO16, "--timing", "slow", "--out", wav],
             ["tones", "seed", ZERO16, "--out", wav, "--out", wav],
             ["tones", "psbt", self.psbt_file(), "--keypad", "--out", wav],
             ["tones", "seed", ZERO16, "--keypad", "--timing", "cable", "--out", wav],
+            ["tones", "seed", ZERO16, "--keypad", "--timing", "fast", "--out", wav],
             ["tones", "psbt", self.psbt_file(), "--pin", "TEST", "--out", wav],
         ]
         for args in cases:
