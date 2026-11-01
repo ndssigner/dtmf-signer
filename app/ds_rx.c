@@ -49,6 +49,10 @@ void ds_rx_push(ds_rx *rx, const int16_t *x, size_t n)
     int32_t got;
 
     ut_listener_push(&rx->l, x, n);
+    if (rx->sound_n < 0x10000) {
+        rx->sound_sum += rx->l.level;
+        rx->sound_n++;
+    }
     got = ut_listener_live(&rx->l, k, sizeof k);
     if (got > 0) {
         /* the level while a key sounds, not of the noise between groups */
@@ -185,6 +189,14 @@ int32_t ds_rx_psbt(const ds_rx *rx, const uint8_t **psbt, size_t *len)
 int ds_rx_level(const ds_rx *rx)
 {
     return rx->level_n > 0 ? (int)(rx->level_sum / (int32_t)rx->level_n) : rx->group_level;
+}
+
+int ds_rx_take_sound(ds_rx *rx)
+{
+    int mean = rx->sound_n > 0 ? (int)(rx->sound_sum / (int32_t)rx->sound_n) : -990;
+    rx->sound_sum = 0;
+    rx->sound_n = 0;
+    return mean;
 }
 
 void ds_rx_progress(const ds_rx *rx, uint32_t *have, uint32_t *need)

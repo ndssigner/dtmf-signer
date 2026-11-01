@@ -41,6 +41,8 @@ typedef struct {
     int32_t level_sum;    /* tone levels (0.1 dBFS) at keys since the last group */
     uint32_t level_n;
     int group_level;      /* the last group's mean tone level; -990: none */
+    int32_t sound_sum;    /* levels in the DTMF bands, keys or not, since */
+    uint32_t sound_n;     /* the last ds_rx_take_sound */
 } ds_rx;
 
 /* mode: DS_RX_SEED or DS_RX_PSBT. rate: the sample rate of ds_rx_push. */
@@ -75,6 +77,11 @@ int32_t ds_rx_psbt(const ds_rx *rx, const uint8_t **psbt, size_t *len);
 /* The mean tone level (0.1 dBFS) heard since the last group taken, or the
  * last group's when no tone came since; -990 before any tone. */
 int ds_rx_level(const ds_rx *rx);
+
+/* The mean level (0.1 dBFS) in the DTMF bands of the audio pushed since the
+ * last call, keys or not (-990 counts for silence), then starts over; -990
+ * when nothing was pushed. Tells sound too faint for keys from silence. */
+int ds_rx_take_sound(ds_rx *rx);
 
 /* PSBT progress: fragments known and fragments needed (0 when unknown). */
 void ds_rx_progress(const ds_rx *rx, uint32_t *have, uint32_t *need);

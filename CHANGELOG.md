@@ -7,9 +7,12 @@ The firmware is a prototype: do not use it with funds.
 - ur-tones v0.5.0. Its receiver is unchanged; the new "fast cable" pace
   (30 ms tone + 10 ms silence) is now tested in the tone receiver's host
   tests, and `dtmf-signer-host tones` can record it (`--timing fast`).
-- The listening screen says "Signal low: volume up" while tones come in
-  below -33 dBFS (on the Pico by cable, a seed frame failed at -35.8 dBFS
-  and loaded at -32.6). The USB echo gives each group's tone level.
+- The listening screen asks for more volume only when reading fails:
+  "too quiet to read" when sound comes in with no key at all (above
+  -60 dBFS in the DTMF bands; silence is about -67 on the Pico by cable),
+  and "Too quiet: volume up" beside "Not a seed" or "Not a PSBT" when a
+  frame was lost with its tones below -33 dBFS. While keys are being read
+  it says nothing. The USB echo gives each group's tone level.
 
 ## v0.1.0-alpha (2026-10-31)
 

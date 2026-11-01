@@ -1138,6 +1138,7 @@ static void test_app_settings(void)
 static void test_app_activity(void)
 {
     size_t n, i;
+    uint32_t keys0;
     static const int16_t silence[CHUNK];
 
     ds_app_init(&app, TONES_RATE);
@@ -1154,7 +1155,7 @@ static void test_app_activity(void)
     }
     CHECK(shows("receiving"));
     CHECK(!shows("keys 0 "));
-    CHECK(!shows("Signal low"));
+    CHECK(!shows("Volume up"));
     CHECK_EQ_STR(app.screen.line[2], "");
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
@@ -1162,24 +1163,58 @@ static void test_app_activity(void)
     }
     CHECK(shows("waiting"));
     CHECK(shows("Listening (cable)"));
-    CHECK(!shows("Signal low"));
+    CHECK(!shows("Volume up"));
 
-    /* The same tones 30 dB quieter: heard, with a request for more volume
-     * while they come. */
+    CHECK(!shows("Volume up") && !shows("too quiet"));
+
+    /* The same tones 30 dB quieter (-38.7 dBFS): read, so no warning while
+     * they come; cut off, the frame fails, and at that level the screen
+     * asks for more volume. */
     for (i = 0; i < n; i++) {
         audio[i] = (int16_t)(audio[i] / 32);
     }
+    idle(DS_APP_MSG_MS);
     for (i = 0; i < n / 2; i += CHUNK) {
         ds_app_audio(&app, audio + i, CHUNK);
         tick();
     }
     CHECK(shows("receiving"));
-    CHECK(shows("Signal low: volume up"));
+    CHECK(!shows("Volume up") && !shows("too quiet"));
     for (i = 0; i < TONES_RATE; i += CHUNK) {
         ds_app_audio(&app, silence, CHUNK);
         tick();
     }
-    CHECK(!shows("Signal low"));
+    CHECK(shows("Not a seed"));
+    CHECK(shows("Too quiet: volume up"));
+    idle(DS_APP_MSG_MS);
+    CHECK(!shows("Volume up"));
+
+    /* Sound too faint for any key (tones at -48 dBFS in noise): not
+     * "waiting" but "too quiet to read"; silence again, "waiting". */
+    keys0 = app.rx.keys;
+    {
+        uint32_t x = 1;
+        CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+        n = tones_render(tones, audio, sizeof audio / sizeof audio[0]);
+        for (i = 0; i < n; i++) {
+            x = x * 1103515245u + 12345u;
+            audio[i] = (int16_t)(audio[i] / 256 + (int)((x >> 16) % 601) - 300);
+        }
+    }
+    for (i = 0; i < n / 2; i += CHUNK) {
+        ds_app_audio(&app, audio + i, CHUNK);
+        tick();
+    }
+    CHECK_EQ_INT(app.rx.keys, keys0); /* no key at all */
+    CHECK(shows("! too quiet to read"));
+    CHECK(shows("Volume up"));
+    CHECK(!shows("waiting"));
+    for (i = 0; i < TONES_RATE; i += CHUNK) {
+        ds_app_audio(&app, silence, CHUNK);
+        tick();
+    }
+    CHECK(shows("waiting"));
+    CHECK(!shows("Volume up"));
     ds_app_init(&app, TONES_RATE);
 
     to_ready(NULL, 0x73c5da0au);

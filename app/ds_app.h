@@ -101,10 +101,14 @@
 #define DS_APP_MSG_MS 2000 /* "Not a seed", "Not a PSBT" */
 #define DS_APP_PART_MS 250 /* one QR part every 250 ms */
 #define DS_APP_HEARD_MS 500 /* "receiving" this long after the last key */
-/* Below this tone level (0.1 dBFS) the listening screen asks for more
- * volume. Measured on the Pico by cable: a seed frame at -35.8 dBFS failed,
- * at -32.6 dBFS it loaded. */
+/* A frame that fails with its tones below this level (0.1 dBFS) asks for
+ * more volume. Measured on the Pico by cable: a seed frame at -35.8 dBFS
+ * failed, at -32.6 dBFS it loaded. */
 #define DS_APP_LOW_LEVEL (-330)
+/* Above this level in the DTMF bands, with no key, sound is coming that the
+ * receiver cannot read. On the Pico by cable: silence -67.5 dBFS, a seed
+ * too faint to load -52. */
+#define DS_APP_SOUND_LEVEL (-600)
 /* A PRESS arms the review, and any event acts on a screen a job put up,
  * only this long after the port took it (see above): button events may
  * come from samples up to 200 ms old. */
@@ -139,6 +143,8 @@ typedef struct {
     uint32_t t_at;
     uint32_t now, msg_until, part_at, lost;
     uint32_t keys_seen, key_at;   /* rx.keys at the last key, and when */
+    uint32_t sound_at;            /* when sound without keys was last heard */
+    int sound, sound_level;       /* 1 after it; its level */
     int msg;                      /* 1 while "Not a ..." is shown */
     int armed;                    /* a late enough PRESS was taken in the review */
     int gated;                    /* a job put this screen up (see DS_APP_ARM_MS) */

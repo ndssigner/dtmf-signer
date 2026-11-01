@@ -180,13 +180,25 @@ static void menu(const ds_app *a, ds_screen *s, int first, const char *const *it
     s->highlight = first + a->cursor;
 }
 
-/* Row 1 says whether tones are coming in; for a PSBT row 2 shows the last
- * keys as they come (public), a seed's keys are never shown. */
+/* Row 1 says whether tones are coming in, or sound that cannot be read;
+ * for a PSBT row 2 shows the last keys as they come (public), a seed's keys
+ * are never shown. More volume is asked for only when reading fails: sound
+ * with no key, or a frame lost with its tones quiet. */
 static void listening(const ds_app *a, ds_screen *s, int psbt)
 {
     int heard = a->rx.keys > 0 && a->now - a->key_at < DS_APP_HEARD_MS;
+    int sound = a->sound && a->now - a->sound_at < DS_APP_HEARD_MS;
     line(s, 0, "Listening (cable)");
-    line(s, 1, heard ? "* receiving" : "  waiting");
+    if (heard) {
+        line(s, 1, "* receiving");
+    } else if (sound && a->sound_level < DS_APP_LOW_LEVEL) {
+        line(s, 1, "! too quiet to read");
+        line(s, 6, "Volume up");
+    } else if (sound) {
+        line(s, 1, "? sound, not tones");
+    } else {
+        line(s, 1, "  waiting");
+    }
     if (psbt) {
         uint32_t have = 0, need = 0;
         line(s, 2, a->rx.live);
@@ -203,8 +215,8 @@ static void listening(const ds_app *a, ds_screen *s, int psbt)
     if (a->msg) {
         line(s, 5, psbt ? "Not a PSBT" : "Not a seed");
     }
-    if (heard && ds_rx_level(&a->rx) < DS_APP_LOW_LEVEL) {
-        line(s, 6, "Signal low: volume up");
+    if (a->msg && a->rx.group_level < DS_APP_LOW_LEVEL) {
+        line(s, 6, "Too quiet: volume up");
     }
     line(s, 7, "<: back");
 }
@@ -798,6 +810,7 @@ static void start_listening(ds_app *a, int mode, int st)
     ds_rx_init(&a->rx, a->rate, mode);
     a->lost = 0;
     a->keys_seen = 0;
+    a->sound = 0;
     set_state(a, st);
 }
 
@@ -1030,6 +1043,14 @@ void ds_app_tick(ds_app *a, uint32_t now_ms)
         run_job(a);
     }
     poll_rx(a);
+    if (listening_now(a)) {
+        int lv = ds_rx_take_sound(&a->rx);
+        if (lv > DS_APP_SOUND_LEVEL && a->now - a->key_at >= DS_APP_HEARD_MS) {
+            a->sound = 1;
+            a->sound_at = now_ms;
+            a->sound_level = lv;
+        }
+    }
     if (a->msg && (int32_t)(now_ms - a->msg_until) >= 0) {
         a->msg = 0;
     }

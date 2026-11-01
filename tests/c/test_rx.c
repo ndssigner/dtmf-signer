@@ -297,7 +297,10 @@ static void test_rx_level(void)
     CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
     ds_rx_init(&rx, TONES_RATE, DS_RX_SEED);
     CHECK_EQ_INT(ds_rx_level(&rx), -990);
+    CHECK_EQ_INT(ds_rx_take_sound(&rx), -990); /* nothing pushed */
     CHECK_EQ_INT(hear(&rx, tones), DS_RX_GOT_SEED);
+    CHECK(ds_rx_take_sound(&rx) > -500); /* the tones, with their gaps */
+    CHECK_EQ_INT(ds_rx_take_sound(&rx), -990); /* taken */
     loud = rx.group_level;
     CHECK(loud > -300 && loud < 0);
     ds_rx_wipe(&rx);
