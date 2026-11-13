@@ -54,6 +54,9 @@ comes later.
     during setup and sent it out over the mobile network; losses are
     estimated in the tens of millions of dollars
     ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
+    In November, Trezor confirmed the same kind of implant, adapted to its
+    screen, in Safe 5 units sold by the same reseller
+    ([Trezor](https://trezor.io/blog/news/our-cryptobilis-investigation-what-we-found-and-what-weve-changed)).
     Here you build the signer yourself from generic parts, the
     microcontroller is one you bought, flashed and can pull out of its
     socket, and every part of the board is open and in plain sight. And

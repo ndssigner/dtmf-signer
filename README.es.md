@@ -59,6 +59,9 @@ Pico 2 vendrá después.
     recuperación de la pantalla durante la configuración y la enviaba por
     la red móvil; las pérdidas se estiman en decenas de millones de dólares
     ([CoinDesk](https://www.coindesk.com/tech/2026/10/13/ledger-says-spy-chip-inside-cryptobilis-ledger-devices-transmitted-wallet-keys-over-mobile-network)).
+    En noviembre, Trezor confirmó el mismo tipo de implante, adaptado a su
+    pantalla, en unidades Safe 5 vendidas por el mismo distribuidor
+    ([Trezor](https://trezor.io/blog/news/our-cryptobilis-investigation-what-we-found-and-what-weve-changed)).
     Aquí el firmador lo montas tú con piezas genéricas, el microcontrolador
     lo has comprado y flasheado tú y puedes sacarlo de su zócalo, y cada
     pieza de la placa está abierta y a la vista. Además, la semilla nunca
