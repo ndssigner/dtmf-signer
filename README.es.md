@@ -31,12 +31,13 @@ y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
 Pico 2 vendrá después.
 
 > **Estado: prototipo que funciona.** El montaje de referencia, Cable y QR,
-> funciona en una protoboard: carga una semilla por tonos con su PIN,
+> funciona en una protoboard y en una placa perforada: carga una semilla por tonos con su PIN,
 > muestra las huellas, exporta la XPUB y devuelve las PSBT firmadas como
 > códigos QR que Sparrow lee. Su disposición y una plantilla imprimible a
 > escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
 > Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
-> independiente. No lo uses con fondos.
+> independiente. No lo uses con fondos. Vídeos: [en la protoboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
+> y [en placa perforada con v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
 
 ## Motivación
 
@@ -204,7 +205,7 @@ El análisis completo, por formato de distribución y por uso, está en
 - **Protoboard** (disponible: la [disposición](hardware/breadboard/README.es.md)),
   con módulos comerciales comunes.
 - **Placa perforada** (disponible: la misma disposición y su plantilla
-  imprimible 1:1): los mismos módulos soldados en una placa de prototipos con
+  imprimible 1:1; montada y funcionando con v0.2.0-alpha, [vídeo](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)): los mismos módulos soldados en una placa de prototipos con
   el trazado de una protoboard, con la Pico y la pantalla en tiras hembra. El
   montaje de la protoboard se pasa tal cual. Más sólida y portátil, sin pedir
   ninguna PCB.
@@ -225,7 +226,7 @@ El análisis completo, por formato de distribución y por uso, está en
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [ ] Simulación de las etapas analógicas y del firmware
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
-- [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia
+- [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia. En la placa perforada, v0.2.0-alpha desde la semilla por tonos hasta la PSBT firmada leída por Sparrow
 - [ ] Protocolo serie para terminales vintage
 - [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente
@@ -233,7 +234,7 @@ El análisis completo, por formato de distribución y por uso, está en
 ## Aviso
 
 DTMF-Signer es un diseño experimental y se ofrece tal cual, sin ninguna
-garantía. El firmware solo está probado en un prototipo de protoboard, no
+garantía. El firmware solo está probado en prototipos de protoboard y de placa perforada, no
 es para fondos reales, y nadie independiente lo ha revisado. No respondemos de pérdidas de fondos ni de
 ningún otro daño, ni del uso que cada cual haga de este diseño.
 

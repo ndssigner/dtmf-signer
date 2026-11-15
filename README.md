@@ -28,12 +28,13 @@ profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
 comes later.
 
 > **Status: working prototype.** The reference build, Cable and QR, runs on
-> a breadboard: it loads a seed by tones with its PIN, shows the
+> a breadboard and on a perfboard: it loads a seed by tones with its PIN, shows the
 > fingerprints, exports the xpub and returns signed PSBTs as QR codes that
 > Sparrow reads. Its layout and a printable 1:1 template are in
 > [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
 > air (microphone and speaker), the PCBs and an independent review are still
-> to come. Do not use it with funds.
+> to come. Do not use it with funds. Videos: [on the breadboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
+> and [on a perfboard with v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
 
 ## Motivation
 
@@ -193,7 +194,7 @@ The whole analysis, by distribution format and by use, is in
 - **Breadboard** (available: the [layout](hardware/breadboard/README.md)),
   with common off-the-shelf modules.
 - **Perfboard** (available: the same layout and its printable 1:1
-  template): the same modules soldered onto a prototyping board laid out
+  template; built and running v0.2.0-alpha, [video](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)): the same modules soldered onto a prototyping board laid out
   like a breadboard, with the Pico and the screen on socket headers. The
   breadboard layout carries over as is. Sturdier and portable, with no PCB
   to order.
@@ -214,7 +215,7 @@ The whole analysis, by distribution format and by use, is in
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [ ] Simulation of the analog stages and the firmware
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
-- [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe
+- [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe. On the perfboard, v0.2.0-alpha from the seed by tones to the signed PSBT read by Sparrow
 - [ ] Serial protocol for vintage terminals
 - [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review
@@ -222,7 +223,7 @@ The whole analysis, by distribution format and by use, is in
 ## Notice
 
 DTMF-Signer is an experimental design and is offered as is, without any
-warranty. The firmware is tested only on a breadboard prototype, it is not
+warranty. The firmware is tested only on breadboard and perfboard prototypes, it is not
 for real funds, and no one independent has reviewed it. We are not liable for any loss of funds or any other harm, nor
 for the use anyone makes of this design.
 
