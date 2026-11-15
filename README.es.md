@@ -11,8 +11,9 @@ cinco botones, un micrófono y un piezo; el montaje de referencia que ya
 funciona, **Cable y QR**, prescinde del micrófono y del piezo: escucha por
 cable y responde con códigos QR. Se comunica con tu cartera mediante tonos de
 teléfono (DTMF) a través de [ur-tones](https://github.com/ndssigner/ur-tones),
-al aire o por cable. Sin cámara, sin datos por USB, sin elemento seguro y sin
-almacenamiento: la semilla vive en memoria solo mientras firmas. Del proyecto
+al aire o por cable. Sin cámara, sin elemento seguro y sin almacenamiento: la
+semilla vive en memoria solo mientras firmas. Para usarlo se alimenta con un
+cargador o una batería externa, nunca desde un ordenador. Del proyecto
 [NDS-Signer](https://github.com/ndssigner/nds-signer).
 
 **La idea central:** la semilla llega como tonos, creados con ur-tones en un
@@ -147,6 +148,15 @@ Lo que ya funciona, en una protoboard de tamaño completo
 Escucha por cable y habla por QR: la semilla y las PSBT entran como tonos,
 y la XPUB y las PSBT firmadas salen como códigos QR animados en su
 pantalla. Una docena de resistencias y condensadores lo completan.
+
+**Aliméntalo siempre con un cargador USB o una batería externa, nunca desde
+un ordenador.** El firmador nunca lee de su puerto USB, pero el firmware de
+este prototipo escribe en él un eco público (la XPUB, las huellas, las PSBT
+firmadas; nunca la semilla, el PIN ni la passphrase), así que un ordenador al
+otro lado sabría qué cartera es. Una versión sin eco está pendiente. Solo se
+conecta a un ordenador para grabarlo, en modo BOOTSEL y sin semilla cargada.
+Un cargador USB-A con un cable USB-A a USB-C es el que funciona siempre
+([alimentación](ports/pico/README.es.md#alimentación)).
 
 | ![Escuchando los tonos de una semilla: "Receiving", la barra de nivel pasando su marca, las teclas contadas](docs/images/screens/seed-receiving.png) | ![Escribiendo el PIN en una rejilla de letras y dígitos, con el elegido ampliado](docs/images/screens/pin-typing.png) |
 | :---: | :---: |

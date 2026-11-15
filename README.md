@@ -9,8 +9,9 @@ out the microphone and the piezo: it listens by cable and answers with QR
 codes.
 It talks to your wallet with telephone tones (DTMF) through
 [ur-tones](https://github.com/ndssigner/ur-tones), through the air or by
-cable. No camera, no USB data, no secure element and no storage: the seed
-lives in memory only while you sign. From the
+cable. No camera, no secure element and no storage: the seed lives in
+memory only while you sign. To use it, power it from a charger or a power
+bank, never from a computer. From the
 [NDS-Signer](https://github.com/ndssigner/nds-signer) project.
 
 **The key idea:** the seed arrives as tones, made by ur-tones on an offline
@@ -137,6 +138,15 @@ What works today, on one full-size breadboard
 It listens by cable and speaks by QR: the seed and the PSBTs come in as
 tones, and the xpub and the signed PSBTs go out as animated QR codes on its
 screen. A dozen resistors and capacitors complete it.
+
+**Always power it from a USB charger or a power bank, never from a
+computer.** The signer never reads from its USB port, but this prototype's
+firmware prints a public echo on it (the xpub, the fingerprints, the signed
+PSBTs; never the seed, the PIN or the passphrase), so a computer at the other
+end would learn which wallet it is. A build with no echo is on the to-do
+list. The only time it goes into a computer is to flash it, in BOOTSEL mode,
+with no seed loaded. A USB-A charger with a USB-A to USB-C cable is the one
+that always works ([power](ports/pico/README.md#power)).
 
 | ![Listening to a seed's tones: "Receiving", the level bar past its mark, the keys counted](docs/images/screens/seed-receiving.png) | ![Typing the PIN on a grid of letters and digits, the chosen one magnified](docs/images/screens/pin-typing.png) |
 | :---: | :---: |

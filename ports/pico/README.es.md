@@ -80,9 +80,10 @@ Opciones:
 Muchas placas RP2040 baratas con conector USB-C no llevan las dos
 resistencias de 5,1 kΩ que le piden corriente a un cargador USB-C, así que
 un cargador USB-C a USB-C (el de un portátil, por ejemplo) no las enciende.
-Un cargador USB-A con un cable USB-A a USB-C funciona. Un cargador o una
-batería externa, en vez de un ordenador, también deja el eco por USB lejos
-de cualquier ordenador.
+Un cargador USB-A con un cable USB-A a USB-C funciona. Para usarlo,
+siempre un cargador o una batería externa, nunca un ordenador (solo para
+grabarlo): así [el eco por
+USB](#el-eco-por-usb) no llega a ningún ordenador.
 
 ## Cargar el firmware
 

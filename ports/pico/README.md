@@ -78,8 +78,9 @@ Options:
 Many cheap RP2040 boards with a USB-C socket lack the two 5.1 kΩ resistors
 that tell a USB-C charger to give power, so a USB-C to USB-C charger (a
 laptop's, for instance) leaves them off. A USB-A charger with a USB-A to
-USB-C cable works. A charger or a power bank, rather than a computer, also
-keeps the USB echo away from a computer.
+USB-C cable works. To use it, always a charger or a power bank, never a
+computer (only to flash it): that keeps [the USB echo](#the-usb-echo) away
+from any computer.
 
 ## Flashing
 
