@@ -1,0 +1,8 @@
+{
+  "lang.name": "Español",
+  "fallback.notice": "Parte de esta página aún no está traducida a este idioma, así que se muestra en inglés. Puedes ayudar a traducirla.",
+  "nav.home": "Inicio",
+  "nav.downloads": "Descargas",
+  "nav.repo": "Repositorio",
+  "footer.built": "Esta web se ha compilado desde el commit {commit}."
+}

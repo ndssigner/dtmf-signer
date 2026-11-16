@@ -1,0 +1,8 @@
+{
+  "languages": [
+    { "code": "en", "complete": true },
+    { "code": "es", "complete": true }
+  ],
+  "repo": "https://github.com/ndssigner/dtmf-signer",
+  "profiles": []
+}

@@ -1,0 +1,7 @@
+{
+  "lang.name": "Español",
+  "fallback.notice": "Parte de esta página aún no está traducida.",
+  "nav.home": "Inicio",
+  "nav.repo": "Repositorio",
+  "footer.built": "Compilada desde {commit}"
+}
