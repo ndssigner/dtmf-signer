@@ -129,4 +129,6 @@ export class Simulator {
     return out;
   }
   keys() { return this.m._dsw_keys(); }
+  listening() { return this.m._dsw_listening() === 1; }
+  qrShown() { return this.m._dsw_qr_shown() === 1; }
 }

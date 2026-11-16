@@ -109,26 +109,26 @@
             ]
           },
           {
-            "id": "host-mic",
-            "kind": "host-mic",
+            "id": "your-phone",
+            "kind": "your-phone",
             "column": "peer",
-            "title": "bench.host_mic",
+            "title": "bench.your_phone",
             "ports": [
+              {
+                "id": "camera",
+                "edge": "signer-side",
+                "type": "light",
+                "dir": "in",
+                "label": "bench.camera"
+              },
               {
                 "id": "jack",
                 "edge": "signer-side",
                 "type": "audio",
                 "dir": "out",
-                "label": "jack"
+                "label": "bench.mic_speaker"
               }
             ]
-          },
-          {
-            "id": "your-phone",
-            "kind": "your-phone",
-            "column": "peer",
-            "title": "bench.your_phone",
-            "external": true
           }
         ],
         "modes": [
@@ -159,12 +159,11 @@
             ]
           },
           {
-            "id": "host-mic",
-            "title": "bench.mode_host_mic",
+            "id": "your-phone",
+            "title": "bench.mode_your_phone",
             "modules": [
               "charger",
               "signer",
-              "host-mic",
               "your-phone"
             ],
             "links": [
@@ -174,21 +173,14 @@
                 "channel": "power"
               },
               {
-                "from": "host-mic.jack",
+                "from": "signer.qr",
+                "to": "your-phone.camera",
+                "channel": "camera"
+              },
+              {
+                "from": "your-phone.jack",
                 "to": "signer.in",
                 "channel": "line-in"
-              },
-              {
-                "from": "your-phone",
-                "to": "host-mic",
-                "channel": "air-in",
-                "external": true
-              },
-              {
-                "from": "signer.qr",
-                "to": "your-phone",
-                "channel": "qr-external",
-                "external": true
               }
             ]
           }

@@ -59,14 +59,39 @@ test("four times faster only while tones play and no button is down", () => {
   assert.equal(speedFor({ queued: 0, idle: true }, true), 1);
   assert.equal(speedFor({ queued: 1000, idle: true }, false), 1);
 });
-test("the steps name every screen on the way, the wallet fingerprint too", () => {
-  const html = text(files, "en/cable-qr/index.html") + text(files, "es/cable-qr/index.html");
-  assert.equal((html.match(/Wallet fingerprint/g) || []).length >= 2, true);
+test("no numbered steps or paragraphs of help: icons and tooltips instead", { skip: SKIP }, () => {
+  const html = text(files, "en/cable-qr/index.html");
+  const sim = html.slice(html.indexOf('id="sim"'), html.indexOf('id="sim-data"'));
+  assert.doesNotMatch(sim, /<ol>/);
+  assert.doesNotMatch(sim, /sim\.step/);
+  assert.match(sim, /data-tip="/);
+});
+test("both modes and every port of the bench are on the page", { skip: SKIP }, () => {
+  const html = text(files, "en/cable-qr/index.html");
+  for (const m of ["sim-phone", "your-phone"]) assert.match(html, new RegExp(`data-mode="${m}"`));
+  for (const p of ["signer.5v", "signer.qr", "signer.in", "sim-phone.camera", "sim-phone.jack", "your-phone.camera", "your-phone.jack", "charger.usb"])
+    assert.match(html, new RegExp(`class="port[^"]*"[^>]*data-port="${p.replace(".", "\\.")}"`), p);
+  for (const m of html.matchAll(/<span class="port[^>]*>/g)) assert.match(m[0], /aria-label="[^"]+"/);
+});
+test("the real screen and buttons sit inside the signer's block", { skip: SKIP }, () => {
+  const html = text(files, "en/cable-qr/index.html");
+  const block = html.slice(html.indexOf('data-module="signer"'));
+  const end = block.indexOf("</section>");
+  assert.ok(block.indexOf("sim-oled") > 0 && block.indexOf("sim-oled") < end);
+  assert.ok(block.indexOf('data-btn="ok"') > 0 && block.indexOf('data-btn="ok"') < end);
+});
+test("mode 2 says it is only for trying, in both languages", { skip: SKIP }, () => {
+  assert.ok(text(files, "en/cable-qr/index.html").includes("Only for trying it out: this build is meant to be used with an audio cable."));
+  assert.ok(text(files, "es/cable-qr/index.html").includes("Solo para probarlo: esta implementación está pensada para usarse con cable de audio."));
+});
+test("the simulated phone has its wallet buttons", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  for (const c of ["ph-seed", "ph-psbt", "ph-scan"]) assert.match(html, new RegExp(`class="${c}"`));
 });
 test("if the module cannot load, the page says so", async () => {
   const status = { textContent: "" };
   const doc = {
-    getElementById: (id) => (id === "sim-data" ? { textContent: JSON.stringify({ strings: { unavailable: "Not available" } }) } : null),
+    getElementById: (id) => (id === "sim-data" ? { textContent: JSON.stringify({ strings: { "sim.unavailable": "Not available" } }) } : null),
     querySelector: (sel) => (sel === ".sim-status" ? status : null),
   };
   await start(doc, () => Promise.reject(new Error("no wasm")));

@@ -3,7 +3,7 @@
 // tones, and shows the echo and the signed PSBT. Everything it needs comes
 // from #sim-data (JSON written by the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
-import { seedAudio, psbtAudio, SignedCollector } from "./wallet.mjs";
+import { SimPhone } from "./phone.mjs";
 
 const BTN = { left: 1, up: 2, ok: 3, down: 4, right: 5 };
 const KEYS = { ArrowLeft: 1, ArrowUp: 2, Enter: 3, ArrowDown: 4, ArrowRight: 5 };
@@ -55,11 +55,10 @@ export async function start(doc, loadModule) {
     if (typeof WebAssembly === "undefined" || typeof UrTones === "undefined") throw new Error("unsupported");
     module = await loadModule();
   } catch {
-    status.textContent = S.unavailable;
+    status.textContent = S["sim.unavailable"];
     return;
   }
-  status.textContent = "";
-  status.hidden = true;
+  status.textContent = S["status.idle"];
 
   const sim = new Simulator(module);
   const root = doc.getElementById("sim");
@@ -68,12 +67,11 @@ export async function start(doc, loadModule) {
   const img = ctx.createImageData(128, 64);
   const screenText = root.querySelector(".screen-text");
   const echoPre = root.querySelector(".echo");
-  const line = root.querySelector(".sim-line");
-  const result = root.querySelector(".sim-result");
-  const signedBox = root.querySelector(".sim-signed");
-  const sound = root.querySelector(".sim-sound");
-  const fast = root.querySelector(".sim-fast");
-  let collector = new SignedCollector();
+  const phStatus = root.querySelector(".ph-status");
+  const sound = root.querySelector(".ph-sound");
+  const fast = root.querySelector(".ph-fast");
+  const phone = new SimPhone({ sim, U: UrTones, data, el: { out: root.querySelector(".ph-out"), status: phStatus } });
+  let phoneNote = "";        // a passing message on the phone (no QR, reading…)
   let echo = [];
   let audio = null, nextStart = 0;
 
@@ -116,8 +114,12 @@ export async function start(doc, loadModule) {
     play(samples);
   }
   fast.addEventListener("change", () => { if (fast.checked && audio) { audio.close(); audio = null; nextStart = 0; } });
-  root.querySelector(".sim-send-seed").addEventListener("click", () => send(seedAudio(UrTones, data.seed, data.pin)));
-  root.querySelector(".sim-send-psbt").addEventListener("click", () => send(psbtAudio(UrTones, data.psbt)));
+  root.querySelector(".ph-seed").addEventListener("click", () => send(phone.sendSeed()));
+  root.querySelector(".ph-psbt").addEventListener("click", () => send(phone.sendPsbt()));
+  root.querySelector(".ph-scan").addEventListener("click", () => {
+    const r = phone.scan();
+    phoneNote = r === "no-qr" ? S["phone.no_qr"] : r === "waiting" ? S["phone.waiting"] : S["phone.got"];
+  });
 
   let last = performance.now(), lastLine = "";
   function frame(now) {
@@ -125,23 +127,23 @@ export async function start(doc, loadModule) {
     last = now;
     const { dirty, echo: lines } = sim.advance(dt);
     for (const l of lines) {
-      if (l === "reboot") { collector = new SignedCollector(); sim.clearAudio(); }
-      collector.push(l);
-      echo.push(l);
+      if (l === "reboot") sim.clearAudio();
+      phone.onEcho(l);
+      echo.push(l === "reboot" ? "[reboot]" : l);
     }
     if (lines.length) {
       echo = echo.slice(-ECHO_LINES);
       echoPre.textContent = echo.join("\n");
-      const r = collector.result;
-      if (r && signedBox.value !== r.base64) { signedBox.value = r.base64; result.hidden = false; }
     }
+    // While scanning, the phone takes the signed PSBT as soon as it is there.
+    if (phone.scanning && phoneNote === S["phone.waiting"] && phone.scan() === "ok") phoneNote = S["phone.got"];
     if (dirty) {
       draw(ctx, img, sim.frame(), sim.contrast());
       screenText.textContent = sim.lines().join("\n").replace(/\s+$/gm, "");
     }
     const left = Math.ceil(sim.queued / RATE);
-    const text = left > 0 ? S.line_busy.replace("{seconds}", String(left)) : S.line_idle;
-    if (text !== lastLine) { line.textContent = text; lastLine = text; }
+    const text = left > 0 ? S["phone.sending"].replace("{seconds}", String(left)) : phoneNote || S["phone.idle"];
+    if (text !== lastLine) { phStatus.textContent = text; lastLine = text; }
     requestAnimationFrame(frame);
   }
   draw(ctx, img, sim.frame(), sim.contrast());

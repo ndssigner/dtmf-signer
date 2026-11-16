@@ -121,48 +121,109 @@ ${donateBlock(site, tr, root)}`;
 // The firmware as WebAssembly (tools/build-wasm.sh), when it has been built.
 const WASM = join(HERE, "..", "build", "wasm", "dtmf-signer.mjs");
 const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
-// The texts ui.mjs needs (line_busy keeps its {seconds} for ui.mjs to fill).
-const SIM_KEYS = ["unavailable", "line_idle", "line_busy"];
+// The texts ui.mjs needs ({seconds} is filled in by ui.mjs).
+const SIM_KEYS = ["sim.unavailable", "phone.idle", "phone.sending", "phone.no_qr", "phone.waiting", "phone.got",
+  "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
+  "status.qr", "status.camera", "status.mic"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
+const LEGEND = [["power", "bench.legend.power"], ["audio", "bench.legend.audio"], ["light", "bench.legend.light"]];
 
-// The simulator: the device (screen and buttons), the test wallet, the echo,
-// and its data for ui.mjs as JSON (not run: CSP allows only our files).
-function simulatorBlock(site, tr, p, root) {
-  const s = p.simulator;
-  const vectors = JSON.parse(readFileSync(join(site.dir, "..", "vectors", "psbt-v0.json"), "utf8")).vectors;
-  const vector = vectors.find((v) => v.name === s.psbt_vector);
-  if (!vector) throw new Error(`${p.slug}: no PSBT vector named ${s.psbt_vector}`);
-  const strings = Object.fromEntries(SIM_KEYS.map((k) => [k, tr(`sim.${k}`)]));
-  const data = JSON.stringify({ seed: s.seed, pin: s.pin, psbt: vector.psbt, strings }).replace(/</g, "\\u003c");
-  const e = (k, params) => escapeHtml(tr(`sim.${k}`, params));
-  const buttons = BUTTONS.map(([b, mark]) => `<button type="button" data-btn="${b}" aria-label="${e(`btn.${b}`)}">${mark}</button>`).join("\n");
-  const steps = [1, 2, 3, 4, 5, 6].map((n) => `<li>${e(`step.${n}`, { pin: s.pin })}</li>`).join("\n");
-  return `<div class="simulator" id="sim">
-<p class="sim-warning">${e("warning")}</p>
-<p class="sim-status" role="status">${e("loading")}</p>
-<div class="sim-device" tabindex="0" aria-label="${e("device")}">
+// A tooltip that works with the mouse, the keyboard (focus) and a tap.
+// focus: false for elements that take the focus already (buttons, labels).
+const tip = (text, focus = true) => `data-tip="${escapeHtml(text)}"${focus ? ' tabindex="0"' : ""}`;
+
+// The inside of each kind of block.
+function blockBody(kind, tr) {
+  const e = (k, params) => escapeHtml(tr(k, params));
+  switch (kind) {
+    case "charger":
+      return `<p class="blk-icon" aria-hidden="true">🔌</p>`;
+    case "signer": {
+      const buttons = BUTTONS.map(([b, mark]) => `<button type="button" data-btn="${b}" aria-label="${e(`sim.btn.${b}`)}">${mark}</button>`).join("\n");
+      return `<div class="sim-device" tabindex="0" aria-label="${e("sim.device")}" ${tip(tr("sim.keyboard"), false)}>
 <canvas class="sim-oled" width="128" height="64" aria-hidden="true"></canvas>
 <div class="sim-buttons">
 ${buttons}
 </div>
+</div>`;
+    }
+    case "sim-phone":
+      return `<div class="ph-screen">
+<p class="ph-title">${e("phone.wallet")}</p>
+<button type="button" class="ph-seed" ${tip(tr("phone.seed_tip"), false)}><span aria-hidden="true">🌱</span> ${e("phone.seed")}</button>
+<button type="button" class="ph-psbt" ${tip(tr("phone.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("phone.psbt")}</button>
+<button type="button" class="ph-scan" ${tip(tr("phone.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("phone.scan")}</button>
+<p class="ph-status" aria-live="polite">${e("phone.idle")}</p>
+<textarea class="ph-out" readonly rows="3" hidden aria-label="${e("phone.got")}"></textarea>
+<p class="ph-opts"><label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="ph-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
+<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="ph-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
+</div>`;
+    case "your-phone":
+      return `<div class="ph-screen yp">
+<p class="yp-cam"><span aria-hidden="true">📷</span> ${e("yp.camera")}</p>
+<p class="yp-mic"><span aria-hidden="true">🎙</span> ${e("yp.mic")}</p>
+<button type="button" class="mic-toggle">${e("mic.listen")}</button>
+<meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
+<p class="mic-note">${e("mic.note")} <span class="info" ${tip(tr("mic.help"))} aria-label="${e("mic.help")}">ⓘ</span></p>
+</div>`;
+    default:
+      throw new Error(`no block for kind ${kind}`);
+  }
+}
+
+// The simulator: the bench of the build (blocks, ports, links drawn by
+// ui.mjs), the mode switch, the legend, and its data as JSON (not run).
+function simulatorBlock(site, tr, p, root) {
+  const s = p.simulator;
+  const bench = p.bench;
+  const vectors = JSON.parse(readFileSync(join(site.dir, "..", "vectors", "psbt-v0.json"), "utf8")).vectors;
+  const vector = vectors.find((v) => v.name === s.psbt_vector);
+  if (!vector) throw new Error(`${p.slug}: no PSBT vector named ${s.psbt_vector}`);
+  const strings = Object.fromEntries(SIM_KEYS.map((k) => [k, tr(k)]));
+  const links = Object.fromEntries(bench.modes.map((m) => [m.id, m.links]));
+  const data = JSON.stringify({ seed: s.seed, pin: s.pin, psbt: vector.psbt, strings, links }).replace(/</g, "\\u003c");
+  const e = (k, params) => escapeHtml(tr(k, params));
+  const first = bench.modes[0];
+  const label = (l) => (l.startsWith("bench.") ? tr(l) : l);
+  const modesOf = (id) => bench.modes.filter((m) => m.modules.includes(id)).map((m) => m.id).join(" ");
+  const block = (m) => {
+    const ports = (m.ports ?? []).map((pt) => {
+      const t = tr(`bench.tip.${m.id}.${pt.id}`);
+      return `<span class="port edge-${pt.edge} type-${pt.type}" data-port="${m.id}.${pt.id}" data-type="${pt.type}" data-dir="${pt.dir}" ${tip(t)} aria-label="${escapeHtml(label(pt.label) + ": " + t)}">${escapeHtml(label(pt.label))}</span>`;
+    }).join("\n");
+    const hidden = first.modules.includes(m.id) ? "" : " hidden";
+    return `<section class="blk blk-${m.kind}${m.external ? " external" : ""}" data-module="${m.id}" data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
+<h3 class="blk-title">${e(m.title)}</h3>
+${ports}
+${blockBody(m.kind, tr)}
+</section>`;
+  };
+  const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;
+  const modes = bench.modes.map((m, i) => `<button type="button" role="tab" data-mode="${m.id}" aria-selected="${i === 0}">${e(m.title)}</button>`).join("\n");
+  const legend = LEGEND.map(([t, k]) => `<li class="lg-${t}"><span class="lg-line" aria-hidden="true"></span>${e(k)}</li>`).join("\n");
+  const connections = bench.modes.map((m) => `<ul class="connections visually-hidden" data-modes="${m.id}"${m === first ? "" : " hidden"}>
+${m.links.map((l) => `<li>${e(`bench.link.${l.channel}`)}</li>`).join("\n")}
+</ul>`).join("\n");
+  return `<div class="simulator" id="sim">
+<p class="sim-warning" ${tip(tr("sim.warning"))}><span aria-hidden="true">⚠</span> ${e("sim.warning_short")}</p>
+<div class="sim-modes" role="tablist" aria-label="${e("bench.modes")}">
+${modes}
 </div>
-<p class="sim-hint">${e("keyboard")}</p>
-<details class="sim-text"><summary>${e("screen_text")}</summary><pre class="screen-text" aria-live="polite"></pre></details>
-<div class="sim-wallet">
-<h3>${e("wallet")}</h3>
-<ol>
-${steps}
-</ol>
-<p class="sim-actions"><button type="button" class="sim-send-seed">${e("send_seed")}</button>
-<button type="button" class="sim-send-psbt">${e("send_psbt")}</button></p>
-<p class="sim-options"><label><input type="checkbox" class="sim-sound" checked> ${e("sound")}</label>
-<label><input type="checkbox" class="sim-fast"> ${e("speed")}</label></p>
-<p class="sim-line">${e("line_idle")}</p>
-<div class="sim-result" hidden><p>${e("signed")}</p><textarea class="sim-signed" readonly rows="5"></textarea></div>
+<div class="bench" data-mode="${first.id}" data-orient="h">
+${column("power")}
+${column("signer")}
+${column("peer")}
+<svg class="links" aria-hidden="true"></svg>
 </div>
-<details class="sim-echo"><summary>${e("echo")}</summary><pre class="echo"></pre></details>
-<noscript><p>${e("unavailable")}</p></noscript>
-<p class="sim-built">${escapeHtml(tr("sim.built_from", { commit: site.commit }))}</p>
+<p class="sim-status" role="status" aria-live="polite">${e("sim.loading")}</p>
+<ul class="legend">
+${legend}
+</ul>
+${connections}
+<pre class="screen-text visually-hidden" aria-live="polite"></pre>
+<details class="sim-echo"><summary><span aria-hidden="true">›_</span> ${e("sim.echo")}</summary><pre class="echo"></pre></details>
+<noscript><p>${e("sim.unavailable")}</p></noscript>
+<p class="sim-built">${e("sim.built_from", { commit: site.commit })}</p>
 </div>
 <script type="application/json" id="sim-data">${data}</script>
 <script src="${root}sim/ur-tones-crypto.js"></script>
@@ -204,7 +265,7 @@ export function build({ siteDir, outDir, commit }) {
     for (const f of p.files) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
   }
   if (site.wasm && site.config.profiles.some((p) => p.simulator)) {
-    for (const f of ["core.mjs", "wallet.mjs", "ui.mjs"]) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
+    for (const f of ["core.mjs", "wallet.mjs", "ui.mjs", "phone.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
     files.set("sim/dtmf-signer.mjs", readFileSync(WASM));
     files.set("sim/ur-tones-crypto.js", readFileSync(join(UR_TONES_JS, "crypto.js")));
     files.set("sim/ur-tones.js", readFileSync(join(UR_TONES_JS, "ur-tones.js")));
