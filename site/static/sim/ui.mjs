@@ -1,10 +1,10 @@
 // The simulator on its page: draws the OLED, turns the on-screen buttons
-// and the keyboard into the button held, runs the simulated phone or the
+// and the keyboard into the button held, runs the simulated wallet or the
 // microphone of this computer, draws the bench's links and lights the ones
 // that are active. Everything it needs comes from #sim-data (JSON written by
 // the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
-import { SimPhone } from "./phone.mjs";
+import { SimWallet } from "./sim-wallet.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
@@ -92,15 +92,15 @@ export async function start(doc, loadModule) {
   const img = ctx.createImageData(128, 64);
   const screenText = root.querySelector(".screen-text");
   const echoPre = root.querySelector(".echo");
-  const phStatus = root.querySelector(".ph-status");
-  const sound = root.querySelector(".ph-sound");
-  const fast = root.querySelector(".ph-fast");
-  const phone = new SimPhone({ sim, U: UrTones, data, el: { out: root.querySelector(".ph-out"), status: phStatus } });
+  const wdStatus = root.querySelector(".wd-status");
+  const sound = root.querySelector(".wd-sound");
+  const fast = root.querySelector(".wd-fast");
+  const wallet = new SimWallet({ sim, U: UrTones, data, el: { out: root.querySelector(".wd-out"), status: wdStatus } });
   const bench = root.querySelector(".bench");
   const svg = bench.querySelector(".links");
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
-  let phoneNote = "";        // a passing message on the phone (no QR, reading…)
+  let walletNote = "";        // a passing message on the wallet (no QR, reading…)
   let echo = [];
   let audio = null, nextStart = 0;
   let mode = bench.dataset.mode;
@@ -156,7 +156,7 @@ export async function start(doc, loadModule) {
   for (const b of root.querySelectorAll(".sim-modes [data-mode]")) b.addEventListener("click", () => switchMode(b.dataset.mode));
   new ResizeObserver(() => drawLinks()).observe(bench);
 
-  // ---- the microphone of this computer (mode "your-phone") ----
+  // ---- the microphone of this computer (mode "your-wallet") ----
   micBtn?.addEventListener("click", () => {
     if (!micSwitch.on) micDbfs = -100;
     const p = micSwitch.toggle();
@@ -213,32 +213,32 @@ export async function start(doc, loadModule) {
     play(samples);
   }
   fast.addEventListener("change", () => { if (fast.checked && audio) { audio.close(); audio = null; nextStart = 0; } });
-  root.querySelector(".ph-seed").addEventListener("click", () => send(phone.sendSeed()));
-  root.querySelector(".ph-psbt").addEventListener("click", () => send(phone.sendPsbt()));
-  root.querySelector(".ph-scan").addEventListener("click", () => {
-    const r = phone.scan();
-    phoneNote = { "no-qr": S["phone.no_qr"], "other-qr": S["phone.other_qr"], waiting: S["phone.waiting"], ok: S["phone.got"] }[r];
+  root.querySelector(".wd-seed").addEventListener("click", () => send(wallet.sendSeed()));
+  root.querySelector(".wd-psbt").addEventListener("click", () => send(wallet.sendPsbt()));
+  root.querySelector(".wd-scan").addEventListener("click", () => {
+    const r = wallet.scan();
+    walletNote = { "no-qr": S["wallet.no_qr"], "other-qr": S["wallet.other_qr"], waiting: S["wallet.waiting"], ok: S["wallet.got"] }[r];
   });
 
   function frame(now) {
-    const dt = (now - last) * speedFor(sim, fast.checked && mode === "sim-phone");
+    const dt = (now - last) * speedFor(sim, fast.checked && mode === "sim-wallet");
     last = now;
     const { dirty, echo: lines } = sim.advance(dt);
     for (const l of lines) {
       if (l === "reboot") sim.clearAudio();
-      phone.onEcho(l);
+      wallet.onEcho(l);
       echo.push(l === "reboot" ? "[reboot]" : l);
     }
     if (lines.length) {
       echo = echo.slice(-ECHO_LINES);
       echoPre.textContent = echo.join("\n");
     }
-    // While scanning, the phone takes the signed PSBT as soon as it is there.
-    if (phone.scanning && !sim.qrShown()) phone.scanning = false;
-    if (phone.scanning && phoneNote === S["phone.waiting"] && phone.scan() === "ok") phoneNote = S["phone.got"];
+    // While scanning, the wallet takes the signed PSBT as soon as it is there.
+    if (wallet.scanning && !sim.qrShown()) wallet.scanning = false;
+    if (wallet.scanning && walletNote === S["wallet.waiting"] && wallet.scan() === "ok") walletNote = S["wallet.got"];
     // Light what is active, only when it changes.
     const active = activeChannels({ mode, queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
-      scanning: phone.scanning, micOn: micSwitch.on, micDbfs });
+      scanning: wallet.scanning, micOn: micSwitch.on, micDbfs });
     const key = [...active].sort().join(" ");
     if (key !== lastActive) {
       lastActive = key;
@@ -249,7 +249,7 @@ export async function start(doc, loadModule) {
       }
       for (const port of root.querySelectorAll('[data-port$=".qr"]')) port.classList.toggle("emit", active.has("qr"));
       for (const port of root.querySelectorAll('[data-port="signer.in"]')) port.classList.toggle("listening", active.has("listening"));
-      root.querySelector(".yp-mic")?.classList.toggle("capturing", active.has("mic"));
+      root.querySelector(".yw-mic")?.classList.toggle("capturing", active.has("mic"));
       const st = S[statusKey(active)];
       if (st !== lastStatus) { status.textContent = st; lastStatus = st; }
     }
@@ -258,8 +258,8 @@ export async function start(doc, loadModule) {
       screenText.textContent = sim.lines().join("\n").replace(/\s+$/gm, "");
     }
     const left = Math.ceil(sim.queued / RATE);
-    const text = left > 0 ? S["phone.sending"].replace("{seconds}", String(left)) : phoneNote || S["phone.idle"];
-    if (text !== lastLine) { phStatus.textContent = text; lastLine = text; }
+    const text = left > 0 ? S["wallet.sending"].replace("{seconds}", String(left)) : walletNote || S["wallet.idle"];
+    if (text !== lastLine) { wdStatus.textContent = text; lastLine = text; }
     requestAnimationFrame(frame);
   }
   draw(ctx, img, sim.frame(), sim.contrast());

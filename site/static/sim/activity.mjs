@@ -5,15 +5,15 @@ import { MIC_ACTIVE_DBFS } from "./mic.mjs";
 
 export function activeChannels({ mode, queued, listening, qrShown, scanning, micOn, micDbfs }) {
   const on = new Set(["power"]);
-  if (mode === "sim-phone" && queued > 0) on.add("line-in");
-  if (mode === "your-phone" && micOn) {
+  if (mode === "sim-wallet" && queued > 0) on.add("line-in");
+  if (mode === "your-wallet" && micOn) {
     on.add("mic");
     if (listening && micDbfs > MIC_ACTIVE_DBFS) on.add("line-in");
   }
   if (listening) on.add("listening");
   if (qrShown) on.add("qr");
-  // Only the simulated phone's camera: the page cannot see yours.
-  if (qrShown && scanning && mode === "sim-phone") on.add("camera");
+  // Only the simulated wallet's camera: the page cannot see yours.
+  if (qrShown && scanning && mode === "sim-wallet") on.add("camera");
   return on;
 }
 

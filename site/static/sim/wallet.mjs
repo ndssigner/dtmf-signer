@@ -1,4 +1,4 @@
-// The simulator's test wallet: what a phone with the ur-tones web tool, or
+// The simulator's test wallet: what a smartphone with the ur-tones web tool, or
 // a computer with a wallet and ur-tones, would send by cable. It uses the
 // ur-tones JavaScript itself (UrTones, passed in), so two implementations
 // talk: ur-tones' JavaScript sends, the firmware's C listens.

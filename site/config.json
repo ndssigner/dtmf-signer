@@ -99,10 +99,10 @@
             ]
           },
           {
-            "id": "sim-phone",
-            "kind": "sim-phone",
+            "id": "sim-wallet",
+            "kind": "sim-wallet",
             "column": "peer",
-            "title": "bench.sim_phone",
+            "title": "bench.sim_wallet",
             "ports": [
               {
                 "id": "camera",
@@ -121,10 +121,10 @@
             ]
           },
           {
-            "id": "your-phone",
-            "kind": "your-phone",
+            "id": "your-wallet",
+            "kind": "your-wallet",
             "column": "peer",
-            "title": "bench.your_phone",
+            "title": "bench.your_wallet",
             "ports": [
               {
                 "id": "camera",
@@ -145,12 +145,12 @@
         ],
         "modes": [
           {
-            "id": "sim-phone",
-            "title": "bench.mode_sim_phone",
+            "id": "sim-wallet",
+            "title": "bench.mode_sim_wallet",
             "modules": [
               "charger",
               "signer",
-              "sim-phone"
+              "sim-wallet"
             ],
             "links": [
               {
@@ -160,23 +160,23 @@
               },
               {
                 "from": "signer.qr",
-                "to": "sim-phone.camera",
+                "to": "sim-wallet.camera",
                 "channel": "camera"
               },
               {
-                "from": "sim-phone.jack",
+                "from": "sim-wallet.jack",
                 "to": "signer.in",
                 "channel": "line-in"
               }
             ]
           },
           {
-            "id": "your-phone",
-            "title": "bench.mode_your_phone",
+            "id": "your-wallet",
+            "title": "bench.mode_your_wallet",
             "modules": [
               "charger",
               "signer",
-              "your-phone"
+              "your-wallet"
             ],
             "links": [
               {
@@ -186,11 +186,11 @@
               },
               {
                 "from": "signer.qr",
-                "to": "your-phone.camera",
+                "to": "your-wallet.camera",
                 "channel": "camera"
               },
               {
-                "from": "your-phone.jack",
+                "from": "your-wallet.jack",
                 "to": "signer.in",
                 "channel": "line-in"
               }

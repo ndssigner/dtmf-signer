@@ -58,7 +58,7 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .blk-title { margin: 0 0 .4rem; font-size: .9rem; text-align: center; }
 .blk-charger { border-color: var(--c-power); text-align: center; }
 .blk-signer { border-color: #3fb950; }
-.blk-sim-phone, .blk-your-phone { border-color: var(--c-light); border-radius: 18px; }
+.blk-sim-wallet, .blk-your-wallet { border-color: var(--c-light); border-radius: 18px; }
 .blk-icon { font-size: 1.6rem; margin: .2rem 0; text-align: center; }
 /* The signer and its peers share the row's height, so their facing ports
    (at the same percentage) line up; the charger stays small, centred on 5V. */
@@ -106,15 +106,15 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .sim-buttons [data-btn="right"] { grid-column: 3; grid-row: 2; }
 .sim-buttons [data-btn="down"] { grid-column: 2; grid-row: 3; }
 
-.ph-screen { display: flex; flex-direction: column; gap: .4rem; font-size: .85rem; }
-.ph-title { margin: 0; text-align: center; color: var(--muted); }
-.ph-screen button { padding: .4rem .5rem; border-radius: 6px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; text-align: left; }
-.ph-status { margin: 0; color: var(--muted); font-size: .8rem; min-height: 1.2em; }
-.ph-out { width: 100%; font: .7rem/1.3 ui-monospace, monospace; }
-.ph-opts { margin: 0; display: flex; gap: .8rem; }
-.yp-cam { margin-top: 0; }
-.yp-cam, .yp-mic { margin: 0; font-size: .8rem; }
-.yp-cam { order: -1; }
+.wd-screen { display: flex; flex-direction: column; gap: .4rem; font-size: .85rem; }
+.wd-title { margin: 0; text-align: center; color: var(--muted); }
+.wd-screen button { padding: .4rem .5rem; border-radius: 6px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; text-align: left; }
+.wd-status { margin: 0; color: var(--muted); font-size: .8rem; min-height: 1.2em; }
+.wd-out { width: 100%; font: .7rem/1.3 ui-monospace, monospace; }
+.wd-opts { margin: 0; display: flex; gap: .8rem; }
+.yw-cam { margin-top: 0; }
+.yw-cam, .yw-mic { margin: 0; font-size: .8rem; }
+.yw-cam { order: -1; }
 .mic-level { width: 100%; }
 .mic-note { margin: 0; font-size: .75rem; color: var(--muted); }
 
@@ -144,19 +144,19 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .port.active.type-audio { background: color-mix(in srgb, var(--c-audio) 25%, var(--bg)); }
 .port.active.type-light { background: color-mix(in srgb, var(--c-light) 25%, var(--bg)); }
 /* Emitting light (the QR): rings out of the port, off the screen. */
-.port.emit::before, .port.emit::after, .yp-mic.capturing::before {
+.port.emit::before, .port.emit::after, .yw-mic.capturing::before {
   content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c-light);
   animation: ring-out 1.6s ease-out infinite; pointer-events: none; }
 .port.emit::after { animation-delay: .8s; }
 @keyframes ring-out { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(1.8); } }
 /* Listening: the IN port pulses in; the microphone draws rings inwards. */
 .port.listening { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-audio) 45%, transparent); }
-.yp-mic { position: relative; }
-.yp-mic.capturing::before { border-color: var(--c-audio); inset: auto; left: -.2rem; top: -.1rem; width: 1.4rem; height: 1.4rem;
+.yw-mic { position: relative; }
+.yw-mic.capturing::before { border-color: var(--c-audio); inset: auto; left: -.2rem; top: -.1rem; width: 1.4rem; height: 1.4rem;
   animation: ring-in 1.4s ease-in infinite; }
 @keyframes ring-in { from { opacity: 0; transform: scale(2); } to { opacity: .9; transform: scale(.5); } }
 
 @media (prefers-reduced-motion: reduce) {
   .link.active, .link.active:not(.type-power) { animation: none; stroke-dasharray: none; stroke-width: 4; }
-  .port.emit::before, .port.emit::after, .yp-mic.capturing::before { animation: none; opacity: .8; }
+  .port.emit::before, .port.emit::after, .yw-mic.capturing::before { animation: none; opacity: .8; }
 }

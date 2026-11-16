@@ -25,7 +25,7 @@ test("the page carries the simulator, its data and its scripts", { skip: SKIP },
   for (const b of ["left", "up", "ok", "down", "right"]) assert.match(html, new RegExp(`data-btn="${b}"`));
   assert.match(html, /class="sim-warning"/);
   assert.match(html, /<script type="module" src="\.\.\/\.\.\/sim\/ui\.mjs"><\/script>/);
-  for (const f of ["sim/ui.mjs", "sim/checks.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/phone.mjs", "sim/bench.mjs", "sim/mic.mjs", "sim/mic-worklet.js", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
+  for (const f of ["sim/ui.mjs", "sim/checks.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/sim-wallet.mjs", "sim/bench.mjs", "sim/mic.mjs", "sim/mic-worklet.js", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
     assert.ok(files.has(f), f);
 });
 test("only the simulator's page allows WebAssembly", { skip: SKIP }, () => {
@@ -73,8 +73,8 @@ test("no numbered steps or paragraphs of help: icons and tooltips instead", { sk
 });
 test("both modes and every port of the bench are on the page", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
-  for (const m of ["sim-phone", "your-phone"]) assert.match(html, new RegExp(`data-mode="${m}"`));
-  for (const p of ["signer.5v", "signer.qr", "signer.in", "sim-phone.camera", "sim-phone.jack", "your-phone.camera", "your-phone.jack", "charger.usb"])
+  for (const m of ["sim-wallet", "your-wallet"]) assert.match(html, new RegExp(`data-mode="${m}"`));
+  for (const p of ["signer.5v", "signer.qr", "signer.in", "sim-wallet.camera", "sim-wallet.jack", "your-wallet.camera", "your-wallet.jack", "charger.usb"])
     assert.match(html, new RegExp(`class="port[^"]*"[^>]*data-port="${p.replace(".", "\\.")}"`), p);
   for (const m of html.matchAll(/<span class="port[^>]*>/g)) assert.match(m[0], /aria-label="[^"]+"/);
 });
@@ -89,9 +89,9 @@ test("mode 2 says it is only for trying, in both languages", { skip: SKIP }, () 
   assert.ok(text(files, "en/cable-qr/index.html").includes("Only for trying it out: this build is meant to be used with an audio cable."));
   assert.ok(text(files, "es/cable-qr/index.html").includes("Solo para probarlo: esta implementación está pensada para usarse con cable de audio."));
 });
-test("the simulated phone has its wallet buttons", { skip: SKIP }, () => {
+test("the simulated wallet has its buttons", { skip: SKIP }, () => {
   const html = text(files, "es/cable-qr/index.html");
-  for (const c of ["ph-seed", "ph-psbt", "ph-scan"]) assert.match(html, new RegExp(`class="${c}"`));
+  for (const c of ["wd-seed", "wd-psbt", "wd-scan"]) assert.match(html, new RegExp(`class="${c}"`));
 });
 test("if the module cannot load, the page says so", async () => {
   const status = { textContent: "" };
@@ -117,8 +117,18 @@ test("text shown in English on another language's page is marked lang=en", () =>
 
 test("each mode's text alternative describes its own connections", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
-  const yp = /<ul class="connections[^"]*" data-modes="your-phone"[^>]*>([\s\S]*?)<\/ul>/.exec(html);
-  assert.ok(yp, "your-phone list");
+  const yp = /<ul class="connections[^"]*" data-modes="your-wallet"[^>]*>([\s\S]*?)<\/ul>/.exec(html);
+  assert.ok(yp, "your-wallet list");
   assert.match(yp[1], /microphone/i);
   assert.doesNotMatch(yp[1], /Tones by cable/);
+});
+
+test("the wallet is never called a phone (the telephone is the exchange's)", { skip: SKIP }, () => {
+  const es = text(files, "es/cable-qr/index.html"), en = text(files, "en/cable-qr/index.html");
+  for (const t of ["Wallet simulada", "Tu wallet", "Tu dispositivo con wallet"]) assert.ok(es.includes(t), t);
+  for (const t of ["Simulated wallet", "Your wallet", "Your wallet device"]) assert.ok(en.includes(t), t);
+  assert.doesNotMatch(es, /class="(ph|yp)-/);
+  const sim = (h) => /<div class="simulator"[\s\S]*?<script type="application\/json"/.exec(h)[0];
+  assert.doesNotMatch(sim(es), /móvil simulado|smartphone/i);
+  assert.doesNotMatch(sim(en), /simulated phone|smartphone/i);
 });

@@ -39,7 +39,7 @@ with a note inviting readers to help. Once everything is translated, set
   in the sentence.
 - The parts lists: they come from `hardware/*/bom.csv` and stay in English;
   only their column titles are translated.
-- In the simulator's texts (`sim.*`, `bench.*`, `phone.*`, `mic.*`,
+- In the simulator's texts (`sim.*`, `bench.*`, `wallet.*`, `mic.*`,
   `status.*`), the names the firmware shows on its screen (“Load seed”,
   “Sign PSBT”): its screen is in English, so keep them as they are.
   `{seconds}` is a placeholder. Keep these texts short: the simulator

@@ -4,20 +4,20 @@ import { readFileSync } from "node:fs";
 import { activeChannels, statusKey } from "../static/sim/activity.mjs";
 import { leaveMode } from "../static/sim/ui.mjs";
 
-const A = (o) => activeChannels({ mode: "sim-phone", queued: 0, listening: false, qrShown: false, scanning: false, micOn: false, micDbfs: -100, ...o });
+const A = (o) => activeChannels({ mode: "sim-wallet", queued: 0, listening: false, qrShown: false, scanning: false, micOn: false, micDbfs: -100, ...o });
 
 test("at rest only the power is on", () => {
   assert.deepEqual([...A({})], ["power"]);
-  assert.deepEqual([...A({ mode: "your-phone" })], ["power"]);
+  assert.deepEqual([...A({ mode: "your-wallet" })], ["power"]);
 });
 test("simulated phone: tones in the line light the cable", () => {
   assert.ok(A({ queued: 100 }).has("line-in"));
 });
 test("your smartphone: the cable lights only with the microphone on, the signer listening and sound above the threshold", () => {
-  assert.ok(!A({ mode: "your-phone", queued: 100 }).has("line-in"));
-  assert.ok(!A({ mode: "your-phone", micOn: true, listening: true, micDbfs: -70 }).has("line-in"));
-  assert.ok(A({ mode: "your-phone", micOn: true, listening: true, micDbfs: -30 }).has("line-in"));
-  assert.ok(A({ mode: "your-phone", micOn: true }).has("mic"));
+  assert.ok(!A({ mode: "your-wallet", queued: 100 }).has("line-in"));
+  assert.ok(!A({ mode: "your-wallet", micOn: true, listening: true, micDbfs: -70 }).has("line-in"));
+  assert.ok(A({ mode: "your-wallet", micOn: true, listening: true, micDbfs: -30 }).has("line-in"));
+  assert.ok(A({ mode: "your-wallet", micOn: true }).has("mic"));
   assert.ok(!A({ micOn: true }).has("mic"));
 });
 test("listening marks the IN port", () => {
@@ -30,7 +30,7 @@ test("a QR on screen emits; the simulated camera reads only while scanning", () 
   assert.ok(!A({ scanning: true }).has("camera"), "no QR, nothing to read");
 });
 test("your smartphone's camera is not animated: the page cannot know you are scanning", () => {
-  const a = A({ mode: "your-phone", qrShown: true, scanning: true });
+  const a = A({ mode: "your-wallet", qrShown: true, scanning: true });
   assert.ok(!a.has("camera"));
   assert.equal(statusKey(a), "status.qr");
 });

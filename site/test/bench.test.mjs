@@ -28,17 +28,17 @@ test("a missing I/O capability is refused", () => {
 });
 test("a link between ports of different types is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "sim-phone.camera", to: "signer.in", channel: "x" });
+  p.bench.modes[0].links.push({ from: "sim-wallet.camera", to: "signer.in", channel: "x" });
   assert.ok(validateBench(p.bench).length > 0);
 });
 test("a link to a port that does not exist is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "sim-phone.nope", to: "signer.in", channel: "x" });
-  assert.ok(validateBench(p.bench).some((e) => e.includes("sim-phone.nope")));
+  p.bench.modes[0].links.push({ from: "sim-wallet.nope", to: "signer.in", channel: "x" });
+  assert.ok(validateBench(p.bench).some((e) => e.includes("sim-wallet.nope")));
 });
 test("a link running against its ports' directions is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "signer.in", to: "sim-phone.jack", channel: "x" });
+  p.bench.modes[0].links.push({ from: "signer.in", to: "sim-wallet.jack", channel: "x" });
   assert.ok(validateBench(p.bench).length > 0);
 });
 test("orientation turns at 720 px", () => {

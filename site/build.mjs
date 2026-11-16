@@ -122,8 +122,8 @@ ${donateBlock(site, tr, root)}`;
 const WASM = join(HERE, "..", "build", "wasm", "dtmf-signer.mjs");
 const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
 // The texts ui.mjs needs ({seconds} is filled in by ui.mjs).
-const SIM_KEYS = ["sim.unavailable", "phone.idle", "phone.sending", "phone.no_qr", "phone.waiting", "phone.got",
-  "phone.other_qr", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
+const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no_qr", "wallet.waiting", "wallet.got",
+  "wallet.other_qr", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
   "status.qr", "status.camera", "status.mic", "wallet.check_seed", "wallet.out", "wallet.change", "wallet.fee",
   "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
@@ -148,21 +148,21 @@ ${buttons}
 </div>
 </div>`;
     }
-    case "sim-phone":
-      return `<div class="ph-screen">
-<p class="ph-title">${e("phone.wallet")}</p>
-<button type="button" class="ph-seed" ${tip(tr("phone.seed_tip"), false)}><span aria-hidden="true">🌱</span> ${e("phone.seed")}</button>
-<button type="button" class="ph-psbt" ${tip(tr("phone.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("phone.psbt")}</button>
-<button type="button" class="ph-scan" ${tip(tr("phone.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("phone.scan")}</button>
-<p class="ph-status" aria-live="polite">${e("phone.idle")}</p>
-<textarea class="ph-out" readonly rows="3" hidden aria-label="${e("phone.got")}"></textarea>
-<p class="ph-opts"><label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="ph-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
-<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="ph-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
+    case "sim-wallet":
+      return `<div class="wd-screen">
+<p class="wd-title">${e("wallet.wallet")}</p>
+<button type="button" class="wd-seed" ${tip(tr("wallet.seed_tip"), false)}><span aria-hidden="true">🌱</span> ${e("wallet.seed")}</button>
+<button type="button" class="wd-psbt" ${tip(tr("wallet.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("wallet.psbt")}</button>
+<button type="button" class="wd-scan" ${tip(tr("wallet.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("wallet.scan")}</button>
+<p class="wd-status" aria-live="polite">${e("wallet.idle")}</p>
+<textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
+<p class="wd-opts"><label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
+<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
 </div>`;
-    case "your-phone":
-      return `<div class="ph-screen yp">
-<p class="yp-cam"><span aria-hidden="true">📷</span> ${e("yp.camera")}</p>
-<p class="yp-mic"><span aria-hidden="true">🎙</span> ${e("yp.mic")}</p>
+    case "your-wallet":
+      return `<div class="wd-screen yp">
+<p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>
+<p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
 <button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
 <meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
 <p class="mic-note">${e("mic.note")} <span class="info" ${tip(tr("mic.help"))} aria-label="${e("mic.help")}">ⓘ</span></p>
@@ -284,7 +284,7 @@ export function build({ siteDir, outDir, commit }) {
     for (const f of p.files) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
   }
   if (site.wasm && site.config.profiles.some((p) => p.simulator)) {
-    for (const f of ["core.mjs", "checks.mjs", "wallet.mjs", "ui.mjs", "phone.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
+    for (const f of ["core.mjs", "checks.mjs", "wallet.mjs", "ui.mjs", "sim-wallet.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
     files.set("sim/dtmf-signer.mjs", readFileSync(WASM));
     files.set("sim/ur-tones-crypto.js", readFileSync(join(UR_TONES_JS, "crypto.js")));
     files.set("sim/ur-tones.js", readFileSync(join(UR_TONES_JS, "ur-tones.js")));
