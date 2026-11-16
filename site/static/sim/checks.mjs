@@ -3,7 +3,7 @@
 // fee) and after scanning the signed PSBT (its size, the expected signature).
 // S holds the page's texts; {name} in them is filled in here.
 
-const fill = (text, params) => text.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
+export const fill = (text, params) => text.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
 
 // The network the signer shows ("mainnet" or "testnet" on its menu and
 // settings), or null when the screen does not say.
@@ -17,6 +17,14 @@ export function networkOf(lines) {
 
 export const shortAddr = (a) => `${a.slice(0, 7)}…${a.slice(-5)}`;
 export const shortKey = (hex) => `${hex.slice(0, 8)}…${hex.slice(-4)}`;
+export const shortXpub = (x) => `${x.slice(0, 12)}…${x.slice(-4)}`;
+
+// The account descriptor the signer echoes with its account QR:
+// wpkh([fingerprint/path]xpub/<0;1>/*)#checksum. null for any other line.
+export function parseDescriptor(line) {
+  const m = /^\w+\(\[([0-9a-f]{8})\/([^\]]+)\]([1-9A-HJ-NP-Za-km-z]+)/.exec(line);
+  return m ? { fingerprint: m[1], path: m[2], xpub: m[3] } : null;
+}
 
 export function seedCheck(net, pin, S) {
   return [fill(S["wallet.check_seed"], { pin, fp: net.fingerprint })];
@@ -25,7 +33,7 @@ export function seedCheck(net, pin, S) {
 // One line per output (the change marked), then the fee.
 export function outputLines(outputs, fee, S) {
   const lines = outputs.map((o) => fill(S[o.kind === "change" || o.change ? "wallet.change" : "wallet.out"],
-    { addr: shortAddr(o.address), sats: o.amount }));
+    { addr: o.address ? shortAddr(o.address) : `script ${o.script.slice(0, 8)}…`, sats: o.amount }));
   if (fee !== null && fee !== undefined) lines.push(fill(S["wallet.fee"], { sats: fee }));
   return lines;
 }

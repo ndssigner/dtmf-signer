@@ -140,3 +140,8 @@ test("the simulated wallet has a network selector, a stop button, a mismatch mar
   assert.match(html, /<span class="wd-warn"[^>]*hidden/);
   assert.match(html, /<p class="wd-check" aria-live="polite">/);
 });
+
+test("every file of the simulator is published", { skip: SKIP }, async () => {
+  const { readdirSync } = await import("node:fs");
+  for (const f of readdirSync(new URL("../static/sim/", import.meta.url))) assert.ok(files.has(`sim/${f}`), f);
+});

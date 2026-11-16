@@ -11,3 +11,10 @@ export function loadUrTones() {
     vm.runInContext(readFileSync(new URL(f, SRC), "utf8"), ctx, { filename: f });
   return vm.runInContext("UrTones", ctx);
 }
+
+// Its crypto (sha256…) alone.
+export function loadUrTonesCrypto() {
+  const ctx = vm.createContext({ TextEncoder, TextDecoder });
+  vm.runInContext(readFileSync(new URL("crypto.js", SRC), "utf8"), ctx, { filename: "crypto.js" });
+  return vm.runInContext("UrTonesCrypto", ctx);
+}

@@ -901,6 +901,20 @@ int ds_app_listening(const ds_app *a)
     return a->state == ST_LOAD || a->state == ST_LISTEN;
 }
 
+int ds_app_qr_kind(const ds_app *a)
+{
+    if (a->state == ST_ABOUT) {
+        return a->screen.about == (int)ds_about_pages() ? DS_QR_REPO : DS_QR_NONE;
+    }
+    if (!a->screen.qr) {
+        return DS_QR_NONE;
+    }
+    if (a->state == ST_XPUB) {
+        return DS_QR_ACCOUNT;
+    }
+    return a->state == ST_SIGNED ? DS_QR_PSBT : DS_QR_NONE;
+}
+
 static int listening_now(const ds_app *a)
 {
     return ds_app_listening(a);

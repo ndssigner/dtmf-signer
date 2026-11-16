@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { networkOf, shortAddr, shortKey, seedCheck, psbtCheck, scanCheck } from "../static/sim/checks.mjs";
+import { parseDescriptor, networkOf, shortAddr, shortKey, seedCheck, psbtCheck, scanCheck } from "../static/sim/checks.mjs";
 
 const V = JSON.parse(readFileSync(new URL("../../vectors/psbt-v0.json", import.meta.url), "utf8")).vectors;
 const S = { "wallet.check_seed": "PIN {pin} · {fp}", "wallet.out": "→ {addr} · {sats} sat", "wallet.change": "↩ {addr} · {sats} sat",
@@ -38,4 +38,10 @@ test("scan check fails on a foreign signature", () => {
   const r = scanCheck({ base64: bytes.toString("base64"), bytes: bytes.length }, v, S);
   assert.equal(r.ok, false);
   assert.equal(r.lines.at(-1), "❌");
+});
+
+test("a descriptor gives the fingerprint, the path and the xpub", () => {
+  assert.deepEqual(parseDescriptor("wpkh([73c5da0a/84'/0'/0']xpub6CatWdiZ/<0;1>/*)#abcd"),
+    { fingerprint: "73c5da0a", path: "84'/0'/0'", xpub: "xpub6CatWdiZ" });
+  assert.equal(parseDescriptor("signed-psbt-end 1"), null);
 });

@@ -123,7 +123,7 @@ const WASM = join(HERE, "..", "build", "wasm", "dtmf-signer.mjs");
 const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
 // The texts ui.mjs needs ({seconds} is filled in by ui.mjs).
 const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no_qr", "wallet.waiting", "wallet.got",
-  "wallet.other_qr", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
+  "wallet.qr_repo", "wallet.qr_account", "wallet.qr_xpub", "wallet.no_broadcast", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
   "status.qr", "status.camera", "status.mic", "wallet.check_seed", "wallet.out", "wallet.change", "wallet.fee",
   "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
@@ -208,7 +208,7 @@ function simulatorBlock(site, tr, p, root) {
   const bench = p.bench;
   const strings = Object.fromEntries(SIM_KEYS.map((k) => [k, tr(k)]));
   const links = Object.fromEntries(bench.modes.map((m) => [m.id, m.links]));
-  const data = JSON.stringify({ pin: s.pin, networks: simNetworks(site, p), tools: s.tools, strings, links }).replace(/</g, "\\u003c");
+  const data = JSON.stringify({ pin: s.pin, networks: simNetworks(site, p), tools: s.tools, repo: site.config.repo, strings, links }).replace(/</g, "\\u003c");
   const e = (k, params) => escapeHtml(tr(k, params));
   const first = bench.modes[0];
   const label = (l) => (l.startsWith("bench.") ? tr(l) : l);
@@ -292,7 +292,9 @@ export function build({ siteDir, outDir, commit }) {
     for (const f of p.files) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
   }
   if (site.wasm && site.config.profiles.some((p) => p.simulator)) {
-    for (const f of ["core.mjs", "checks.mjs", "wallet.mjs", "ui.mjs", "sim-wallet.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
+    // Every file of static/sim/, so a new module cannot be left behind.
+    for (const f of readdirSync(join(HERE, "static", "sim"), { withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name).sort())
+      files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
     files.set("sim/dtmf-signer.mjs", readFileSync(WASM));
     files.set("sim/ur-tones-crypto.js", readFileSync(join(UR_TONES_JS, "crypto.js")));
     files.set("sim/ur-tones.js", readFileSync(join(UR_TONES_JS, "ur-tones.js")));

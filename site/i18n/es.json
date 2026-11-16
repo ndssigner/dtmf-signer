@@ -85,7 +85,7 @@
   "wallet.scan_tip": "Lee el QR de la pantalla del firmador",
   "wallet.idle": "Lista",
   "wallet.sending": "♪ Enviando… {seconds} s",
-  "wallet.no_qr": "No hay QR en la pantalla del firmador",
+  "wallet.no_qr": "📷 No veo ningún QR",
   "wallet.waiting": "Leyendo el QR…",
   "wallet.got": "PSBT firmado recibido",
   "mic.listen": "Escuchar",
@@ -107,7 +107,6 @@
   "bench.tip.your-wallet.camera": "La cámara de tu dispositivo lee los códigos QR del firmador",
   "yw.mic": "Micrófono de este ordenador ◂ altavoz de tu dispositivo",
   "yw.camera": "La cámara de tu dispositivo",
-  "wallet.other_qr": "Ese QR no es un PSBT firmado",
   "bench.link.sim-wallet.power": "Cargador, USB 5 V → 5V del firmador",
   "bench.link.sim-wallet.camera": "Pantalla del firmador, códigos QR → cámara de la wallet simulada",
   "bench.link.sim-wallet.line-in": "Salida de auriculares de la wallet simulada, tonos por cable → IN y COM del firmador",
@@ -124,5 +123,10 @@
   "wallet.network": "Red de la wallet",
   "wallet.network_tip": "Red de la wallet: elige el par de prueba (semilla y PSBT) de esa red",
   "wallet.stop": "Parar la emisión",
-  "wallet.mismatch": "El firmador está en otra red: cambia la red aquí o en su menú"
+  "wallet.mismatch": "El firmador está en otra red: cambia la red aquí o en su menú",
+  "wallet.qr_repo": "🔗 El repositorio de DTMF-Signer: {url}",
+  "wallet.qr_account": "👛 Cuenta {fp} · {path}",
+  "wallet.qr_xpub": "{xpub}",
+  "wallet.no_broadcast": "📡 No se emite: monedas de prueba",
+  "bench.headphones": "salida auriculares"
 }

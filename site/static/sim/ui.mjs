@@ -5,7 +5,7 @@
 // the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
 import { SimWallet } from "./sim-wallet.mjs";
-import { seedCheck, psbtCheck, scanCheck } from "./checks.mjs";
+import { seedCheck, psbtCheck } from "./checks.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
@@ -96,7 +96,7 @@ export async function start(doc, loadModule) {
   const wdStatus = root.querySelector(".wd-status");
   const sound = root.querySelector(".wd-sound");
   const fast = root.querySelector(".wd-fast");
-  const wallet = new SimWallet({ sim, U: UrTones, data, el: { out: root.querySelector(".wd-out"), status: wdStatus } });
+  const wallet = new SimWallet({ sim, U: UrTones, sha256: UrTonesCrypto.sha256, S, data, el: { out: root.querySelector(".wd-out"), status: wdStatus } });
   const bench = root.querySelector(".bench");
   const svg = bench.querySelector(".links");
   const micBtn = root.querySelector(".mic-toggle");
@@ -221,7 +221,6 @@ export async function start(doc, loadModule) {
     leaveMode({ sim, speaker: audio });
     audio = null; nextStart = 0;
   }
-  const scanned = () => scanCheck(wallet.collector.result, wallet.pair(), S).lines.join("\n");
   root.querySelector(".wd-seed").addEventListener("click", () => {
     send(wallet.sendSeed());
     walletNote = ""; checkText = seedCheck(wallet.pair(), data.pin, S).join("\n");
@@ -238,8 +237,8 @@ export async function start(doc, loadModule) {
   });
   root.querySelector(".wd-scan").addEventListener("click", () => {
     const r = wallet.scan();
-    walletNote = { "no-qr": S["wallet.no_qr"], "other-qr": S["wallet.other_qr"], waiting: S["wallet.waiting"], ok: S["wallet.got"] }[r];
-    checkText = r === "ok" ? scanned() : "";
+    walletNote = { "no-qr": S["wallet.no_qr"], waiting: S["wallet.waiting"], ok: S["wallet.got"] }[r] ?? "";
+    checkText = wallet.last?.lines.join("\n") ?? "";
   });
 
   function frame(now) {
@@ -257,7 +256,11 @@ export async function start(doc, loadModule) {
     }
     // While scanning, the wallet takes the signed PSBT as soon as it is there.
     if (wallet.scanning && !sim.qrShown()) wallet.scanning = false;
-    if (wallet.scanning && walletNote === S["wallet.waiting"] && wallet.scan() === "ok") { walletNote = S["wallet.got"]; checkText = scanned(); }
+    // While scanning, the wallet reads what the QR holds as soon as it is there.
+    if (wallet.scanning && walletNote === S["wallet.waiting"]) {
+      const r = wallet.scan();
+      if (r !== "waiting") { walletNote = r === "ok" ? S["wallet.got"] : ""; checkText = wallet.last?.lines.join("\n") ?? ""; }
+    }
     // The signer's network against the wallet's: a mark beside "Send PSBT".
     wallet.watch();
     const warn = wallet.mismatch();

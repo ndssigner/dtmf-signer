@@ -202,6 +202,12 @@ uint32_t ds_app_keys(const ds_app *a);
 /* 1 while the receiver takes line-in audio (a seed or a PSBT), else 0. */
 int ds_app_listening(const ds_app *a);
 
+/* The QR code on the screen now, for a simulator's camera: none, the
+ * repository (the last About page), the account (Show XPUB) or the signed
+ * PSBT. Which code, never its content. */
+enum { DS_QR_NONE = 0, DS_QR_REPO, DS_QR_ACCOUNT, DS_QR_PSBT };
+int ds_app_qr_kind(const ds_app *a);
+
 /* 1 after a wipe: the port reboots the device. */
 int ds_app_wants_reboot(const ds_app *a);
 

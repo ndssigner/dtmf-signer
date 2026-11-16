@@ -98,5 +98,7 @@ EMSCRIPTEN_KEEPALIVE int dsw_wants_reboot(void) { return ds_app_wants_reboot(&ap
 EMSCRIPTEN_KEEPALIVE int dsw_listening(void) { return ds_app_listening(&app); }
 
 EMSCRIPTEN_KEEPALIVE int dsw_qr_shown(void) { return app.screen.qr; }
+/* Which QR is on screen (DS_QR_NONE, _REPO, _ACCOUNT, _PSBT), for the camera. */
+EMSCRIPTEN_KEEPALIVE int dsw_qr_kind(void) { return ds_app_qr_kind(&app); }
 
 EMSCRIPTEN_KEEPALIVE const char *dsw_version(void) { return DS_VERSION; }

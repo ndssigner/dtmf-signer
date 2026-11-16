@@ -116,7 +116,7 @@
                 "edge": "signer-side",
                 "type": "audio",
                 "dir": "out",
-                "label": "jack ♀"
+                "label": "bench.headphones"
               }
             ]
           },

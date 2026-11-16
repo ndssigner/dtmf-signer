@@ -561,6 +561,7 @@ static void test_app_sign_flow(void)
     CHECK_EQ_INT(app.s.state, DS_S_CONFIRMED);
     work_done();
     CHECK(shows("Signed"));
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_PSBT);
     CHECK(app.screen.qr);
     CHECK_EQ_INT(app.s.state, DS_S_READY);
     CHECK(app.qr_scale == 1 || app.qr_scale == 2);
@@ -1145,6 +1146,7 @@ static void test_app_xpub(void)
     press(DS_BTN_OK);
     work_done();
     CHECK(app.screen.qr);
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_ACCOUNT);
     CHECK(shows("XPUB"));
     CHECK(shows("73c5da0a"));
     CHECK_EQ_INT(ds_app_contrast(&app), 0x20);
@@ -1156,6 +1158,7 @@ static void test_app_xpub(void)
     press(DS_BTN_LEFT);
     CHECK(shows("Show XPUB"));
     CHECK(!app.screen.qr);
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_NONE);
     CHECK_EQ_INT(ds_app_contrast(&app), DS_APP_UI_CONTRAST);
     ds_app_init(&app, TONES_RATE);
 }
@@ -1224,7 +1227,9 @@ static void test_app_welcome_about(void)
     tick();
     CHECK(shows("Flashed it yourself?"));
     CHECK(shows("the source code."));
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_NONE);
     press(DS_BTN_DOWN);
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_NONE); /* the first About page */
     CHECK(shows("About"));
     {
         char v[2 * DS_UI_COLS + 1];
@@ -1244,6 +1249,7 @@ static void test_app_welcome_about(void)
     CHECK(shows("dtmf-signer"));
     ds_app_draw(&app, fb);
     CHECK(fb[1][10] != 0 || fb[2][10] != 0); /* the QR code on the left */
+    CHECK_EQ_INT(ds_app_qr_kind(&app), DS_QR_REPO);
     press(DS_BTN_LEFT);
     CHECK(shows("Flashed it yourself?"));
     press(DS_BTN_OK);

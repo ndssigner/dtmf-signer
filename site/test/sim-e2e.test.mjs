@@ -57,6 +57,7 @@ test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP 
   hold(OK);
   until(/Signed/, 20000);
   run(2000);
+  assert.equal(sim.qrKind(), "psbt");
   const r = signed.result;
   assert.ok(r, "no signed PSBT in the echo");
   const hex = Buffer.from(r.base64, "base64").toString("hex");

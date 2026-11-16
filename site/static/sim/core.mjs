@@ -130,5 +130,8 @@ export class Simulator {
   }
   keys() { return this.m._dsw_keys(); }
   listening() { return this.m._dsw_listening() === 1; }
-  qrShown() { return this.m._dsw_qr_shown() === 1; }
+  // Any QR on screen: the About page's too (the firmware's own flag covers
+  // only the animated ones).
+  qrShown() { return this.qrKind() !== "none"; }
+  qrKind() { return ["none", "repo", "account", "psbt"][this.m._dsw_qr_kind()] ?? "none"; }
 }

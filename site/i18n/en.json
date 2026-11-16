@@ -85,7 +85,7 @@
   "wallet.scan_tip": "Reads the QR on the signer's screen",
   "wallet.idle": "Ready",
   "wallet.sending": "♪ Sending… {seconds} s",
-  "wallet.no_qr": "No QR on the signer's screen",
+  "wallet.no_qr": "📷 I see no QR",
   "wallet.waiting": "Reading the QR…",
   "wallet.got": "Signed PSBT received",
   "mic.listen": "Listen",
@@ -107,7 +107,6 @@
   "bench.tip.your-wallet.camera": "Your device's camera reads the signer's QR codes",
   "yw.mic": "Microphone of this computer ◂ speaker of your device",
   "yw.camera": "The camera of your device",
-  "wallet.other_qr": "That QR is not a signed PSBT",
   "bench.link.sim-wallet.power": "Charger, USB 5 V → 5V of the signer",
   "bench.link.sim-wallet.camera": "Signer's screen, QR codes → camera of the simulated wallet",
   "bench.link.sim-wallet.line-in": "Simulated wallet's headphone output, tones by cable → IN and COM of the signer",
@@ -124,5 +123,10 @@
   "wallet.network": "Wallet network",
   "wallet.network_tip": "Wallet network: picks that network's test pair (seed and PSBT)",
   "wallet.stop": "Stop sending",
-  "wallet.mismatch": "The signer is on another network: change it here or in its menu"
+  "wallet.mismatch": "The signer is on another network: change it here or in its menu",
+  "wallet.qr_repo": "🔗 The DTMF-Signer repository: {url}",
+  "wallet.qr_account": "👛 Account {fp} · {path}",
+  "wallet.qr_xpub": "{xpub}",
+  "wallet.no_broadcast": "📡 Not broadcast: test coins",
+  "bench.headphones": "headphone out"
 }
