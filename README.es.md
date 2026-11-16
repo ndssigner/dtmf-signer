@@ -234,7 +234,8 @@ El análisis completo, por formato de distribución y por uso, está en
 - [x] Disposición en protoboard (DIY Layout Creator), comprobada por sus conexiones, y una plantilla imprimible 1:1 para la placa perforada
 - [ ] Esquema, guía de montaje paso a paso y lista de materiales
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
-- [ ] Simulación de las etapas analógicas y del firmware
+- [x] El firmware en el navegador: `ports/wasm`, el simulador de la [web](https://ndssigner.github.io/dtmf-signer/), con una wallet de prueba
+- [ ] Simulación de las etapas analógicas
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
 - [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia. En la placa perforada, v0.2.0-alpha desde la semilla por tonos hasta la PSBT firmada leída por Sparrow
 - [ ] Protocolo serie para terminales vintage
@@ -289,6 +290,13 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   la pantalla va girada 180 grados por defecto, como la monta la disposición en
   protoboard (`-DDS_DISPLAY_FLIP=OFF` para el otro sentido). El serie USB es solo de salida (el
   eco público y `stack-free`). Ver el [README de la Pico](ports/pico/README.es.md).
+- [`ports/wasm/`](ports/wasm/README.es.md): el mismo firmware como
+  WebAssembly, la placa del simulador de la web. `tools/build-wasm.sh` lo
+  compila con Emscripten en Docker, fijado por digest: el mismo commit da el
+  mismo archivo.
+- [`site/`](site/TRANSLATING.md): la web, construida sin dependencias
+  (`node site/build.mjs`) y publicada en GitHub Pages; sus textos se pueden
+  traducir a cualquier idioma.
 - [`hardware/breadboard/`](hardware/breadboard/README.es.md): la disposición
   en protoboard del montaje de referencia (DIY Layout Creator, CERN-OHL-S v2)
   y sus plantillas imprimibles 1:1. `tools/check_diy.py` lee la disposición y

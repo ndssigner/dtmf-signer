@@ -1,5 +1,7 @@
-# The website: its tests, the translations against English, the parts list
-# against the layout, then the build (the SHA-256 of every file printed) and,
+# The website: the firmware built as WebAssembly for the simulator, the
+# site's tests (the simulator's too: here they never skip), the
+# translations against English, the parts list against the layout, then
+# the build (the SHA-256 of every file printed) and,
 # on main, publication on GitHub Pages. Runs only when what the site is made
 # from changes.
 name: site
@@ -12,6 +14,14 @@ on:
       - "hardware/**"
       - "docs/images/**"
       - "README*.md"
+      - "core/**"
+      - "app/**"
+      - "ports/wasm/**"
+      - "third_party/**"
+      - "vectors/**"
+      - "CMakeLists.txt"
+      - "tools/build-wasm.sh"
+      - "tools/check_diy.py"
       - "tests/test_bom.py"
       - "tests/test_check_diy.py"
       - "tests/test_site_donate.py"
@@ -22,6 +32,14 @@ on:
       - "hardware/**"
       - "docs/images/**"
       - "README*.md"
+      - "core/**"
+      - "app/**"
+      - "ports/wasm/**"
+      - "third_party/**"
+      - "vectors/**"
+      - "CMakeLists.txt"
+      - "tools/build-wasm.sh"
+      - "tools/check_diy.py"
       - "tests/test_bom.py"
       - "tests/test_check_diy.py"
       - "tests/test_site_donate.py"
@@ -30,20 +48,32 @@ on:
 permissions:
   contents: read
 
+# One deployment at a time; a newer one waits instead of cancelling.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # git describe needs the tags: the version is in the firmware
+      # The firmware as WebAssembly, for the simulator (Emscripten in Docker,
+      # pinned by digest); the SHA-256 of the module is printed.
+      - name: Firmware as WebAssembly
+        run: tools/build-wasm.sh
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - name: Tests of the site
-        run: node --test site/test/*.test.mjs
+      - name: Tests of the site and the simulator
+        run: SIM_REQUIRED=1 node --test site/test/*.test.mjs
       - name: Translations against English
         run: node site/check-i18n.mjs
       - name: Parts list against the layout, donation addresses against the READMEs

@@ -1,13 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
-import { HAVE_MODULE } from "./wasm-helpers.mjs";
+import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
 import { releaseOnBlur, start } from "../static/sim/ui.mjs";
 
 const files = buildInto();
 const SIM_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
-const SKIP = HAVE_MODULE ? false : "no build/wasm/dtmf-signer.mjs";
 
 test("the page carries the simulator, its data and its scripts", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
@@ -29,7 +28,7 @@ test("only the simulator's page allows WebAssembly", { skip: SKIP }, () => {
   assert.ok(text(files, "en/index.html").includes(`content="${CSP}"`));
   assert.ok(!text(files, "en/index.html").includes("wasm-unsafe-eval"));
 });
-test("without the module the page keeps its placeholder", { skip: HAVE_MODULE ? "module present" : false }, () => {
+test("without the module the page keeps its placeholder", { skip: HAVE_MODULE || REQUIRED ? "module present or required" : false }, () => {
   assert.match(text(files, "en/cable-qr/index.html"), /Coming soon/);
 });
 test("links still resolve", () => {

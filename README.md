@@ -223,7 +223,8 @@ The whole analysis, by distribution format and by use, is in
 - [x] Breadboard layout (DIY Layout Creator), checked by its connections, and a printable 1:1 template for the perfboard
 - [ ] Schematic, step-by-step assembly guide and bill of materials
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
-- [ ] Simulation of the analog stages and the firmware
+- [x] The firmware in the browser: `ports/wasm`, the simulator on the [website](https://ndssigner.github.io/dtmf-signer/), with a test wallet
+- [ ] Simulation of the analog stages
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
 - [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe. On the perfboard, v0.2.0-alpha from the seed by tones to the signed PSBT read by Sparrow
 - [ ] Serial protocol for vintage terminals
@@ -274,6 +275,12 @@ for the use anyone makes of this design.
   SSD1306 but are not tested on hardware; the screen is turned 180 degrees by default, as the breadboard layout
   mounts it (`-DDS_DISPLAY_FLIP=OFF` for the other way round). The USB serial is output only (the public echo and `stack-free`).
   See the [Pico README](ports/pico/README.md).
+- [`ports/wasm/`](ports/wasm/README.md): the same firmware as WebAssembly,
+  the board of the website's simulator. `tools/build-wasm.sh` builds it with
+  Emscripten in Docker, pinned by digest: the same commit gives the same file.
+- [`site/`](site/TRANSLATING.md): the website, built with no dependencies
+  (`node site/build.mjs`) and published on GitHub Pages; its texts are open
+  to translation into any language.
 - [`hardware/breadboard/`](hardware/breadboard/README.md): the breadboard
   layout of the reference build (DIY Layout Creator, CERN-OHL-S v2) and its
   printable 1:1 templates. `tools/check_diy.py` reads the layout and prints

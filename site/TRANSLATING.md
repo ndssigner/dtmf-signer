@@ -39,5 +39,9 @@ with a note inviting readers to help. Once everything is translated, set
   in the sentence.
 - The parts lists: they come from `hardware/*/bom.csv` and stay in English;
   only their column titles are translated.
+- In the simulator's texts (`sim.*`), the button and menu names the
+  firmware shows (“Load seed”, “Sign PSBT”, “Hold OK: sign”): its screen is
+  in English, so keep them as they are, in quotes. `{pin}` and `{seconds}`
+  are placeholders.
 
 Translate the meaning, not word for word, and keep the tone plain.
