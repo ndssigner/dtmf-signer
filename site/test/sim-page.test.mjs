@@ -14,13 +14,18 @@ test("the page carries the simulator, its data and its scripts", { skip: SKIP },
   assert.ok(json, "sim-data");
   const data = JSON.parse(json[1]);
   assert.equal(data.pin, "1234");
-  assert.match(data.psbt, /^cHNidP8BAHECAAAAAX4gBlDy3j1VOEPCv1EQt1Y5OeRbmPWZVrdbpYPwIXfE/);
-  assert.equal(data.seed, "00000000000000000000000000000000");
+  assert.match(data.networks.mainnet.psbt, /^cHNidP8BAHECAAAAAX4gBlDy3j1VOEPCv1EQt1Y5OeRbmPWZVrdbpYPwIXfE/);
+  assert.equal(data.networks.mainnet.seed, "00000000000000000000000000000000");
+  assert.equal(data.networks.mainnet.fingerprint, "73c5da0a");
+  assert.equal(data.networks.testnet.fingerprint, "8b218e81");
+  assert.match(data.networks.testnet.psbt, /^cHNidP8BAHECAAAAAa5DsWjV/);
+  assert.equal(data.networks.mainnet.outputs.length, 2);
+  assert.equal(data.tools.urtones, "https://ndssigner.github.io/ur-tones/");
   assert.match(html, /<canvas [^>]*width="128" height="64"/);
   for (const b of ["left", "up", "ok", "down", "right"]) assert.match(html, new RegExp(`data-btn="${b}"`));
   assert.match(html, /class="sim-warning"/);
   assert.match(html, /<script type="module" src="\.\.\/\.\.\/sim\/ui\.mjs"><\/script>/);
-  for (const f of ["sim/ui.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/phone.mjs", "sim/bench.mjs", "sim/mic.mjs", "sim/mic-worklet.js", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
+  for (const f of ["sim/ui.mjs", "sim/checks.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/phone.mjs", "sim/bench.mjs", "sim/mic.mjs", "sim/mic-worklet.js", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
     assert.ok(files.has(f), f);
 });
 test("only the simulator's page allows WebAssembly", { skip: SKIP }, () => {

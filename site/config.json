@@ -30,9 +30,21 @@
         "es": "hardware/breadboard/README.es.md"
       },
       "simulator": {
-        "seed": "00000000000000000000000000000000",
         "pin": "1234",
-        "psbt_vector": "one input with change"
+        "networks": {
+          "mainnet": {
+            "psbt_vector": "one input with change",
+            "keys_vector": "BIP-39 test seed, BIP-84 account"
+          },
+          "testnet": {
+            "psbt_vector": "testnet account m/84'/1'/0'",
+            "keys_vector": "NDS-Signer test seed"
+          }
+        },
+        "tools": {
+          "urtones": "https://ndssigner.github.io/ur-tones/",
+          "nunchuk": "https://nunchuk.io/"
+        }
       },
       "bench": {
         "modules": [

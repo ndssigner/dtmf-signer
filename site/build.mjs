@@ -124,7 +124,8 @@ const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
 // The texts ui.mjs needs ({seconds} is filled in by ui.mjs).
 const SIM_KEYS = ["sim.unavailable", "phone.idle", "phone.sending", "phone.no_qr", "phone.waiting", "phone.got",
   "phone.other_qr", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
-  "status.qr", "status.camera", "status.mic"];
+  "status.qr", "status.camera", "status.mic", "wallet.check_seed", "wallet.out", "wallet.change", "wallet.fee",
+  "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
 const LEGEND = [["power", "bench.legend.power"], ["audio", "bench.legend.audio"], ["light", "bench.legend.light"]];
 
@@ -171,17 +172,35 @@ ${buttons}
   }
 }
 
+// One test pair per network for the simulated wallet: the seed of a keys
+// vector and a PSBT vector made for it, with what the signer should show.
+export function simNetworks(site, p) {
+  const read = (f) => JSON.parse(readFileSync(join(site.dir, "..", "vectors", f), "utf8")).vectors;
+  const psbts = read("psbt-v0.json"), keys = read("keys-v0.json");
+  const out = {};
+  for (const [net, pair] of Object.entries(p.simulator.networks)) {
+    const v = psbts.find((x) => x.name === pair.psbt_vector);
+    const k = keys.find((x) => x.name === pair.keys_vector);
+    if (!v) throw new Error(`${p.slug}: no PSBT vector named ${pair.psbt_vector}`);
+    if (!k) throw new Error(`${p.slug}: no keys vector named ${pair.keys_vector}`);
+    if (v.entropy !== k.entropy || v.passphrase !== k.passphrase)
+      throw new Error(`${p.slug}: ${net}: the PSBT vector is not for that seed`);
+    const testnet = v.testnet === true || String(v.testnet) === "True";
+    if (testnet !== (net === "testnet")) throw new Error(`${p.slug}: ${net}: the PSBT vector is for the other network`);
+    out[net] = { seed: k.entropy, fingerprint: k.wallet_fingerprint, psbt: v.psbt, fee: Number(v.fee),
+      outputs: v.outputs, signatures: v.signatures };
+  }
+  return out;
+}
+
 // The simulator: the bench of the build (blocks, ports, links drawn by
 // ui.mjs), the mode switch, the legend, and its data as JSON (not run).
 function simulatorBlock(site, tr, p, root) {
   const s = p.simulator;
   const bench = p.bench;
-  const vectors = JSON.parse(readFileSync(join(site.dir, "..", "vectors", "psbt-v0.json"), "utf8")).vectors;
-  const vector = vectors.find((v) => v.name === s.psbt_vector);
-  if (!vector) throw new Error(`${p.slug}: no PSBT vector named ${s.psbt_vector}`);
   const strings = Object.fromEntries(SIM_KEYS.map((k) => [k, tr(k)]));
   const links = Object.fromEntries(bench.modes.map((m) => [m.id, m.links]));
-  const data = JSON.stringify({ seed: s.seed, pin: s.pin, psbt: vector.psbt, strings, links }).replace(/</g, "\\u003c");
+  const data = JSON.stringify({ pin: s.pin, networks: simNetworks(site, p), tools: s.tools, strings, links }).replace(/</g, "\\u003c");
   const e = (k, params) => escapeHtml(tr(k, params));
   const first = bench.modes[0];
   const label = (l) => (l.startsWith("bench.") ? tr(l) : l);
@@ -265,7 +284,7 @@ export function build({ siteDir, outDir, commit }) {
     for (const f of p.files) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
   }
   if (site.wasm && site.config.profiles.some((p) => p.simulator)) {
-    for (const f of ["core.mjs", "wallet.mjs", "ui.mjs", "phone.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
+    for (const f of ["core.mjs", "checks.mjs", "wallet.mjs", "ui.mjs", "phone.mjs", "bench.mjs", "activity.mjs", "mic.mjs", "mic-worklet.js"].filter((f) => existsSync(join(HERE, "static", "sim", f)))) files.set(`sim/${f}`, readFileSync(join(HERE, "static", "sim", f)));
     files.set("sim/dtmf-signer.mjs", readFileSync(WASM));
     files.set("sim/ur-tones-crypto.js", readFileSync(join(UR_TONES_JS, "crypto.js")));
     files.set("sim/ur-tones.js", readFileSync(join(UR_TONES_JS, "ur-tones.js")));

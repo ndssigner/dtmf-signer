@@ -113,5 +113,12 @@
   "bench.link.sim-phone.line-in": "Simulated phone's headphone output, tones by cable → IN and COM of the signer",
   "bench.link.your-phone.power": "Charger, USB 5 V → 5V of the signer",
   "bench.link.your-phone.camera": "Signer's screen, QR codes → camera of your smartphone",
-  "bench.link.your-phone.line-in": "Your smartphone's speaker, heard by the microphone of this computer → IN and COM of the signer"
+  "bench.link.your-phone.line-in": "Your smartphone's speaker, heard by the microphone of this computer → IN and COM of the signer",
+  "wallet.check_seed": "🔑 PIN {pin} · 🔍 fingerprint {fp}",
+  "wallet.out": "→ {addr} · {sats} sat",
+  "wallet.change": "↩ change {addr} · {sats} sat",
+  "wallet.fee": "⛽ fee {sats} sat",
+  "wallet.sig_ok": "✅ Expected signature ({key})",
+  "wallet.sig_bad": "❌ Not the expected signature",
+  "wallet.bytes": "{bytes} bytes"
 }
