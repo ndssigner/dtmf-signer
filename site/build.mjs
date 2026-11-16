@@ -13,6 +13,7 @@ import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
 import { layout, rootPage, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
 import { parseStatus, statusTable } from "./lib/status.mjs";
+import { validateBench, checkBenchAgainstCatalog } from "./lib/bench.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 
@@ -169,10 +170,19 @@ ${steps}
 <script type="module" src="${root}sim/ui.mjs"></script>`;
 }
 
+// Every profile's bench must be sound and say what the catalog says.
+export function checkBenches(profiles, catalogMd) {
+  const errors = profiles.filter((p) => p.bench)
+    .flatMap((p) => [...validateBench(p.bench), ...checkBenchAgainstCatalog(p.bench, catalogMd, p.id)]);
+  if (errors.length) throw new Error("bench:\n" + errors.join("\n"));
+}
+
 export function build({ siteDir, outDir, commit }) {
   const site = loadSite(siteDir);
   site.commit = commit;
   site.wasm = existsSync(WASM);
+  if (site.config.profiles.some((p) => p.bench))
+    checkBenches(site.config.profiles, readFileSync(join(siteDir, "..", "docs", "catalog.md"), "utf8"));
   if (!site.wasm && site.config.profiles.some((p) => p.simulator))
     console.error("warning: no simulator (build/wasm/dtmf-signer.mjs missing: run tools/build-wasm.sh)");
   const files = new Map();

@@ -33,6 +33,166 @@
         "seed": "00000000000000000000000000000000",
         "pin": "1234",
         "psbt_vector": "one input with change"
+      },
+      "bench": {
+        "modules": [
+          {
+            "id": "charger",
+            "kind": "charger",
+            "column": "power",
+            "title": "bench.charger",
+            "ports": [
+              {
+                "id": "usb",
+                "edge": "signer-side",
+                "type": "power",
+                "dir": "out",
+                "label": "USB 5V"
+              }
+            ]
+          },
+          {
+            "id": "signer",
+            "kind": "signer",
+            "column": "signer",
+            "title": "bench.signer",
+            "capabilities": [
+              "VERIFY-SCREEN",
+              "IN-BUTTONS"
+            ],
+            "ports": [
+              {
+                "id": "5v",
+                "edge": "power-side",
+                "type": "power",
+                "dir": "in",
+                "label": "5V"
+              },
+              {
+                "id": "qr",
+                "edge": "peer-side",
+                "type": "light",
+                "dir": "out",
+                "label": "QR",
+                "capability": "OUT-QR"
+              },
+              {
+                "id": "in",
+                "edge": "peer-side",
+                "type": "audio",
+                "dir": "in",
+                "label": "IN · COM",
+                "capability": "IN-LINE"
+              }
+            ]
+          },
+          {
+            "id": "sim-phone",
+            "kind": "sim-phone",
+            "column": "peer",
+            "title": "bench.sim_phone",
+            "ports": [
+              {
+                "id": "camera",
+                "edge": "signer-side",
+                "type": "light",
+                "dir": "in",
+                "label": "bench.camera"
+              },
+              {
+                "id": "jack",
+                "edge": "signer-side",
+                "type": "audio",
+                "dir": "out",
+                "label": "jack ♀"
+              }
+            ]
+          },
+          {
+            "id": "host-mic",
+            "kind": "host-mic",
+            "column": "peer",
+            "title": "bench.host_mic",
+            "ports": [
+              {
+                "id": "jack",
+                "edge": "signer-side",
+                "type": "audio",
+                "dir": "out",
+                "label": "jack"
+              }
+            ]
+          },
+          {
+            "id": "your-phone",
+            "kind": "your-phone",
+            "column": "peer",
+            "title": "bench.your_phone",
+            "external": true
+          }
+        ],
+        "modes": [
+          {
+            "id": "sim-phone",
+            "title": "bench.mode_sim_phone",
+            "modules": [
+              "charger",
+              "signer",
+              "sim-phone"
+            ],
+            "links": [
+              {
+                "from": "charger.usb",
+                "to": "signer.5v",
+                "channel": "power"
+              },
+              {
+                "from": "signer.qr",
+                "to": "sim-phone.camera",
+                "channel": "camera"
+              },
+              {
+                "from": "sim-phone.jack",
+                "to": "signer.in",
+                "channel": "line-in"
+              }
+            ]
+          },
+          {
+            "id": "host-mic",
+            "title": "bench.mode_host_mic",
+            "modules": [
+              "charger",
+              "signer",
+              "host-mic",
+              "your-phone"
+            ],
+            "links": [
+              {
+                "from": "charger.usb",
+                "to": "signer.5v",
+                "channel": "power"
+              },
+              {
+                "from": "host-mic.jack",
+                "to": "signer.in",
+                "channel": "line-in"
+              },
+              {
+                "from": "your-phone",
+                "to": "host-mic",
+                "channel": "air-in",
+                "external": true
+              },
+              {
+                "from": "signer.qr",
+                "to": "your-phone",
+                "channel": "qr-external",
+                "external": true
+              }
+            ]
+          }
+        ]
       }
     }
   ],
