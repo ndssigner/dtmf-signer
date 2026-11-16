@@ -120,3 +120,10 @@ target_link_libraries(test_say PRIVATE dtmf_app ds_voice_packs)
 # The PIN by multi-tap: the pure key logic (app layer, no audio).
 ds_add_test(test_multitap)
 target_link_libraries(test_multitap PRIVATE dtmf_app)
+
+# The exchange: hook, menus and barge-in, with telephone keys and the
+# signer's own voice mixed on the line (the built-in and the Spanish pack).
+ds_add_test(test_voice)
+target_sources(test_voice PRIVATE ${DS_VOICE_TEST_PACKS_H})
+target_include_directories(test_voice PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_voice PRIVATE dtmf_app ds_voice_packs)
