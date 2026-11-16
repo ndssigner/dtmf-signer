@@ -120,6 +120,17 @@ record it.
 **A QR is `AIR` too.** The signer's screen is `LOCAL` when it shows text to
 the user, but a QR on it is an output that any camera in sight can read.
 
+**A telephone line is the one exception.** On a telephone line
+(`IN-PHONELINE`) the keypad and the handset's microphone share the one
+line, so the signer cannot tell them apart, and the rule above would make
+everything `AIR` and refuse the PIN. Instead, **keys typed while the signer
+explicitly asks for them (the PIN, a keypad seed, a menu choice) count as
+`CABLE`**: what is typed does not sound in the room. Everything else that
+arrives on the line, such as a PSBT or a PIN-encrypted seed played near the
+handset, is `AIR`; a seed by air stays within §4.2, with a PIN of at least
+`12` characters. The signer warns once: a speakerphone says the keys aloud,
+and the telephone's redial memory may keep them (§4.3).
+
 ### 4.2 What is accepted where
 
 | Data | `AIR` | `CABLE` | `LOCAL` |
@@ -179,11 +190,20 @@ that the connected device does not control.** Accepted forms:
   seven-segment displays.
 - **A terminal over UART, or a television** driven by the signer.
 - **Several listeners over the air** (§5.1).
+- **A spoken readout in the earpiece** (`VERIFY-VOICE`), for a build whose
+  whole interface is a telephone.
 - **A readout in tones or beeps:** a last resort, slow and error-prone.
 
 What never counts is the connected device's own presentation of the
 transaction. Nor does a QR (`OUT-QR`): the device that reads it is the one
 that is not trusted.
+
+**A spoken summary** gives amounts, fee, which output is change and, for
+each destination, by default the first `5` and the last `5` characters of
+the address; the whole address, in groups of 4, on request. The limit is
+plain: an address made to match in prefix and suffix defeats the partial
+readout. The full check of the address belongs in the wallet, and whoever
+wants more listens to the whole address.
 
 ### 5.1 Several listeners
 
@@ -246,7 +266,9 @@ From §2–§5, every build needs at least:
 - **A `CABLE` input** (line-in jack or UART): the recommended path for the
   encrypted seed, the only one for the unencrypted seed, and valid for the
   PIN and the passphrase when there is no `LOCAL` input.
-- **A confirmation button**, or a key of a `LOCAL` keypad.
+- **A confirmation:** a button, a key of a `LOCAL` keypad, or the hook of a
+  telephone on the signer's own line (a short hang-up, on-hook for 200 to
+  1500 ms; no sound can fake it).
 - **An output to return data:** tones through the air, line-out or UART.
 - **A verification output** of those in §5.
 
@@ -296,9 +318,9 @@ class; its risks; the vectors that check it.
 | Group | IDs |
 |---|---|
 | Tone input | `TONES-SW` (in software), `TONES-CHIP` (decoder chip) |
-| Input channels | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-BUTTONS` |
-| Data outputs | `OUT-AIR`, `OUT-LINE`, `OUT-UART`, `OUT-QR` |
-| Verification | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS` |
+| Input channels | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-PHONELINE`, `IN-BUTTONS` |
+| Data outputs | `OUT-AIR`, `OUT-LINE`, `OUT-PHONELINE`, `OUT-UART`, `OUT-QR` |
+| Verification | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS`, `VERIFY-VOICE` |
 | Storage | `STORE-SEED` |
 | Optional Bitcoin | `BTC-TAPROOT`, `BTC-MULTISIG`, `BTC-PATHS`, `BTC-INPUT-AMOUNTS` |
 | Several microcontrollers | `SPLIT-MCU` |
@@ -316,6 +338,10 @@ class; its risks; the vectors that check it.
   Raspberry Pi Pico. Its firmware (`ports/pico`) is tested on a breadboard.
 - `PROFILE-PICO-FULL` — **Full Pico:** the board in
   [`docs/hardware-minimo.md`](docs/hardware-minimo.md).
+- `PROFILE-PHONE` — **Phone exchange (Centralita):** a Pico and a tone
+  telephone as the whole interface: voice prompts in the earpiece, the
+  keypad for input, the handset as an acoustic coupler, a hang-up to
+  confirm. No screen and no buttons.
 
 ## 10. Test vectors
 

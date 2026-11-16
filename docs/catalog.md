@@ -147,6 +147,32 @@ build someone makes and measures.
   sends only that. See [§4.3 of the specification](../SPEC.md#43-a-salvaged-phone-keypad).
 - **Vectors:** planned.
 
+### `IN-PHONELINE` — a telephone on the signer's line
+
+- **What it does:** a tone telephone on a line the signer powers. It
+  detects the handset off the hook, receives the keypad's DTMF (`CABLE`,
+  by the exception in
+  [§4.1 of the specification](../SPEC.md#41-classes): only keys typed while
+  the signer asks for them) and what the handset's microphone picks up
+  (`AIR`). A short hang-up (on-hook 200 to 1500 ms) is the confirmation,
+  and no sound can fake it. A longer hang-up keeps the session: on the next
+  pick-up the signer offers to resume. Cutting the power wipes everything.
+  The PIN is typed by multi-tap, and each typed character is spoken back in
+  the earpiece; the seed is never spoken.
+- **Needs:** a boost from 5 V to 12 V and a constant current of about
+  20 to 25 mA for the line, a divider to measure the line voltage (off
+  hook, on hook), the line input of `IN-LINE`, an RJ11 socket and a tone
+  telephone with a handset. The hook is read from the line voltage.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Risks:** the keypad and the microphone cannot be told apart, so the
+  signer trusts the keys only while it is asking for them. A speakerphone
+  says the keys aloud, and the redial memory may keep what was dialled
+  (see `IN-PHONEPAD`). A line source that is wrong can hurt the
+  telephone: limit the current, and check the figures against the
+  standards (TBR 21 / ETSI ES 201 970 in Europe, TIA-968 in the United
+  States).
+- **Vectors:** planned.
+
 ### `IN-BUTTONS` — buttons
 
 - **What it does:** confirmation, and navigation and typing on a screen
@@ -192,6 +218,21 @@ build someone makes and measures.
 - **Needs:** a PWM pin and an RC filter, to a jack.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** none beyond those of the receiving device.
+- **Vectors:** ur-tones' own vectors.
+
+### `OUT-PHONELINE` — audio onto the line
+
+- **What it does:** sends audio onto the telephone line, to the earpiece:
+  voice prompts, short sounds (success, failure, warning, listening) and
+  the tones of the data (signature, xpub). The data is `AIR`: the earpiece
+  held to the wallet's microphone is a broadcast at close range.
+- **Needs:** a PWM pin, a filter and a capacitor to the line; the line of
+  `IN-PHONELINE`. While it speaks it does not listen, except while asking
+  for keys, where a key cuts the prompt.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Risks:** a voice can sound like a DTMF tone to the detector; every
+  prompt is passed through the detector in a test, and none may give a key.
+  Anyone near the earpiece hears the prompts and the data.
 - **Vectors:** ur-tones' own vectors.
 
 ### `OUT-UART` — serial output
@@ -291,6 +332,23 @@ build someone makes and measures.
 - **Risks:** listeners that are not really independent; tones injected by
   a loudspeaker nearby (a check code is pending).
 - **Vectors:** planned.
+
+### `VERIFY-VOICE` — the summary, spoken
+
+- **What it does:** says the summary and the fingerprints in the earpiece:
+  amounts, fee, which output is change, and each destination by default as
+  the first 5 and the last 5 characters of the address. On request (key 5)
+  it says the whole address in groups of 4. It is the verification of
+  `PROFILE-PHONE`.
+- **Needs:** `OUT-PHONELINE`, and the voice prompts in program memory.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+- **Risks:** an address made to match in prefix and suffix defeats the
+  partial readout: the full check of the address belongs in the wallet.
+  Whoever hears the earpiece learns the amounts and destinations (privacy,
+  not theft). It needs a quiet moment: a misheard character is a wrong
+  address that looks right, so the whole address is there to be asked for.
+  See [§5 of the specification](../SPEC.md#5-verifying-what-is-signed).
+- **Vectors:** planned (the spoken text of a summary).
 
 ### `STORE-SEED` — keeping the seed
 
@@ -435,3 +493,13 @@ build someone makes and measures.
   that adds it needs the emergency wipe of §8 of the specification.
 - **Parts:** the board in [`docs/hardware-minimo.md`](hardware-minimo.md)
   (in Spanish).
+
+### `PROFILE-PHONE` — Phone exchange (Centralita)
+
+- **Capabilities:** `TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`.
+- **Parts:** a Pico, a 5 to 12 V boost and a current source of about
+  20 to 25 mA for the line, a divider to measure the line, the usual line
+  input, the audio output into the line, an RJ11 socket and a tone
+  telephone with a handset.
+- **What it lacks:** its own screen, buttons, `OUT-QR`, `STORE-SEED`,
+  `BTC-TAPROOT`, `BTC-MULTISIG` and the passphrase.

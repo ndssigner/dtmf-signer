@@ -154,6 +154,33 @@ Crece con cada montaje que alguien haga y mida.
   envía eso. Ver la [§4.3 de la especificación](especificacion.md#43-un-teclado-de-teléfono-recuperado).
 - **Vectores:** previstos.
 
+### `IN-PHONELINE` — un teléfono en la línea del firmador
+
+- **Qué hace:** un teléfono de tonos en una línea que alimenta el
+  firmador. Detecta el auricular descolgado, recibe el DTMF del teclado
+  (`CABLE`, por la excepción de la
+  [§4.1 de la especificación](especificacion.md#41-clases): solo las teclas
+  pulsadas mientras el firmador las pide) y lo que capta el micrófono del
+  auricular (`AIR`). Un colgado corto (200 a 1500 ms) es la confirmación, y
+  ningún sonido puede imitarlo. Un colgado más largo conserva la sesión: al
+  volver a descolgar, el firmador ofrece seguir. Cortar la corriente lo
+  borra todo. El PIN se teclea por multipulsación y cada carácter tecleado
+  se dice de vuelta en el auricular; la semilla no se dice nunca.
+- **Necesita:** un elevador de 5 V a 12 V y una corriente constante de unos
+  20 a 25 mA para la línea, un divisor para medir la tensión de la línea
+  (descolgado, colgado), la entrada de línea de `IN-LINE`, una roseta RJ11
+  y un teléfono de tonos con auricular. El gancho se lee en la tensión de
+  la línea.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Riesgos:** el teclado y el micrófono no se distinguen, así que el
+  firmador solo se fía de las teclas mientras las está pidiendo. Un manos
+  libres dice las teclas en voz alta, y la memoria de rellamada puede
+  guardar lo marcado (ver `IN-PHONEPAD`). Una fuente de línea mal hecha
+  puede dañar el teléfono: limita la corriente y comprueba las cifras con
+  las normas (TBR 21 / ETSI ES 201 970 en Europa, TIA-968 en Estados
+  Unidos).
+- **Vectores:** previstos.
+
 ### `IN-BUTTONS` — botones
 
 - **Qué hace:** la confirmación, y la navegación y escritura en una
@@ -201,6 +228,21 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** ninguno aparte de los del aparato que recibe.
 - **Vectores:** los vectores de ur-tones.
+
+### `OUT-PHONELINE` — audio hacia la línea
+
+- **Qué hace:** manda audio por la línea telefónica, al auricular:
+  locuciones, sonidos cortos (éxito, fallo, aviso, escuchando) y los tonos
+  de los datos (firma, xpub). Los datos son `AIR`: el auricular pegado al
+  micrófono de la wallet es una difusión a corta distancia.
+- **Necesita:** un pin PWM, un filtro y un condensador hacia la línea; la
+  línea de `IN-PHONELINE`. Mientras habla no escucha, salvo al pedir
+  teclas, donde una tecla corta la locución.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Riesgos:** una voz puede sonar como un tono DTMF para el detector; en
+  una prueba, cada locución pasa por el detector y ninguna debe dar una
+  tecla. Cualquiera junto al auricular oye las locuciones y los datos.
+- **Vectores:** los vectores propios de ur-tones.
 
 ### `OUT-UART` — salida serie
 
@@ -308,6 +350,25 @@ Crece con cada montaje que alguien haga y mida.
   inyectados por un altavoz cercano (el código de comprobación está
   pendiente).
 - **Vectores:** previstos.
+
+### `VERIFY-VOICE` — el resumen, hablado
+
+- **Qué hace:** dice el resumen y las huellas en el auricular: importes,
+  comisión, cuál salida es el cambio y cada destino, por defecto, como los
+  5 primeros y los 5 últimos caracteres de la dirección. A petición (tecla
+  5) dice la dirección entera en grupos de 4. Es la verificación de
+  `PROFILE-PHONE`.
+- **Necesita:** `OUT-PHONELINE`, y las locuciones en la memoria de
+  programa.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+- **Riesgos:** una dirección fabricada para coincidir en prefijo y sufijo
+  burla la lectura parcial: la comprobación completa de la dirección se
+  hace en la wallet. Quien oiga el auricular conoce los importes y los
+  destinos (privacidad, no robo). Pide un momento tranquilo: un carácter
+  mal oído es una dirección equivocada que parece correcta, para eso está
+  la dirección entera a petición. Ver la
+  [§5 de la especificación](especificacion.md#5-verificar-lo-que-se-firma).
+- **Vectores:** previstos (el texto hablado de un resumen).
 
 ### `STORE-SEED` — guardar la semilla
 
@@ -456,3 +517,13 @@ Crece con cada montaje que alguien haga y mida.
   variante que lo añada necesita el borrado de emergencia de la §8 de la
   especificación.
 - **Piezas:** la placa de [`docs/hardware-minimo.md`](../hardware-minimo.md).
+
+### `PROFILE-PHONE` — Centralita (Phone exchange)
+
+- **Capacidades:** `TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`.
+- **Piezas:** una Pico, un elevador de 5 a 12 V y una fuente de corriente de
+  unos 20 a 25 mA para la línea, un divisor para medir la línea, la entrada
+  de línea de siempre, la salida de audio hacia la línea, una roseta RJ11 y
+  un teléfono de tonos con auricular.
+- **Qué le falta:** pantalla propia, botones, `OUT-QR`, `STORE-SEED`,
+  `BTC-TAPROOT`, `BTC-MULTISIG` y la passphrase.

@@ -125,6 +125,18 @@ bastante cerca puede grabarlo.
 muestra texto al usuario, pero un QR en ella es una salida que puede leer
 cualquier cámara que la vea.
 
+**Una línea telefónica es la única excepción.** En una línea telefónica
+(`IN-PHONELINE`) el teclado y el micrófono del auricular salen por la misma
+línea, así que el firmador no puede distinguirlos, y la regla anterior lo
+trataría todo como `AIR` y rechazaría el PIN. En su lugar, **las teclas
+pulsadas mientras el firmador las pide explícitamente (el PIN, una semilla
+por teclado, una opción del menú) cuentan como `CABLE`**: lo que se teclea
+no suena en la sala. Todo lo demás que llega por la línea, como una PSBT o
+una semilla cifrada con PIN reproducida junto al auricular, es `AIR`; una
+semilla por el aire sigue dentro de la §4.2, con un PIN de al menos `12`
+caracteres. El firmador avisa una vez: un manos libres dice las teclas en
+voz alta, y la memoria de rellamada del teléfono puede guardarlas (§4.3).
+
 ### 4.2 Qué se acepta por dónde
 
 | Dato | `AIR` | `CABLE` | `LOCAL` |
@@ -184,12 +196,22 @@ por un camino que el aparato conectado no controla.** Formas admitidas:
   caracteres HD44780, displays de 7 segmentos.
 - **Un terminal por UART, o una tele** controlada por el firmador.
 - **Varios escuchadores por el aire** (§5.1).
+- **Una lectura hablada en el auricular** (`VERIFY-VOICE`), para un montaje
+  cuya interfaz entera es un teléfono.
 - **Una lectura en tonos o pitidos:** último recurso, lento y propenso a
   errores.
 
 Lo que nunca vale es la presentación de la transacción que hace el propio
 aparato conectado. Tampoco un QR (`OUT-QR`): el aparato que lo lee es justo
 aquel del que no nos fiamos.
+
+**Un resumen hablado** da los importes, la comisión, cuál salida es el
+cambio y, de cada destino, por defecto los `5` primeros y los `5` últimos
+caracteres de la dirección; la dirección entera, en grupos de 4, a
+petición. El límite es claro: una dirección fabricada para coincidir en
+prefijo y sufijo burla la lectura parcial. La comprobación completa de la
+dirección se hace en la wallet, y quien quiera más escucha la dirección
+entera.
 
 ### 5.1 Varios escuchadores
 
@@ -253,7 +275,9 @@ De las §2–§5 se deduce que todo montaje necesita al menos:
 - **Una entrada `CABLE`** (jack de entrada de línea o UART): la vía
   recomendada para la semilla cifrada, la única para la semilla sin cifrar,
   y válida para el PIN y la passphrase si no hay entrada `LOCAL`.
-- **Un botón de confirmación**, o una tecla de un teclado `LOCAL`.
+- **Una confirmación:** un botón, una tecla de un teclado `LOCAL`, o el
+  gancho de un teléfono en la propia línea del firmador (un colgado corto,
+  de 200 a 1500 ms; ningún sonido puede imitarlo).
 - **Una salida para devolver datos:** tonos por el aire, salida de línea o
   UART.
 - **Una salida de verificación** de las de la §5.
@@ -306,9 +330,9 @@ procesador; sus riesgos; los vectores que la comprueban.
 | Grupo | IDs |
 |---|---|
 | Entrada de tonos | `TONES-SW` (por software), `TONES-CHIP` (chip decodificador) |
-| Canales de entrada | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-BUTTONS` |
-| Salidas de datos | `OUT-AIR`, `OUT-LINE`, `OUT-UART`, `OUT-QR` |
-| Verificación | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS` |
+| Canales de entrada | `IN-MIC`, `IN-LINE`, `IN-UART`, `IN-PS2`, `IN-PHONEPAD`, `IN-PHONELINE`, `IN-BUTTONS` |
+| Salidas de datos | `OUT-AIR`, `OUT-LINE`, `OUT-PHONELINE`, `OUT-UART`, `OUT-QR` |
+| Verificación | `VERIFY-SCREEN`, `VERIFY-TERMINAL`, `VERIFY-TV`, `VERIFY-LISTENERS`, `VERIFY-VOICE` |
 | Almacenamiento | `STORE-SEED` |
 | Bitcoin opcional | `BTC-TAPROOT`, `BTC-MULTISIG`, `BTC-PATHS`, `BTC-INPUT-AMOUNTS` |
 | Varios microcontroladores | `SPLIT-MCU` |
@@ -327,6 +351,10 @@ procesador; sus riesgos; los vectores que la comprueban.
   Raspberry Pi Pico. Su firmware (`ports/pico`) está probado en una protoboard.
 - `PROFILE-PICO-FULL` — **Pico completo:** la placa de
   [`docs/hardware-minimo.md`](../hardware-minimo.md).
+- `PROFILE-PHONE` — **Centralita (Phone exchange):** una Pico y un teléfono
+  de tonos como interfaz entera: locuciones en el auricular, el teclado
+  como entrada, el auricular como acoplador acústico, un colgado para
+  confirmar. Sin pantalla y sin botones.
 
 ## 10. Vectores de prueba
 
