@@ -4,5 +4,10 @@
   "nav.home": "Inicio",
   "nav.downloads": "Descargas",
   "nav.repo": "Repositorio",
-  "footer.built": "Esta web se ha compilado desde el commit {commit}."
+  "footer.built": "Esta web se ha compilado desde el commit {commit}.",
+  "bom.part": "Pieza",
+  "bom.qty": "Cant.",
+  "bom.value": "Valor",
+  "bom.notes": "Notas",
+  "bom.price": "Precio aproximado"
 }

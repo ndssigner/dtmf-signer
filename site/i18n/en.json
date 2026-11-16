@@ -4,5 +4,10 @@
   "nav.home": "Home",
   "nav.downloads": "Downloads",
   "nav.repo": "Repository",
-  "footer.built": "This site was built from commit {commit}."
+  "footer.built": "This site was built from commit {commit}.",
+  "bom.part": "Part",
+  "bom.qty": "Qty",
+  "bom.value": "Value",
+  "bom.notes": "Notes",
+  "bom.price": "Rough price"
 }

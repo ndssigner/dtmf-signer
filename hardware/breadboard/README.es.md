@@ -38,6 +38,9 @@ tres. Cifras orientativas, en dólares:
 Además, un cable USB y, para el audio, unos auriculares baratos de cable
 para cortar.
 
+La lista completa, una línea por pieza, está en [`bom.csv`](bom.csv): la
+lee la web del proyecto, y un test la comprueba contra el plano.
+
 ## Ficheros
 
 - [`dtmf-signer-breadboard.diy`](dtmf-signer-breadboard.diy): la

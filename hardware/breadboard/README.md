@@ -37,6 +37,9 @@ figures, in US dollars:
 
 Plus a USB cable and, for the audio, a cheap wired headset to cut up.
 
+The full list, one line per part, is in [`bom.csv`](bom.csv): the
+project's website reads it, and a test checks it against the layout.
+
 ## Files
 
 - [`dtmf-signer-breadboard.diy`](dtmf-signer-breadboard.diy): the layout,
