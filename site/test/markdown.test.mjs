@@ -36,3 +36,6 @@ test("code is not formatted inside", () => {
 test("escapeHtml", () => {
   assert.equal(escapeHtml(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
 });
+test("list items may wrap onto indented lines", () => {
+  assert.equal(renderMarkdown("- **a** one\n  two\n- c"), "<ul><li><strong>a</strong> one\ntwo</li><li>c</li></ul>");
+});

@@ -46,8 +46,13 @@ export function renderMarkdown(src) {
     if (h && lines.length === 1) {
       const n = h[1].length;
       out.push(`<h${n} id="${slug(h[2])}">${inline(h[2])}</h${n}>`);
-    } else if (lines.every((l) => l.startsWith("- "))) {
-      out.push("<ul>" + lines.map((l) => `<li>${inline(l.slice(2))}</li>`).join("") + "</ul>");
+    } else if (lines[0].startsWith("- ") && lines.every((l) => l.startsWith("- ") || /^\s/.test(l))) {
+      // An item's wrapped lines are indented; they join the item.
+      const items = [];
+      for (const l of lines)
+        if (l.startsWith("- ")) items.push(l.slice(2));
+        else items[items.length - 1] += "\n" + l.trim();
+      out.push("<ul>" + items.map((i) => `<li>${inline(i)}</li>`).join("") + "</ul>");
     } else {
       out.push(`<p>${inline(lines.join("\n"))}</p>`);
     }
