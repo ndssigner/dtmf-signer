@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
-import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone } from "../static/sim/ui.mjs";
+import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone, buttonsDown } from "../static/sim/ui.mjs";
 
 const files = buildInto();
 const SIM_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
@@ -171,4 +171,10 @@ test("the Pico's own LED is on the signer, and only where the bench declares it"
   assert.match(signer, /<span class="sim-led"[^>]*data-tip="[^"]*Raspberry Pi Pico \(GP25\)/);
   const { blockBody } = await import("../build.mjs");
   assert.doesNotMatch(blockBody("signer", (k) => k, {}, { id: "signer" }), /sim-led/);
+});
+
+test("the button held shows as down by name", () => {
+  assert.deepEqual(buttonsDown(3), ["ok"]);
+  assert.deepEqual(buttonsDown(1), ["left"]);
+  assert.deepEqual(buttonsDown(0), []);
 });

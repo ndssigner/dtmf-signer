@@ -17,6 +17,12 @@ const BTN = { left: 1, up: 2, ok: 3, down: 4, right: 5 };
 const KEYS = { ArrowLeft: 1, ArrowUp: 2, Enter: 3, ArrowDown: 4, ArrowRight: 5 };
 const ECHO_LINES = 200;
 
+// The on-screen buttons to draw down for the button class the firmware is
+// given (whoever pressed it: the mouse, the keyboard or a script).
+export function buttonsDown(cls) {
+  return Object.keys(BTN).filter((b) => BTN[b] === cls);
+}
+
 // A button must never stay held when the page loses the focus...
 export function releaseOnBlur(sim, target) {
   target.addEventListener("blur", () => sim.releaseAll());
@@ -122,6 +128,8 @@ export async function start(doc, loadModule) {
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
   let walletNote = "";        // a passing message on the wallet (no QR, reading…)
+  const btnEls = [...root.querySelectorAll("[data-btn]")];
+  let lastCls = -1;
   const ledEl = root.querySelector(".sim-led"), led = new LedFlash();
   let ledOn = false;
   let checkText = "", lastCheck = "", lastWarn = null;   // what to check on the signer
@@ -282,6 +290,12 @@ export async function start(doc, loadModule) {
     if (wallet.scanning && walletNote === S["wallet.waiting"]) {
       const r = wallet.scan();
       if (r !== "waiting") { walletNote = r === "ok" ? S["wallet.got"] : ""; checkText = wallet.last?.lines.join("\n") ?? ""; }
+    }
+    // The buttons: down while the firmware is given them.
+    if (sim.cls !== lastCls) {
+      lastCls = sim.cls;
+      const down = buttonsDown(lastCls);
+      for (const b of btnEls) b.classList.toggle("down", down.includes(b.dataset.btn));
     }
     // The board's LED: a flash per tone heard, as on the Pico.
     const lit = led.update(sim.keys(), now);

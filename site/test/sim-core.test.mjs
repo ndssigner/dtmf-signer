@@ -138,3 +138,20 @@ test("idle: no button held or waiting", () => {
   sim.press(3);
   assert.equal(sim.idle, false);
 });
+
+test("the button the firmware is given shows as down for its whole press, even a quick click", { skip: SKIP }, async () => {
+  const sim = new Simulator(await load());
+  sim.advance(100);
+  assert.equal(sim.cls, 0);
+  sim.press(3);
+  sim.release(3);                 // a click shorter than the minimum press
+  assert.equal(sim.cls, 3);
+  sim.advance(32);
+  assert.equal(sim.cls, 3);
+  sim.advance(64);
+  assert.equal(sim.cls, 0);
+  sim.press(4); sim.release(4);   // a tap during the gap waits, then shows
+  assert.equal(sim.cls, 0);
+  sim.advance(64);
+  assert.equal(sim.cls, 4);
+});

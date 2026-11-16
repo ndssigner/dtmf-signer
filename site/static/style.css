@@ -99,7 +99,9 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .sim-buttons { display: grid; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: .3rem; }
 .sim-buttons button { font-size: 1rem; border-radius: 50%; border: 1px solid #555; background: #e9e6dc;
   color: #222; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
-.sim-buttons button:active { background: #c9c5b8; }
+.sim-buttons button:active, .sim-buttons button.down { background: #c9c5b8; }
+/* Down while the firmware is given the button, whoever pressed it. */
+.sim-buttons button.down { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .45); border-color: #3fb950; }
 .sim-buttons [data-btn="up"] { grid-column: 2; grid-row: 1; }
 .sim-buttons [data-btn="left"] { grid-column: 1; grid-row: 2; }
 .sim-buttons [data-btn="ok"] { grid-column: 2; grid-row: 2; }
