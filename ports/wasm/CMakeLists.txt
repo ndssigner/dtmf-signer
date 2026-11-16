@@ -8,7 +8,7 @@ set_target_properties(dtmf-signer-wasm PROPERTIES OUTPUT_NAME dtmf-signer SUFFIX
 set(DSW_EXPORTS
   _dsw_init _dsw_audio_buf _dsw_audio _dsw_advance _dsw_take_dirty _dsw_draw _dsw_contrast
   _dsw_rows _dsw_line _dsw_picker_cell _dsw_take_echo _dsw_echo _dsw_keys _dsw_wants_reboot
-  _dsw_version _dsw_listening _dsw_qr_shown)
+  _dsw_version _dsw_listening _dsw_qr_shown _dsw_qr_kind)
 list(JOIN DSW_EXPORTS "," DSW_EXPORTS_CSV)
 target_link_options(dtmf-signer-wasm PRIVATE
   -O2
@@ -19,3 +19,7 @@ target_link_options(dtmf-signer-wasm PRIVATE
   -sALLOW_MEMORY_GROWTH=0
   -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAP16,UTF8ToString
   -sEXPORTED_FUNCTIONS=${DSW_EXPORTS_CSV})
+
+# What the About pages say about this build (its capabilities are the
+# Cable and QR profile's, the default in app/ds_about.h).
+target_compile_definitions(dtmf_app PUBLIC "DS_HARDWARE=\"Web simulator (wasm)\"")

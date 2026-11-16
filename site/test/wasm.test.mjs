@@ -33,3 +33,13 @@ test("it says when it listens and when it shows a QR", { skip: SKIP }, async () 
   tap(m, 3);                    // Load seed
   assert.equal(m._dsw_listening(), 1);
 });
+
+test("its About pages say it is the web simulator, not a computer build", { skip: SKIP }, async () => {
+  const m = await load();
+  m._dsw_init();
+  m._dsw_advance(500, 0);
+  tap(m, 4);                                   // DOWN: About, from the welcome
+  const text = lines(m).join("\n");
+  assert.match(text, /Web simulator/);
+  assert.doesNotMatch(text, /computer build/);
+});
