@@ -34,8 +34,13 @@ target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror)
 target_compile_options(ds_warnings INTERFACE
   $<$<C_COMPILER_ID:GNU>:-Wno-format-truncation>)
 
-enable_testing()
 add_subdirectory(core)
 add_subdirectory(app)
-add_subdirectory(ports/host)
-add_subdirectory(tests/c)
+if(EMSCRIPTEN)
+  # The website's simulator: tools/build-wasm.sh.
+  add_subdirectory(ports/wasm)
+else()
+  enable_testing()
+  add_subdirectory(ports/host)
+  add_subdirectory(tests/c)
+endif()

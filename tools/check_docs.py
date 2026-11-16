@@ -23,6 +23,7 @@ PAIRS: list[tuple[str, str]] = [
     ("hardware/breadboard/README.md", "hardware/breadboard/README.es.md"),
     ("docs/risk-analysis.md", "docs/es/analisis-riesgos.md"),
     ("docs/screens.md", "docs/es/pantallas.md"),
+    ("ports/wasm/README.md", "ports/wasm/README.es.md"),
 ]
 
 _FENCE = re.compile(r"^\s*(```|~~~)")

@@ -3,3 +3,4 @@ __pycache__/
 build-pico/
 build-pico-release/
 build-pico-repro*/
+build-wasm/
