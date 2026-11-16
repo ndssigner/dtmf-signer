@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
-import { releaseOnBlur, releaseOnLeave, speedFor, start } from "../static/sim/ui.mjs";
+import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone } from "../static/sim/ui.mjs";
 
 const files = buildInto();
 const SIM_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
@@ -144,4 +144,23 @@ test("the simulated wallet has a network selector, a stop button, a mismatch mar
 test("every file of the simulator is published", { skip: SKIP }, async () => {
   const { readdirSync } = await import("node:fs");
   for (const f of readdirSync(new URL("../static/sim/", import.meta.url))) assert.ok(files.has(`sim/${f}`), f);
+});
+
+test("on a phone a computer or tablet is recommended: narrow and touch, both", () => {
+  assert.equal(isPhone({ width: 390, coarse: true }), true);
+  assert.equal(isPhone({ width: 390, coarse: false }), false);
+  assert.equal(isPhone({ width: 1024, coarse: true }), false);
+});
+test("the phone notice is on the page, hidden until a phone is seen", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  assert.match(html, /<p class="sim-mobile"[^>]*hidden/);
+  assert.match(html, /class="sim-mobile-close"/);
+  assert.ok(html.includes("Mejor desde un ordenador o una tablet"));
+});
+test("your wallet names its tools: ur-tones for the tones, a compatible wallet to scan", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  const yw = /<section class="blk blk-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  assert.match(yw, /<a class="yw-urtones" href="https:\/\/ndssigner\.github\.io\/ur-tones\/"/);
+  assert.match(yw, /<a class="yw-scan" href="https:\/\/nunchuk\.io\/"/);
+  assert.ok(yw.includes("Nunchuk"));
 });

@@ -92,7 +92,6 @@
   "mic.stop": "Stop",
   "mic.level": "Microphone level",
   "mic.note": "Only for trying it out: this build is meant to be used with an audio cable.",
-  "mic.help": "Seeds: the ur-tones web tool on your phone. PSBTs: a wallet that exports them (Sparrow on another computer, Nunchuk…) and ur-tones.",
   "mic.denied": "No access to the microphone",
   "mic.unsupported": "This browser cannot use the microphone",
   "status.idle": "Idle",
@@ -128,5 +127,11 @@
   "wallet.qr_account": "👛 Account {fp} · {path}",
   "wallet.qr_xpub": "{xpub}",
   "wallet.no_broadcast": "📡 Not broadcast: test coins",
-  "bench.headphones": "headphone out"
+  "bench.headphones": "headphone out",
+  "sim.mobile": "Better on a computer or a tablet: it barely fits here.",
+  "sim.close": "Close",
+  "yw.tones": "Tones: the ur-tones web tool",
+  "yw.tones_tip": "Load a test seed in it and send it with the speaker (or a PSBT exported from your wallet)",
+  "yw.scan": "Scan: a compatible wallet, e.g. Nunchuk",
+  "yw.scan_tip": "A wallet that reads animated UR QR codes (crypto-psbt, crypto-account)"
 }

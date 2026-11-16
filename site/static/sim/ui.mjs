@@ -45,6 +45,12 @@ export function leaveMode({ sim, mic, speaker }) {
   return null;
 }
 
+// A phone: a narrow screen and a touch pointer, both (a touch laptop or a
+// narrow desktop window is not one).
+export function isPhone({ width, coarse }) {
+  return width < 600 && coarse;
+}
+
 // Where a link meets a port: the middle of the label's side that faces the
 // other port, relative to the bench.
 export function anchor(r, other, orient, box) {
@@ -74,6 +80,20 @@ function draw(ctx, img, fb, contrast) {
 
 export async function start(doc, loadModule) {
   const data = JSON.parse(doc.getElementById("sim-data").textContent);
+  // On a phone, before anything else: a computer or a tablet suits it better.
+  const note = doc.querySelector?.(".sim-mobile");
+  const view = doc.defaultView;
+  if (note && view) {
+    let closed = false;
+    const update = () => {
+      // The screen's width too: a page can be laid out wider than the phone.
+      const width = Math.min(view.innerWidth, view.screen?.width ?? Infinity);
+      note.hidden = closed || !isPhone({ width, coarse: view.matchMedia?.("(pointer: coarse)").matches ?? false });
+    };
+    note.querySelector(".sim-mobile-close")?.addEventListener("click", () => { closed = true; update(); });
+    view.addEventListener?.("resize", update);
+    update();
+  }
   const S = data.strings;
   const status = doc.querySelector(".sim-status");
   let module;

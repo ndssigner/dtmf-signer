@@ -92,7 +92,6 @@
   "mic.stop": "Parar",
   "mic.level": "Nivel del micrófono",
   "mic.note": "Solo para probarlo: esta implementación está pensada para usarse con cable de audio.",
-  "mic.help": "Semillas: la web de ur-tones en tu móvil. PSBTs: una wallet que los exporte (Sparrow en otro ordenador, Nunchuk…) y ur-tones.",
   "mic.denied": "Sin acceso al micrófono",
   "mic.unsupported": "Este navegador no puede usar el micrófono",
   "status.idle": "En reposo",
@@ -128,5 +127,11 @@
   "wallet.qr_account": "👛 Cuenta {fp} · {path}",
   "wallet.qr_xpub": "{xpub}",
   "wallet.no_broadcast": "📡 No se emite: monedas de prueba",
-  "bench.headphones": "salida auriculares"
+  "bench.headphones": "salida auriculares",
+  "sim.mobile": "Mejor desde un ordenador o una tablet: aquí cabe justo.",
+  "sim.close": "Cerrar",
+  "yw.tones": "Tonos: la web de ur-tones",
+  "yw.tones_tip": "Carga en ella una semilla de prueba y envíala con el altavoz (o un PSBT exportado de tu wallet)",
+  "yw.scan": "Escanear: una wallet compatible, p. ej. Nunchuk",
+  "yw.scan_tip": "Una wallet que lea QR animados de tipo UR (crypto-psbt, crypto-account)"
 }

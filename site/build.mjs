@@ -134,7 +134,7 @@ const LEGEND = [["power", "bench.legend.power"], ["audio", "bench.legend.audio"]
 const tip = (text, focus = true) => `data-tip="${escapeHtml(text)}"${focus ? ' tabindex="0"' : ""}`;
 
 // The inside of each kind of block.
-function blockBody(kind, tr) {
+function blockBody(kind, tr, sim = {}) {
   const e = (k, params) => escapeHtml(tr(k, params));
   switch (kind) {
     case "charger":
@@ -173,7 +173,9 @@ ${buttons}
 <p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
 <button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
 <meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
-<p class="mic-note">${e("mic.note")} <span class="info" ${tip(tr("mic.help"))} aria-label="${e("mic.help")}">ⓘ</span></p>
+<p class="mic-note">${e("mic.note")}</p>
+<p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
+<a class="yw-scan" href="${escapeHtml(sim.tools?.nunchuk ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("yw.scan")}</a></p>
 </div>`;
     default:
       throw new Error(`no block for kind ${kind}`);
@@ -222,7 +224,7 @@ function simulatorBlock(site, tr, p, root) {
     return `<section class="blk blk-${m.kind}${m.external ? " external" : ""}" data-module="${m.id}" data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
 <h3 class="blk-title">${e(m.title)}</h3>
 ${ports}
-${blockBody(m.kind, tr)}
+${blockBody(m.kind, tr, s)}
 </section>`;
   };
   const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;
@@ -232,6 +234,7 @@ ${blockBody(m.kind, tr)}
 ${m.links.map((l) => `<li>${e(`bench.link.${m.id}.${l.channel}`)}</li>`).join("\n")}
 </ul>`).join("\n");
   return `<div class="simulator" id="sim">
+<p class="sim-mobile" hidden><span aria-hidden="true">📱</span> ${e("sim.mobile")} <button type="button" class="sim-mobile-close" aria-label="${e("sim.close")}">✕</button></p>
 <p class="sim-warning" ${tip(tr("sim.warning"))}><span aria-hidden="true">⚠</span> ${e("sim.warning_short")}</p>
 <div class="sim-modes" role="tablist" aria-label="${e("bench.modes")}">
 ${modes}
