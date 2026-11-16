@@ -30,5 +30,13 @@
         "es": "hardware/breadboard/README.es.md"
       }
     }
-  ]
+  ],
+  "release": {
+    "uf2": "dtmf-signer-pico.uf2",
+    "sums": "SHA256SUMS"
+  },
+  "donate": {
+    "bitcoin": "bc1qx5snc0wlc8cg9gwxhyx27y6pkru8rnngyq7uja",
+    "lightning": "ndssigner@coinos.io"
+  }
 }

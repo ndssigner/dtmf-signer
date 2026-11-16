@@ -20,5 +20,10 @@
   "profile.details": "Details for building it",
   "profile.catalog": "This profile in the catalog",
   "profile.readme": "How to build it",
-  "home.builds": "Builds"
+  "home.builds": "Builds",
+  "downloads.title": "Downloads",
+  "downloads.firmware": "Firmware for the Raspberry Pi Pico (latest release)",
+  "downloads.layouts": "Layouts and parts lists",
+  "donate.title": "Donate",
+  "donate.text": "DTMF-Signer is free and has no funding. Donations help keep it going."
 }

@@ -34,7 +34,7 @@ function homePage(site, lang, tr) {
   const builds = site.config.profiles.map((p) =>
     `<li><a href="${p.slug}/">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`);
   const list = builds.length ? `\n<ul class="builds">\n${builds.join("\n")}\n</ul>` : "";
-  return { title: "DTMF-Signer", body: html + list, fallback };
+  return { title: "DTMF-Signer", body: html + list + "\n" + donateBlock(site, tr, "../"), fallback };
 }
 
 function profilePage(site, lang, tr, p, root) {
@@ -70,17 +70,58 @@ ${files}
   return { title: `${title} · DTMF-Signer`, body, fallback };
 }
 
+function donateBlock(site, tr, root) {
+  if (!site.config.donate) return "";
+  const { bitcoin, lightning } = site.config.donate;
+  const fig = (img, name, addr) => `<figure><img src="${root}img/${img}" alt="${name}" width="180" height="180">
+<figcaption><b>${name}</b><br><code>${escapeHtml(addr)}</code></figcaption></figure>`;
+  return `<section class="donate">
+<h2 id="donate">${escapeHtml(tr("donate.title"))}</h2>
+<p>${escapeHtml(tr("donate.text"))}</p>
+<div class="donate-grid">
+${fig("donate-bitcoin.png", "Bitcoin", bitcoin)}
+${fig("donate-lightning.png", "Lightning", lightning)}
+</div>
+</section>`;
+}
+
+function downloadsPage(site, lang, tr, root) {
+  const { html, fallback } = content(site, lang, "downloads");
+  const { uf2, sums } = site.config.release;
+  const latest = `${site.config.repo}/releases/latest/download/`;
+  const layouts = site.config.profiles.map((p) =>
+    `<li><a href="../${p.slug}/#layout">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`).join("\n");
+  const body = `<h1>${escapeHtml(tr("downloads.title"))}</h1>
+<h2 id="firmware">${escapeHtml(tr("downloads.firmware"))}</h2>
+<ul>
+<li>${ext(latest + uf2, uf2)}</li>
+<li>${ext(latest + sums, sums)}</li>
+</ul>
+${html}
+<h2 id="layouts">${escapeHtml(tr("downloads.layouts"))}</h2>
+<ul>
+${layouts}
+</ul>
+${donateBlock(site, tr, root)}`;
+  return { title: `${tr("downloads.title")} · DTMF-Signer`, body, fallback };
+}
+
 export function build({ siteDir, outDir, commit }) {
   const site = loadSite(siteDir);
   site.commit = commit;
   const files = new Map();
+  // Downloads and donations are optional in config.json ("release", "donate").
   const nav = [{ key: "nav.home", href: "" }];
+  if (site.config.release) nav.push({ key: "nav.downloads", href: "downloads/" });
 
   files.set("index.html", Buffer.from(rootPage(site)));
   for (const name of readdirSync(join(HERE, "static")).sort())
     files.set(name, readFileSync(join(HERE, "static", name)));
 
   const repoRoot = join(siteDir, "..");
+  if (site.config.donate)
+    for (const img of ["donate-bitcoin.png", "donate-lightning.png"])
+      files.set(`img/${img}`, readFileSync(join(repoRoot, "docs", "images", img)));
   for (const p of site.config.profiles) {
     files.set(`img/${basename(p.image)}`, readFileSync(join(repoRoot, p.image)));
     for (const f of p.files) files.set(`files/${basename(f)}`, readFileSync(join(repoRoot, f)));
@@ -95,6 +136,7 @@ export function build({ siteDir, outDir, commit }) {
         Buffer.from(layout({ site, lang, tr, root, title, body, path, nav, fallback })));
     };
     page("", (tr) => homePage(site, lang, tr));
+    if (site.config.release) page("downloads/", (tr) => downloadsPage(site, lang, tr, "../../"));
     for (const p of site.config.profiles)
       page(`${p.slug}/`, (tr) => profilePage(site, lang, tr, p, "../../"));
   }
