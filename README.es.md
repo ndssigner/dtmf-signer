@@ -305,6 +305,18 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   y sus licencias. [`CHANGELOG.md`](CHANGELOG.md): qué ha cambiado. Los
   cuatro, en inglés.
 
+## Cómo empezó
+
+La culpa es de una canción pop. En ["Catch Catch"](https://www.youtube.com/watch?v=NOiyDlWl534),
+la cantante de K-pop Yena usa los pitidos del teclado de un teléfono como
+parte de la música. En algún momento entre el segundo estribillo y la
+tercera escucha seguida surgió una pregunta muy poco musical: si una
+canción puede llevar DTMF, ¿por qué no una transacción de Bitcoin? Súmale
+el recién terminado [NDS-Signer](https://github.com/ndssigner/nds-signer),
+que acababa de enseñar a firmar a una Nintendo DSi, y DTMF-Signer era el
+paso obvio. Así que sí: este firmador existe porque alguien no podía dejar
+de escuchar una canción. Sin arrepentimientos.
+
 ## Proyectos hermanos
 
 - [NDS-Signer](https://github.com/ndssigner/nds-signer): un firmador sin
