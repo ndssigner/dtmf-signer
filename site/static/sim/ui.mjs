@@ -9,9 +9,23 @@ const BTN = { left: 1, up: 2, ok: 3, down: 4, right: 5 };
 const KEYS = { ArrowLeft: 1, ArrowUp: 2, Enter: 3, ArrowDown: 4, ArrowRight: 5 };
 const ECHO_LINES = 200;
 
-// A button must never stay held when the page loses the focus.
+// A button must never stay held when the page loses the focus...
 export function releaseOnBlur(sim, target) {
-  target.addEventListener("blur", () => sim.release());
+  target.addEventListener("blur", () => sim.releaseAll());
+}
+
+// ...or when the focus leaves the device, from any element inside it (blur
+// does not bubble: a focused inner button would hide it).
+export function releaseOnLeave(sim, device) {
+  device.addEventListener("focusout", (e) => {
+    if (!e.relatedTarget || !device.contains(e.relatedTarget)) sim.releaseAll();
+  });
+}
+
+// Four times faster only while tones are playing and no button is down: the
+// firmware counts a long press (a signature) and the wipe in its own time.
+export function speedFor(sim, fast) {
+  return fast && sim.queued > 0 && sim.idle ? 4 : 1;
 }
 
 // The 128 × 64 framebuffer (8 pages of 128 bytes, bit 0 on top), lit pixels
@@ -67,7 +81,7 @@ export async function start(doc, loadModule) {
   for (const b of root.querySelectorAll("[data-btn]")) {
     const cls = BTN[b.dataset.btn];
     b.addEventListener("pointerdown", (e) => { b.setPointerCapture?.(e.pointerId); sim.press(cls); });
-    for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) b.addEventListener(ev, () => sim.release());
+    for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) b.addEventListener(ev, () => sim.release(cls));
     b.addEventListener("contextmenu", (e) => e.preventDefault());
   }
   // Keyboard: arrows and Enter on the device, held while the key is down.
@@ -77,8 +91,9 @@ export async function start(doc, loadModule) {
     e.preventDefault();
     if (!e.repeat) sim.press(KEYS[e.key]);
   });
-  device.addEventListener("keyup", (e) => { if (e.key in KEYS) sim.release(); });
-  releaseOnBlur(sim, device);
+  // The key may come up anywhere once the focus has moved: listen on the page.
+  doc.addEventListener("keyup", (e) => { if (e.key in KEYS) sim.release(KEYS[e.key]); });
+  releaseOnLeave(sim, device);
   releaseOnBlur(sim, doc.defaultView);
 
   // The tones also go to the speakers, at the pace the firmware hears them.
@@ -106,7 +121,7 @@ export async function start(doc, loadModule) {
 
   let last = performance.now(), lastLine = "";
   function frame(now) {
-    const dt = (now - last) * (fast.checked ? 4 : 1);
+    const dt = (now - last) * speedFor(sim, fast.checked);
     last = now;
     const { dirty, echo: lines } = sim.advance(dt);
     for (const l of lines) {

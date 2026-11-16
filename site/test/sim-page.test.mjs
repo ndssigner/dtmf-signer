@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
-import { releaseOnBlur, start } from "../static/sim/ui.mjs";
+import { releaseOnBlur, releaseOnLeave, speedFor, start } from "../static/sim/ui.mjs";
 
 const files = buildInto();
 const SIM_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
@@ -34,12 +34,34 @@ test("without the module the page keeps its placeholder", { skip: HAVE_MODULE ||
 test("links still resolve", () => {
   assert.deepEqual(brokenLinks(files), []);
 });
-test("a blur releases the button", () => {
-  const sim = { held: 3, release() { this.held = 0; } };
+test("a blur releases every button", () => {
+  const sim = { held: 3, releaseAll() { this.held = 0; } };
   const target = new EventTarget();
   releaseOnBlur(sim, target);
   target.dispatchEvent(new Event("blur"));
   assert.equal(sim.held, 0);
+});
+test("focus leaving the device, even from an inner button, releases every button", () => {
+  const sim = { held: 3, releaseAll() { this.held = 0; } };
+  const device = new EventTarget();
+  const inside = {};
+  device.contains = (n) => n === inside;
+  releaseOnLeave(sim, device);
+  const ev = (to) => Object.assign(new Event("focusout"), { relatedTarget: to });
+  device.dispatchEvent(ev(inside));
+  assert.equal(sim.held, 3, "moving inside keeps it");
+  device.dispatchEvent(ev({}));
+  assert.equal(sim.held, 0);
+});
+test("four times faster only while tones play and no button is down", () => {
+  assert.equal(speedFor({ queued: 1000, idle: true }, true), 4);
+  assert.equal(speedFor({ queued: 1000, idle: false }, true), 1);
+  assert.equal(speedFor({ queued: 0, idle: true }, true), 1);
+  assert.equal(speedFor({ queued: 1000, idle: true }, false), 1);
+});
+test("the steps name every screen on the way, the wallet fingerprint too", () => {
+  const html = text(files, "en/cable-qr/index.html") + text(files, "es/cable-qr/index.html");
+  assert.equal((html.match(/Wallet fingerprint/g) || []).length >= 2, true);
 });
 test("if the module cannot load, the page says so", async () => {
   const status = { textContent: "" };

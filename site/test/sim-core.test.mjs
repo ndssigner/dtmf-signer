@@ -106,3 +106,35 @@ test("quick taps in a row stay separate presses, with a gap between them", () =>
   const gap = runs[runs.findIndex(([c]) => c === 5) + 1];
   assert.ok(gap[0] === 0 && gap[1] >= 40, JSON.stringify(runs));
 });
+test("overlapping presses: releasing both leaves nothing held", () => {
+  const f = fake(), sim = new Simulator(f);
+  sim.press(3); sim.advance(100);        // OK held
+  sim.press(2);                          // UP before OK is let go (rollover, two fingers)
+  sim.release(3); sim.release(2);
+  for (let i = 0; i < 20; i++) sim.advance(16);
+  assert.equal(sim.cls, 0);
+  assert.equal(f.advanced.at(-1)[1], 0);
+  const okMs = f.advanced.filter(([, c]) => c === 3).reduce((s, [ms]) => s + ms, 0);
+  assert.ok(okMs < 1500, "OK became a long press: " + okMs);
+});
+test("releasing another button than the held one does not release it", () => {
+  const f = fake(), sim = new Simulator(f);
+  sim.press(3); sim.advance(100);
+  sim.release(5);
+  sim.advance(16);
+  assert.equal(sim.cls, 3);
+});
+test("releaseAll lets go of everything at once, pending presses too", () => {
+  const f = fake(), sim = new Simulator(f);
+  sim.press(3); sim.press(2);
+  sim.releaseAll();
+  for (let i = 0; i < 10; i++) sim.advance(16);
+  assert.equal(sim.cls, 0);
+  assert.ok(f.advanced.every(([, c]) => c !== 2));
+});
+test("idle: no button held or waiting", () => {
+  const sim = new Simulator(fake());
+  assert.equal(sim.idle, true);
+  sim.press(3);
+  assert.equal(sim.idle, false);
+});

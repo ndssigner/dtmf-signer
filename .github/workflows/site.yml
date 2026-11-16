@@ -48,11 +48,6 @@ on:
 permissions:
   contents: read
 
-# One deployment at a time; a newer one waits instead of cancelling.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -89,6 +84,11 @@ jobs:
   pages:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
+    # One deployment at a time, a newer one waiting; pull requests never
+    # take part, so they cannot cancel a deployment waiting here.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     permissions:
       pages: write

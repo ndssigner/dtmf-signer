@@ -63,7 +63,7 @@
   "sim.step.1": "Pulsa OK para pasar la bienvenida y luego OK en «Load seed».",
   "sim.step.2": "Envía la semilla de prueba: la semilla pública de prueba de BIP-39 («abandon … about»), nunca para fondos reales.",
   "sim.step.3": "Teclea el PIN {pin}: las flechas mueven, OK añade un carácter y mantener OK termina.",
-  "sim.step.4": "Comprueba la huella de la semilla, 73c5da0a, pulsa OK y otra vez OK para no usar passphrase.",
+  "sim.step.4": "Comprueba la huella de la semilla, 73c5da0a, pulsa OK, otra vez OK para no usar passphrase, y OK en «Wallet fingerprint».",
   "sim.step.5": "Elige «Sign PSBT» y envía el PSBT de prueba.",
   "sim.step.6": "Lee todas las páginas de la revisión con ▼, toca OK y mantén OK para firmar. El PSBT firmado aparece abajo, y como códigos QR en la pantalla.",
   "sim.btn.left": "Izquierda",

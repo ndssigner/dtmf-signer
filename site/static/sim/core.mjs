@@ -37,11 +37,22 @@ export class Simulator {
     if (this.held || this.gapMs < MIN_GAP_MS) { this.pending = cls; this.pendingUp = false; return; }
     this.held = cls; this.heldMs = 0; this.releasing = false;
   }
-  release() {
-    if (this.pending) this.pendingUp = true;
-    else if (this.held && this.heldMs >= MIN_PRESS_MS) { this.held = 0; this.gapMs = 0; }
-    else if (this.held) this.releasing = true;
+  // Lets go of button cls (or of the latest press when cls is left out). A
+  // release of another button than the one held or waiting changes nothing:
+  // with two pressed at once, each release lets go of its own.
+  release(cls) {
+    if (this.pending && (cls === undefined || cls === this.pending)) this.pendingUp = true;
+    else if (this.held && (cls === undefined || cls === this.held)) {
+      if (this.heldMs >= MIN_PRESS_MS) { this.held = 0; this.gapMs = 0; } else this.releasing = true;
+    }
   }
+  // Every button up, now, waiting presses dropped: when the page loses the focus.
+  releaseAll() {
+    if (this.held) this.gapMs = 0;
+    this.held = 0; this.releasing = false;
+    this.pending = 0; this.pendingUp = false;
+  }
+  get idle() { return !this.held && !this.pending; }
   // After each step: ends a release that waited, starts a press that waited.
   settle(ms) {
     if (this.held) {

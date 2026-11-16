@@ -63,7 +63,7 @@
   "sim.step.1": "Press OK to pass the welcome screen, then OK on “Load seed”.",
   "sim.step.2": "Send the test seed: the public BIP-39 test seed (“abandon … about”), never for real funds.",
   "sim.step.3": "Type the PIN {pin}: the arrows move, OK adds a character, and holding OK finishes.",
-  "sim.step.4": "Check the seed fingerprint, 73c5da0a, press OK, then OK again for no passphrase.",
+  "sim.step.4": "Check the seed fingerprint, 73c5da0a, press OK, then OK again for no passphrase, and OK on the “Wallet fingerprint”.",
   "sim.step.5": "Choose “Sign PSBT” and send the test PSBT.",
   "sim.step.6": "Read every page of the review with ▼, tap OK, then hold OK to sign. The signed PSBT appears below, and as QR codes on the screen.",
   "sim.btn.left": "Left",
