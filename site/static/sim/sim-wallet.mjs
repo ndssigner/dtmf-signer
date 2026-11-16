@@ -61,7 +61,8 @@ export class SimWallet {
     // Addresses in the signer's network (it signed in it), else the wallet's.
     let held = [];
     try {
-      const { outputs, fee } = decodePsbt(fromBase64(r.base64), (this.signerNet ?? this.net) === "testnet", this.sha256);
+      const { outputs, fee } = decodePsbt(fromBase64(r.base64), (this.signerNet ?? this.net) === "testnet", this.sha256,
+        this.descriptor?.fingerprint ?? this.pair().fingerprint);
       held = outputLines(outputs, fee, S);
     } catch { /* not readable: the size and the signature still say something */ }
     const sig = scanCheck(r, this.pair(), S);

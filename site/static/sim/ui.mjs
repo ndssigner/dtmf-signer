@@ -260,6 +260,8 @@ export async function start(doc, loadModule) {
     walletNote = ""; checkText = psbtCheck(wallet.pair(), S).join("\n");
   });
   root.querySelector(".wd-stop").addEventListener("click", () => { stopSending(); walletNote = ""; });
+  // The selector as the page shows it (a browser may restore it on reload).
+  wallet.setNetwork(root.querySelector(".wd-net").value);
   root.querySelector(".wd-net").addEventListener("change", (e) => {
     stopSending();
     wallet.setNetwork(e.target.value);

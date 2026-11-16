@@ -153,7 +153,7 @@ ${buttons}
       return `<div class="wd-screen">
 <p class="wd-title">${e("wallet.wallet")}</p>
 <p class="wd-row"><label ${tip(tr("wallet.network_tip"), false)}><span aria-hidden="true">🌐</span><span class="visually-hidden">${e("wallet.network")}</span>
-<select class="wd-net" aria-label="${e("wallet.network")}">
+<select class="wd-net" autocomplete="off" aria-label="${e("wallet.network")}">
 <option value="mainnet">mainnet</option>
 <option value="testnet">testnet</option>
 </select></label>

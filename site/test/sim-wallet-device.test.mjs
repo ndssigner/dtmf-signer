@@ -18,7 +18,7 @@ const S = { "wallet.qr_repo": "🔗 {url}", "wallet.qr_account": "👛 {fp} · {
   "wallet.no_broadcast": "📡 not sent", "wallet.out": "→ {addr} · {sats} sat", "wallet.change": "↩ {addr} · {sats} sat",
   "wallet.fee": "⛽ {sats} sat", "wallet.sig_ok": "✅ {key}", "wallet.sig_bad": "❌", "wallet.bytes": "{bytes} B" };
 const DATA2 = { ...DATA, repo: "https://github.com/ndssigner/dtmf-signer",
-  networks: { ...DATA.networks, mainnet: { ...DATA.networks.mainnet, signatures: V1.signatures } } };
+  networks: { ...DATA.networks, mainnet: { ...DATA.networks.mainnet, fingerprint: "73c5da0a", signatures: V1.signatures } } };
 const kindSim = (kind) => ({ qrKind: () => kind, qrShown: () => kind !== "none", lines: () => ["x"] });
 const mk = (kind, e = el()) => new SimWallet({ sim: kindSim(kind), U: null, sha256, S, data: DATA2, el: e });
 

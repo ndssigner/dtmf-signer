@@ -1,5 +1,6 @@
 // What a PSBT (version 0) says, read from its bytes: each output's amount and
-// address, which outputs are change (they carry a BIP-32 derivation), and the
+// address, which outputs are change (a BIP-32 derivation from our wallet's
+// fingerprint, the key or a Taproot key), and the
 // fee when every input gives its amount. For the simulated wallet to show what
 // it scanned. sha256 is passed in (ur-tones' crypto) for base58 addresses.
 
@@ -90,8 +91,21 @@ function address(s, testnet, sha256) {
 }
 const hex = (b) => [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 
+// The fingerprint (hex) a derivation entry starts from: PSBT_OUT_BIP32_DERIVATION
+// (0x02) holds it first; PSBT_OUT_TAP_BIP32_DERIVATION (0x07) after its leaf hashes.
+function derivedFrom(e) {
+  if (e.type === 0x02) return hex(e.value.subarray(0, 4));
+  if (e.type === 0x07) {
+    const r = new Reader(e.value);
+    r.bytes(32 * r.varint());
+    return hex(r.bytes(4));
+  }
+  return null;
+}
+
 // { outputs: [{ amount, address, change, script? }], fee: number | null }
-export function decodePsbt(bytes, testnet, sha256) {
+// fingerprint: our wallet's (hex); an output is change only when derived from it.
+export function decodePsbt(bytes, testnet, sha256, fingerprint) {
   const r = new Reader(bytes);
   if (hex(r.bytes(5)) !== "70736274ff") throw new Error("psbt: not a PSBT");
   const tx = readMap(r).find((e) => e.type === 0x00 && e.key.length === 1);
@@ -108,10 +122,11 @@ export function decodePsbt(bytes, testnet, sha256) {
   const outputs = outs.map((o) => {
     const m = readMap(r);
     const a = address(o.script, testnet, sha256);
-    const out = { amount: o.amount, address: a, change: m.some((e) => e.type === 0x02) };
+    const out = { amount: o.amount, address: a, change: m.some((e) => derivedFrom(e) === fingerprint) };
     if (a === null) out.script = hex(o.script);
     return out;
   });
   const fee = known && Number.isFinite(inSum) ? inSum - outs.reduce((s, o) => s + o.amount, 0) : null;
+  if (fee !== null && fee < 0) return { outputs, fee: null };   // a broken PSBT: no fee to show
   return { outputs, fee };
 }
