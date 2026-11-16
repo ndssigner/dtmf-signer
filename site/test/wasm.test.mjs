@@ -1,6 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { SKIP, load, lines, tap } from "./wasm-helpers.mjs";
 
 test("boots to the welcome screen", { skip: SKIP }, async () => {
@@ -17,9 +16,9 @@ test("a short OK press is a PRESS: past the welcome to the menu", { skip: SKIP }
   tap(m, 3);
   assert.match(lines(m).join("\n"), /Load seed/);
 });
-test("the version is the git one", { skip: SKIP }, async () => {
+test("the version comes from git", { skip: SKIP }, async () => {
   // The wasm sits base64-encoded inside the .mjs, so ask the module itself.
+  // Not compared with HEAD: any commit after the build would fail it.
   const m = await load();
-  const v = execFileSync("git", ["describe", "--tags", "--always", "--dirty"], { encoding: "utf8" }).trim();
-  assert.equal(m.UTF8ToString(m._dsw_version()), v);
+  assert.match(m.UTF8ToString(m._dsw_version()), /^(v\d+\.\d+\.\d+\S*|[0-9a-f]{7,}(-dirty)?)$/);
 });
