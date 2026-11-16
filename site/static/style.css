@@ -79,6 +79,13 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .col-peer .edge-signer-side { left: 0; }
 [data-port$=".qr"], [data-port$=".camera"] { --at: 26%; }
 [data-port$=".in"], [data-port$=".jack"] { --at: 82%; }
+/* Side by side the labels stand upright on the edge, in a margin of the
+   block kept for them, so they never cover what is inside. */
+.bench[data-orient="h"] { --margin: 1.9rem; }
+.bench[data-orient="h"] .port { writing-mode: vertical-rl; padding: .35rem .15rem; }
+.bench[data-orient="h"] .col-power .blk { padding-right: var(--margin); }
+.bench[data-orient="h"] .col-signer .blk { padding-left: var(--margin); padding-right: var(--margin); }
+.bench[data-orient="h"] .col-peer .blk { padding-left: var(--margin); }
 /* vertical: inside the top/bottom edges, at the same x across blocks */
 .bench[data-orient="v"] .port { transform: translate(-50%, 0); right: auto; }
 .bench[data-orient="v"] .col-power .edge-signer-side { left: 50%; top: auto; bottom: 0; }

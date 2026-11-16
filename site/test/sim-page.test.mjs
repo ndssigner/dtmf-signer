@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
@@ -177,4 +178,10 @@ test("the button held shows as down by name", () => {
   assert.deepEqual(buttonsDown(3), ["ok"]);
   assert.deepEqual(buttonsDown(1), ["left"]);
   assert.deepEqual(buttonsDown(0), []);
+});
+
+test("side by side, the port labels stand upright in the blocks' side margins", () => {
+  const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.bench\[data-orient="h"\] \.port \{[^}]*writing-mode: vertical-rl/);
+  assert.match(css, /\.bench\[data-orient="h"\] \.col-signer \.blk \{[^}]*padding-left: var\(--margin\)[^}]*padding-right: var\(--margin\)/);
 });
