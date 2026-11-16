@@ -10,11 +10,14 @@ import { seedAudio, psbtAudio, SignedCollector } from "../static/sim/wallet.mjs"
 import { SKIP, load } from "./wasm-helpers.mjs";
 import { loadUrTones } from "./urtones-helpers.mjs";
 
-const V = JSON.parse(readFileSync(new URL("../../vectors/psbt-v0.json", import.meta.url), "utf8"))
-  .vectors.find((v) => v.name === "one input with change");
+const VECTORS = JSON.parse(readFileSync(new URL("../../vectors/psbt-v0.json", import.meta.url), "utf8")).vectors;
 const OK = 3, DOWN = 4, RIGHT = 5, UP = 2;
 
-test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP }, async () => {
+// The whole path on the real firmware, for one network: the network set in
+// the menu, the seed with PIN 1234, its fingerprint, the PSBT read page by
+// page, OK held, and the signed PSBT from the echo.
+async function signFlow({ net, vector, fingerprint }) {
+  const V = VECTORS.find((v) => v.name === vector);
   const U = loadUrTones();
   const sim = new Simulator(await load());
   const signed = new SignedCollector();
@@ -27,6 +30,13 @@ test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP 
   run(500);
   tap(OK);                                   // past the welcome
   until(/Load seed/, 1000);
+  if (net === "testnet") {
+    tap(DOWN);                               // Network
+    tap(RIGHT);                              // mainnet -> testnet
+    assert.match(text(), /Network\s+\S\s*testnet/);
+    tap(UP);                                 // back to Load seed
+  }
+  assert.match(text(), new RegExp(`DTMF-Signer\\s+${net}`));
   tap(OK);
   until(/Waiting for tones/, 1000);
   sim.queueAudio(seedAudio(U, V.entropy, "1234"));
@@ -38,7 +48,7 @@ test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP 
   }
   hold(OK);                                  // ends the PIN
   until(/Seed fingerprint/, 20000);
-  assert.match(text(), /73c5da0a/);
+  assert.match(text(), new RegExp(fingerprint));
   tap(OK);
   until(/Passphrase\?/, 2000);
   tap(OK);                                   // none
@@ -65,4 +75,10 @@ test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP 
     assert.ok(hex.includes(s.pubkey), "pubkey");
     assert.ok(hex.includes(s.sig), "signature");
   }
-});
+}
+
+test("a seed and a PSBT sent by the test wallet come back signed", { skip: SKIP }, () =>
+  signFlow({ net: "mainnet", vector: "one input with change", fingerprint: "73c5da0a" }));
+
+test("a testnet signer signs the testnet pair", { skip: SKIP }, () =>
+  signFlow({ net: "testnet", vector: "testnet account m/84'/1'/0'", fingerprint: "8b218e81" }));
