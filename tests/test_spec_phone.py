@@ -44,10 +44,11 @@ class PhoneDocsTest(unittest.TestCase):
                 self.assertIn(word, b.replace("\n  ", " "), path)
 
     def test_inv2_telephone_carve_out(self):
-        for path, word in (("SPEC.md", "telephone"), ("docs/es/especificacion.md", "teléfono")):
+        for path, words in (("SPEC.md", ("telephone", "handset")), ("docs/es/especificacion.md", ("teléfono", "auricular"))):
             text = (ROOT / path).read_text(encoding="utf-8")
             start = text.index("`INV-2`")
-            self.assertIn(word, text[start : text.index("`INV-3`")], path)
+            for word in words:
+                self.assertIn(word, text[start : text.index("`INV-3`")], path)
 
     def test_spec_lists_new_capabilities(self):
         for path in ("SPEC.md", "docs/es/especificacion.md"):

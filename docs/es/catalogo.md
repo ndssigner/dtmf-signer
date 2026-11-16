@@ -165,7 +165,9 @@ Crece con cada montaje que alguien haga y mida.
   ningún sonido puede imitarlo. Un colgado más largo conserva la sesión: al
   volver a descolgar, el firmador ofrece seguir. Cortar la corriente lo
   borra todo. El PIN se teclea por multipulsación y cada carácter tecleado
-  se dice de vuelta en el auricular; la semilla no se dice nunca.
+  se dice de vuelta en el auricular (por el auricular: con el manos libres
+  se oye en voz alta, y el firmador avisa una vez); la semilla no se dice
+  nunca.
 - **Necesita:** un elevador de 5 V a 12 V y una corriente constante de unos
   20 a 25 mA para la línea, un divisor para medir la tensión de la línea
   (descolgado, colgado), la entrada de línea de `IN-LINE`, una roseta RJ11

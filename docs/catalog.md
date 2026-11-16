@@ -158,7 +158,8 @@ build someone makes and measures.
   and no sound can fake it. A longer hang-up keeps the session: on the next
   pick-up the signer offers to resume. Cutting the power wipes everything.
   The PIN is typed by multi-tap, and each typed character is spoken back in
-  the earpiece; the seed is never spoken.
+  the earpiece (through the handset: on a speakerphone it is heard aloud,
+  and the signer warns once); the seed is never spoken.
 - **Needs:** a boost from 5 V to 12 V and a constant current of about
   20 to 25 mA for the line, a divider to measure the line voltage (off
   hook, on hook), the line input of `IN-LINE`, an RJ11 socket and a tone
