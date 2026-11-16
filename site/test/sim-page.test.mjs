@@ -20,7 +20,7 @@ test("the page carries the simulator, its data and its scripts", { skip: SKIP },
   for (const b of ["left", "up", "ok", "down", "right"]) assert.match(html, new RegExp(`data-btn="${b}"`));
   assert.match(html, /class="sim-warning"/);
   assert.match(html, /<script type="module" src="\.\.\/\.\.\/sim\/ui\.mjs"><\/script>/);
-  for (const f of ["sim/ui.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
+  for (const f of ["sim/ui.mjs", "sim/core.mjs", "sim/wallet.mjs", "sim/phone.mjs", "sim/bench.mjs", "sim/mic.mjs", "sim/mic-worklet.js", "sim/dtmf-signer.mjs", "sim/ur-tones.js", "sim/ur-tones-crypto.js"])
     assert.ok(files.has(f), f);
 });
 test("only the simulator's page allows WebAssembly", { skip: SKIP }, () => {
