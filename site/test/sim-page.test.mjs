@@ -164,3 +164,11 @@ test("your wallet names its tools: ur-tones for the tones, a compatible wallet t
   assert.match(yw, /<a class="yw-scan" href="https:\/\/nunchuk\.io\/"/);
   assert.ok(yw.includes("Nunchuk"));
 });
+
+test("the Pico's own LED is on the signer, and only where the bench declares it", { skip: SKIP }, async () => {
+  const html = text(files, "es/cable-qr/index.html");
+  const signer = /<section class="blk blk-signer[\s\S]*?<\/section>/.exec(html)[0];
+  assert.match(signer, /<span class="sim-led"[^>]*data-tip="[^"]*Raspberry Pi Pico \(GP25\)/);
+  const { blockBody } = await import("../build.mjs");
+  assert.doesNotMatch(blockBody("signer", (k) => k, {}, { id: "signer" }), /sim-led/);
+});

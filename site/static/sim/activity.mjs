@@ -24,3 +24,19 @@ export function statusKey(active) {
   for (const [ch, key] of ORDER) if (active.has(ch)) return key;
   return "status.idle";
 }
+
+// The board's own LED, as ports/pico/main.c drives it: a flash each time the
+// count of keys heard grows. The firmware's flash lasts 15 ms; shown for
+// LED_SHOW_MS (about two frames) so a screen shows it, still going out
+// between tones (one every 60 ms by cable).
+export const LED_SHOW_MS = 30;
+export class LedFlash {
+  constructor() { this.keys = 0; this.offAt = -Infinity; }
+  update(keys, now) {
+    if (keys !== this.keys) {
+      this.keys = keys;
+      if (keys !== 0) this.offAt = now + LED_SHOW_MS;
+    }
+    return now < this.offAt;
+  }
+}

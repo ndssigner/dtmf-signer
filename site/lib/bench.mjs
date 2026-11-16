@@ -19,6 +19,8 @@ export function validateBench(bench) {
   const all = ports(bench);
   for (const m of bench.modules) {
     if (!COLUMNS.has(m.column)) errors.push(`${m.id}: column ${m.column}`);
+    if (m.led !== undefined && (typeof m.led?.pin !== "string" || typeof m.led?.board !== "string"))
+      errors.push(`${m.id}: led needs a pin and a board`);
     for (const p of m.ports ?? []) {
       if (!TYPES.has(p.type)) errors.push(`${m.id}.${p.id}: type ${p.type}`);
       if (!["in", "out", "both"].includes(p.dir)) errors.push(`${m.id}.${p.id}: dir ${p.dir}`);

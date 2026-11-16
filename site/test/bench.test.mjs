@@ -62,3 +62,9 @@ test("the build refuses a bench that contradicts the catalog", async () => {
   assert.throws(() => checkBenches([p], catalog), /OUT-AIR/);
   assert.doesNotThrow(() => checkBenches([profile()], catalog));
 });
+
+test("the signer's LED needs a pin and a board", () => {
+  const p = profile();
+  signer(p.bench).led = { pin: 3 };
+  assert.ok(validateBench(p.bench).some((e) => e.includes("led")));
+});

@@ -7,7 +7,7 @@ import { Simulator, RATE } from "./core.mjs";
 import { SimWallet } from "./sim-wallet.mjs";
 import { seedCheck, psbtCheck } from "./checks.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
-import { activeChannels, statusKey } from "./activity.mjs";
+import { activeChannels, statusKey, LedFlash } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -122,6 +122,8 @@ export async function start(doc, loadModule) {
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
   let walletNote = "";        // a passing message on the wallet (no QR, reading…)
+  const ledEl = root.querySelector(".sim-led"), led = new LedFlash();
+  let ledOn = false;
   let checkText = "", lastCheck = "", lastWarn = null;   // what to check on the signer
   const wdCheck = root.querySelector(".wd-check"), wdWarn = root.querySelector(".wd-warn");
   let echo = [];
@@ -281,6 +283,9 @@ export async function start(doc, loadModule) {
       const r = wallet.scan();
       if (r !== "waiting") { walletNote = r === "ok" ? S["wallet.got"] : ""; checkText = wallet.last?.lines.join("\n") ?? ""; }
     }
+    // The board's LED: a flash per tone heard, as on the Pico.
+    const lit = led.update(sim.keys(), now);
+    if (lit !== ledOn && ledEl) { ledEl.classList.toggle("on", lit); ledOn = lit; }
     // The signer's network against the wallet's: a mark beside "Send PSBT".
     wallet.watch();
     const warn = wallet.mismatch();

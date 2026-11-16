@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { activeChannels, statusKey } from "../static/sim/activity.mjs";
+import { activeChannels, statusKey, LedFlash, LED_SHOW_MS } from "../static/sim/activity.mjs";
 import { leaveMode } from "../static/sim/ui.mjs";
 
 const A = (o) => activeChannels({ mode: "sim-wallet", queued: 0, listening: false, qrShown: false, scanning: false, micOn: false, micDbfs: -100, ...o });
@@ -82,4 +82,17 @@ test("stop with nothing playing is harmless", () => {
   assert.equal(leaveMode({ sim, speaker: null }), null);
   assert.equal(leaveMode({ sim, speaker: null }), null);
   assert.equal(n, 2);
+});
+
+test("the board's LED flashes once per tone heard, and goes out between tones", () => {
+  // Tones come every 60 ms (40 ms tone + 20 ms gap): the flash must be shorter.
+  const led = new LedFlash();
+  assert.equal(led.update(0, 0), false);
+  assert.equal(led.update(1, 0), true);
+  assert.equal(led.update(1, 25), true);
+  assert.equal(led.update(1, 31), false);
+  assert.equal(led.update(2, 60), true);
+  assert.equal(led.update(0, 70), true, "a reset of the count does not light it again, nor cut a flash");
+  assert.equal(led.update(0, 120), false);
+  assert.ok(LED_SHOW_MS < 60);
 });

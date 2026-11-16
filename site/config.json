@@ -96,7 +96,11 @@
                 "label": "IN · COM",
                 "capability": "IN-LINE"
               }
-            ]
+            ],
+            "led": {
+              "pin": "GP25",
+              "board": "Raspberry Pi Pico"
+            }
           },
           {
             "id": "sim-wallet",

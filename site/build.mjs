@@ -134,7 +134,7 @@ const LEGEND = [["power", "bench.legend.power"], ["audio", "bench.legend.audio"]
 const tip = (text, focus = true) => `data-tip="${escapeHtml(text)}"${focus ? ' tabindex="0"' : ""}`;
 
 // The inside of each kind of block.
-function blockBody(kind, tr, sim = {}) {
+export function blockBody(kind, tr, sim = {}, module = {}) {
   const e = (k, params) => escapeHtml(tr(k, params));
   switch (kind) {
     case "charger":
@@ -142,7 +142,8 @@ function blockBody(kind, tr, sim = {}) {
     case "signer": {
       const buttons = BUTTONS.map(([b, mark]) => `<button type="button" data-btn="${b}" aria-label="${e(`sim.btn.${b}`)}">${mark}</button>`).join("\n");
       return `<div class="sim-device" tabindex="0" aria-label="${e("sim.device")}" ${tip(tr("sim.keyboard"), false)}>
-<canvas class="sim-oled" width="128" height="64" aria-hidden="true"></canvas>
+<canvas class="sim-oled" width="128" height="64" aria-hidden="true"></canvas>${module.led ? `
+<span class="sim-led" ${tip(tr("sim.led", module.led))} aria-label="${e("sim.led", module.led)}"><span class="led-dot" aria-hidden="true"></span>LED</span>` : ""}
 <div class="sim-buttons">
 ${buttons}
 </div>
@@ -224,7 +225,7 @@ function simulatorBlock(site, tr, p, root) {
     return `<section class="blk blk-${m.kind}${m.external ? " external" : ""}" data-module="${m.id}" data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
 <h3 class="blk-title">${e(m.title)}</h3>
 ${ports}
-${blockBody(m.kind, tr, s)}
+${blockBody(m.kind, tr, s, m)}
 </section>`;
   };
   const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;

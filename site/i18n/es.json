@@ -133,5 +133,6 @@
   "yw.tones": "Tonos: la web de ur-tones",
   "yw.tones_tip": "Carga en ella una semilla de prueba y envíala con el altavoz (o un PSBT exportado de tu wallet)",
   "yw.scan": "Escanear: una wallet compatible, p. ej. Nunchuk",
-  "yw.scan_tip": "Una wallet que lea QR animados de tipo UR (crypto-psbt, crypto-account)"
+  "yw.scan_tip": "Una wallet que lea QR animados de tipo UR (crypto-psbt, crypto-account)",
+  "sim.led": "LED de la {board} ({pin}), de serie en la placa: un destello por tono oído"
 }
