@@ -109,3 +109,10 @@ ds_add_test(test_voice_pack)
 target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H} ${DS_VOICE_TEST_PACKS_H})
 target_include_directories(test_voice_pack PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_voice_pack PRIVATE dtmf_app ds_voice_packs)
+
+# What the signer says: the queue, the earcons and the talk-off check of every
+# clip of the built-in and the Spanish pack.
+ds_add_test(test_say)
+target_sources(test_say PRIVATE ${DS_VOICE_TEST_PACKS_H})
+target_include_directories(test_say PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_say PRIVATE dtmf_app ds_voice_packs)

@@ -10,8 +10,10 @@ add_library(dtmf_app STATIC
   ds_crc32.c
   ds_pack.c
   ds_app.c
+  ds_say.c
+  voice/ds_prompt_names.c
 )
-target_include_directories(dtmf_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(dtmf_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/voice)
 target_link_libraries(dtmf_app PUBLIC dtmf_core qrcodegen PRIVATE ds_warnings)
 
 # The built-in English prompts are data (hundreds of kilobytes): a library of
