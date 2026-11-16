@@ -50,7 +50,7 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 /* The bench: power | signer | peer; ports sit on the edge facing their pair. */
 .bench { --c-power: #f0883e; --c-audio: #58a6ff; --c-light: #d2a8ff; --c-idle: #6e7681;
   position: relative; display: grid; grid-template-columns: minmax(6rem, 8rem) minmax(16rem, 1fr) minmax(11rem, 14rem);
-  column-gap: 3.5rem; align-items: stretch; padding: .5rem 0; }
+  column-gap: 4.5rem; align-items: stretch; padding: .5rem 0; }
 .bench[data-orient="v"] { grid-template-columns: minmax(0, 1fr); row-gap: 3rem; column-gap: 0; }
 .col { display: flex; flex-direction: column; justify-content: center; gap: 1rem; }
 .blk { position: relative; border: 1.5px solid var(--line); border-radius: 8px; padding: .6rem .8rem; background: var(--bg); }
@@ -66,23 +66,28 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .bench[data-orient="v"] .col-signer .blk, .bench[data-orient="v"] .col-peer .blk { flex: none; }
 
 .port { position: absolute; z-index: 2; font: .7rem/1.2 ui-monospace, monospace; padding: .15rem .35rem; border-radius: 4px;
-  border: 1.5px solid var(--c-idle); background: var(--bg); color: var(--fg); white-space: nowrap; transform: translate(-50%, -50%); }
+  border: 1.5px solid var(--c-idle); background: var(--bg); color: var(--fg); white-space: nowrap; transform: translate(0, -50%); }
 .port.type-power { border-color: var(--c-power); }
 .port.type-audio { border-color: var(--c-audio); }
 .port.type-light { border-color: var(--c-light); }
-/* horizontal: left/right edges, at heights that line up across blocks */
-.col-power .edge-signer-side { left: 100%; top: 50%; }
+/* horizontal: inside the left/right edges, at heights that line up across
+   blocks; the link starts at the label's outer edge */
+.col-power .edge-signer-side { right: 0; top: 50%; }
 .col-signer .edge-power-side { left: 0; top: 50%; }
 .col-signer .edge-peer-side, .col-peer .edge-signer-side { top: var(--at, 50%); }
-.col-signer .edge-peer-side { left: 100%; }
+.col-signer .edge-peer-side { right: 0; }
 .col-peer .edge-signer-side { left: 0; }
 [data-port$=".qr"], [data-port$=".camera"] { --at: 26%; }
 [data-port$=".in"], [data-port$=".jack"] { --at: 82%; }
-/* vertical: top/bottom edges, at the same x across blocks */
-.bench[data-orient="v"] .col-power .edge-signer-side { left: 50%; top: 100%; }
+/* vertical: inside the top/bottom edges, at the same x across blocks */
+.bench[data-orient="v"] .port { transform: translate(-50%, 0); right: auto; }
+.bench[data-orient="v"] .col-power .edge-signer-side { left: 50%; top: auto; bottom: 0; }
 .bench[data-orient="v"] .col-signer .edge-power-side { left: 50%; top: 0; }
-.bench[data-orient="v"] .col-signer .edge-peer-side { top: 100%; left: var(--at, 50%); }
+.bench[data-orient="v"] .col-signer .edge-peer-side { top: auto; bottom: 0; left: var(--at, 50%); }
 .bench[data-orient="v"] .col-peer .edge-signer-side { top: 0; left: var(--at, 50%); }
+.bench[data-orient="v"] [data-port$=".qr"], .bench[data-orient="v"] [data-port$=".camera"] { --at: 25%; }
+.bench[data-orient="v"] [data-port$=".in"], .bench[data-orient="v"] [data-port$=".jack"] { --at: 75%; }
+.bench[data-orient="v"] .blk { padding-top: 1.8rem; padding-bottom: 1.8rem; }
 
 .links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
 .link { fill: none; stroke: var(--c-idle); stroke-width: 2.5; }
@@ -128,3 +133,30 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
   background: var(--fg); color: var(--bg); font: .75rem/1.35 system-ui, sans-serif; z-index: 10; pointer-events: none; }
 .port[data-tip] { position: absolute; }
 .info { cursor: help; }
+
+/* Activity: a link moves only while it is active, in its own direction. */
+.link.type-power { stroke: var(--c-power); }
+/* power is lit, steady: being on is not activity */
+.link.active:not(.type-power) { stroke-dasharray: 8 7; animation: flow .7s linear infinite; }
+.link.active.type-audio { stroke: var(--c-audio); }
+.link.active.type-light { stroke: var(--c-light); }
+@keyframes flow { to { stroke-dashoffset: -30; } }
+.port.active.type-audio { background: color-mix(in srgb, var(--c-audio) 25%, var(--bg)); }
+.port.active.type-light { background: color-mix(in srgb, var(--c-light) 25%, var(--bg)); }
+/* Emitting light (the QR): rings out of the port, off the screen. */
+.port.emit::before, .port.emit::after, .yp-mic.capturing::before {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c-light);
+  animation: ring-out 1.6s ease-out infinite; pointer-events: none; }
+.port.emit::after { animation-delay: .8s; }
+@keyframes ring-out { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(1.8); } }
+/* Listening: the IN port pulses in; the microphone draws rings inwards. */
+.port.listening { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-audio) 45%, transparent); }
+.yp-mic { position: relative; }
+.yp-mic.capturing::before { border-color: var(--c-audio); inset: auto; left: -.2rem; top: -.1rem; width: 1.4rem; height: 1.4rem;
+  animation: ring-in 1.4s ease-in infinite; }
+@keyframes ring-in { from { opacity: 0; transform: scale(2); } to { opacity: .9; transform: scale(.5); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .link.active, .link.active:not(.type-power) { animation: none; stroke-dasharray: none; stroke-width: 4; }
+  .port.emit::before, .port.emit::after, .yp-mic.capturing::before { animation: none; opacity: .8; }
+}
