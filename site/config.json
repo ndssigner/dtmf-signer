@@ -28,6 +28,11 @@
       "readme": {
         "en": "hardware/breadboard/README.md",
         "es": "hardware/breadboard/README.es.md"
+      },
+      "simulator": {
+        "seed": "00000000000000000000000000000000",
+        "pin": "1234",
+        "psbt_vector": "one input with change"
       }
     }
   ],
