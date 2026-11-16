@@ -88,7 +88,11 @@ ningún estado.
 1. `INV-1` — La semilla nunca sale del firmador y nunca se muestra. Solo su
    huella.
 2. `INV-2` — El PIN y la passphrase nunca salen del firmador, ni siquiera
-   como eco.
+   como eco. La única salvedad: en un teléfono en la propia línea del
+   firmador, el auricular es una salida del propio firmador hacia el
+   usuario, como su pantalla, así que cada carácter del PIN puede decirse
+   de vuelta ahí mientras se teclea, y nunca después. La semilla y la
+   passphrase no se dicen nunca.
 3. `INV-3` — No se firma nada sin confirmación física en el firmador.
 4. `INV-4` — No se firma nada antes de haber presentado su resumen por una
    salida de verificación que controla el firmador (§5).
@@ -272,14 +276,15 @@ una comisión normal y acaba firmando una enorme.
 
 De las §2–§5 se deduce que todo montaje necesita al menos:
 
-- **Una entrada `CABLE`** (jack de entrada de línea o UART): la vía
+- **Una entrada `CABLE`** (jack de entrada de línea, UART o la línea telefónica): la vía
   recomendada para la semilla cifrada, la única para la semilla sin cifrar,
-  y válida para el PIN y la passphrase si no hay entrada `LOCAL`.
+  y válida para el PIN y la passphrase si no hay entrada `LOCAL`. En una
+  línea telefónica, las teclas que pide cuentan como `CABLE` (§4.1).
 - **Una confirmación:** un botón, una tecla de un teclado `LOCAL`, o el
   gancho de un teléfono en la propia línea del firmador (un colgado corto,
   de 200 a 1500 ms; ningún sonido puede imitarlo).
-- **Una salida para devolver datos:** tonos por el aire, salida de línea o
-  UART.
+- **Una salida para devolver datos:** tonos por el aire, salida de línea, UART o la
+  línea telefónica (`AIR`, §4.1).
 - **Una salida de verificación** de las de la §5.
 
 **Un ejemplo del suelo:** un microcontrolador, un jack de entrada (con un

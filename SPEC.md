@@ -85,7 +85,10 @@ state.
 1. `INV-1` — The seed never leaves the signer and is never shown. Only its
    fingerprint.
 2. `INV-2` — The PIN and the passphrase never leave the signer, not even as
-   an echo.
+   an echo. The one carve-out: on a telephone on the signer's own line, the
+   earpiece is the signer's own output to the user, like its screen, so
+   each PIN character may be spoken back there as it is typed, and never
+   afterwards. The seed and the passphrase are never spoken.
 3. `INV-3` — Nothing is signed without physical confirmation on the signer.
 4. `INV-4` — Nothing is signed before its summary has been presented on a
    verification output the signer controls (§5).
@@ -263,13 +266,15 @@ fee and ends up signing a huge one.
 
 From §2–§5, every build needs at least:
 
-- **A `CABLE` input** (line-in jack or UART): the recommended path for the
+- **A `CABLE` input** (line-in jack, UART or the telephone line): the recommended path for the
   encrypted seed, the only one for the unencrypted seed, and valid for the
-  PIN and the passphrase when there is no `LOCAL` input.
+  PIN and the passphrase when there is no `LOCAL` input. On a telephone
+  line, the keys it asks for count as `CABLE` (§4.1).
 - **A confirmation:** a button, a key of a `LOCAL` keypad, or the hook of a
   telephone on the signer's own line (a short hang-up, on-hook for 200 to
   1500 ms; no sound can fake it).
-- **An output to return data:** tones through the air, line-out or UART.
+- **An output to return data:** tones through the air, line-out, UART or the
+  telephone line (`AIR`, §4.1).
 - **A verification output** of those in §5.
 
 **An example of the floor:** a microcontroller, an input jack (with an
