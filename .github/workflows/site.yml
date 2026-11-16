@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Tests of the site
-        run: node --test site/test/
+        run: node --test site/test/*.test.mjs
       - name: Translations against English
         run: node site/check-i18n.mjs
       - name: Parts list against the layout, donation addresses against the READMEs
