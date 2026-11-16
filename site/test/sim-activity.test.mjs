@@ -75,3 +75,11 @@ test("the power link never moves", () => {
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
   for (const m of css.matchAll(/([^{}]*)\{[^}]*animation:\s*flow/g)) assert.match(m[1], /:not\(\.type-power\)/, m[1]);
 });
+
+test("stop with nothing playing is harmless", () => {
+  let n = 0;
+  const sim = { clearAudio() { n++; } };
+  assert.equal(leaveMode({ sim, speaker: null }), null);
+  assert.equal(leaveMode({ sim, speaker: null }), null);
+  assert.equal(n, 2);
+});

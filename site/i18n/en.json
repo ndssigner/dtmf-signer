@@ -80,7 +80,7 @@
   "wallet.seed": "Send seed",
   "wallet.psbt": "Send PSBT",
   "wallet.scan": "Scan QR",
-  "wallet.seed_tip": "The public BIP-39 test seed (abandon … about), PIN 1234: never for real funds",
+  "wallet.seed_tip": "A public test seed for the chosen network, PIN 1234: never for real funds",
   "wallet.psbt_tip": "A test transaction over made-up coins",
   "wallet.scan_tip": "Reads the QR on the signer's screen",
   "wallet.idle": "Ready",
@@ -120,5 +120,9 @@
   "wallet.fee": "⛽ fee {sats} sat",
   "wallet.sig_ok": "✅ Expected signature ({key})",
   "wallet.sig_bad": "❌ Not the expected signature",
-  "wallet.bytes": "{bytes} bytes"
+  "wallet.bytes": "{bytes} bytes",
+  "wallet.network": "Wallet network",
+  "wallet.network_tip": "Wallet network: picks that network's test pair (seed and PSBT)",
+  "wallet.stop": "Stop sending",
+  "wallet.mismatch": "The signer is on another network: change it here or in its menu"
 }

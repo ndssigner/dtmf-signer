@@ -151,10 +151,18 @@ ${buttons}
     case "sim-wallet":
       return `<div class="wd-screen">
 <p class="wd-title">${e("wallet.wallet")}</p>
+<p class="wd-row"><label ${tip(tr("wallet.network_tip"), false)}><span aria-hidden="true">🌐</span><span class="visually-hidden">${e("wallet.network")}</span>
+<select class="wd-net" aria-label="${e("wallet.network")}">
+<option value="mainnet">mainnet</option>
+<option value="testnet">testnet</option>
+</select></label>
+<button type="button" class="wd-stop" aria-label="${e("wallet.stop")}" ${tip(tr("wallet.stop"), false)}><span aria-hidden="true">⏹</span></button></p>
 <button type="button" class="wd-seed" ${tip(tr("wallet.seed_tip"), false)}><span aria-hidden="true">🌱</span> ${e("wallet.seed")}</button>
-<button type="button" class="wd-psbt" ${tip(tr("wallet.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("wallet.psbt")}</button>
+<p class="wd-row"><button type="button" class="wd-psbt" ${tip(tr("wallet.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("wallet.psbt")}</button>
+<span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></p>
 <button type="button" class="wd-scan" ${tip(tr("wallet.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("wallet.scan")}</button>
 <p class="wd-status" aria-live="polite">${e("wallet.idle")}</p>
+<p class="wd-check" aria-live="polite"></p>
 <textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
 <p class="wd-opts"><label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
 <label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>

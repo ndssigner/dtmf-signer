@@ -80,7 +80,7 @@
   "wallet.seed": "Enviar semilla",
   "wallet.psbt": "Enviar PSBT",
   "wallet.scan": "Escanear QR",
-  "wallet.seed_tip": "La semilla pública de prueba de BIP-39 (abandon … about), PIN 1234: nunca para fondos reales",
+  "wallet.seed_tip": "Una semilla pública de prueba de la red elegida, PIN 1234: nunca para fondos reales",
   "wallet.psbt_tip": "Una transacción de prueba sobre monedas inventadas",
   "wallet.scan_tip": "Lee el QR de la pantalla del firmador",
   "wallet.idle": "Lista",
@@ -120,5 +120,9 @@
   "wallet.fee": "⛽ comisión {sats} sat",
   "wallet.sig_ok": "✅ Firma esperada ({key})",
   "wallet.sig_bad": "❌ No es la firma esperada",
-  "wallet.bytes": "{bytes} bytes"
+  "wallet.bytes": "{bytes} bytes",
+  "wallet.network": "Red de la wallet",
+  "wallet.network_tip": "Red de la wallet: elige el par de prueba (semilla y PSBT) de esa red",
+  "wallet.stop": "Parar la emisión",
+  "wallet.mismatch": "El firmador está en otra red: cambia la red aquí o en su menú"
 }

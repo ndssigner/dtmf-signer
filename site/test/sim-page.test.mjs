@@ -132,3 +132,11 @@ test("the wallet is never called a phone (the telephone is the exchange's)", { s
   assert.doesNotMatch(sim(es), /móvil simulado|smartphone/i);
   assert.doesNotMatch(sim(en), /simulated phone|smartphone/i);
 });
+
+test("the simulated wallet has a network selector, a stop button, a mismatch mark and a check area", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  assert.match(html, /<select class="wd-net"[^>]*>\s*<option value="mainnet"[^>]*>mainnet<\/option>\s*<option value="testnet"[^>]*>testnet<\/option>/);
+  assert.match(html, /<button type="button" class="wd-stop"/);
+  assert.match(html, /<span class="wd-warn"[^>]*hidden/);
+  assert.match(html, /<p class="wd-check" aria-live="polite">/);
+});

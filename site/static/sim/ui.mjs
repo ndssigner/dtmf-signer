@@ -5,6 +5,7 @@
 // the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
 import { SimWallet } from "./sim-wallet.mjs";
+import { seedCheck, psbtCheck, scanCheck } from "./checks.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
@@ -101,6 +102,8 @@ export async function start(doc, loadModule) {
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
   let walletNote = "";        // a passing message on the wallet (no QR, reading…)
+  let checkText = "", lastCheck = "", lastWarn = null;   // what to check on the signer
+  const wdCheck = root.querySelector(".wd-check"), wdWarn = root.querySelector(".wd-warn");
   let echo = [];
   let audio = null, nextStart = 0;
   let mode = bench.dataset.mode;
@@ -213,11 +216,30 @@ export async function start(doc, loadModule) {
     play(samples);
   }
   fast.addEventListener("change", () => { if (fast.checked && audio) { audio.close(); audio = null; nextStart = 0; } });
-  root.querySelector(".wd-seed").addEventListener("click", () => send(wallet.sendSeed()));
-  root.querySelector(".wd-psbt").addEventListener("click", () => send(wallet.sendPsbt()));
+  // Stop: nothing left on the line, the speakers quiet.
+  function stopSending() {
+    leaveMode({ sim, speaker: audio });
+    audio = null; nextStart = 0;
+  }
+  const scanned = () => scanCheck(wallet.collector.result, wallet.pair(), S).lines.join("\n");
+  root.querySelector(".wd-seed").addEventListener("click", () => {
+    send(wallet.sendSeed());
+    walletNote = ""; checkText = seedCheck(wallet.pair(), data.pin, S).join("\n");
+  });
+  root.querySelector(".wd-psbt").addEventListener("click", () => {
+    send(wallet.sendPsbt());
+    walletNote = ""; checkText = psbtCheck(wallet.pair(), S).join("\n");
+  });
+  root.querySelector(".wd-stop").addEventListener("click", () => { stopSending(); walletNote = ""; });
+  root.querySelector(".wd-net").addEventListener("change", (e) => {
+    stopSending();
+    wallet.setNetwork(e.target.value);
+    walletNote = ""; checkText = "";
+  });
   root.querySelector(".wd-scan").addEventListener("click", () => {
     const r = wallet.scan();
     walletNote = { "no-qr": S["wallet.no_qr"], "other-qr": S["wallet.other_qr"], waiting: S["wallet.waiting"], ok: S["wallet.got"] }[r];
+    checkText = r === "ok" ? scanned() : "";
   });
 
   function frame(now) {
@@ -235,7 +257,12 @@ export async function start(doc, loadModule) {
     }
     // While scanning, the wallet takes the signed PSBT as soon as it is there.
     if (wallet.scanning && !sim.qrShown()) wallet.scanning = false;
-    if (wallet.scanning && walletNote === S["wallet.waiting"] && wallet.scan() === "ok") walletNote = S["wallet.got"];
+    if (wallet.scanning && walletNote === S["wallet.waiting"] && wallet.scan() === "ok") { walletNote = S["wallet.got"]; checkText = scanned(); }
+    // The signer's network against the wallet's: a mark beside "Send PSBT".
+    wallet.watch();
+    const warn = wallet.mismatch();
+    if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }
+    if (checkText !== lastCheck) { wdCheck.textContent = checkText; lastCheck = checkText; }
     // Light what is active, only when it changes.
     const active = activeChannels({ mode, queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
       scanning: wallet.scanning, micOn: micSwitch.on, micDbfs });
