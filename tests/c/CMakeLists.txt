@@ -78,3 +78,20 @@ ds_add_test(test_review)
 target_sources(test_review PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_review PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_review PRIVATE dtmf_app)
+
+# The voice prompts: the ADPCM decoder (against the shared vector, generated
+# into the build directory like the PSBT one) and the pack reader (against the
+# real packs, which live in their own library so the other builds skip them).
+set(DS_ADPCM_VECTOR_H ${CMAKE_CURRENT_BINARY_DIR}/adpcm_vector.h)
+add_custom_command(
+  OUTPUT ${DS_ADPCM_VECTOR_H}
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/adpcm_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/adpcm-v0.json ${DS_ADPCM_VECTOR_H}
+  DEPENDS ${PROJECT_SOURCE_DIR}/tools/adpcm_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/adpcm-v0.json
+  COMMENT "Generating adpcm_vector.h"
+  VERBATIM)
+ds_add_test(test_voice_pack)
+target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H})
+target_include_directories(test_voice_pack PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_voice_pack PRIVATE dtmf_app ds_voice_packs)
