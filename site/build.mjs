@@ -121,8 +121,9 @@ export function build({ siteDir, outDir, commit }) {
   if (site.config.release) nav.push({ key: "nav.downloads", href: "downloads/" });
 
   files.set("index.html", Buffer.from(rootPage(site)));
-  for (const name of readdirSync(join(HERE, "static")).sort())
-    files.set(name, readFileSync(join(HERE, "static", name)));
+  // The shared files at the top of static/ (static/sim/ goes with a simulator).
+  for (const entry of readdirSync(join(HERE, "static"), { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)))
+    if (entry.isFile()) files.set(entry.name, readFileSync(join(HERE, "static", entry.name)));
 
   const repoRoot = join(siteDir, "..");
   if (site.config.donate)
