@@ -1,0 +1,71 @@
+# The website: its tests, the translations against English, the parts list
+# against the layout, then the build (the SHA-256 of every file printed) and,
+# on main, publication on GitHub Pages. Runs only when what the site is made
+# from changes.
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "hardware/**"
+      - "docs/images/**"
+      - "README*.md"
+      - "tests/test_bom.py"
+      - "tests/test_check_diy.py"
+      - "tests/test_site_donate.py"
+      - ".github/workflows/site.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "hardware/**"
+      - "docs/images/**"
+      - "README*.md"
+      - "tests/test_bom.py"
+      - "tests/test_check_diy.py"
+      - "tests/test_site_donate.py"
+      - ".github/workflows/site.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Tests of the site
+        run: node --test site/test/
+      - name: Translations against English
+        run: node site/check-i18n.mjs
+      - name: Parts list against the layout, donation addresses against the READMEs
+        run: |
+          python3 -m unittest discover -s tests -p 'test_bom.py' -v
+          python3 -m unittest discover -s tests -p 'test_site_donate.py' -v
+      - name: Build
+        run: SITE_COMMIT="${GITHUB_SHA::7}" node site/build.mjs
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/site
+
+  pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5

@@ -109,10 +109,17 @@ def check_parity(en: Path, es: Path) -> list[str]:
     return errors
 
 
+def doc_files(names: list[str]) -> list[str]:
+    """The repo's Markdown, without the website's prose (site/content/),
+    whose links point to the website's pages, not to files of the repo."""
+    return [n for n in names if not n.startswith("site/content/")]
+
+
 def main(argv: list[str]) -> int:
     files = subprocess.run(
         ["git", "ls-files", "--cached", "--others", "--exclude-standard", "*.md"], cwd=ROOT, capture_output=True, text=True, check=True
     ).stdout.split()
+    files = doc_files(files)
     errors = []
     for name in files:
         path = ROOT / name

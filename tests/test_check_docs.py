@@ -94,3 +94,10 @@ class ParityTest(DocsTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FilesTest(unittest.TestCase):
+    def test_site_content_is_not_checked(self):
+        # The website's prose links to the website's pages, not to files of the repo.
+        self.assertEqual(check_docs.doc_files(["README.md", "site/content/en/home.md", "site/TRANSLATING.md"]),
+                         ["README.md", "site/TRANSLATING.md"])
