@@ -1,0 +1,36 @@
+{
+ "piper_tts": "1.8.0",
+ "source_revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
+ "voices": {
+  "es": {
+   "name": "es_ES-davefx-medium",
+   "dataset": "https://github.com/OHF-Voice/voice-datasets",
+   "license": "CC0",
+   "files": {
+    "es_ES-davefx-medium.onnx": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
+     "sha256": "d2c9224e122321aac3c33343957fff4d0f465226cb74c66b0f520ca3f8c0dd07"
+    },
+    "es_ES-davefx-medium.onnx.json": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json",
+     "sha256": "531c4051502e1acbc10b42437f11679bfce9e3919e1796e51fabd73e01e7fd2e"
+    }
+   }
+  },
+  "en": {
+   "name": "en_US-ljspeech-medium",
+   "dataset": "https://keithito.com/LJ-Speech-Dataset/",
+   "license": "public domain",
+   "files": {
+    "en_US-ljspeech-medium.onnx": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+     "sha256": "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22"
+    },
+    "en_US-ljspeech-medium.onnx.json": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx.json",
+     "sha256": "141d612cc0a95ed7efc1ca936b845c2364967f2e9217c5dbfcf69fc4d6c65860"
+    }
+   }
+  }
+ }
+}

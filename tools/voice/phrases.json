@@ -1,0 +1,634 @@
+{
+ "greeting": {
+  "es": "DTMF-Signer.",
+  "en": "DTMF-Signer."
+ },
+ "flashed": {
+  "es": "¿Lo has grabado tú? Si no, vuelve a grabarlo. Almohadilla para seguir.",
+  "en": "Did you record this yourself? If not, record it again. Hash to continue."
+ },
+ "menu_empty": {
+  "es": "Cargar semilla, 1.",
+  "en": "Load seed, 1."
+ },
+ "menu_ready": {
+  "es": "Firmar, 1. Cuenta, 2. Borrar, 3.",
+  "en": "Sign, 1. Account, 2. Wipe, 3."
+ },
+ "network_now_main": {
+  "es": "Red: mainnet. Para cambiar, 2.",
+  "en": "Network: mainnet. To change, 2."
+ },
+ "network_now_test": {
+  "es": "Red: testnet. Para cambiar, 2.",
+  "en": "Network: testnet. To change, 2."
+ },
+ "about": {
+  "es": "Acerca de, 9.",
+  "en": "About, 9."
+ },
+ "seed_how": {
+  "es": "Por el auricular, 1. Por el teclado, 2.",
+  "en": "By the handset, 1. By the keypad, 2."
+ },
+ "air_warning": {
+  "es": "Acerca el auricular a tu wallet; el sonido lleva tu semilla.",
+  "en": "Hold the handset to your wallet; the sound carries your seed."
+ },
+ "listening": {
+  "es": "Escuchando.",
+  "en": "Listening."
+ },
+ "pin_ask": {
+  "es": "Teclea tu PIN y almohadilla.",
+  "en": "Type your PIN, then hash."
+ },
+ "pin_warning": {
+  "es": "Se dice cada carácter; no uses el manos libres.",
+  "en": "Each character is spoken; do not use the speakerphone."
+ },
+ "pin_ready": {
+  "es": "PIN listo. Almohadilla para seguir.",
+  "en": "PIN ready. Hash to continue."
+ },
+ "keypad_ask": {
+  "es": "Teclea asterisco, las cifras, y almohadilla.",
+  "en": "Type star, the digits, then hash."
+ },
+ "keypad_pin_ask": {
+  "es": "Ahora el PIN, y almohadilla.",
+  "en": "Now the PIN, then hash."
+ },
+ "fingerprint_is": {
+  "es": "Huella.",
+  "en": "Fingerprint."
+ },
+ "if_correct_hash": {
+  "es": "Si es correcta, almohadilla.",
+  "en": "If correct, hash."
+ },
+ "resume_ask": {
+  "es": "¿Todo bien? Para seguir donde lo dejaste, almohadilla; para borrar y empezar de cero, asterisco.",
+  "en": "All good? To resume where you left off, hash; to wipe and start over, star."
+ },
+ "wiped": {
+  "es": "Borrado.",
+  "en": "Wiped."
+ },
+ "psbt_listening": {
+  "es": "Escuchando la transacción.",
+  "en": "Listening for the transaction."
+ },
+ "sending": {
+  "es": "Envías.",
+  "en": "You send."
+ },
+ "to": {
+  "es": "a",
+  "en": "to"
+ },
+ "change": {
+  "es": "Cambio.",
+  "en": "Change."
+ },
+ "fee": {
+  "es": "Comisión.",
+  "en": "Fee."
+ },
+ "fee_high": {
+  "es": "Comisión alta.",
+  "en": "High fee."
+ },
+ "satoshis": {
+  "es": "satoshis.",
+  "en": "satoshis."
+ },
+ "sign_hook": {
+  "es": "Para firmar, cuelga un momento y vuelve a descolgar.",
+  "en": "To sign, hang up for a moment, then pick up again."
+ },
+ "signed_hold_near": {
+  "es": "Firmado. Acerca el auricular a tu wallet; almohadilla para empezar.",
+  "en": "Signed. Hold the handset to your wallet; hash to start."
+ },
+ "again_hint": {
+  "es": "Cero para repetir; almohadilla para volver al menú.",
+  "en": "Zero to repeat; hash for the menu."
+ },
+ "account_hold_near": {
+  "es": "Acerca el auricular a tu wallet; almohadilla para enviar la cuenta.",
+  "en": "Hold the handset to your wallet; hash to send the account."
+ },
+ "redial_note": {
+  "es": "Tu teléfono puede recordar lo último que marcaste.",
+  "en": "Your telephone may remember the last number you dialled."
+ },
+ "error_network": {
+  "es": "Red equivocada.",
+  "en": "Wrong network."
+ },
+ "error_psbt": {
+  "es": "Transacción no válida.",
+  "en": "Invalid transaction."
+ },
+ "error_change": {
+  "es": "El cambio no es tuyo.",
+  "en": "The change is not yours."
+ },
+ "error_generic": {
+  "es": "Algo falló.",
+  "en": "Something failed."
+ },
+ "cancelled": {
+  "es": "Cancelado.",
+  "en": "Cancelled."
+ },
+ "goodbye": {
+  "es": "Adiós.",
+  "en": "Goodbye."
+ },
+ "c_0": {
+  "es": "cero",
+  "en": "zero"
+ },
+ "c_1": {
+  "es": "uno",
+  "en": "one"
+ },
+ "c_2": {
+  "es": "dos",
+  "en": "two"
+ },
+ "c_3": {
+  "es": "tres",
+  "en": "three"
+ },
+ "c_4": {
+  "es": "cuatro",
+  "en": "four"
+ },
+ "c_5": {
+  "es": "cinco",
+  "en": "five"
+ },
+ "c_6": {
+  "es": "seis",
+  "en": "six"
+ },
+ "c_7": {
+  "es": "siete",
+  "en": "seven"
+ },
+ "c_8": {
+  "es": "ocho",
+  "en": "eight"
+ },
+ "c_9": {
+  "es": "nueve",
+  "en": "nine"
+ },
+ "c_a": {
+  "es": "a",
+  "en": "a"
+ },
+ "c_b": {
+  "es": "be",
+  "en": "bee"
+ },
+ "c_c": {
+  "es": "ce",
+  "en": "see"
+ },
+ "c_d": {
+  "es": "de",
+  "en": "dee"
+ },
+ "c_e": {
+  "es": "e",
+  "en": "e"
+ },
+ "c_f": {
+  "es": "efe",
+  "en": "eff"
+ },
+ "c_g": {
+  "es": "ge",
+  "en": "gee"
+ },
+ "c_h": {
+  "es": "hache",
+  "en": "aitch"
+ },
+ "c_i": {
+  "es": "i",
+  "en": "eye"
+ },
+ "c_j": {
+  "es": "jota",
+  "en": "jay"
+ },
+ "c_k": {
+  "es": "ka",
+  "en": "kay"
+ },
+ "c_l": {
+  "es": "ele",
+  "en": "ell"
+ },
+ "c_m": {
+  "es": "eme",
+  "en": "em"
+ },
+ "c_n": {
+  "es": "ene",
+  "en": "en"
+ },
+ "c_o": {
+  "es": "o",
+  "en": "oh"
+ },
+ "c_p": {
+  "es": "pe",
+  "en": "pee"
+ },
+ "c_q": {
+  "es": "cu",
+  "en": "cue"
+ },
+ "c_r": {
+  "es": "erre",
+  "en": "ar"
+ },
+ "c_s": {
+  "es": "ese",
+  "en": "ess"
+ },
+ "c_t": {
+  "es": "te",
+  "en": "tee"
+ },
+ "c_u": {
+  "es": "u",
+  "en": "you"
+ },
+ "c_v": {
+  "es": "uve",
+  "en": "vee"
+ },
+ "c_w": {
+  "es": "uve doble",
+  "en": "double you"
+ },
+ "c_x": {
+  "es": "equis",
+  "en": "ex"
+ },
+ "c_y": {
+  "es": "i griega",
+  "en": "why"
+ },
+ "c_z": {
+  "es": "zeta",
+  "en": "zee"
+ },
+ "n_cero": {
+  "es": "cero",
+  "en": ""
+ },
+ "n_uno": {
+  "es": "uno",
+  "en": ""
+ },
+ "n_dos": {
+  "es": "dos",
+  "en": ""
+ },
+ "n_tres": {
+  "es": "tres",
+  "en": ""
+ },
+ "n_cuatro": {
+  "es": "cuatro",
+  "en": ""
+ },
+ "n_cinco": {
+  "es": "cinco",
+  "en": ""
+ },
+ "n_seis": {
+  "es": "seis",
+  "en": ""
+ },
+ "n_siete": {
+  "es": "siete",
+  "en": ""
+ },
+ "n_ocho": {
+  "es": "ocho",
+  "en": ""
+ },
+ "n_nueve": {
+  "es": "nueve",
+  "en": ""
+ },
+ "n_diez": {
+  "es": "diez",
+  "en": ""
+ },
+ "n_once": {
+  "es": "once",
+  "en": ""
+ },
+ "n_doce": {
+  "es": "doce",
+  "en": ""
+ },
+ "n_trece": {
+  "es": "trece",
+  "en": ""
+ },
+ "n_catorce": {
+  "es": "catorce",
+  "en": ""
+ },
+ "n_quince": {
+  "es": "quince",
+  "en": ""
+ },
+ "n_dieciseis": {
+  "es": "dieciséis",
+  "en": ""
+ },
+ "n_diecisiete": {
+  "es": "diecisiete",
+  "en": ""
+ },
+ "n_dieciocho": {
+  "es": "dieciocho",
+  "en": ""
+ },
+ "n_diecinueve": {
+  "es": "diecinueve",
+  "en": ""
+ },
+ "n_veinte": {
+  "es": "veinte",
+  "en": ""
+ },
+ "n_veintiuno": {
+  "es": "veintiuno",
+  "en": ""
+ },
+ "n_veintiun": {
+  "es": "veintiún",
+  "en": ""
+ },
+ "n_veintidos": {
+  "es": "veintidós",
+  "en": ""
+ },
+ "n_veintitres": {
+  "es": "veintitrés",
+  "en": ""
+ },
+ "n_veinticuatro": {
+  "es": "veinticuatro",
+  "en": ""
+ },
+ "n_veinticinco": {
+  "es": "veinticinco",
+  "en": ""
+ },
+ "n_veintiseis": {
+  "es": "veintiséis",
+  "en": ""
+ },
+ "n_veintisiete": {
+  "es": "veintisiete",
+  "en": ""
+ },
+ "n_veintiocho": {
+  "es": "veintiocho",
+  "en": ""
+ },
+ "n_veintinueve": {
+  "es": "veintinueve",
+  "en": ""
+ },
+ "n_un": {
+  "es": "un",
+  "en": ""
+ },
+ "n_treinta": {
+  "es": "treinta",
+  "en": ""
+ },
+ "n_cuarenta": {
+  "es": "cuarenta",
+  "en": ""
+ },
+ "n_cincuenta": {
+  "es": "cincuenta",
+  "en": ""
+ },
+ "n_sesenta": {
+  "es": "sesenta",
+  "en": ""
+ },
+ "n_setenta": {
+  "es": "setenta",
+  "en": ""
+ },
+ "n_ochenta": {
+  "es": "ochenta",
+  "en": ""
+ },
+ "n_noventa": {
+  "es": "noventa",
+  "en": ""
+ },
+ "n_y": {
+  "es": "y",
+  "en": ""
+ },
+ "n_cien": {
+  "es": "cien",
+  "en": ""
+ },
+ "n_ciento": {
+  "es": "ciento",
+  "en": ""
+ },
+ "n_doscientos": {
+  "es": "doscientos",
+  "en": ""
+ },
+ "n_trescientos": {
+  "es": "trescientos",
+  "en": ""
+ },
+ "n_cuatrocientos": {
+  "es": "cuatrocientos",
+  "en": ""
+ },
+ "n_quinientos": {
+  "es": "quinientos",
+  "en": ""
+ },
+ "n_seiscientos": {
+  "es": "seiscientos",
+  "en": ""
+ },
+ "n_setecientos": {
+  "es": "setecientos",
+  "en": ""
+ },
+ "n_ochocientos": {
+  "es": "ochocientos",
+  "en": ""
+ },
+ "n_novecientos": {
+  "es": "novecientos",
+  "en": ""
+ },
+ "n_mil": {
+  "es": "mil",
+  "en": ""
+ },
+ "n_millon": {
+  "es": "millón",
+  "en": ""
+ },
+ "n_millones": {
+  "es": "millones",
+  "en": ""
+ },
+ "n_zero": {
+  "es": "",
+  "en": "zero"
+ },
+ "n_one": {
+  "es": "",
+  "en": "one"
+ },
+ "n_two": {
+  "es": "",
+  "en": "two"
+ },
+ "n_three": {
+  "es": "",
+  "en": "three"
+ },
+ "n_four": {
+  "es": "",
+  "en": "four"
+ },
+ "n_five": {
+  "es": "",
+  "en": "five"
+ },
+ "n_six": {
+  "es": "",
+  "en": "six"
+ },
+ "n_seven": {
+  "es": "",
+  "en": "seven"
+ },
+ "n_eight": {
+  "es": "",
+  "en": "eight"
+ },
+ "n_nine": {
+  "es": "",
+  "en": "nine"
+ },
+ "n_ten": {
+  "es": "",
+  "en": "ten"
+ },
+ "n_eleven": {
+  "es": "",
+  "en": "eleven"
+ },
+ "n_twelve": {
+  "es": "",
+  "en": "twelve"
+ },
+ "n_thirteen": {
+  "es": "",
+  "en": "thirteen"
+ },
+ "n_fourteen": {
+  "es": "",
+  "en": "fourteen"
+ },
+ "n_fifteen": {
+  "es": "",
+  "en": "fifteen"
+ },
+ "n_sixteen": {
+  "es": "",
+  "en": "sixteen"
+ },
+ "n_seventeen": {
+  "es": "",
+  "en": "seventeen"
+ },
+ "n_eighteen": {
+  "es": "",
+  "en": "eighteen"
+ },
+ "n_nineteen": {
+  "es": "",
+  "en": "nineteen"
+ },
+ "n_twenty": {
+  "es": "",
+  "en": "twenty"
+ },
+ "n_thirty": {
+  "es": "",
+  "en": "thirty"
+ },
+ "n_forty": {
+  "es": "",
+  "en": "forty"
+ },
+ "n_fifty": {
+  "es": "",
+  "en": "fifty"
+ },
+ "n_sixty": {
+  "es": "",
+  "en": "sixty"
+ },
+ "n_seventy": {
+  "es": "",
+  "en": "seventy"
+ },
+ "n_eighty": {
+  "es": "",
+  "en": "eighty"
+ },
+ "n_ninety": {
+  "es": "",
+  "en": "ninety"
+ },
+ "n_hundred": {
+  "es": "",
+  "en": "hundred"
+ },
+ "n_thousand": {
+  "es": "",
+  "en": "thousand"
+ },
+ "n_million": {
+  "es": "",
+  "en": "million"
+ },
+ "n_billion": {
+  "es": "",
+  "en": "billion"
+ }
+}

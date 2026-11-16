@@ -1,0 +1,4 @@
+# Pinned by the version installed when the packs were generated.
+piper-tts==1.8.0
+numpy==2.5.5
+onnxruntime==1.32.0
