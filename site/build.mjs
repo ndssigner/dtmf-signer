@@ -123,7 +123,7 @@ const WASM = join(HERE, "..", "build", "wasm", "dtmf-signer.mjs");
 const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
 // The texts ui.mjs needs ({seconds} is filled in by ui.mjs).
 const SIM_KEYS = ["sim.unavailable", "phone.idle", "phone.sending", "phone.no_qr", "phone.waiting", "phone.got",
-  "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
+  "phone.other_qr", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
   "status.qr", "status.camera", "status.mic"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
 const LEGEND = [["power", "bench.legend.power"], ["audio", "bench.legend.audio"], ["light", "bench.legend.light"]];
@@ -162,7 +162,7 @@ ${buttons}
       return `<div class="ph-screen yp">
 <p class="yp-cam"><span aria-hidden="true">📷</span> ${e("yp.camera")}</p>
 <p class="yp-mic"><span aria-hidden="true">🎙</span> ${e("yp.mic")}</p>
-<button type="button" class="mic-toggle">${e("mic.listen")}</button>
+<button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
 <meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
 <p class="mic-note">${e("mic.note")} <span class="info" ${tip(tr("mic.help"))} aria-label="${e("mic.help")}">ⓘ</span></p>
 </div>`;
@@ -202,7 +202,7 @@ ${blockBody(m.kind, tr)}
   const modes = bench.modes.map((m, i) => `<button type="button" role="tab" data-mode="${m.id}" aria-selected="${i === 0}">${e(m.title)}</button>`).join("\n");
   const legend = LEGEND.map(([t, k]) => `<li class="lg-${t}"><span class="lg-line" aria-hidden="true"></span>${e(k)}</li>`).join("\n");
   const connections = bench.modes.map((m) => `<ul class="connections visually-hidden" data-modes="${m.id}"${m === first ? "" : " hidden"}>
-${m.links.map((l) => `<li>${e(`bench.link.${l.channel}`)}</li>`).join("\n")}
+${m.links.map((l) => `<li>${e(`bench.link.${m.id}.${l.channel}`)}</li>`).join("\n")}
 </ul>`).join("\n");
   return `<div class="simulator" id="sim">
 <p class="sim-warning" ${tip(tr("sim.warning"))}><span aria-hidden="true">⚠</span> ${e("sim.warning_short")}</p>

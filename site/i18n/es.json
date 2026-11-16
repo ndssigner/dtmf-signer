@@ -76,9 +76,6 @@
   "bench.legend.power": "alimentación",
   "bench.legend.audio": "audio por cable",
   "bench.legend.light": "luz (QR → cámara)",
-  "bench.link.power": "Cargador, USB 5 V → 5V del firmador",
-  "bench.link.camera": "Pantalla del firmador, códigos QR → cámara del móvil",
-  "bench.link.line-in": "Tonos por cable → IN y COM del firmador",
   "phone.wallet": "Wallet de prueba",
   "phone.seed": "Enviar semilla",
   "phone.psbt": "Enviar PSBT",
@@ -109,5 +106,12 @@
   "bench.tip.your-phone.jack": "El micrófono de este ordenador escuchando el altavoz de tu smartphone, en lugar de un cable de audio",
   "bench.tip.your-phone.camera": "La cámara de tu smartphone lee los códigos QR del firmador",
   "yp.mic": "Micrófono de este ordenador ◂ altavoz de tu smartphone",
-  "yp.camera": "La cámara de tu smartphone"
+  "yp.camera": "La cámara de tu smartphone",
+  "phone.other_qr": "Ese QR no es un PSBT firmado",
+  "bench.link.sim-phone.power": "Cargador, USB 5 V → 5V del firmador",
+  "bench.link.sim-phone.camera": "Pantalla del firmador, códigos QR → cámara del móvil simulado",
+  "bench.link.sim-phone.line-in": "Salida de auriculares del móvil simulado, tonos por cable → IN y COM del firmador",
+  "bench.link.your-phone.power": "Cargador, USB 5 V → 5V del firmador",
+  "bench.link.your-phone.camera": "Pantalla del firmador, códigos QR → cámara de tu smartphone",
+  "bench.link.your-phone.line-in": "Altavoz de tu smartphone, oído por el micrófono de este ordenador → IN y COM del firmador"
 }

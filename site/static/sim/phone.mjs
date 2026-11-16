@@ -17,9 +17,12 @@ export class SimPhone {
     if (line === "reboot") this.collector = new SignedCollector();
     else this.collector.push(line);
   }
-  // "no-qr", "waiting" (a QR, nothing signed yet) or "ok" (shown in el.out).
+  // "no-qr", "other-qr" (not the signed screen), "waiting" (nothing signed
+  // yet) or "ok" (shown in el.out).
   scan() {
     if (!this.sim.qrShown()) { this.scanning = false; return "no-qr"; }
+    // Only the signed screen's QR is a signed PSBT (the account QR is not).
+    if (!/^Signed/.test((this.sim.lines()[0] ?? "").trim())) { this.scanning = false; return "other-qr"; }
     this.scanning = true;
     const r = this.collector.result;
     if (!r) return "waiting";

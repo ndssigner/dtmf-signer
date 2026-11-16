@@ -44,7 +44,7 @@ export class SignedCollector {
   constructor() { this.cur = null; this.done = null; }
   push(line) {
     const [word, a, b] = line.split(" ");
-    if (word === "signed-psbt-begin") this.cur = { id: Number(a), bytes: Number(b), parts: [] };
+    if (word === "signed-psbt-begin") { this.cur = { id: Number(a), bytes: Number(b), parts: [] }; this.done = null; }
     else if (word === "signed-psbt" && this.cur) this.cur.parts.push(a);
     else if (word === "signed-psbt-abort") this.cur = null;
     else if (word === "signed-psbt-end" && this.cur && Number(a) === this.cur.id) {

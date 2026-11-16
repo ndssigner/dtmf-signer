@@ -29,8 +29,10 @@ test("a QR on screen emits; the simulated camera reads only while scanning", () 
   assert.ok(A({ qrShown: true, scanning: true }).has("camera"));
   assert.ok(!A({ scanning: true }).has("camera"), "no QR, nothing to read");
 });
-test("your smartphone's camera faces the QR whenever one is shown", () => {
-  assert.ok(A({ mode: "your-phone", qrShown: true }).has("camera"));
+test("your smartphone's camera is not animated: the page cannot know you are scanning", () => {
+  const a = A({ mode: "your-phone", qrShown: true, scanning: true });
+  assert.ok(!a.has("camera"));
+  assert.equal(statusKey(a), "status.qr");
 });
 test("the status line names the most telling activity", () => {
   assert.equal(statusKey(A({})), "status.idle");
@@ -46,6 +48,11 @@ test("leaving a mode empties the line and stops the microphone, without restarti
   assert.equal(leaveMode({ sim, mic }), null);
   assert.deepEqual([cleared, stopped, resets], [1, 1, 0]);
   assert.equal(leaveMode({ sim, mic: null }), null);
+});
+test("leaving a mode also silences tones already sent to the speakers", () => {
+  let closed = 0;
+  leaveMode({ sim: { clearAudio() {} }, mic: null, speaker: { close() { closed++; } } });
+  assert.equal(closed, 1);
 });
 test("with reduced motion nothing moves", () => {
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");

@@ -7,7 +7,7 @@ import { Simulator, RATE } from "./core.mjs";
 import { SimPhone } from "./phone.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey } from "./activity.mjs";
-import { startMic } from "./mic.mjs";
+import { startMic, MicSwitch } from "./mic.mjs";
 
 const SVG = "http://www.w3.org/2000/svg";
 const MIC_BACKLOG = RATE * 2;   // the line never lags the microphone by more than this
@@ -37,9 +37,10 @@ export function speedFor(sim, fast) {
 
 // Leaving a mode: nothing left on the line, the microphone stopped; the
 // signer keeps running (it is the same device, connected differently).
-export function leaveMode({ sim, mic }) {
+export function leaveMode({ sim, mic, speaker }) {
   sim.clearAudio();
   mic?.stop();
+  speaker?.close();         // tones already scheduled on the speakers stop too
   return null;
 }
 
@@ -103,7 +104,22 @@ export async function start(doc, loadModule) {
   let echo = [];
   let audio = null, nextStart = 0;
   let mode = bench.dataset.mode;
-  let mic = null, micDbfs = -100;
+  let micDbfs = -100;
+  // The microphone of this computer: the audio context is made in the click
+  // itself, so the browser lets it run.
+  const micSwitch = new MicSwitch(() => startMic({
+    getUserMedia: navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices),
+    audioContext: globalThis.AudioContext ? new AudioContext() : null,
+    AudioWorkletNode: globalThis.AudioWorkletNode,
+    onSamples: (x) => { if (sim.queued > MIC_BACKLOG) sim.clearAudio(); sim.queueAudio(x); },
+    onLevel: (db) => { micDbfs = db; micLevel.value = Math.max(-80, db); },
+  }));
+  function micShown() {
+    if (!micBtn) return;
+    micBtn.disabled = micSwitch.starting;
+    micBtn.textContent = micSwitch.on ? S["mic.stop"] : S["mic.listen"];
+    micBtn.setAttribute("aria-pressed", String(micSwitch.on));
+  }
   let paths = [];            // [{ el, channel, ports: [from, to] }]
   let last = performance.now(), lastLine = "", lastStatus = "", lastActive = "";
 
@@ -127,9 +143,10 @@ export async function start(doc, loadModule) {
   }
   function switchMode(next) {
     if (next === mode) return;
-    mic = leaveMode({ sim, mic });
+    leaveMode({ sim, mic: { stop: () => micSwitch.cancel() }, speaker: audio });
+    audio = null; nextStart = 0;
     micDbfs = -100;
-    if (micBtn) { micBtn.textContent = S["mic.listen"]; micBtn.setAttribute("aria-pressed", "false"); }
+    micShown();
     mode = next;
     bench.dataset.mode = mode;
     for (const el of root.querySelectorAll("[data-modes]")) el.hidden = !el.dataset.modes.split(" ").includes(mode);
@@ -140,26 +157,14 @@ export async function start(doc, loadModule) {
   new ResizeObserver(() => drawLinks()).observe(bench);
 
   // ---- the microphone of this computer (mode "your-phone") ----
-  micBtn?.addEventListener("click", async () => {
-    if (mic) {
-      mic = leaveMode({ sim, mic });
-      micDbfs = -100;
-      micBtn.textContent = S["mic.listen"];
-      micBtn.setAttribute("aria-pressed", "false");
-      return;
-    }
-    try {
-      mic = await startMic({
-        getUserMedia: navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices),
-        AudioContext: globalThis.AudioContext, AudioWorkletNode: globalThis.AudioWorkletNode,
-        onSamples: (x) => { if (sim.queued > MIC_BACKLOG) sim.clearAudio(); sim.queueAudio(x); },
-        onLevel: (db) => { micDbfs = db; micLevel.value = Math.max(-80, db); },
-      });
-      micBtn.textContent = S["mic.stop"];
-      micBtn.setAttribute("aria-pressed", "true");
-    } catch (err) {
-      micBtn.textContent = err.message === "mic:denied" ? "⚠ " + S["mic.denied"] : "⚠ " + S["mic.unsupported"];
-    }
+  micBtn?.addEventListener("click", () => {
+    if (!micSwitch.on) micDbfs = -100;
+    const p = micSwitch.toggle();
+    micShown();
+    p.then(micShown, (err) => {
+      micShown();
+      micBtn.textContent = "⚠ " + S[err.message === "mic:denied" ? "mic.denied" : "mic.unsupported"];
+    });
   });
 
   // ---- tooltips: a tap opens one, a tap elsewhere closes it ----
@@ -212,7 +217,7 @@ export async function start(doc, loadModule) {
   root.querySelector(".ph-psbt").addEventListener("click", () => send(phone.sendPsbt()));
   root.querySelector(".ph-scan").addEventListener("click", () => {
     const r = phone.scan();
-    phoneNote = r === "no-qr" ? S["phone.no_qr"] : r === "waiting" ? S["phone.waiting"] : S["phone.got"];
+    phoneNote = { "no-qr": S["phone.no_qr"], "other-qr": S["phone.other_qr"], waiting: S["phone.waiting"], ok: S["phone.got"] }[r];
   });
 
   function frame(now) {
@@ -233,7 +238,7 @@ export async function start(doc, loadModule) {
     if (phone.scanning && phoneNote === S["phone.waiting"] && phone.scan() === "ok") phoneNote = S["phone.got"];
     // Light what is active, only when it changes.
     const active = activeChannels({ mode, queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
-      scanning: phone.scanning, micOn: Boolean(mic), micDbfs });
+      scanning: phone.scanning, micOn: micSwitch.on, micDbfs });
     const key = [...active].sort().join(" ");
     if (key !== lastActive) {
       lastActive = key;

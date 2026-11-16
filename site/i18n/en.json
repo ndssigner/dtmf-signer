@@ -76,9 +76,6 @@
   "bench.legend.power": "power",
   "bench.legend.audio": "audio by cable",
   "bench.legend.light": "light (QR → camera)",
-  "bench.link.power": "Charger, USB 5 V → 5V of the signer",
-  "bench.link.camera": "Signer's screen, QR codes → the phone's camera",
-  "bench.link.line-in": "Tones by cable → IN and COM of the signer",
   "phone.wallet": "Test wallet",
   "phone.seed": "Send seed",
   "phone.psbt": "Send PSBT",
@@ -109,5 +106,12 @@
   "bench.tip.your-phone.jack": "The microphone of this computer listening to your smartphone's speaker, standing in for an audio cable",
   "bench.tip.your-phone.camera": "Your smartphone's camera reads the signer's QR codes",
   "yp.mic": "Microphone of this computer ◂ speaker of your smartphone",
-  "yp.camera": "The camera of your smartphone"
+  "yp.camera": "The camera of your smartphone",
+  "phone.other_qr": "That QR is not a signed PSBT",
+  "bench.link.sim-phone.power": "Charger, USB 5 V → 5V of the signer",
+  "bench.link.sim-phone.camera": "Signer's screen, QR codes → camera of the simulated phone",
+  "bench.link.sim-phone.line-in": "Simulated phone's headphone output, tones by cable → IN and COM of the signer",
+  "bench.link.your-phone.power": "Charger, USB 5 V → 5V of the signer",
+  "bench.link.your-phone.camera": "Signer's screen, QR codes → camera of your smartphone",
+  "bench.link.your-phone.line-in": "Your smartphone's speaker, heard by the microphone of this computer → IN and COM of the signer"
 }

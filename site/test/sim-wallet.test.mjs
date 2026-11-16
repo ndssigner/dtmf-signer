@@ -41,3 +41,9 @@ test("sending twice just queues more audio", () => {
   sim.queueAudio(a);
   assert.equal(sim.queued, 2 * a.length);
 });
+
+test("a new signed PSBT starting forgets the previous one", () => {
+  const c = new SignedCollector();
+  for (const l of ["signed-psbt-begin 1 3", "signed-psbt AQID", "signed-psbt-end 1", "signed-psbt-begin 2 3"]) c.push(l);
+  assert.equal(c.result, null);
+});

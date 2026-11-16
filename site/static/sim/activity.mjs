@@ -12,7 +12,8 @@ export function activeChannels({ mode, queued, listening, qrShown, scanning, mic
   }
   if (listening) on.add("listening");
   if (qrShown) on.add("qr");
-  if (qrShown && (mode === "your-phone" || scanning)) on.add("camera");
+  // Only the simulated phone's camera: the page cannot see yours.
+  if (qrShown && scanning && mode === "sim-phone") on.add("camera");
   return on;
 }
 

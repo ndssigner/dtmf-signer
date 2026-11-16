@@ -109,3 +109,11 @@ test("the home page titles its list of builds", () => {
 test("text shown in English on another language's page is marked lang=en", () => {
   assert.match(text(buildInto(FIX), "xx/index.html"), /<div lang="en">/);
 });
+
+test("each mode's text alternative describes its own connections", { skip: SKIP }, () => {
+  const html = text(files, "en/cable-qr/index.html");
+  const yp = /<ul class="connections[^"]*" data-modes="your-phone"[^>]*>([\s\S]*?)<\/ul>/.exec(html);
+  assert.ok(yp, "your-phone list");
+  assert.match(yp[1], /microphone/i);
+  assert.doesNotMatch(yp[1], /Tones by cable/);
+});
