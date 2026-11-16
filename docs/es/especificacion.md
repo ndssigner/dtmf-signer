@@ -167,7 +167,11 @@ confirmación, o una tecla del propio teclado.
 
 **Aviso:** muchos teléfonos guardan el último número marcado, y algunos
 tienen agenda: el PIN se quedaría en el teléfono. Usa solo el teclado, un
-teléfono sin memoria, o bórrala marcando otra cosa.
+teléfono sin memoria, o bórrala marcando otra cosa. Medido en un teléfono:
+la rellamada guardaba los primeros 26 dígitos, casi media semilla de 12
+palabras en modo teclado, y los conservaba sin alimentación. Después de
+sobrescribirla, descuelga y pulsa rellamada para comprobar que solo envía
+lo último que marcaste.
 
 ## 5. Verificar lo que se firma
 

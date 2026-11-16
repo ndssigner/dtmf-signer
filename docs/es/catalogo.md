@@ -57,9 +57,20 @@ Crece con cada montaje que alguien haga y mida.
 - **Qué hace:** recibe tonos por el aire (`AIR`).
 - **Necesita:** una cápsula electret con amplificador, o un módulo con
   ganancia automática; un pin de ADC, o la entrada de `TONES-CHIP`.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+  Probado: un módulo MAX9814 (ganancia automática, tres pines) conectado
+  directamente al pin de ADC; en reposo queda a la mitad de los 3,3 V.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` en vivo
+  (RP2040 a 16 kHz): desde el altavoz de una consola portátil a 2–3 cm, a
+  ritmo de aire (80 ms de tono + 80 ms de silencio), 8 tramas de 272 tonos
+  sin un solo tono equivocado; desde un timbre de teléfono recuperado a
+  unos 3 cm (ver `OUT-AIR`), 128 teclas sin errores a 40 ms de tono + 20 ms
+  de silencio, 5 errores a 30 + 10 ms.
 - **Riesgos:** todo lo que recibe es `AIR`: nunca datos sensibles. No debe
   compartir pin con `IN-LINE`, salvo que el montaje trate ambos como `AIR`.
+  Con la ganancia al máximo, el suelo de ruido lo pone el propio módulo, no
+  la habitación. Sin explicar todavía: en la prueba con la consola el
+  receptor no vio las pausas entre tramas, y hubo que encontrar las tramas
+  después por su sincronismo.
 - **Vectores:** las grabaciones por el aire de ur-tones.
 
 ### `IN-LINE` — entrada de línea
@@ -107,13 +118,40 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Qué hace:** el teclado de un teléfono fijo, conectado por cable al
   firmador (`LOCAL`). El PIN se teclea con varias pulsaciones por tecla para
-  A–Z, y pasa por `TONES-SW` o `TONES-CHIP`.
+  A–Z, y pasa por `TONES-SW` o `TONES-CHIP`. También sirve un teléfono de
+  tonos entero en `IN-LINE`, sin modificarlo; entonces es `CABLE`
+  ([§4.1 de la especificación](especificacion.md#41-clases)), que
+  sigue aceptando la semilla, el PIN y la frase de contraseña.
 - **Necesita:** el teclado y su generador de tonos, conectados a una
-  entrada de tonos.
-- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
+  entrada de tonos. O un teléfono entero y una **línea simulada**: el
+  teléfono se alimenta de la línea, así que necesita una fuente a través de
+  una resistencia, y un condensador que lleve sus tonos a la entrada de
+  línea. Probado con un Siemens euroset 805 P sin auricular (el gancho queda
+  arriba, descolgado):
+  - **5 V no bastan:** el circuito de conversación fija la línea en unos
+    4,3 V, solo pasan 6–7 mA y el marcador no suena.
+  - **9 V con 220 Ω funcionan:** la línea queda a 5,8 V, unos 15 mA, y se
+    descodifican todas las teclas.
+  - **La alimentación debe ser firme:** un contacto flojo corta un tono en
+    dos, y el modo teclado conserva las teclas repetidas, así que salió un
+    dígito de más.
+  - **Para una placa** (propuesta, sin montar): un elevador de los 5 V del
+    USB a 12–15 V y una corriente constante de unos 25 mA, dentro de la
+    corriente de bucle para la que están hechos los teléfonos (hay que
+    comprobar las cifras en las normas: TBR 21 / ETSI ES 201 970 en Europa,
+    TIA-968 en Estados Unidos). Un cortocircuito en la línea queda así sin
+    consecuencias.
+- **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` una
+  semilla de 12 palabras en modo teclado (`*`, 48 dígitos, `#`), tecleada a
+  mano en el teléfono, llegó al firmware del firmador sin una tecla
+  equivocada (RP2040 a 16 kHz).
 - **Riesgos:** muchos teléfonos guardan el último número marcado, y algunos
   tienen agenda: usa solo el teclado, un teléfono sin memoria, o bórrala.
-  Ver la [§4.3 de la especificación](especificacion.md#43-un-teclado-de-teléfono-recuperado).
+  Medido en ese teléfono: la rellamada guardaba **los primeros 26 dígitos**,
+  casi media semilla de 12 palabras, y **los conservaba sin alimentación**;
+  solo funciona como primera acción tras descolgar. Sobrescríbela marcando
+  otra cosa, y luego descuelga y pulsa rellamada para comprobar que solo
+  envía eso. Ver la [§4.3 de la especificación](especificacion.md#43-un-teclado-de-teléfono-recuperado).
 - **Vectores:** previstos.
 
 ### `IN-BUTTONS` — botones
@@ -133,14 +171,27 @@ Crece con cada montaje que alguien haga y mida.
   por un altavoz, un auricular o un piezo (`AIR`).
 - **Necesita:** un pin de PWM. **Un auricular de cable o un altavoz pequeño
   funcionan**, también recuperados: probado, un auricular junto al micrófono
-  de un móvil dio todas las teclas (pin, 1 kΩ, 10 µF, auricular). Un piezo de
-  disco puede excitarse directamente desde dos pines. **Un zumbador
-  magnético (2 kHz) no sirve** para DTMF: suena mucho más fuerte en el grupo
-  agudo, y un decodificador rechaza la mayoría de teclas aun con el grupo
-  grave 12 dB más fuerte. Sirve para pitidos.
+  de un móvil dio todas las teclas (pin, 1 kΩ, 10 µF, auricular). **Un piezo
+  de disco suelto a 3,3 V suena demasiado flojo:** un móvil solo lo
+  descodificó tocándolo. **Un timbre de teléfono recuperado funciona a corta
+  distancia:** un transductor piezo encapsulado (un BUJEON B9912 de un
+  teléfono de sobremesa) entre dos pines en contrafase, con 220 Ω en cada
+  pin, recibe ±3,3 V. Resuena hacia 2,3 kHz y cae por debajo de 1,1 kHz,
+  así que el grupo grave debe ir **12 dB más fuerte** (preénfasis); sin
+  eso, se pierden las teclas de la fila de 697 Hz. Con él, un micrófono
+  dedicado a unos 3 cm oyó 128 teclas sin errores a 40 ms de tono + 20 ms
+  de silencio (ver `IN-MIC`), y una consola portátil con NDS-Signer, con su
+  micrófono a unos 3 cm del timbre, recibió una PSBT de cinco tramas y la
+  firmó. Un móvil con la herramienta web de ur-tones perdió tonos. **Un
+  zumbador magnético (2 kHz) no sirve** para DTMF: suena mucho más fuerte
+  en el grupo agudo, y un decodificador rechaza la mayoría de teclas aun
+  con el grupo grave 12 dB más fuerte. Sirve para pitidos.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** cualquiera cerca lo oye: nunca datos sensibles (§4 de la
-  especificación), aunque el auricular esté pegado al micrófono.
+  especificación), aunque el auricular esté pegado al micrófono. La corta
+  distancia es una ventaja, no un defecto: el micrófono que recibe va
+  pegado al altavoz, y las tramas no se oyen por toda la habitación. El
+  cable sigue siendo la vía recomendada.
 - **Vectores:** los vectores de ur-tones.
 
 ### `OUT-LINE` — salida de línea

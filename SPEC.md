@@ -163,6 +163,10 @@ itself.
 **Warning:** many telephones keep the last number dialled, and some have a
 phone book: the PIN would stay in the telephone. Use the keypad alone, a
 telephone without memory, or overwrite it by dialling something else.
+Measured on one telephone: redial kept the first 26 digits, about half of
+a 12-word seed in keypad mode, and kept them without power. After
+overwriting it, pick up and press redial to check that it sends only what
+you dialled last.
 
 ## 5. Verifying what is signed
 

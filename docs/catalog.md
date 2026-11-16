@@ -56,10 +56,21 @@ build someone makes and measures.
 
 - **What it does:** receives tones through the air (`AIR`).
 - **Needs:** an electret capsule with an amplifier, or a module with
-  automatic gain; one ADC pin, or the input of `TONES-CHIP`.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+  automatic gain; one ADC pin, or the input of `TONES-CHIP`. Tested: a
+  MAX9814 module (automatic gain, three pins) straight to the ADC pin; it
+  idles at half the 3.3 V supply.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` live
+  (RP2040 at 16 kHz): from a handheld console's speaker 2–3 cm away, at air
+  timing (80 ms tone + 80 ms silence), 8 frames of 272 tones without a
+  wrong tone; from a salvaged telephone ringer about 3 cm away (see
+  `OUT-AIR`), 128 keys without an error at 40 ms tone + 20 ms silence,
+  5 errors at 30 + 10 ms.
 - **Risks:** anything it receives is `AIR`: never sensitive data. It must
   not share a pin with `IN-LINE` unless the build treats both as `AIR`.
+  With the gain at its maximum, the module's own noise sets the floor, not
+  the room. Not explained yet: in the console test the receiver did not
+  see the pauses between frames, so the frames had to be found by their
+  sync afterwards.
 - **Vectors:** ur-tones' air recordings.
 
 ### `IN-LINE` — line input
@@ -103,12 +114,37 @@ build someone makes and measures.
 
 - **What it does:** the keypad of a landline telephone, wired to the
   signer (`LOCAL`). The PIN is typed with several presses per key for A–Z,
-  and goes through `TONES-SW` or `TONES-CHIP`.
-- **Needs:** the keypad and its tone generator, wired to a tone input.
-- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
+  and goes through `TONES-SW` or `TONES-CHIP`. A whole tone telephone on
+  `IN-LINE` works too, unmodified; it is then `CABLE`
+  ([§4.1 of the specification](../SPEC.md#41-classes)), which still
+  takes the seed, the PIN and the passphrase.
+- **Needs:** the keypad and its tone generator, wired to a tone input. Or
+  a whole telephone and a **simulated line**: the telephone takes its power
+  from the line, so it needs a supply through a resistor, and a capacitor
+  that passes its tones to the line input. Tested with a Siemens euroset
+  805 P without its handset (the hook switch then stays up, off the hook):
+  - **5 V is not enough:** the speech circuit holds the line at about
+    4.3 V, only 6–7 mA flow, and the dialler stays silent.
+  - **9 V through 220 Ω works:** the line sits at 5.8 V, about 15 mA, and
+    every key decodes.
+  - **The supply must be firm:** a loose contact cuts a tone in two, and
+    keypad mode keeps repeated keys, so a digit came out twice.
+  - **For a board** (a proposal, not built): a boost from USB's 5 V to
+    12–15 V and a constant current of about 25 mA, within the loop current
+    telephones are made for (check the figures against the standards: TBR
+    21 / ETSI ES 201 970 in Europe, TIA-968 in the United States). A short
+    on the line is then harmless.
+- **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` a
+  12-word seed in keypad mode (`*`, 48 digits, `#`), typed by hand on the
+  telephone, reached the signer's firmware without a wrong key (RP2040 at
+  16 kHz).
 - **Risks:** many telephones keep the last number dialled, and some have a
   phone book: use the keypad alone, a telephone without memory, or
-  overwrite it. See [§4.3 of the specification](../SPEC.md#43-a-salvaged-phone-keypad).
+  overwrite it. Measured on that telephone: redial kept the **first 26
+  digits**, about half of a 12-word seed, and **kept them without power**;
+  it only works as the first thing after picking up. Overwrite it by
+  dialling something else, then pick up and press redial to check that it
+  sends only that. See [§4.3 of the specification](../SPEC.md#43-a-salvaged-phone-keypad).
 - **Vectors:** planned.
 
 ### `IN-BUTTONS` — buttons
@@ -128,13 +164,26 @@ build someone makes and measures.
   tones through a speaker, an earbud or a piezo (`AIR`).
 - **Needs:** a PWM pin. **A wired earbud or a small speaker works**, salvaged
   ones too: tested, an earbud next to a phone's microphone gave every key
-  (pin, 1 kΩ, 10 µF, earbud). A piezo disc can be driven straight from two
-  pins. **A magnetic buzzer (2 kHz) does not work** for DTMF: it is far
-  louder in the high group, and a decoder rejects most keys even with the low
-  group 12 dB louder. It is fine for beeps.
+  (pin, 1 kΩ, 10 µF, earbud). **A bare piezo disc on 3.3 V is too quiet:**
+  a phone decoded it only touching it. **A salvaged telephone ringer works
+  at close range:** an enclosed piezo transducer (a BUJEON B9912 from a desk
+  telephone) between two pins driven in opposite phase, with 220 Ω on each
+  pin, gets ±3.3 V. It resonates at about 2.3 kHz and falls off below
+  1.1 kHz, so the low group must go **12 dB louder** (pre-emphasis); without
+  it, the keys of the 697 Hz row are lost. With it, a dedicated microphone
+  about 3 cm away heard 128 keys without an error at 40 ms tone + 20 ms
+  silence (see `IN-MIC`), and a handheld console running NDS-Signer, its
+  microphone about 3 cm from the ringer, received a five-frame PSBT and
+  signed it. A phone with the ur-tones web tool lost tones. **A magnetic
+  buzzer (2 kHz) does not work** for DTMF: it is far louder in the high
+  group, and a decoder rejects most keys even with the low group 12 dB
+  louder. It is fine for beeps.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** anyone nearby hears it: never sensitive data (§4 of the
   specification), even with an earbud pressed against the microphone.
+  Close range is a feature, not a flaw: the receiving microphone goes
+  against the speaker, and the frames do not carry across the room. The
+  cable stays the recommended path.
 - **Vectors:** ur-tones' own vectors.
 
 ### `OUT-LINE` — line output
