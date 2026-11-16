@@ -6,11 +6,12 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadSite } from "./lib/i18n.mjs";
-import { renderMarkdown } from "./lib/markdown.mjs";
+import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
 import { layout, rootPage, translator } from "./lib/page.mjs";
+import { bomTable, parseCsv } from "./lib/bom.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 
@@ -23,9 +24,50 @@ function content(site, lang, name) {
   throw new Error(`no content/en/${name}.md`);
 }
 
+const blob = (site, path) => `${site.config.repo}/blob/main/${path}`;
+const ext = (href, label) => `<a href="${href}" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+// A per-language path from config ({ en, es, … }), English when missing.
+const perLang = (paths, lang) => paths[lang] ?? paths.en;
+
 function homePage(site, lang, tr) {
   const { html, fallback } = content(site, lang, "home");
-  return { title: "DTMF-Signer", body: html, fallback };
+  const builds = site.config.profiles.map((p) =>
+    `<li><a href="${p.slug}/">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`);
+  const list = builds.length ? `\n<ul class="builds">\n${builds.join("\n")}\n</ul>` : "";
+  return { title: "DTMF-Signer", body: html + list, fallback };
+}
+
+function profilePage(site, lang, tr, p, root) {
+  const { html, fallback } = content(site, lang, p.slug);
+  const repoRoot = join(site.dir, "..");
+  const rows = parseCsv(readFileSync(join(repoRoot, p.hardware, "bom.csv"), "utf8"));
+  const title = tr(`profile.${p.slug}.title`);
+  const files = p.files.map((f) => {
+    const name = basename(f);
+    return `<li><a href="${root}files/${name}">${escapeHtml(name)}</a></li>`;
+  }).join("\n");
+  const body = `<h1>${escapeHtml(title)}</h1>
+<p class="profile-id"><code>${p.id}</code></p>
+${html}
+<h2 id="simulator">${escapeHtml(tr("profile.sim"))}</h2>
+<div class="simulator">
+<p>${escapeHtml(tr("sim.soon"))}</p>
+<p>${escapeHtml(tr("sim.built", { commit: site.commit }))}</p>
+</div>
+<h2 id="parts">${escapeHtml(tr("profile.bom"))}</h2>
+${bomTable(rows, tr)}
+<h2 id="layout">${escapeHtml(tr("profile.plan"))}</h2>
+<p><img src="${root}img/${basename(p.image)}" alt="${escapeHtml(tr("profile.plan"))}"></p>
+<p>${escapeHtml(tr("profile.files"))}</p>
+<ul>
+${files}
+</ul>
+<h2 id="details">${escapeHtml(tr("profile.details"))}</h2>
+<ul>
+<li>${ext(blob(site, perLang(p.readme, lang)), tr("profile.readme"))}</li>
+<li>${ext(blob(site, perLang(p.docs, lang)), tr("profile.catalog"))}</li>
+</ul>`;
+  return { title: `${title} · DTMF-Signer`, body, fallback };
 }
 
 export function build({ siteDir, outDir, commit }) {
@@ -38,6 +80,12 @@ export function build({ siteDir, outDir, commit }) {
   for (const name of readdirSync(join(HERE, "static")).sort())
     files.set(name, readFileSync(join(HERE, "static", name)));
 
+  const repoRoot = join(siteDir, "..");
+  for (const p of site.config.profiles) {
+    files.set(`img/${basename(p.image)}`, readFileSync(join(repoRoot, p.image)));
+    for (const f of p.files) files.set(`files/${basename(f)}`, readFileSync(join(repoRoot, f)));
+  }
+
   for (const { code: lang } of site.config.languages) {
     const page = (path, make) => {
       const tr = translator(site, lang);
@@ -47,6 +95,8 @@ export function build({ siteDir, outDir, commit }) {
         Buffer.from(layout({ site, lang, tr, root, title, body, path, nav, fallback })));
     };
     page("", (tr) => homePage(site, lang, tr));
+    for (const p of site.config.profiles)
+      page(`${p.slug}/`, (tr) => profilePage(site, lang, tr, p, "../../"));
   }
 
   rmSync(outDir, { recursive: true, force: true });

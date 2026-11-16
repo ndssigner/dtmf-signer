@@ -9,5 +9,16 @@
   "bom.qty": "Cant.",
   "bom.value": "Valor",
   "bom.notes": "Notas",
-  "bom.price": "Precio aproximado"
+  "bom.price": "Precio aproximado",
+  "profile.cable-qr.title": "Cable y QR",
+  "profile.sim": "Simulador",
+  "sim.soon": "Próximamente: el firmware real, funcionando en tu navegador.",
+  "sim.built": "Se compilará desde el commit {commit}, como el resto de esta web.",
+  "profile.bom": "Piezas",
+  "profile.plan": "Plano",
+  "profile.files": "Archivos para descargar:",
+  "profile.details": "Detalles para construirlo",
+  "profile.catalog": "Este perfil en el catálogo",
+  "profile.readme": "Cómo construirlo",
+  "home.builds": "Montajes"
 }

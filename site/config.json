@@ -1,8 +1,34 @@
 {
   "languages": [
-    { "code": "en", "complete": true },
-    { "code": "es", "complete": true }
+    {
+      "code": "en",
+      "complete": true
+    },
+    {
+      "code": "es",
+      "complete": true
+    }
   ],
   "repo": "https://github.com/ndssigner/dtmf-signer",
-  "profiles": []
+  "profiles": [
+    {
+      "id": "PROFILE-CABLE-QR",
+      "slug": "cable-qr",
+      "hardware": "hardware/breadboard",
+      "image": "docs/images/breadboard-layout.png",
+      "files": [
+        "hardware/breadboard/dtmf-signer-breadboard.diy",
+        "hardware/breadboard/template-en.pdf",
+        "hardware/breadboard/template-es.pdf"
+      ],
+      "docs": {
+        "en": "docs/catalog.md#profile-cable-qr--cable-and-qr",
+        "es": "docs/es/catalogo.md#profile-cable-qr--cable-y-qr"
+      },
+      "readme": {
+        "en": "hardware/breadboard/README.md",
+        "es": "hardware/breadboard/README.es.md"
+      }
+    }
+  ]
 }
