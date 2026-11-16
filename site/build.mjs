@@ -12,6 +12,7 @@ import { loadSite } from "./lib/i18n.mjs";
 import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
 import { layout, rootPage, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
+import { parseStatus, statusTable } from "./lib/status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 
@@ -41,6 +42,7 @@ function profilePage(site, lang, tr, p, root) {
   const { html, fallback } = content(site, lang, p.slug);
   const repoRoot = join(site.dir, "..");
   const rows = parseCsv(readFileSync(join(repoRoot, p.hardware, "bom.csv"), "utf8"));
+  const status = parseStatus(readFileSync(join(repoRoot, p.hardware, "status.json"), "utf8"));
   const title = tr(`profile.${p.slug}.title`);
   const files = p.files.map((f) => {
     const name = basename(f);
@@ -49,6 +51,8 @@ function profilePage(site, lang, tr, p, root) {
   const body = `<h1>${escapeHtml(title)}</h1>
 <p class="profile-id"><code>${p.id}</code></p>
 ${html}
+<h2 id="status">${escapeHtml(tr("profile.status"))}</h2>
+${statusTable(status, tr)}
 <h2 id="simulator">${escapeHtml(tr("profile.sim"))}</h2>
 <div class="simulator">
 <p>${escapeHtml(tr("sim.soon"))}</p>

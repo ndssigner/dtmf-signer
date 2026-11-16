@@ -1,0 +1,16 @@
+{
+  "hardware": [
+    { "stage": "design", "state": "done" },
+    { "stage": "simulation", "state": "planned", "note": "SPICE" },
+    { "stage": "breadboard", "state": "done" },
+    { "stage": "perfboard", "state": "done", "note": "v0.2.0-alpha", "link": "https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7" },
+    { "stage": "pcb", "state": "planned" }
+  ],
+  "firmware": [
+    { "stage": "core", "state": "done" },
+    { "stage": "port", "state": "done", "note": "Raspberry Pi Pico" },
+    { "stage": "simulator", "state": "planned" },
+    { "stage": "release", "state": "done", "note": "v0.2.0-alpha", "link": "https://github.com/ndssigner/dtmf-signer/releases/tag/v0.2.0-alpha" },
+    { "stage": "review", "state": "planned" }
+  ]
+}
