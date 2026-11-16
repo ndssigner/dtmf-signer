@@ -42,6 +42,7 @@ export function checkI18n(siteDir) {
       errors.push(`${code}: no i18n/${code}.json`);
       continue;
     }
+    if (!("lang.name" in strings)) errors.push(`${code}: missing key lang.name (the language's own name, shown in the language switch)`);
     const missing = (what) => (complete ? errors : warnings).push(`${code}: missing ${what}`);
     for (const key of Object.keys(en)) {
       if (!(key in strings)) missing(`key ${key}`);

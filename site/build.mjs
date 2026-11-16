@@ -87,15 +87,17 @@ ${fig("donate-lightning.png", "Lightning", lightning)}
 
 function downloadsPage(site, lang, tr, root) {
   const { html, fallback } = content(site, lang, "downloads");
-  const { uf2, sums } = site.config.release;
-  const latest = `${site.config.repo}/releases/latest/download/`;
+  // A pinned tag, not /releases/latest: that one skips pre-releases.
+  const { tag, uf2, sums } = site.config.release;
+  const latest = `${site.config.repo}/releases/download/${tag}/`;
   const layouts = site.config.profiles.map((p) =>
     `<li><a href="../${p.slug}/#layout">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`).join("\n");
   const body = `<h1>${escapeHtml(tr("downloads.title"))}</h1>
-<h2 id="firmware">${escapeHtml(tr("downloads.firmware"))}</h2>
+<h2 id="firmware">${escapeHtml(tr("downloads.firmware", { tag }))}</h2>
 <ul>
 <li>${ext(latest + uf2, uf2)}</li>
 <li>${ext(latest + sums, sums)}</li>
+<li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>
 </ul>
 ${html}
 <h2 id="layouts">${escapeHtml(tr("downloads.layouts"))}</h2>

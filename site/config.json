@@ -32,6 +32,7 @@
     }
   ],
   "release": {
+    "tag": "v0.2.0-alpha",
     "uf2": "dtmf-signer-pico.uf2",
     "sums": "SHA256SUMS"
   },

@@ -34,3 +34,9 @@ test("checker: placeholder mismatch and extra keys are errors", () => {
 test("the real site passes", () => {
   assert.deepEqual(checkI18n(SITE).errors, []);
 });
+test("checker: every language needs its own name, even an incomplete one", () => {
+  // fixture xx.json has lang.name; a language with none would show up as "English" in the switch
+  const r = checkI18n(FIX);
+  assert.ok(!r.errors.some((e) => e.includes("xx") && e.includes("lang.name")));
+  assert.ok(r.errors.some((e) => e.includes("yy") && e.includes("lang.name")), r.errors.join("\n"));
+});

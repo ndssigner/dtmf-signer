@@ -15,7 +15,9 @@ Everything you need is two kinds of files, and no programming:
 
 1. Pick the language's code (`fr`, `pt`, `de`…).
 2. Copy `site/i18n/en.json` to `site/i18n/<code>.json` and translate the
-   texts on the right. Keep the keys on the left as they are.
+   texts on the right. Keep the keys on the left as they are. Start with
+   `lang.name`, the language's own name: the checks require it even in a
+   language half done.
 3. Copy `site/content/en/` to `site/content/<code>/` and translate each
    file.
 4. Add the language to `site/config.json`, under `languages`:

@@ -22,8 +22,9 @@
   "profile.readme": "Cómo construirlo",
   "home.builds": "Montajes",
   "downloads.title": "Descargas",
-  "downloads.firmware": "Firmware para la Raspberry Pi Pico (última versión publicada)",
+  "downloads.firmware": "Firmware para la Raspberry Pi Pico, versión {tag}",
   "downloads.layouts": "Planos y listas de piezas",
   "donate.title": "Donar",
-  "donate.text": "DTMF-Signer es libre y no tiene financiación. Las donaciones ayudan a que siga adelante."
+  "donate.text": "DTMF-Signer es libre y no tiene financiación. Las donaciones ayudan a que siga adelante.",
+  "downloads.all": "Todas las versiones"
 }
