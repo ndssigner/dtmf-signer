@@ -8,7 +8,7 @@ set_target_properties(dtmf-signer-wasm PROPERTIES OUTPUT_NAME dtmf-signer SUFFIX
 set(DSW_EXPORTS
   _dsw_init _dsw_audio_buf _dsw_audio _dsw_advance _dsw_take_dirty _dsw_draw _dsw_contrast
   _dsw_rows _dsw_line _dsw_picker_cell _dsw_take_echo _dsw_echo _dsw_keys _dsw_wants_reboot
-  _dsw_version)
+  _dsw_version _dsw_listening _dsw_qr_shown)
 list(JOIN DSW_EXPORTS "," DSW_EXPORTS_CSV)
 target_link_options(dtmf-signer-wasm PRIVATE
   -O2

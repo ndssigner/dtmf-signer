@@ -25,5 +25,6 @@ máquina, y el CI de la web imprime el hash del que publica.
 (milisegundos con una clase de botón pulsada), `dsw_take_dirty`, `dsw_draw`
 (el framebuffer de 128 × 64), `dsw_contrast`, `dsw_rows` y `dsw_line` (el
 texto de la pantalla), `dsw_take_echo` y `dsw_echo`, `dsw_keys`,
-`dsw_wants_reboot`, `dsw_version`, y `dsw_picker_cell` para los tests. Mira
+`dsw_wants_reboot`, `dsw_version`, `dsw_listening` y `dsw_qr_shown` (lo
+que anima el dibujo del simulador), y `dsw_picker_cell` para los tests. Mira
 `main.c`.

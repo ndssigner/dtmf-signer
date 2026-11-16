@@ -22,3 +22,13 @@ test("the version comes from git", { skip: SKIP }, async () => {
   const m = await load();
   assert.match(m.UTF8ToString(m._dsw_version()), /^(v\d+\.\d+\.\d+\S*|[0-9a-f]{7,}(-dirty)?)$/);
 });
+test("it says when it listens and when it shows a QR", { skip: SKIP }, async () => {
+  const m = await load();
+  m._dsw_init();
+  m._dsw_advance(500, 0);
+  assert.equal(m._dsw_listening(), 0);
+  assert.equal(m._dsw_qr_shown(), 0);
+  tap(m, 3);                    // past the welcome
+  tap(m, 3);                    // Load seed
+  assert.equal(m._dsw_listening(), 1);
+});

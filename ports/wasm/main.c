@@ -94,4 +94,9 @@ EMSCRIPTEN_KEEPALIVE uint32_t dsw_keys(void) { return ds_app_keys(&app); }
 
 EMSCRIPTEN_KEEPALIVE int dsw_wants_reboot(void) { return ds_app_wants_reboot(&app); }
 
+/* 1 while the firmware listens on its line-in; 1 while a QR is on screen. */
+EMSCRIPTEN_KEEPALIVE int dsw_listening(void) { return ds_app_listening(&app); }
+
+EMSCRIPTEN_KEEPALIVE int dsw_qr_shown(void) { return app.screen.qr; }
+
 EMSCRIPTEN_KEEPALIVE const char *dsw_version(void) { return DS_VERSION; }

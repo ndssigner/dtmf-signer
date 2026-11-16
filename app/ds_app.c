@@ -894,11 +894,16 @@ void ds_app_init(ds_app *a, uint32_t audio_rate)
     a->dirty = 1;
 }
 
-static int listening_now(const ds_app *a)
+int ds_app_listening(const ds_app *a)
 {
     /* DS_RX_DONE leaves ST_LISTEN in the same poll: no audio reaches the
      * receiver after it. */
     return a->state == ST_LOAD || a->state == ST_LISTEN;
+}
+
+static int listening_now(const ds_app *a)
+{
+    return ds_app_listening(a);
 }
 
 void ds_app_audio(ds_app *a, const int16_t *x, size_t n)

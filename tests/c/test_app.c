@@ -336,6 +336,34 @@ static void test_app_seed_flow(void)
     ds_app_init(&app, TONES_RATE);
 }
 
+/* ds_app_listening: 1 only while the receiver takes audio (a seed or a PSBT). */
+static void test_app_listening(void)
+{
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    press(DS_BTN_OK); /* past the welcome */
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    press(DS_BTN_OK); /* Load seed */
+    CHECK(shows("Waiting for tones"));
+    CHECK_EQ_INT(ds_app_listening(&app), 1);
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    CHECK(feed_tones(tones));
+    CHECK(shows("PIN"));
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    ds_app_init(&app, TONES_RATE);
+    to_ready(NULL, 0x73c5da0au);
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    press(DS_BTN_OK); /* Sign PSBT, the first entry */
+    if (shows("by cable")) {
+        CHECK_EQ_INT(ds_app_listening(&app), 1);
+    } else {
+        CHECK(0); /* the menu's first entry is no longer Sign PSBT */
+    }
+    ds_app_init(&app, TONES_RATE);
+}
+
 static void test_app_seed_discard(void)
 {
     to_seed_fp();
@@ -1338,7 +1366,7 @@ static void test_app_activity(void)
     ds_app_init(&app, TONES_RATE);
 }
 
-TEST_MAIN(test_app_seed_flow, test_app_seed_discard, test_app_passphrase,
+TEST_MAIN(test_app_seed_flow, test_app_listening, test_app_seed_discard, test_app_passphrase,
           test_app_sign_flow, test_app_timings, test_app_reject, test_app_cancel,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
           test_app_fits_qr, test_app_settings, test_app_single_page,

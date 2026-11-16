@@ -199,6 +199,9 @@ int32_t ds_app_take_echo(ds_app *a, char *out, size_t cap);
  * flash a light each time it grows. A count only, never the keys. */
 uint32_t ds_app_keys(const ds_app *a);
 
+/* 1 while the receiver takes line-in audio (a seed or a PSBT), else 0. */
+int ds_app_listening(const ds_app *a);
+
 /* 1 after a wipe: the port reboots the device. */
 int ds_app_wants_reboot(const ds_app *a);
 
