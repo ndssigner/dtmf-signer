@@ -11,6 +11,7 @@ add_library(dtmf_app STATIC
   ds_pack.c
   ds_app.c
   ds_say.c
+  ds_multitap.c
   voice/ds_prompt_names.c
 )
 target_include_directories(dtmf_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/voice)
