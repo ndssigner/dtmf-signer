@@ -182,5 +182,37 @@ class HeaderTest(unittest.TestCase):
         self.assertIn("ds_pack_en_len", text)
 
 
+try:
+    import numpy as np
+except ImportError:  # the pure-Python suite runs without it
+    np = None
+
+
+@unittest.skipIf(np is None, "needs numpy (the voice venv)")
+class NotchTest(unittest.TestCase):
+    """The clip pipeline takes the DTMF high group out of the speech, so no
+    clip can sound like a key."""
+
+    @staticmethod
+    def _gain_db(f):
+        t = np.arange(8000) / make_pack.RATE
+        x = 0.3 * np.sin(2 * np.pi * f * t)
+        y = make_pack.notch_dtmf(x)
+        mid = slice(2000, 6000)  # away from the edges
+        return 20 * np.log10(np.sqrt((y[mid] ** 2).mean()) / np.sqrt((x[mid] ** 2).mean()))
+
+    def test_high_group_is_notched(self):
+        for f in make_pack.DTMF_HIGH:
+            self.assertLessEqual(self._gain_db(f), -30, f)
+
+    def test_the_rest_passes(self):
+        for f in (500, 2400):
+            self.assertAlmostEqual(self._gain_db(f), 0, delta=3, msg=f)
+
+    def test_deterministic(self):
+        x = np.sin(np.arange(2000) * 0.37) * 0.2
+        self.assertTrue((make_pack.notch_dtmf(x) == make_pack.notch_dtmf(x)).all())
+
+
 if __name__ == "__main__":
     unittest.main()

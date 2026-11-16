@@ -338,6 +338,46 @@ def resample(x, rate_in: int, rate_out: int = RATE):
     return (xp[np.clip(idx + half, 0, len(xp) - 1)] * h).sum(axis=1)
 
 
+# The DTMF high group. A key is a low-group and a high-group tone together, so
+# a clip with no energy at the four high-group frequencies can never sound
+# like a key to a detector (speech otherwise does now and then).
+DTMF_HIGH = (1209.0, 1336.0, 1477.0, 1633.0)
+NOTCH_Q = 4.0
+
+
+def _notch(x, f0: float, q: float):
+    """One biquad notch (RBJ), run forward and backward (zero phase, so the
+    depth doubles); plain float arithmetic, so the same input gives the same
+    output."""
+    import math
+    import numpy as np
+    w0 = 2 * math.pi * f0 / RATE
+    alpha = math.sin(w0) / (2 * q)
+    a0 = 1 + alpha
+    b = (1 / a0, -2 * math.cos(w0) / a0, 1 / a0)
+    a1, a2 = -2 * math.cos(w0) / a0, (1 - alpha) / a0
+
+    def run(v):
+        out = np.empty_like(v)
+        x1 = x2 = y1 = y2 = 0.0
+        for i, xi in enumerate(v.tolist()):
+            yi = b[0] * xi + b[1] * x1 + b[2] * x2 - a1 * y1 - a2 * y2
+            out[i] = yi
+            x2, x1, y2, y1 = x1, xi, y1, yi
+        return out
+
+    return run(run(x)[::-1])[::-1]
+
+
+def notch_dtmf(x, q: float = NOTCH_Q):
+    """Notches at the four high-group frequencies, on 8 kHz samples."""
+    import numpy as np
+    x = np.asarray(x, dtype=np.float64)
+    for f0 in DTMF_HIGH:
+        x = _notch(x, f0, q)
+    return x
+
+
 def condition(x):
     """Trim below -45 dBFS keeping 30 ms either side, peak to -3 dBFS."""
     import numpy as np
@@ -361,7 +401,7 @@ def render_clips(lang: str, phrases: dict):
                 continue
             piper_wav(model, text, wav)
             x, rate = read_wav(wav)
-            clips.append(condition(resample(x, rate)))
+            clips.append(condition(notch_dtmf(resample(x, rate))))
     return clips, voice["name"]
 
 

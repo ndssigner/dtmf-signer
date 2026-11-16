@@ -212,33 +212,17 @@ static void test_no_earcon_is_a_key(void)
     }
 }
 
-/* Clips of the current packs that the detector takes for a key (speech
- * holding energy on a DTMF pair). KNOWN TALK-OFF: to be emptied by fixing the
- * clips; the test fails on any clip not listed and on any listed one that no
- * longer trips, so the list can only shrink. Sorted. */
-static const uint16_t talkoff_en[] = {0, 1, 10, 11, 12, 13, 14, 17, 18, 26, 27, 29,
-                                      30, 31, 59, 61, 65, 71, 145, 162, 164};
-static const uint16_t talkoff_es[] = {1, 12, 13, 14, 17, 27, 28, 55, 58, 98, 132};
-
-static int listed(const uint16_t *list, size_t n, unsigned id)
-{
-    for (size_t i = 0; i < n; i++)
-        if (list[i] == id)
-            return 1;
-    return 0;
-}
-
 static void test_no_prompt_is_a_key(void)
 {
     ds_pack es;
     CHECK_EQ_INT(ds_pack_open(&es, es_bin, ES_BIN_LEN), DS_OK);
     for (unsigned id = 0; id < DS_P_COUNT; id++) {
-        int e = played_is_a_key(&en, id, 0);
-        int x = played_is_a_key(&es, id, 0);
-        int ke = listed(talkoff_en, sizeof talkoff_en / sizeof talkoff_en[0], id);
-        int kx = listed(talkoff_es, sizeof talkoff_es / sizeof talkoff_es[0], id);
-        if (e != ke || x != kx) {
-            printf("clip %u (en/es): heard as a key %d/%d, listed %d/%d\n", id, e, x, ke, kx);
+        if (played_is_a_key(&en, id, 0)) {
+            printf("clip %u (en) is heard as a key\n", id);
+            ds_failures++;
+        }
+        if (played_is_a_key(&es, id, 0)) {
+            printf("clip %u (es) is heard as a key\n", id);
             ds_failures++;
         }
     }
