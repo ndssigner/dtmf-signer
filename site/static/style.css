@@ -38,3 +38,23 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
 .status li { margin: .2rem 0; }
 .state { display: inline-block; width: 1.5em; }
 .legend { color: var(--muted); font-size: .85rem; }
+.simulator { border: 1px solid var(--line); border-radius: 6px; padding: .75rem 16px; }
+.sim-warning { background: var(--notice); padding: .5rem .75rem; border-radius: 4px; font-size: .9rem; }
+.sim-device { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: center;
+  background: #10261d; padding: 1rem; border-radius: 10px; outline-offset: 3px; }
+.sim-oled { width: 100%; max-width: 512px; aspect-ratio: 2 / 1; image-rendering: pixelated;
+  background: #000; border: 6px solid #000; border-radius: 3px; }
+.sim-buttons { display: grid; grid-template-columns: repeat(3, 3rem); grid-template-rows: repeat(3, 3rem); gap: .3rem; }
+.sim-buttons button { font-size: 1.1rem; border-radius: 50%; border: 1px solid #555; background: #e9e6dc;
+  color: #222; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sim-buttons button:active { background: #c9c5b8; }
+.sim-buttons [data-btn="up"] { grid-column: 2; grid-row: 1; }
+.sim-buttons [data-btn="left"] { grid-column: 1; grid-row: 2; }
+.sim-buttons [data-btn="ok"] { grid-column: 2; grid-row: 2; }
+.sim-buttons [data-btn="right"] { grid-column: 3; grid-row: 2; }
+.sim-buttons [data-btn="down"] { grid-column: 2; grid-row: 3; }
+.sim-hint, .sim-built, .sim-line { color: var(--muted); font-size: .85rem; }
+.sim-actions button { margin: .2rem .4rem .2rem 0; padding: .4rem .8rem; }
+.sim-options label { margin-right: 1rem; }
+.sim-signed { width: 100%; font: .8rem/1.4 ui-monospace, monospace; }
+.screen-text, .echo { font-size: .8rem; max-height: 14rem; overflow: auto; background: var(--code); padding: .5rem; }

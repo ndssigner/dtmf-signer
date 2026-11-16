@@ -19,13 +19,15 @@ export function translator(site, lang) {
   return tr;
 }
 
-function head(lang, title, root) {
+export const CSP_WASM = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
+
+function head(lang, title, root, wasm = false) {
   return `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="${CSP}">
+<meta http-equiv="Content-Security-Policy" content="${wasm ? CSP_WASM : CSP}">
 <title>${escapeHtml(title)}</title>
 <link rel="stylesheet" href="${root}style.css">
 <script type="module" src="${root}lang.js"></script>
@@ -35,8 +37,9 @@ function head(lang, title, root) {
 // nav: [{ key, href }] relative to the language folder ("" is its home).
 // path: this page's path inside the language folder ("" or "cable-qr/").
 // fallback: true if the page's own content came from English.
-export function layout({ site, lang, tr, root, title, body, path, nav, fallback }) {
-  const repo = site.config.repo;
+// wasm: the page runs WebAssembly (the simulator), and only that page may.
+export function layout({ site, lang, tr, root, title, body, path, nav, fallback, wasm = false }) {
+  const repo = escapeHtml(site.config.repo);
   const links = nav.map(({ key, href }) =>
     `<a href="${root}${lang}/${href}">${escapeHtml(tr(key))}</a>`).join("\n");
   const langs = site.config.languages.map(({ code }) => {
@@ -51,7 +54,7 @@ export function layout({ site, lang, tr, root, title, body, path, nav, fallback 
   const notice = fallback || tr.fallback
     ? `<p class="notice">${escapeHtml(t(site, lang, "fallback.notice").text)} <a href="${repo}/blob/main/site/TRANSLATING.md" rel="noopener noreferrer">TRANSLATING.md</a></p>\n`
     : "";
-  return `${head(lang, title, root)}
+  return `${head(lang, title, root, wasm)}
 <body>
 <header>
 <a class="brand" href="${root}${lang}/">DTMF-Signer</a>

@@ -16,7 +16,9 @@ test("CSP and no external resources", () => {
   for (const [path, bytes] of buildInto()) {
     if (!path.endsWith(".html")) continue;
     const html = bytes.toString("utf8");
-    assert.ok(html.includes(`content="${CSP}"`), path);
+    // Only a page that runs the simulator may also run WebAssembly.
+    const want = html.includes('id="sim-data"') ? CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'") : CSP;
+    assert.ok(html.includes(`content="${want}"`), path);
     assert.doesNotMatch(html, /src="https?:/, path);
     assert.doesNotMatch(html, /<link[^>]*href="https?:/, path);
   }
@@ -44,4 +46,11 @@ test("an incomplete language builds with English and the notice", () => {
 });
 test("footer shows the commit", () => {
   assert.match(text(buildInto(), "en/index.html"), /abc1234/);
+});
+test("no page repeats an id", () => {
+  for (const [path, bytes] of buildInto()) {
+    if (!path.endsWith(".html")) continue;
+    const ids = [...bytes.toString("utf8").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(ids.filter((id, i) => ids.indexOf(id) !== i), [], path);
+  }
 });

@@ -41,10 +41,10 @@ test("the held button reaches the module", () => {
   const f = fake(), sim = new Simulator(f);
   sim.press(3);
   assert.equal(sim.cls, 3);
-  sim.advance(16);
+  sim.advance(64);                       // held past the minimum press
   sim.release();
   sim.advance(16);
-  assert.deepEqual(f.advanced.map(([, c]) => c), [3, 0]);
+  assert.deepEqual(f.advanced.map(([, c]) => c), [3, 3, 3, 3, 0]);
 });
 test("echo lines are collected", () => {
   const sim = new Simulator(fake({ echo: ["state home", "fingerprint 73c5da0a"] }));
@@ -76,4 +76,33 @@ test("fractions of a millisecond add up across calls", () => {
   sim.advance(16.5);
   assert.equal(f.advanced.reduce((s, [ms]) => s + ms, 0), 33);
   assert.ok(f.advanced.every(([ms]) => Number.isInteger(ms)));
+});
+test("a click shorter than the debounce still counts: release waits 60 ms of held time", () => {
+  const f = fake(), sim = new Simulator(f);
+  sim.press(3);
+  sim.release();                         // a click: down and up at once
+  sim.advance(16);
+  sim.advance(16);
+  sim.advance(16);
+  sim.advance(16);
+  sim.advance(16);
+  const held = f.advanced.filter(([, c]) => c === 3).reduce((s, [ms]) => s + ms, 0);
+  assert.ok(held >= 60 && held <= 64, String(held));
+  assert.equal(f.advanced.at(-1)[1], 0);
+  assert.equal(sim.cls, 0);
+});
+test("quick taps in a row stay separate presses, with a gap between them", () => {
+  const f = fake(), sim = new Simulator(f);
+  sim.press(5); sim.release();
+  sim.press(5); sim.release();           // a second tap before the first was let go
+  for (let i = 0; i < 20; i++) sim.advance(16);
+  const runs = [];                       // [class, ms] runs as the firmware saw them
+  for (const [ms, c] of f.advanced) {
+    if (runs.length && runs.at(-1)[0] === c) runs.at(-1)[1] += ms; else runs.push([c, ms]);
+  }
+  const taps = runs.filter(([c]) => c === 5);
+  assert.equal(taps.length, 2, JSON.stringify(runs));
+  assert.ok(taps.every(([, ms]) => ms >= 60));
+  const gap = runs[runs.findIndex(([c]) => c === 5) + 1];
+  assert.ok(gap[0] === 0 && gap[1] >= 40, JSON.stringify(runs));
 });

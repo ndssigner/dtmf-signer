@@ -40,3 +40,14 @@ test("checker: every language needs its own name, even an incomplete one", () =>
   assert.ok(!r.errors.some((e) => e.includes("xx") && e.includes("lang.name")));
   assert.ok(r.errors.some((e) => e.includes("yy") && e.includes("lang.name")), r.errors.join("\n"));
 });
+test("a language code that is not a plain code is refused", async () => {
+  const { mkdtempSync, cpSync, writeFileSync, readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const dir = mkdtempSync(join(tmpdir(), "i18n-"));
+  cpSync(FIX, dir, { recursive: true });
+  const cfg = JSON.parse(readFileSync(join(dir, "config.json"), "utf8"));
+  cfg.languages.push({ code: 'x" onload="y', complete: false });
+  writeFileSync(join(dir, "config.json"), JSON.stringify(cfg));
+  assert.throws(() => loadSite(dir), /language code/);
+});

@@ -7,6 +7,8 @@ import { join } from "node:path";
 export function loadSite(siteDir) {
   const config = JSON.parse(readFileSync(join(siteDir, "config.json"), "utf8"));
   config.profiles ??= [];
+  for (const { code } of config.languages)
+    if (!/^[a-z]{2,3}(-[a-z0-9]+)?$/.test(code)) throw new Error(`language code ${JSON.stringify(code)}: use a plain code such as "pt" or "pt-br"`);
   const strings = {};
   for (const { code } of config.languages) {
     const file = join(siteDir, "i18n", code + ".json");

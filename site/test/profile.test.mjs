@@ -17,9 +17,9 @@ test("it shows the parts list from bom.csv", () => {
 test("it shows the layout and offers its files", () => {
   const html = text(files, "en/cable-qr/index.html");
   assert.match(html, /<img [^>]*src="[^"]*breadboard-layout\.png"/);
-  assert.match(html, /href="[^"]*files\/dtmf-signer-breadboard\.diy"/);
-  assert.match(html, /href="[^"]*files\/template-es\.pdf"/);
-  assert.ok(files.has("files/dtmf-signer-breadboard.diy"));
+  assert.match(html, /href="[^"]*files\/cable-qr\/dtmf-signer-breadboard\.diy"/);
+  assert.match(html, /href="[^"]*files\/cable-qr\/template-es\.pdf"/);
+  assert.ok(files.has("files/cable-qr/dtmf-signer-breadboard.diy"));
 });
 test("it names its profile and holds a place for the simulator", () => {
   const html = text(files, "en/cable-qr/index.html");

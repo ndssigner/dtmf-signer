@@ -8,6 +8,8 @@ It is the build that works today, on a breadboard or a perfboard, with a
 Raspberry Pi Pico, a small OLED screen, a few push buttons and a handful of
 resistors and capacitors.
 
+You can try it below, in the simulator: the firmware itself, compiled to WebAssembly, with a test wallet that sends it a seed and a transaction.
+
 ## What it does
 
 - Receives your seed as tones, protected by a PIN, and never shows it: only

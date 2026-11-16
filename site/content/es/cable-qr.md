@@ -8,6 +8,8 @@ Es el montaje que funciona hoy, en una protoboard o una placa perforada, con
 una Raspberry Pi Pico, una pantalla OLED pequeña, unos pocos pulsadores y un
 puñado de resistencias y condensadores.
 
+Puedes probarlo abajo, en el simulador: el propio firmware, compilado a WebAssembly, con una wallet de prueba que le envía una semilla y una transacción.
+
 ## Qué hace
 
 - Recibe tu semilla como tonos, protegida con un PIN, y nunca la muestra:
