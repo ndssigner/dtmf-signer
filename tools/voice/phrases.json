@@ -147,6 +147,10 @@
   "es": "Adiós.",
   "en": "Goodbye."
  },
+ "lang_press": {
+  "es": "Para español, pulsa",
+  "en": "For English, press"
+ },
  "c_0": {
   "es": "cero",
   "en": "zero"
@@ -447,8 +451,32 @@
   "es": "noventa",
   "en": ""
  },
- "n_y": {
-  "es": "y",
+ "n_treinta_y": {
+  "es": "treinta y",
+  "en": ""
+ },
+ "n_cuarenta_y": {
+  "es": "cuarenta y",
+  "en": ""
+ },
+ "n_cincuenta_y": {
+  "es": "cincuenta y",
+  "en": ""
+ },
+ "n_sesenta_y": {
+  "es": "sesenta y",
+  "en": ""
+ },
+ "n_setenta_y": {
+  "es": "setenta y",
+  "en": ""
+ },
+ "n_ochenta_y": {
+  "es": "ochenta y",
+  "en": ""
+ },
+ "n_noventa_y": {
+  "es": "noventa y",
   "en": ""
  },
  "n_cien": {

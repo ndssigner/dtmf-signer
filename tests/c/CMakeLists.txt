@@ -81,7 +81,9 @@ target_link_libraries(test_review PRIVATE dtmf_app)
 
 # The voice prompts: the ADPCM decoder (against the shared vector, generated
 # into the build directory like the PSBT one) and the pack reader (against the
-# real packs, which live in their own library so the other builds skip them).
+# built-in English pack, which lives in its own library so the other builds
+# skip it, the committed Spanish pack and a data-only Japanese one, both
+# turned into a header in the build directory).
 set(DS_ADPCM_VECTOR_H ${CMAKE_CURRENT_BINARY_DIR}/adpcm_vector.h)
 add_custom_command(
   OUTPUT ${DS_ADPCM_VECTOR_H}
@@ -91,7 +93,19 @@ add_custom_command(
           ${PROJECT_SOURCE_DIR}/vectors/adpcm-v0.json
   COMMENT "Generating adpcm_vector.h"
   VERBATIM)
+set(DS_VOICE_TEST_PACKS_H ${CMAKE_CURRENT_BINARY_DIR}/voice_test_packs.h)
+add_custom_command(
+  OUTPUT ${DS_VOICE_TEST_PACKS_H}
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/voice_test_packs_to_c.py
+          ${PROJECT_SOURCE_DIR}/app/voice/packs/es.bin ${DS_VOICE_TEST_PACKS_H}
+  DEPENDS ${PROJECT_SOURCE_DIR}/tools/voice_test_packs_to_c.py
+          ${PROJECT_SOURCE_DIR}/tools/voice/make_pack.py
+          ${PROJECT_SOURCE_DIR}/tools/voice/adpcm.py
+          ${PROJECT_SOURCE_DIR}/tools/voice/phrases.json
+          ${PROJECT_SOURCE_DIR}/app/voice/packs/es.bin
+  COMMENT "Generating voice_test_packs.h"
+  VERBATIM)
 ds_add_test(test_voice_pack)
-target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H})
+target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H} ${DS_VOICE_TEST_PACKS_H})
 target_include_directories(test_voice_pack PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_voice_pack PRIVATE dtmf_app ds_voice_packs)

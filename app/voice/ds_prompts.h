@@ -43,6 +43,7 @@ enum ds_prompt {
     DS_P_ERROR_GENERIC,
     DS_P_CANCELLED,
     DS_P_GOODBYE,
+    DS_P_LANG_PRESS,
     DS_P_C_0,
     DS_P_C_1,
     DS_P_C_2,
@@ -118,7 +119,13 @@ enum ds_prompt {
     DS_P_N_SETENTA,
     DS_P_N_OCHENTA,
     DS_P_N_NOVENTA,
-    DS_P_N_Y,
+    DS_P_N_TREINTA_Y,
+    DS_P_N_CUARENTA_Y,
+    DS_P_N_CINCUENTA_Y,
+    DS_P_N_SESENTA_Y,
+    DS_P_N_SETENTA_Y,
+    DS_P_N_OCHENTA_Y,
+    DS_P_N_NOVENTA_Y,
     DS_P_N_CIEN,
     DS_P_N_CIENTO,
     DS_P_N_DOSCIENTOS,
@@ -167,9 +174,8 @@ enum ds_prompt {
     DS_P_COUNT
 };
 
-/* Voice packs: "DSV1" format, see tools/voice/make_pack.py. */
-extern const uint8_t ds_pack_es[];
-extern const uint32_t ds_pack_es_len;
+/* The built-in English pack ("DSV2", see tools/voice/make_pack.py);
+ * other languages are separate packs in the voice flash region. */
 extern const uint8_t ds_pack_en[];
 extern const uint32_t ds_pack_en_len;
 

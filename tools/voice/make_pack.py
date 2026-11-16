@@ -1,21 +1,40 @@
 #!/usr/bin/env python3
 """Builds the spoken-prompt packs of the telephone build.
 
-    python3 tools/voice/make_pack.py --lang es --out-c app/voice/pack_es.c
+    python3 tools/voice/make_pack.py --lang en --out-c app/voice/pack_en.c
+    python3 tools/voice/make_pack.py --lang es --out-bin app/voice/packs/es.bin
     python3 tools/voice/make_pack.py --header app/voice/ds_prompts.h
     python3 tools/voice/make_pack.py --adpcm-vector vectors/adpcm-v0.json
 
+English is compiled into the firmware (a C array); every other language is a
+separate pack written to the voice flash region (tools/voice/make_uf2.py).
+
 Per phrase: Piper (a subprocess) renders a WAV, which is resampled to 8 kHz,
 trimmed of silence (below -45 dBFS, 30 ms of padding kept), normalised to a
--3 dBFS peak and encoded as IMA ADPCM. The pack layout (little-endian):
+-3 dBFS peak and encoded as IMA ADPCM. The pack layout ("DSV2", little-endian):
 
-    "DSV1" | lang (2 ASCII) | u16 count
+    "DSV2" | lang (2 ASCII) | u16 format = 2 | u16 count | u32 total_len
+    | u32 crc32 (IEEE, over the whole pack with this field as 0) | u32 grammar_off
     count x { u32 offset, u32 bytes, i16 pred, u8 index, u8 pad }
-    data
+    grammar | data
 
 `offset` counts from the start of the pack. Clips are IMA ADPCM, low nibble
 first, 8000 Hz; `pred` and `index` are the decoder state at the clip's start.
-An empty phrase has `bytes` 0.
+An empty phrase has `bytes` 0. `count` must equal the firmware's prompt count.
+
+The grammar block (from tools/voice/grammar.json) tells the firmware how to
+say a number with the pack's clips:
+
+    u16 small[100]                 clip for 0..99, 0xFFFF = build it from the scales
+    u8 nscales (<= 8)              largest first, each value >= 10
+    nscales x { u64 value, u16 singular, u16 plural (0xFFFF none), u8 say_one, u8 pad[5] }
+    u16 nirr (<= 255)
+    nirr x { u64 value, u16 clip, u8 kind, u8 pad[5] }
+
+Irregular kinds: 1 = an exact multiple of a scale (es "cien", "treinta"),
+2 = that multiple followed by more (es "ciento", "treinta y"), 3 = the form of
+a small number said right before a scale word (es 1 -> "un", 21 -> "veintiún").
+say_number() below is the reference of the algorithm in app/ds_pack.c.
 
 The building and parsing of packs is pure Python; rendering needs the
 tools/voice/requirements.txt packages (see README.md).
@@ -33,6 +52,7 @@ import sys
 import tempfile
 import urllib.request
 import wave
+import zlib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -44,14 +64,115 @@ THRESHOLD_DBFS = -45.0
 PAD_MS = 30
 PEAK_DBFS = -3.0
 ENTRY = struct.Struct("<IIhBB")
+SLOT = 0x80000  # a pack must fit one slot of the voice flash region
 
 
 # -- Pack ---------------------------------------------------------------
 
-def build_pack(lang: str, clips) -> bytes:
+MAGIC = b"DSV2"
+FORMAT = 2
+HEADER = struct.Struct("<4s2sHHIII")
+NONE = 0xFFFF
+MAX_SCALES = 8
+MAX_IRREGULARS = 255
+MAX_DEPTH = 16  # the nesting ds_pack_number allows
+SCALE = struct.Struct("<QHHB5x")
+IRREGULAR = struct.Struct("<QHB5x")
+
+
+def encode_grammar(g: dict) -> bytes:
+    """g: {"small": 100 clip ids (NONE where absent), "scales": [(value,
+    singular, plural, say_one)] largest first, "irregulars": [(value, clip,
+    kind)]}, all clip ids already numbers."""
+    small = list(g["small"])
+    assert len(small) == 100
+    scales, irr = g["scales"], g["irregulars"]
+    assert len(scales) <= MAX_SCALES and len(irr) <= MAX_IRREGULARS
+    values = [s[0] for s in scales]
+    assert all(v >= 10 for v in values) and values == sorted(set(values), reverse=True)
+    assert all(k in (1, 2, 3) for _, _, k in irr)
+    out = struct.pack("<100H", *small) + struct.pack("<B", len(scales))
+    out += b"".join(SCALE.pack(v, sg, pl, int(one)) for v, sg, pl, one in scales)
+    out += struct.pack("<H", len(irr))
+    out += b"".join(IRREGULAR.pack(v, c, k) for v, c, k in irr)
+    return out
+
+
+def decode_grammar(b: bytes, off: int = 0) -> dict:
+    small = list(struct.unpack_from("<100H", b, off))
+    off += 200
+    n = b[off]
+    off += 1
+    scales = []
+    for _ in range(n):
+        v, sg, pl, one = SCALE.unpack_from(b, off)
+        scales.append((v, sg, pl, bool(one)))
+        off += SCALE.size
+    (m,) = struct.unpack_from("<H", b, off)
+    off += 2
+    irr = []
+    for _ in range(m):
+        irr.append(IRREGULAR.unpack_from(b, off))
+        off += IRREGULAR.size
+    return {"small": small, "scales": scales, "irregulars": irr}
+
+
+def resolve_grammar(lang_grammar: dict, ids: dict) -> dict:
+    """grammar.json's entry for one language, phrase IDs -> clip numbers."""
+    small = [NONE] * 100
+    for k, name in lang_grammar["small"].items():
+        small[int(k)] = ids[name]
+    scales = [(s["value"], ids[s["singular"]],
+               NONE if s["plural"] is None else ids[s["plural"]], s["say_one"])
+              for s in lang_grammar["scales"]]
+    irr = [(r["value"], ids[r["clip"]], r["kind"]) for r in lang_grammar["irregulars"]]
+    return {"small": small, "scales": scales, "irregulars": irr}
+
+
+def say_number(g: dict, n: int) -> list[int]:
+    """The clips that say n; the reference of ds_pack_number."""
+    def irregular(value, kind):
+        for v, c, k in g["irregulars"]:
+            if v == value and k == kind:
+                return c
+        return None
+
+    def say(n, before_scale, depth):
+        # A multiple of the largest scale may need that scale again ("mil
+        # millones"); the firmware caps the nesting, so the reference does too.
+        if depth > MAX_DEPTH:
+            raise ValueError("too deep")
+        out = []
+        for i in range(len(g["scales"])):
+            if n < 100 and g["small"][n] != NONE:
+                break
+            value, singular, plural, say_one = g["scales"][i]
+            q, r = divmod(n, value)
+            if q == 0:
+                continue
+            c = irregular(q * value, 1 if r == 0 else 2)
+            if c is not None:
+                out.append(c)
+            else:
+                if q > 1 or say_one:
+                    out += say(q, True, depth + 1)
+                out.append(plural if q > 1 and plural != NONE else singular)
+            n = r
+        if n > 0 or not out:
+            if n >= 100 or g["small"][n] == NONE:
+                raise ValueError("no way to say %d" % n)
+            c = irregular(n, 3) if before_scale else None
+            out.append(g["small"][n] if c is None else c)
+        return out
+
+    return say(n, False, 0)
+
+
+def build_pack(lang: str, clips, grammar: bytes) -> bytes:
     """clips: one int16 sample list per phrase, in phrases.json order."""
-    assert len(lang) == 2 and lang.isascii()
-    head = len(clips) * ENTRY.size + 8
+    assert len(lang) == 2 and lang.isascii() and lang.islower()
+    grammar_off = HEADER.size + len(clips) * ENTRY.size
+    head = grammar_off + len(grammar)
     table, data = bytearray(), bytearray()
     for pcm in clips:
         pcm = list(pcm)
@@ -62,24 +183,40 @@ def build_pack(lang: str, clips) -> bytes:
             pred, index, blob = 0, 0, b""
         table += ENTRY.pack(head + len(data), len(blob), pred, index, 0)
         data += blob
-    return b"DSV1" + lang.encode("ascii") + struct.pack("<H", len(clips)) + bytes(table) + bytes(data)
+    total = head + len(data)
+    pack = bytearray(HEADER.pack(MAGIC, lang.encode("ascii"), FORMAT, len(clips), total, 0, grammar_off))
+    pack += table + grammar + data
+    struct.pack_into("<I", pack, 14, zlib.crc32(pack))
+    return bytes(pack)
 
 
-def parse_pack(pack: bytes) -> list[dict]:
-    if pack[:4] != b"DSV1":
-        raise ValueError("not a DSV1 pack")
-    (count,) = struct.unpack_from("<H", pack, 6)
+def pack_crc(pack: bytes) -> int:
+    """The CRC-32 of the pack with its crc field as 0."""
+    return zlib.crc32(pack[:14] + b"\0\0\0\0" + pack[18:])
+
+
+def parse_pack(pack: bytes) -> dict:
+    magic, lang, fmt, count, total, crc, goff = HEADER.unpack_from(pack, 0)
+    if magic != MAGIC or fmt != FORMAT:
+        raise ValueError("not a DSV2 pack")
     entries = []
     for i in range(count):
-        offset, nbytes, pred, index, pad = ENTRY.unpack_from(pack, 8 + i * ENTRY.size)
+        offset, nbytes, pred, index, pad = ENTRY.unpack_from(pack, HEADER.size + i * ENTRY.size)
         entries.append({"offset": offset, "bytes": nbytes, "pred": pred, "index": index, "pad": pad})
-    return entries
+    return {"lang": lang.decode("ascii"), "format": fmt, "count": count, "total_len": total,
+            "crc32": crc, "crc_ok": crc == pack_crc(pack[:total]), "grammar_off": goff,
+            "entries": entries, "grammar": decode_grammar(pack, goff)}
 
 
 # -- Phrases and generated C --------------------------------------------
 
 def load_phrases() -> dict:
     return json.loads((HERE / "phrases.json").read_text(encoding="utf-8"))
+
+
+def lang_grammar(lang: str, phrases: dict) -> bytes:
+    g = json.loads((HERE / "grammar.json").read_text(encoding="utf-8"))[lang]
+    return encode_grammar(resolve_grammar(g, {k: i for i, k in enumerate(phrases)}))
 
 
 def header_text(phrases: dict) -> str:
@@ -98,9 +235,8 @@ def header_text(phrases: dict) -> str:
         "    DS_P_COUNT",
         "};",
         "",
-        "/* Voice packs: \"DSV1\" format, see tools/voice/make_pack.py. */",
-        "extern const uint8_t ds_pack_es[];",
-        "extern const uint32_t ds_pack_es_len;",
+        "/* The built-in English pack (\"DSV2\", see tools/voice/make_pack.py);",
+        " * other languages are separate packs in the voice flash region. */",
         "extern const uint8_t ds_pack_en[];",
         "extern const uint32_t ds_pack_en_len;",
         "",
@@ -233,9 +369,11 @@ def main() -> int:
         if not a.lang:
             ap.error("--out-c/--out-bin need --lang")
         clips, name = render_clips(a.lang, phrases)
-        pack = build_pack(a.lang, clips)
+        pack = build_pack(a.lang, clips, lang_grammar(a.lang, phrases))
         secs = sum(len(c) for c in clips) / RATE
         print("%s: %d bytes, %.1f s of speech, %d phrases" % (a.lang, len(pack), secs, len(clips)))
+        if len(pack) > SLOT:
+            raise SystemExit("%s: the pack is larger than a flash slot (%d bytes)" % (a.lang, SLOT))
         if a.out_c:
             Path(a.out_c).write_text(pack_c_text(a.lang, pack, name), encoding="utf-8")
         if a.out_bin:

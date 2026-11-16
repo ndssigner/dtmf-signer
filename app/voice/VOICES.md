@@ -1,6 +1,6 @@
 # Voices of the spoken prompts
 
-The prompt packs (`pack_es.c`, `pack_en.c`) are synthesised with
+The prompt packs (`pack_en.c`, built in, and `packs/es.bin`) are synthesised with
 [Piper](https://github.com/OHF-Voice/piper1-gpl) and free voices from the
 [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices) collection.
 The texts are in `tools/voice/phrases.json`; the voices, their sources and

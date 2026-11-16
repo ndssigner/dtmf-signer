@@ -7,16 +7,18 @@ add_library(dtmf_app STATIC
   ds_btn.c
   ds_base64.c
   ds_adpcm.c
+  ds_crc32.c
   ds_pack.c
   ds_app.c
 )
 target_include_directories(dtmf_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(dtmf_app PUBLIC dtmf_core qrcodegen PRIVATE ds_warnings)
 
-# The spoken prompts are data (tens of kilobytes each): a library of their
-# own, linked only by the builds that speak, so the Cable and QR firmware
-# does not grow.
-add_library(ds_voice_packs STATIC voice/pack_es.c voice/pack_en.c)
+# The built-in English prompts are data (hundreds of kilobytes): a library of
+# their own, linked only by the builds that speak, so the Cable and QR
+# firmware does not grow. Other languages are separate packs
+# (voice/packs/*.bin) written to their own flash region.
+add_library(ds_voice_packs STATIC voice/pack_en.c)
 target_include_directories(ds_voice_packs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/voice)
 target_link_libraries(ds_voice_packs PRIVATE ds_warnings)
 

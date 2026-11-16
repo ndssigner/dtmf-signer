@@ -15,7 +15,9 @@ static const int8_t index_table[8] = {-1, -1, -1, -1, 2, 4, 6, 8};
 void ds_adpcm_decode(ds_adpcm *st, const uint8_t *in, size_t nibbles, int16_t *out)
 {
     int32_t pred = st->pred;
-    int32_t index = st->index;
+    /* The state may come from a pack in a user-written flash region; an
+     * index past the table must not read beyond it. */
+    int32_t index = st->index > 88 ? 88 : st->index;
 
     for (size_t n = 0; n < nibbles; n++) {
         unsigned code = (n & 1) ? (unsigned)(in[n >> 1] >> 4) : (unsigned)(in[n >> 1] & 15);
