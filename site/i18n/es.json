@@ -127,7 +127,7 @@
   "wallet.qr_account": "👛 Cuenta {fp} · {path}",
   "wallet.qr_xpub": "{xpub}",
   "wallet.no_broadcast": "📡 No se emite: monedas de prueba",
-  "bench.headphones": "salida auriculares",
+  "bench.headphones": "auriculares",
   "sim.mobile": "Mejor desde un ordenador o una tablet: aquí cabe justo.",
   "sim.close": "Cerrar",
   "yw.tones": "Tonos: la web de ur-tones",
