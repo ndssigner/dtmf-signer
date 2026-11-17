@@ -162,7 +162,7 @@ test("the phone notice is on the page, hidden until a phone is seen", { skip: SK
 });
 test("your wallet names its tools: ur-tones for the tones, a compatible wallet to scan", { skip: SKIP }, () => {
   const html = text(files, "es/cable-qr/index.html");
-  const yw = /<section class="blk blk-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  const yw = /<section class="mod mod-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
   assert.match(yw, /<a class="yw-urtones" href="https:\/\/ndssigner\.github\.io\/ur-tones\/"/);
   assert.match(yw, /<a class="yw-scan" href="https:\/\/nunchuk\.io\/"/);
   assert.ok(yw.includes("Nunchuk"));
@@ -170,7 +170,7 @@ test("your wallet names its tools: ur-tones for the tones, a compatible wallet t
 
 test("the Pico's own LED is on the signer, and only where the bench declares it", { skip: SKIP }, async () => {
   const html = text(files, "es/cable-qr/index.html");
-  const signer = /<section class="blk blk-signer[\s\S]*?<\/section>/.exec(html)[0];
+  const signer = /<section class="mod mod-signer[\s\S]*?<\/section>/.exec(html)[0];
   assert.match(signer, /<span class="sim-led"[^>]*data-tip="[^"]*Raspberry Pi Pico \(GP25\)/);
   const { blockBody } = await import("../build.mjs");
   assert.doesNotMatch(blockBody("signer", (k) => k, {}, { id: "signer" }), /sim-led/);
@@ -185,7 +185,7 @@ test("the button held shows as down by name", () => {
 test("side by side, the port labels stand upright in the blocks' side margins", () => {
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
   assert.match(css, /\.bench\[data-orient="h"\] \.port \{[^}]*writing-mode: vertical-rl/);
-  assert.match(css, /\.bench\[data-orient="h"\] \.col-signer \.blk \{[^}]*padding-left: var\(--margin\)[^}]*padding-right: var\(--margin\)/);
+  assert.match(css, /\.bench\[data-orient="h"\] \.col-signer \.mod \{[^}]*padding-left: var\(--margin\)[^}]*padding-right: var\(--margin\)/);
 });
 
 // ---- the Centralita (the voice build) ----
@@ -230,7 +230,7 @@ test("the text alternative: what the signer says, in the languages it can speak,
 test("the simulated wallet by the handset: a PIN of 12 or more, a listen button, no camera", { skip: VOICE_SKIP }, () => {
   const html = text(files, "en/centralita/index.html");
   assert.ok(voiceData("en").pin.length >= 12);
-  const w = /<section class="blk blk-sim-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  const w = /<section class="mod mod-sim-wallet[\s\S]*?<\/section>/.exec(html)[0];
   for (const c of ["wd-seed", "wd-keypad", "wd-psbt", "wd-listen", "wd-net", "wd-stop"]) assert.match(w, new RegExp(`class="${c}"`), c);
   assert.doesNotMatch(w, /wd-scan/);
   assert.match(html, /data-port="sim-wallet\.speaker-near"/);
@@ -259,7 +259,7 @@ test("the Centralita credits its voices, and shows the board's LED", { skip: VOI
     assert.ok(h.includes('href="https://datashare.ed.ac.uk/handle/10283/574"'));
     assert.ok(h.includes('href="https://creativecommons.org/licenses/by/3.0/"'));
     assert.ok(plain(h).includes("Piper en_US-ljspeech-medium, LJ Speech"));
-    assert.match(/<section class="blk blk-voice-signer[\s\S]*?<\/section>/.exec(h)[0], /class="sim-led"/);
+    assert.match(/<section class="mod mod-voice-signer[\s\S]*?<\/section>/.exec(h)[0], /class="sim-led"/);
   }
 });
 test("the Centralita's status: designed, simulated; the breadboard and the port still to come", () => {
@@ -277,7 +277,7 @@ test("the Centralita offers the simulated wallet and your wallet, this computer 
   const html = text(files, "es/centralita/index.html");
   assert.match(html, /<div class="sim-modes" role="tablist"[^>]*>(?![^<]*hidden)/);
   for (const m of ["sim-wallet", "your-wallet"]) assert.match(html, new RegExp(`data-mode="${m}"`));
-  const yw = /<section class="blk blk-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  const yw = /<section class="mod mod-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
   assert.match(yw, /class="mic-toggle"/);
   assert.match(yw, /class="mic-level"/);
   assert.ok(yw.includes("Micrófono de este ordenador"));
@@ -286,4 +286,39 @@ test("the Centralita offers the simulated wallet and your wallet, this computer 
   for (const p of ["your-wallet.speaker-near", "your-wallet.mic-near"]) assert.match(html, new RegExp(`data-port="${p.replace(".", "\\.")}"`));
   const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "centralita");
   assert.deepEqual(validateBench(p.bench), []);
+});
+
+// ---- the bench's visual language: neutral modules, coloured connectors and cables ----
+const BENCHES = [["cable-qr", SKIP, ["power", "audio", "light"]], ["centralita", VOICE_SKIP, ["power", "phone", "air"]]];
+for (const [slug, skip, types] of BENCHES) {
+  test(`${slug}: the legend is always shown and lists exactly the cables of its bench`, { skip }, () => {
+    for (const lang of ["en", "es"]) {
+      const html = text(files, `${lang}/${slug}/index.html`);
+      const legend = /<ul class="legend">([\s\S]*?)<\/ul>/.exec(html);
+      assert.ok(legend, `${lang}: legend`);
+      const before = html.slice(0, legend.index);
+      assert.equal((before.match(/<details/g) ?? []).length, (before.match(/<\/details>/g) ?? []).length, `${lang}: not inside a <details>`);
+      const shown = [...legend[1].matchAll(/<li class="l-([a-z]+)">/g)].map((m) => m[1]);
+      assert.deepEqual(shown.sort(), [...types].sort(), lang);
+      assert.match(html, /<details class="sim-echo">/, "the echo stays folded");
+    }
+  });
+  test(`${slug}: modules are neutral sections, ports carry their cable's class and their edge`, { skip }, () => {
+    const html = text(files, `en/${slug}/index.html`);
+    assert.doesNotMatch(html, /class="blk|class="lg-|type-(power|audio|light|phone|air)/);
+    const mods = [...html.matchAll(/<section class="([^"]*)" data-module=/g)].map((m) => m[1]);
+    assert.ok(mods.length >= 4);
+    for (const c of mods) assert.match(c, /^mod mod-[a-z-]+$/, c);
+    const ports = [...html.matchAll(/<span class="(port [^"]*)" data-port="([^"]+)"/g)];
+    assert.ok(ports.length >= 4);
+    for (const [, c, id] of ports) assert.match(c, /^port p-(power|audio|air|light|phone) edge-[a-z-]+$/, id);
+  });
+}
+test("both simulators draw links as c-<type> paths, busy while they carry something", () => {
+  for (const f of ["ui.mjs", "voice-ui.mjs"]) {
+    const ui = readFileSync(new URL(`../static/sim/${f}`, import.meta.url), "utf8");
+    assert.match(ui, /`c-\$\{a\.dataset\.type\}/, f);
+    assert.match(ui, /classList\.toggle\("busy"/, f);
+    assert.doesNotMatch(ui, /"link |\.links"|"active"|blk-/, f);
+  }
 });

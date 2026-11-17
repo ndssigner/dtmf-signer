@@ -265,8 +265,8 @@ const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wal
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
 // A telephone's keypad, with the letters multi-tap types.
 const KEYPAD = [["1", ""], ["2", "ABC"], ["3", "DEF"], ["4", "GHI"], ["5", "JKL"], ["6", "MNO"], ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"], ["*", ""], ["0", ""], ["#", ""]];
-// What each kind of link carries, in the legend's order (an external link
-// goes through the air).
+// What each kind of link carries, in the legend's order: a port's type is
+// its cable's (sound through the air is a type of its own).
 const LEGEND = [["power", "bench.legend.power"], ["phone", "bench.legend.phone"], ["audio", "bench.legend.audio"],
   ["light", "bench.legend.light"], ["air", "bench.legend.air"]];
 
@@ -279,10 +279,10 @@ export function blockBody(kind, tr, sim = {}, module = {}) {
   const e = (k, params) => escapeHtml(tr(k, params));
   switch (kind) {
     case "charger":
-      return `<p class="blk-icon" aria-hidden="true">🔌</p>`;
+      return `<p class="mod-icon" aria-hidden="true">🔌</p>`;
     case "voice-signer":
       return `<div class="vs-device" ${tip(tr("vsim.device"))} aria-label="${e("vsim.device")}">
-<p class="blk-icon" aria-hidden="true">🗣</p>${module.led ? `
+<p class="mod-icon" aria-hidden="true">🗣</p>${module.led ? `
 <span class="sim-led" ${tip(tr("sim.led", module.led))} aria-label="${e("sim.led", module.led)}"><span class="led-dot" aria-hidden="true"></span>LED</span>` : ""}
 </div>`;
     case "phone": {
@@ -450,11 +450,11 @@ function simulatorBlock(site, tr, p, root, lang) {
   const block = (m) => {
     const ports = (m.ports ?? []).map((pt) => {
       const t = tr(`bench.tip.${m.id}.${pt.id}`);
-      return `<span class="port edge-${pt.edge} type-${pt.type}" data-port="${m.id}.${pt.id}" data-type="${pt.type}" data-dir="${pt.dir}" ${tip(t)} aria-label="${escapeHtml(label(pt.label) + ": " + t)}">${escapeHtml(label(pt.label))}</span>`;
+      return `<span class="port p-${pt.type} edge-${pt.edge}" data-port="${m.id}.${pt.id}" data-type="${pt.type}" data-dir="${pt.dir}" ${tip(t)} aria-label="${escapeHtml(label(pt.label) + ": " + t)}">${escapeHtml(label(pt.label))}</span>`;
     }).join("\n");
     const hidden = first.modules.includes(m.id) ? "" : " hidden";
-    return `<section class="blk blk-${m.kind}${m.external ? " external" : ""}${m.air ? " air" : ""}" data-module="${m.id}" data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
-<h3 class="blk-title">${e(m.title)}</h3>
+    return `<section class="mod mod-${m.kind}" data-module="${m.id}"${m.air ? " data-air" : ""} data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
+<h3 class="mod-title">${e(m.title)}</h3>
 ${ports}
 ${blockBody(m.kind, tr, s, m)}
 </section>`;
@@ -463,8 +463,8 @@ ${blockBody(m.kind, tr, s, m)}
   const modes = bench.modes.map((m, i) => `<button type="button" role="tab" data-mode="${m.id}" aria-selected="${i === 0}">${e(m.title)}</button>`).join("\n");
   // Only what this bench's links carry.
   const portType = new Map(bench.modules.flatMap((m) => (m.ports ?? []).map((pt) => [`${m.id}.${pt.id}`, pt.type])));
-  const carried = new Set(bench.modes.flatMap((m) => m.links.map((l) => (l.external ? "air" : portType.get(l.from)))));
-  const legend = LEGEND.filter(([t]) => carried.has(t)).map(([t, k]) => `<li class="lg-${t}"><span class="lg-line" aria-hidden="true"></span>${e(k)}</li>`).join("\n");
+  const carried = new Set(bench.modes.flatMap((m) => m.links.map((l) => portType.get(l.from))));
+  const legend = LEGEND.filter(([t]) => carried.has(t)).map(([t, k]) => `<li class="l-${t}"><i aria-hidden="true"></i>${e(k)}</li>`).join("\n");
   const connections = bench.modes.map((m) => `<ul class="connections visually-hidden" data-modes="${m.id}"${m === first ? "" : " hidden"}>
 ${m.links.map((l) => `<li>${e(`bench.link.${m.id}.${l.channel}`)}</li>`).join("\n")}
 </ul>`).join("\n");
@@ -478,7 +478,7 @@ ${modes}
 ${column("power")}
 ${column("signer")}
 ${column("peer")}
-<svg class="links" aria-hidden="true"></svg>
+<svg class="cables" aria-hidden="true"></svg>
 </div>
 <p class="sim-status" role="status" aria-live="polite">${e("sim.loading")}</p>
 <ul class="legend">

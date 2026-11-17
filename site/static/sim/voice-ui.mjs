@@ -131,7 +131,7 @@ export async function start(doc, loadModule, loadPack) {
   const vs = new VoiceSimulator(module, doc.documentElement.lang, pack);
   const wallet = new SimWallet({ sim: vs, U: UrTones, sha256: UrTonesCrypto.sha256, S, data, el: { out: root.querySelector(".wd-out") } });
   const transcript = new Transcript(data.phrases, S, data.pack ? ["en", data.pack] : ["en"]);
-  const bench = root.querySelector(".bench"), svg = bench.querySelector(".links");
+  const bench = root.querySelector(".bench"), svg = bench.querySelector("svg.cables");
   const caption = root.querySelector(".ph-caption"), echoPre = root.querySelector(".echo");
   const hookBtn = root.querySelector(".ph-hook"), hookLabel = root.querySelector(".ph-hook-label");
   const sound = root.querySelector(".ph-sound"), fast = root.querySelector(".wd-fast");
@@ -205,7 +205,7 @@ export async function start(doc, loadModule, loadPack) {
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
       const el = doc.createElementNS(SVG, "path");
       el.setAttribute("d", linkPath(anchor(ra, rb, o, box), anchor(rb, ra, o, box), o));
-      el.setAttribute("class", `link type-${a.dataset.type} ch-${l.channel}${l.external ? " external" : ""}`);
+      el.setAttribute("class", `c-${a.dataset.type} ch-${l.channel}`);
       svg.append(el);
       paths.push({ el, channel: l.channel, ports: [a, b] });
     }
@@ -217,7 +217,7 @@ export async function start(doc, loadModule, loadPack) {
   function showHook() {
     hookBtn.setAttribute("aria-pressed", String(vs.offHook));
     hookLabel.textContent = S[vs.offHook ? "phone.hang" : "phone.lift"];
-    root.querySelector(".blk-phone")?.classList.toggle("off-hook", vs.offHook);
+    root.querySelector(".mod-phone")?.classList.toggle("off-hook", vs.offHook);
     if (typeBtn) typeBtn.disabled = !vs.offHook;
     if (!vs.offHook) showTyping(false);   // the handset down cuts it short
   }
@@ -257,7 +257,7 @@ export async function start(doc, loadModule, loadPack) {
     vs.dial(wallet.keypadCode());
     showTyping(true);
   });
-  root.querySelector(".blk-phone").addEventListener("keydown", (e) => {
+  root.querySelector(".mod-phone").addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey || !KEYS.includes(e.key) || e.key.length !== 1) return;
     e.preventDefault();
     if (!e.repeat) press(e.key);
@@ -341,8 +341,8 @@ export async function start(doc, loadModule, loadPack) {
       lastActive = key;
       for (const p of paths) {
         const a = on.has(p.channel);
-        p.el.classList.toggle("active", a);
-        for (const port of p.ports) port.classList.toggle("active", a);
+        p.el.classList.toggle("busy", a);
+        for (const port of p.ports) port.classList.toggle("busy", a);
       }
     }
     if (S[st] !== lastStatus) { status.textContent = S[st]; lastStatus = S[st]; }

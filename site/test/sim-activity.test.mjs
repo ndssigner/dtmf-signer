@@ -58,7 +58,7 @@ test("with reduced motion nothing moves", () => {
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
   const m = /@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/.exec(css);
   assert.ok(m, "no reduced-motion block");
-  assert.match(m[1], /\.link[^{]*\{[^}]*animation:\s*none/);
+  assert.match(m[1], /svg\.cables path\.busy[^{]*\{[^}]*animation:\s*none/);
   assert.match(m[1], /\.wave|::before|::after/);
 });
 test("links meet ports at the label's side facing the other port", async () => {
@@ -73,7 +73,7 @@ test("links meet ports at the label's side facing the other port", async () => {
 });
 test("the power link never moves", () => {
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
-  for (const m of css.matchAll(/([^{}]*)\{[^}]*animation:\s*flow/g)) assert.match(m[1], /:not\(\.type-power\)/, m[1]);
+  for (const m of css.matchAll(/([^{}]*)\{[^}]*animation:\s*flow/g)) assert.match(m[1], /:not\(\.c-power\)/, m[1]);
 });
 
 test("stop with nothing playing is harmless", () => {

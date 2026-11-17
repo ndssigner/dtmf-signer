@@ -4,7 +4,9 @@
 // the drawing can never show a port the specification does not have.
 
 const COLUMNS = new Set(["power", "signer", "peer"]);
-const TYPES = new Set(["power", "audio", "light", "uart", "phone"]);
+// What a link carries: power, audio by cable, sound through the air, light
+// (a QR to a camera), a telephone line; and a serial line.
+const TYPES = new Set(["power", "audio", "air", "light", "uart", "phone"]);
 const IO = /^(IN|OUT|VERIFY)-/;
 
 function ports(bench) {
@@ -31,10 +33,6 @@ export function validateBench(bench) {
     for (const id of mode.modules) if (!ids.has(id)) errors.push(`${mode.id}: no module ${id}`);
     for (const l of mode.links) {
       const what = `${mode.id}: ${l.from} → ${l.to}`;
-      if (l.external) {
-        for (const end of [l.from, l.to]) if (!ids.has(end.split(".")[0])) errors.push(`${what}: no module ${end}`);
-        continue;
-      }
       const a = all.get(l.from), b = all.get(l.to);
       if (!a) { errors.push(`${what}: no port ${l.from}`); continue; }
       if (!b) { errors.push(`${what}: no port ${l.to}`); continue; }

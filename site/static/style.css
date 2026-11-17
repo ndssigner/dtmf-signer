@@ -94,114 +94,164 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .sha { word-break: break-all; }
 .verify { color: var(--muted); font-size: .9rem; }
 /* The simulator takes more width than the text column, centred on it. */
-.simulator { border: 1px solid var(--line); border-radius: 6px; padding: .75rem 16px;
-  width: min(72rem, calc(100vw - 32px)); margin-left: calc(50% - min(36rem, 50vw - 16px)); }
+.simulator { padding: .75rem 0; width: min(72rem, calc(100vw - 32px)); margin-left: calc(50% - min(36rem, 50vw - 16px)); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sim-warning { font-size: .85rem; color: var(--muted); margin: 0 0 .5rem; display: inline-block; }
 .sim-modes { display: flex; gap: .4rem; margin: .25rem 0 1rem; flex-wrap: wrap; }
-.sim-modes button { padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); cursor: pointer; }
-.sim-modes button[aria-selected="true"] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.sim-modes button { padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.sim-modes button[aria-selected="true"] { background: var(--press); color: var(--press-fg); border-color: var(--press); }
+.sim-modes[hidden] { display: none; }
 
-/* The bench: power | signer | peer; ports sit on the edge facing their pair. */
-.bench { --c-power: #f0883e; --c-audio: #58a6ff; --c-light: #d2a8ff; --c-idle: #6e7681;
-  position: relative; display: grid; grid-template-columns: minmax(6rem, 8rem) minmax(16rem, 1fr) minmax(11rem, 14rem);
-  column-gap: 4.5rem; align-items: stretch; padding: .5rem 0; }
-.bench[data-orient="v"] { grid-template-columns: minmax(0, 1fr); row-gap: 3rem; column-gap: 0; }
-.col { display: flex; flex-direction: column; justify-content: center; gap: 1rem; }
-.blk { position: relative; border: 1.5px solid var(--line); border-radius: 8px; padding: .6rem .8rem; background: var(--bg); }
-.bench .blk[hidden] { display: none; }
-.blk-title { margin: 0 0 .4rem; font-size: .9rem; text-align: center; }
-.blk-charger { border-color: var(--c-power); text-align: center; }
-.blk-signer { border-color: #3fb950; }
-.blk-sim-wallet, .blk-your-wallet { border-color: var(--c-light); border-radius: 18px; }
-.blk-icon { font-size: 1.6rem; margin: .2rem 0; text-align: center; }
+/* The bench's visual language: every module the same neutral outline (what
+   a thing is, its title and icon say); the cables and their connectors are
+   the only coloured lines, by what they carry; teal only on what you press.
+   Layout: power | signer | peer; each connector sits on the module's edge
+   facing its pair, half in, half out. */
+.bench { position: relative; display: grid; grid-template-columns: minmax(6rem, 8rem) minmax(16rem, 1fr) minmax(11rem, 14rem);
+  column-gap: 4.5rem; align-items: stretch; padding: 1.4rem 1.6rem; background: var(--sunk);
+  box-shadow: inset 0 0 0 1px var(--line); border-radius: 16px; }
+.bench[data-orient="v"] { grid-template-columns: minmax(0, 1fr); row-gap: 2.6rem; column-gap: 0; padding: 1.6rem .9rem; }
+.col { display: flex; flex-direction: column; justify-content: center; gap: 1rem; min-width: 0; }
+.mod { position: relative; background: var(--surface); border: 2px solid var(--module); border-radius: 14px; padding: .7rem .9rem; }
+.bench .mod[hidden] { display: none; }
+.mod-title { margin: 0 0 .5rem; font-size: 1rem; text-align: center; }
+.mod-icon { font-size: 1.6rem; margin: .2rem 0; text-align: center; }
+.mod-charger { text-align: center; }
+.mod-sim-wallet, .mod-your-wallet { border-radius: 30px; }
 /* The signer and its peers share the row's height, so their facing ports
    (at the same percentage) line up; the charger stays small, centred on 5V. */
-.col-signer .blk, .col-peer .blk { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.bench[data-orient="v"] .col-signer .blk, .bench[data-orient="v"] .col-peer .blk { flex: none; }
+.col-signer .mod, .col-peer .mod { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.bench[data-orient="v"] .col-signer .mod, .bench[data-orient="v"] .col-peer .mod { flex: none; }
 
-.port { position: absolute; z-index: 2; font: .7rem/1.2 ui-monospace, monospace; padding: .15rem .35rem; border-radius: 4px;
-  border: 1.5px solid var(--c-idle); background: var(--bg); color: var(--fg); white-space: nowrap; transform: translate(0, -50%); }
-.port.type-power { border-color: var(--c-power); }
-.port.type-audio { border-color: var(--c-audio); }
-.port.type-light { border-color: var(--c-light); }
-/* horizontal: inside the left/right edges, at heights that line up across
-   blocks; the link starts at the label's outer edge */
-.col-power .edge-signer-side { right: 0; top: 50%; }
-.col-signer .edge-power-side { left: 0; top: 50%; }
-.col-signer .edge-peer-side, .col-peer .edge-signer-side { top: var(--at, 50%); }
-.col-signer .edge-peer-side { right: 0; }
-.col-peer .edge-signer-side { left: 0; }
+/* Connectors: a tag on the edge, outlined in its cable's colour. */
+.port { position: absolute; z-index: 2; font: 600 .72rem/1.2 var(--sans); padding: .2rem .4rem; border-radius: 6px;
+  border: 2px solid var(--module); background: var(--surface); color: var(--fg); white-space: nowrap; }
+.port.p-power { border-color: var(--power); }
+.port.p-audio { border-color: var(--audio); }
+.port.p-air { border-color: var(--audio); border-style: dashed; }
+.port.p-light { border-color: var(--light); }
+.port.p-phone { border-color: var(--line-c); }
 [data-port$=".qr"], [data-port$=".camera"] { --at: 26%; }
 [data-port$=".in"], [data-port$=".jack"] { --at: 82%; }
-/* Side by side the labels stand upright on the edge, in a margin of the
-   block kept for them, so they never cover what is inside. */
-.bench[data-orient="h"] { --margin: 1.9rem; }
-.bench[data-orient="h"] .port { writing-mode: vertical-rl; padding: .35rem .15rem; }
-.bench[data-orient="h"] .col-power .blk { padding-right: var(--margin); }
-.bench[data-orient="h"] .col-signer .blk { padding-left: var(--margin); padding-right: var(--margin); }
-.bench[data-orient="h"] .col-peer .blk { padding-left: var(--margin); }
-/* vertical: inside the top/bottom edges, at the same x across blocks */
-.bench[data-orient="v"] .port { transform: translate(-50%, 0); right: auto; }
-.bench[data-orient="v"] .col-power .edge-signer-side { left: 50%; top: auto; bottom: 0; }
-.bench[data-orient="v"] .col-signer .edge-power-side { left: 50%; top: 0; }
-.bench[data-orient="v"] .col-signer .edge-peer-side { top: auto; bottom: 0; left: var(--at, 50%); }
-.bench[data-orient="v"] .col-peer .edge-signer-side { top: 0; left: var(--at, 50%); }
+[data-port$=".mic"], [data-port$=".speaker-near"] { --at: 30%; }
+[data-port$=".ear"], [data-port$=".mic-near"] { --at: 70%; }
+/* Side by side: on the left and right edges, at heights that line up
+   across modules, upright, in a margin of the module kept for them so they
+   never cover what is inside. */
+.bench[data-orient="h"] { --margin: 1.3rem; }
+.bench[data-orient="h"] .port { writing-mode: vertical-rl; padding: .4rem .15rem; }
+.bench[data-orient="h"] .col-power .edge-signer-side { right: 0; top: 50%; transform: translate(50%, -50%); }
+.bench[data-orient="h"] .col-signer .edge-power-side { left: 0; top: 50%; transform: translate(-50%, -50%); }
+.bench[data-orient="h"] .col-signer .edge-peer-side { right: 0; top: var(--at, 50%); transform: translate(50%, -50%); }
+.bench[data-orient="h"] .col-peer .edge-signer-side { left: 0; top: var(--at, 50%); transform: translate(-50%, -50%); }
+.bench[data-orient="h"] .col-power .mod { padding-right: var(--margin); }
+.bench[data-orient="h"] .col-signer .mod { padding-left: var(--margin); padding-right: var(--margin); }
+.bench[data-orient="h"] .col-peer .mod { padding-left: var(--margin); }
+/* Ports on a module's top or bottom edge (the handset and the wallet held
+   to it, one above the other): upright text in either layout. */
+.bench .port.edge-top, .bench .port.edge-bottom { writing-mode: horizontal-tb; padding: .2rem .4rem; left: var(--at, 50%); }
+.bench .port.edge-top { top: 0; transform: translate(-50%, -50%); }
+.bench .port.edge-bottom { bottom: 0; transform: translate(-50%, 50%); }
+.bench[data-orient="h"] .col-peer .mod-phone { padding-bottom: 1.4rem; }
+.bench[data-orient="h"] .col-peer .mod-sim-wallet[data-air] { padding-top: 1.4rem; }
+.col-peer .mod-phone, .col-peer .mod-sim-wallet[data-air] { flex: none; }
+.col-peer:has(.mod-phone) { gap: 3rem; }
+/* Stacked (narrow): every connector moves to the top or bottom edge, still
+   labelled, at the same x across modules. */
+.bench[data-orient="v"] .port { writing-mode: horizontal-tb; }
+.bench[data-orient="v"] .col-power .edge-signer-side { left: 50%; bottom: 0; transform: translate(-50%, 50%); }
+.bench[data-orient="v"] .col-signer .edge-power-side { left: 50%; top: 0; transform: translate(-50%, -50%); }
+.bench[data-orient="v"] .col-signer .edge-peer-side { left: var(--at, 50%); bottom: 0; transform: translate(-50%, 50%); }
+.bench[data-orient="v"] .col-peer .edge-signer-side { left: var(--at, 50%); top: 0; transform: translate(-50%, -50%); }
+.bench[data-orient="v"] .port.edge-top { left: var(--at, 50%); top: 0; transform: translate(-50%, -50%); }
+.bench[data-orient="v"] .port.edge-bottom { left: var(--at, 50%); bottom: 0; transform: translate(-50%, 50%); }
 .bench[data-orient="v"] [data-port$=".qr"], .bench[data-orient="v"] [data-port$=".camera"] { --at: 25%; }
 .bench[data-orient="v"] [data-port$=".in"], .bench[data-orient="v"] [data-port$=".jack"] { --at: 75%; }
-.bench[data-orient="v"] .blk { padding-top: 1.8rem; padding-bottom: 1.8rem; }
+.bench[data-orient="v"] .mod { padding-top: 1.3rem; padding-bottom: 1.3rem; }
 
-.links { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
-.link { fill: none; stroke: var(--c-idle); stroke-width: 2.5; }
+/* Cables: the only coloured lines, by what they carry; they move only
+   while they carry something (power is lit, steady: being on is not activity). */
+svg.cables { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+svg.cables path { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.c-power { stroke: var(--power); }
+.c-audio { stroke: var(--audio); }
+.c-air { stroke: var(--audio); stroke-dasharray: 8 7; }
+.c-light { stroke: var(--light); stroke-dasharray: 1 9; }
+.c-phone { stroke: var(--line-c); }
+svg.cables path.busy:not(.c-power) { stroke-dasharray: 10 8; animation: flow 2.1s linear infinite; }
+svg.cables path.busy.c-light { stroke-dasharray: 1 9; }
+svg.cables path.busy.c-air { stroke-dasharray: 8 7; }
+@keyframes flow { to { stroke-dashoffset: -90; } }
+.port.busy.p-audio { background: color-mix(in srgb, var(--audio) 18%, var(--surface)); }
+.port.busy.p-air { background: color-mix(in srgb, var(--audio) 18%, var(--surface)); }
+.port.busy.p-light { background: color-mix(in srgb, var(--light) 18%, var(--surface)); }
+.port.busy.p-phone { background: color-mix(in srgb, var(--line-c) 18%, var(--surface)); }
+/* Emitting light (the QR): rings out of the port, off the screen. */
+.port.emit::before, .port.emit::after { content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--light); animation: ring-out 1.6s ease-out infinite; pointer-events: none; }
+.port.emit::after { animation-delay: .8s; }
+@keyframes ring-out { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(1.8); } }
+/* Listening: the IN port pulses in; the microphone draws rings inwards. */
+.port.listening { box-shadow: 0 0 0 3px color-mix(in srgb, var(--audio) 35%, transparent); }
+.yw-mic { position: relative; }
+.yw-mic.capturing::before { content: ""; position: absolute; left: -.2rem; top: -.1rem; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  border: 2px solid var(--muted); animation: ring-in 1.4s ease-in infinite; pointer-events: none; }
+@keyframes ring-in { from { opacity: 0; transform: scale(2); } to { opacity: .9; transform: scale(.5); } }
 
-.sim-device { display: flex; flex-direction: column; gap: .8rem; align-items: center; background: #10261d;
-  padding: .8rem; border-radius: 8px; outline-offset: 3px; }
+/* The legend, always under the bench: only the cables this bench uses. */
+.legend { list-style: none; padding: 0; margin: .4rem 0 .6rem; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .88rem; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: .45rem; }
+.legend i { display: inline-block; width: 28px; height: 0; border-top: 4px solid var(--module); }
+.legend .l-power i { border-top-color: var(--power); }
+.legend .l-audio i { border-top-color: var(--audio); }
+.legend .l-air i { border-top-color: var(--audio); border-top-style: dashed; }
+.legend .l-light i { border-top-color: var(--light); border-top-style: dotted; }
+.legend .l-phone i { border-top-color: var(--line-c); }
+
+/* The signer (Cable y QR): a black OLED and five round buttons. */
+.sim-device { display: flex; flex-direction: column; gap: .8rem; align-items: center; background: var(--sunk);
+  padding: .8rem; border-radius: 10px; outline-offset: 3px; }
 .sim-oled { width: 100%; max-width: 512px; aspect-ratio: 2 / 1; image-rendering: pixelated;
-  background: #000; border: 6px solid #000; border-radius: 3px; }
+  background: #000; border: 6px solid #000; border-radius: 6px; }
 .sim-buttons { display: grid; grid-template-columns: repeat(3, 2.8rem); grid-template-rows: repeat(3, 2.8rem); gap: .3rem; }
-.sim-buttons button { font-size: 1rem; border-radius: 50%; border: 1px solid #555; background: #e9e6dc;
-  color: #222; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
-.sim-buttons button:active, .sim-buttons button.down { background: #c9c5b8; }
+.sim-buttons button { font-size: 1rem; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  color: var(--fg); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
 /* Down while the firmware is given the button, whoever pressed it. */
-.sim-buttons button.down { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .45); border-color: #3fb950; }
+.sim-buttons button:active, .sim-buttons button.down { background: var(--press); color: var(--press-fg); border-color: var(--press); transform: translateY(1px); }
 .sim-buttons [data-btn="up"] { grid-column: 2; grid-row: 1; }
 .sim-buttons [data-btn="left"] { grid-column: 1; grid-row: 2; }
 .sim-buttons [data-btn="ok"] { grid-column: 2; grid-row: 2; }
 .sim-buttons [data-btn="right"] { grid-column: 3; grid-row: 2; }
 .sim-buttons [data-btn="down"] { grid-column: 2; grid-row: 3; }
+.sim-led { display: inline-flex; align-items: center; gap: .3rem; align-self: flex-end; margin: -.2rem .2rem .2rem 0;
+  font: .65rem/1 var(--sans); color: var(--muted); cursor: help; }
+.led-dot { width: .55rem; height: .55rem; border-radius: 50%; background: #3a3f3a; border: 1px solid #555; transition: background .05s; }
+.sim-led.on .led-dot { background: #4cff6a; box-shadow: 0 0 6px #4cff6a; }
 
+/* The wallets (both builds): a phone's screen. */
 .wd-screen { display: flex; flex-direction: column; gap: .4rem; font-size: .85rem; }
 .wd-title { margin: 0; text-align: center; color: var(--muted); }
-.wd-screen button { padding: .4rem .5rem; border-radius: 6px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; text-align: left; }
+.wd-screen button { padding: .4rem .5rem; border-radius: 10px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; text-align: left; }
 .wd-status { margin: 0; color: var(--muted); font-size: .8rem; min-height: 1.2em; }
-.wd-out { width: 100%; font: .7rem/1.3 ui-monospace, monospace; }
+.wd-out { width: 100%; font: .7rem/1.3 var(--mono); }
 .wd-opts { margin: 0; display: flex; gap: .8rem; }
 .wd-row { margin: 0; display: flex; gap: .4rem; align-items: center; }
 .wd-row > button.wd-psbt { flex: 1; }
-.wd-row select { font: inherit; padding: .25rem; border-radius: 6px; border: 1px solid var(--line); background: var(--code); color: var(--fg); }
+.wd-row select { font: inherit; padding: .25rem; border-radius: 8px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); }
 .wd-screen button.wd-stop { margin-left: auto; text-align: center; }
-.wd-warn { color: #d29922; font-size: 1.1rem; cursor: help; }
-.wd-check { margin: 0; font: .72rem/1.35 ui-monospace, monospace; white-space: pre-line; overflow-wrap: anywhere; }
+.wd-warn { color: var(--wip); font-size: 1.1rem; cursor: help; }
+.wd-check { margin: 0; font: .72rem/1.35 var(--mono); white-space: pre-line; overflow-wrap: anywhere; }
 .wd-check:empty { display: none; }
-.yw-cam { margin-top: 0; }
 .yw-cam, .yw-mic { margin: 0; font-size: .8rem; }
 .yw-cam { order: -1; }
 .mic-level { width: 100%; }
-.sim-led { display: inline-flex; align-items: center; gap: .3rem; align-self: flex-end; margin: -.2rem .2rem .2rem 0;
-  font: .65rem/1 ui-monospace, monospace; color: var(--muted); cursor: help; }
-.led-dot { width: .55rem; height: .55rem; border-radius: 50%; background: #3a3f3a; border: 1px solid #555; transition: background .05s; }
-.sim-led.on .led-dot { background: #4cff6a; box-shadow: 0 0 6px #4cff6a; }
-@media (prefers-reduced-motion: reduce) { .led-dot { transition: none; } }
 .mic-note { margin: 0; font-size: .75rem; color: var(--muted); }
 .yw-tools { margin: 0; display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; }
-.sim-mobile { display: flex; align-items: center; gap: .5rem; margin: 0 0 .6rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 6px; font-size: .85rem; }
+.sim-mobile { display: flex; align-items: center; gap: .5rem; margin: 0 0 .6rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 10px; font-size: .85rem; }
 .sim-mobile[hidden] { display: none; }
 .sim-mobile-close { margin-left: auto; border: 0; background: none; color: var(--fg); cursor: pointer; font-size: 1rem; }
 
-.sim-status { color: var(--muted); font-size: .85rem; margin: .6rem 0 .2rem; min-height: 1.2em; }
-.legend { list-style: none; padding: 0; margin: .2rem 0 .6rem; display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; font-size: .8rem; color: var(--muted); }
-.lg-line { display: inline-block; width: 1.8rem; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: .35rem; }
-.lg-power .lg-line { border-color: #f0883e; } .lg-audio .lg-line { border-color: #58a6ff; } .lg-light .lg-line { border-color: #d2a8ff; }
+.sim-status { color: var(--muted); font-size: .9rem; margin: .7rem 0 .2rem; min-height: 1.2em; }
 .sim-built { color: var(--muted); font-size: .8rem; }
 .echo { font-size: .8rem; max-height: 14rem; overflow: auto; background: var(--code); padding: .5rem; }
 
@@ -209,84 +259,37 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 [data-tip] { position: relative; }
 [data-tip]:hover::after, [data-tip]:focus-visible::after, [data-tip].tip-open::after {
   content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
-  width: max-content; max-width: 16rem; white-space: normal; padding: .35rem .5rem; border-radius: 4px;
-  background: var(--fg); color: var(--bg); font: .75rem/1.35 system-ui, sans-serif; z-index: 10; pointer-events: none; }
+  width: max-content; max-width: 16rem; white-space: normal; writing-mode: horizontal-tb; padding: .35rem .5rem; border-radius: 6px;
+  background: var(--fg); color: var(--bg); font: .75rem/1.35 var(--sans); z-index: 10; pointer-events: none; }
 .port[data-tip] { position: absolute; }
 .info { cursor: help; }
 
-/* Activity: a link moves only while it is active, in its own direction. */
-.link.type-power { stroke: var(--c-power); }
-/* power is lit, steady: being on is not activity */
-.link.active:not(.type-power) { stroke-dasharray: 8 7; animation: flow .7s linear infinite; }
-.link.active.type-audio { stroke: var(--c-audio); }
-.link.active.type-light { stroke: var(--c-light); }
-@keyframes flow { to { stroke-dashoffset: -30; } }
-.port.active.type-audio { background: color-mix(in srgb, var(--c-audio) 25%, var(--bg)); }
-.port.active.type-light { background: color-mix(in srgb, var(--c-light) 25%, var(--bg)); }
-/* Emitting light (the QR): rings out of the port, off the screen. */
-.port.emit::before, .port.emit::after, .yw-mic.capturing::before {
-  content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c-light);
-  animation: ring-out 1.6s ease-out infinite; pointer-events: none; }
-.port.emit::after { animation-delay: .8s; }
-@keyframes ring-out { from { opacity: .9; transform: scale(.6); } to { opacity: 0; transform: scale(1.8); } }
-/* Listening: the IN port pulses in; the microphone draws rings inwards. */
-.port.listening { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-audio) 45%, transparent); }
-.yw-mic { position: relative; }
-.yw-mic.capturing::before { border-color: var(--c-audio); inset: auto; left: -.2rem; top: -.1rem; width: 1.4rem; height: 1.4rem;
-  animation: ring-in 1.4s ease-in infinite; }
-@keyframes ring-in { from { opacity: 0; transform: scale(2); } to { opacity: .9; transform: scale(.5); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .link.active, .link.active:not(.type-power) { animation: none; stroke-dasharray: none; stroke-width: 4; }
-  .port.emit::before, .port.emit::after, .yw-mic.capturing::before { animation: none; opacity: .8; }
-}
-
-/* The Centralita: a telephone line, a telephone, a wallet held to its handset. */
-.bench { --c-phone: #2aa198; }
-.port.type-phone { border-color: var(--c-phone); }
-.link.type-phone { stroke: color-mix(in srgb, var(--c-phone) 55%, var(--c-idle)); }
-.link.active.type-phone { stroke: var(--c-phone); }
-.port.active.type-phone { background: color-mix(in srgb, var(--c-phone) 25%, var(--bg)); }
-/* through the air: dotted, never a cable */
-.link.external { stroke-dasharray: 2 6; stroke-linecap: round; }
-.link.active.external { stroke: var(--c-audio); }
-.lg-phone .lg-line { border-color: #2aa198; }
-.lg-air .lg-line { border-color: #58a6ff; border-top-style: dotted; }
-/* Ports on a block's top or bottom edge (the handset and the wallet, one
-   above the other): upright text in either layout. */
-.bench .port.edge-top, .bench .port.edge-bottom { writing-mode: horizontal-tb; padding: .15rem .35rem; right: auto;
-  left: var(--at, 50%); transform: translate(-50%, 0); }
-.bench .port.edge-top { top: 0; bottom: auto; }
-.bench .port.edge-bottom { bottom: 0; top: auto; }
-[data-port$=".mic"], [data-port$=".speaker-near"] { --at: 30%; }
-[data-port$=".ear"], [data-port$=".mic-near"] { --at: 70%; }
-.bench[data-orient="h"] .col-peer .blk-phone { padding-bottom: 1.9rem; }
-.bench[data-orient="h"] .col-peer .blk-sim-wallet.air { padding-top: 1.9rem; }
-.col-peer .blk-phone, .col-peer .blk-sim-wallet.air { flex: none; }
-.col-peer:has(.blk-phone) { gap: 3rem; }
-.blk-phone { border-color: var(--c-phone); }
-.blk-voice-signer { border-color: #3fb950; }
-.vs-device { display: flex; flex-direction: column; align-items: center; gap: .3rem; background: #10261d;
-  padding: .8rem; border-radius: 8px; cursor: help; }
-.vs-device .blk-icon { color: #e8e6e0; }
+/* The Centralita: a signer with no screen, a telephone, a wallet at its handset. */
+.vs-device { display: flex; flex-direction: column; align-items: center; gap: .3rem; background: var(--sunk);
+  padding: .8rem; border-radius: 10px; cursor: help; }
 .ph-phone { display: flex; flex-direction: column; align-items: center; gap: .5rem; }
-.ph-hook { padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; }
-.ph-hook[aria-pressed="true"] { background: var(--c-phone); color: #fff; border-color: var(--c-phone); }
-.ph-keypad { display: grid; grid-template-columns: repeat(3, 2.6rem); gap: .3rem; outline-offset: 3px; }
-.ph-keypad button { height: 2.6rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
-  border-radius: 8px; border: 1px solid #555; background: #e9e6dc; color: #222; cursor: pointer; font-size: 1rem;
+.ph-hook { padding: .45rem .9rem; border-radius: 12px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; font-weight: 600; }
+button.ph-hook[aria-pressed="true"] { background: var(--press); color: var(--press-fg); border-color: var(--press); }
+.ph-keypad { display: grid; grid-template-columns: repeat(3, 2.7rem); gap: .35rem; outline-offset: 3px; }
+.ph-keypad button { height: 2.7rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; font-size: 1.1rem;
   touch-action: manipulation; user-select: none; -webkit-user-select: none; }
-.ph-keypad button small { font-size: .5rem; letter-spacing: .05em; min-height: .5rem; }
-.ph-keypad button.down, .ph-keypad button:active { background: #c9c5b8; transform: translateY(1px); border-color: var(--c-phone); }
-.ph-row { margin: 0; display: flex; gap: .8rem; align-items: center; }
-.ph-flash { width: 2.2rem; height: 1.8rem; border-radius: 6px; border: 1px solid #555; background: #e9e6dc; color: #222; cursor: pointer; font-weight: 700; }
-.ph-type { height: 1.8rem; padding: 0 .6rem; border-radius: 6px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; white-space: nowrap; }
-.ph-type[aria-pressed="true"] { background: var(--c-phone); color: #fff; border-color: var(--c-phone); }
+.ph-keypad button small { font-size: .55rem; letter-spacing: .05em; min-height: .5rem; color: var(--muted); }
+.ph-keypad button.down, .ph-keypad button:active { background: var(--press); color: var(--press-fg); border-color: var(--press); transform: translateY(1px); }
+.ph-row { margin: 0; display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+.ph-flash { width: 2.2rem; height: 1.8rem; border-radius: 10px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; font-weight: 700; }
+.ph-type { height: 1.8rem; padding: 0 .6rem; border-radius: 10px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; white-space: nowrap; }
+button.ph-type[aria-pressed="true"] { background: var(--press); color: var(--press-fg); border-color: var(--press); }
 .ph-type:disabled { opacity: .45; cursor: not-allowed; }
 .ph-caption { margin: 0; min-height: 2.6em; max-width: 14rem; font-size: .8rem; color: var(--muted); text-align: center; }
 .sim-credits { list-style: none; padding: 0; margin: .4rem 0; font-size: .75rem; color: var(--muted); }
-.sim-modes[hidden] { display: none; }
-.col-signer .blk-voice-signer { flex: none; }
+.col-signer .mod-voice-signer { flex: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  svg.cables path.busy, svg.cables path.busy:not(.c-power) { animation: none; stroke-width: 6; }
+  .port.emit::before, .port.emit::after, .yw-mic.capturing::before { animation: none; opacity: .8; }
+  .led-dot { transition: none; }
+}
 
 /* The home page: a wider column, the headline beside a keypad to play. */
 body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width: 70rem; }
@@ -301,7 +304,7 @@ body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width
 .dtmf { background: var(--surface); border-radius: 20px; box-shadow: var(--tray); padding: 1.2rem 1.2rem 1rem; }
 .dtmf .grid { display: grid; grid-template-columns: 3.4rem repeat(4, 1fr); gap: .35rem; align-items: center; }
 .dtmf .hz { font: .74rem/1 var(--mono); color: var(--muted); text-align: center; transition: color .1s; }
-.dtmf .hz.row { text-align: right; padding-right: .3rem; }
+.dtmf .hz-row { text-align: right; padding-right: .3rem; }
 .dtmf .hz.on { color: var(--fg); font-weight: 700; }
 .dtmf button { aspect-ratio: 1.25; border-radius: 12px; border: 1px solid var(--line); background: var(--sunk);
   color: var(--fg); font: 600 1.3rem/1 var(--round); cursor: pointer; }

@@ -67,9 +67,9 @@ export function mount(root) {
   };
   const grid = el("div", "grid");
   grid.appendChild(el("span"));
-  HIGH.forEach((f, c) => { const s = el("span", "hz col", String(f)); s.dataset.c = c; grid.appendChild(s); });
+  HIGH.forEach((f, c) => { const s = el("span", "hz hz-col", String(f)); s.dataset.c = c; grid.appendChild(s); });
   KEYS.forEach((row, r) => {
-    const s = el("span", "hz row", `${LOW[r]} Hz`);
+    const s = el("span", "hz hz-row", `${LOW[r]} Hz`);
     s.dataset.r = r;
     grid.appendChild(s);
     [...row].forEach((k, c) => {
@@ -108,8 +108,8 @@ export function mount(root) {
     // A neutral cross: the key's whole row and column.
     for (const x of grid.querySelectorAll(`button[data-r="${r}"], button[data-c="${c}"]`)) x.classList.add("cross");
     b.classList.add("on");
-    grid.querySelector(`.row[data-r="${r}"]`).classList.add("on");
-    grid.querySelector(`.col[data-c="${c}"]`).classList.add("on");
+    grid.querySelector(`.hz-row[data-r="${r}"]`).classList.add("on");
+    grid.querySelector(`.hz-col[data-c="${c}"]`).classList.add("on");
     draw(LOW[r], HIGH[c]);
     cap.textContent = caption(root.dataset.caption ?? "{key}: {low} Hz + {high} Hz", key);
     try {

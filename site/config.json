@@ -309,14 +309,14 @@
               {
                 "id": "mic",
                 "edge": "bottom",
-                "type": "audio",
+                "type": "air",
                 "dir": "in",
                 "label": "🎙"
               },
               {
                 "id": "ear",
                 "edge": "bottom",
-                "type": "audio",
+                "type": "air",
                 "dir": "out",
                 "label": "🔈"
               }
@@ -332,14 +332,14 @@
               {
                 "id": "speaker-near",
                 "edge": "top",
-                "type": "audio",
+                "type": "air",
                 "dir": "out",
                 "label": "🔊"
               },
               {
                 "id": "mic-near",
                 "edge": "top",
-                "type": "audio",
+                "type": "air",
                 "dir": "in",
                 "label": "🎙"
               }
@@ -355,14 +355,14 @@
               {
                 "id": "speaker-near",
                 "edge": "top",
-                "type": "audio",
+                "type": "air",
                 "dir": "out",
                 "label": "🔊"
               },
               {
                 "id": "mic-near",
                 "edge": "top",
-                "type": "audio",
+                "type": "air",
                 "dir": "in",
                 "label": "🎙"
               }
@@ -393,14 +393,12 @@
               {
                 "from": "sim-wallet.speaker-near",
                 "to": "phone.mic",
-                "channel": "air-in",
-                "external": true
+                "channel": "air-in"
               },
               {
                 "from": "phone.ear",
                 "to": "sim-wallet.mic-near",
-                "channel": "air-out",
-                "external": true
+                "channel": "air-out"
               }
             ]
           },
@@ -427,14 +425,12 @@
               {
                 "from": "your-wallet.speaker-near",
                 "to": "phone.mic",
-                "channel": "air-in",
-                "external": true
+                "channel": "air-in"
               },
               {
                 "from": "phone.ear",
                 "to": "your-wallet.mic-near",
-                "channel": "air-out",
-                "external": true
+                "channel": "air-out"
               }
             ]
           }

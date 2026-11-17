@@ -136,7 +136,7 @@ export async function start(doc, loadModule) {
   const fast = root.querySelector(".wd-fast");
   const wallet = new SimWallet({ sim, U: UrTones, sha256: UrTonesCrypto.sha256, S, data, el: { out: root.querySelector(".wd-out"), status: wdStatus } });
   const bench = root.querySelector(".bench");
-  const svg = bench.querySelector(".links");
+  const svg = bench.querySelector("svg.cables");
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
   let walletNote = "";        // a passing message on the wallet (no QR, reading…)
@@ -180,7 +180,7 @@ export async function start(doc, loadModule) {
       const el = doc.createElementNS(SVG, "path");
       const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(), o = bench.dataset.orient;
       el.setAttribute("d", linkPath(anchor(ra, rb, o, box), anchor(rb, ra, o, box), o));
-      el.setAttribute("class", `link type-${a.dataset.type} ch-${l.channel}`);
+      el.setAttribute("class", `c-${a.dataset.type} ch-${l.channel}`);
       svg.append(el);
       paths.push({ el, channel: l.channel, ports: [a, b] });
     }
@@ -322,8 +322,8 @@ export async function start(doc, loadModule) {
       lastActive = key;
       for (const p of paths) {
         const on = active.has(p.channel);
-        p.el.classList.toggle("active", on);
-        for (const port of p.ports) port.classList.toggle("active", on);
+        p.el.classList.toggle("busy", on);
+        for (const port of p.ports) port.classList.toggle("busy", on);
       }
       for (const port of root.querySelectorAll('[data-port$=".qr"]')) port.classList.toggle("emit", active.has("qr"));
       for (const port of root.querySelectorAll('[data-port="signer.in"]')) port.classList.toggle("listening", active.has("listening"));
