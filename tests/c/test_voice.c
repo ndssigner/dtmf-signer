@@ -109,10 +109,10 @@ static void run_ms(line_t *t, uint32_t ms)
         step(t, NULL);
 }
 
-/* Until the signer is quiet (at most 30 s). */
+/* Until the signer is quiet (at most 60 s: About spells a long version). */
 static void run_quiet(line_t *t)
 {
-    for (int i = 0; i < 3000 && ds_voice_speaking(&t->v); i++)
+    for (int i = 0; i < 6000 && ds_voice_speaking(&t->v); i++)
         step(t, NULL);
 }
 
@@ -1027,9 +1027,9 @@ static char part_tones[UT_MAX_FRAME + 1];
 
 /* Sign (1), then the wallet plays the PSBT's parts next to the handset until
  * the signer stops listening. */
-static void send_psbt(line_t *t, const psbt_vector *pv)
+static void send_psbt_bytes(line_t *t, const uint8_t *psbt, size_t psbt_len)
 {
-    int32_t n = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    int32_t n = ut_psbt_to_cbor(psbt, psbt_len, psbt_cbor, sizeof psbt_cbor);
     CHECK(n > 0);
     CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
     size_t mark = t->log_len;
@@ -1047,10 +1047,16 @@ static void send_psbt(line_t *t, const psbt_vector *pv)
     run_ms(t, 100);
 }
 
+static void send_psbt(line_t *t, const psbt_vector *pv)
+{
+    send_psbt_bytes(t, pv->psbt, pv->psbt_len);
+}
+
 /* Through every item of the review to the confirmation step. */
 static void review_to_confirm(line_t *t)
 {
-    for (uint32_t i = 0; i <= t->v.s.r.n_out; i++) {
+    size_t mark = t->log_len;
+    for (int i = 0; i < 40 && !HAS(t, "state confirm", mark); i++) {
         run_quiet(t);
         press(t, '#');
     }
@@ -1151,6 +1157,133 @@ static const uint8_t *hear_tones(line_t *t, const char **type, size_t *len)
     if (r == 1 && ut_fountain_result(&out_dec, type, &msg, len) >= 0)
         return msg;
     return NULL;
+}
+
+
+/* A wallet that keeps looping the PSBT's parts once the signer has it: its
+ * 40 ms data tones (never the same tone twice in a row) are no keys, in the
+ * review or anywhere. Only a real key, held, after the item was said. */
+static void test_looping_wallet_drives_nothing(void)
+{
+    const psbt_vector *pv = vector("one input with change");
+    to_ready(&L, 0);
+    send_psbt(&L, pv);
+    long rv = find_line(&L, "state review", 0);
+    CHECK(rv >= 0);
+    uint32_t k = ds_voice_keys(&L.v);
+    for (int i = 0; i < 3; i++) { /* three more parts: about a minute */
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play_tones(&L, part_tones);
+        run_ms(&L, 400);
+    }
+    CHECK(rv >= 0 && strstr(L.log + rv + 13, "state ") == NULL);
+    CHECK_EQ_INT(L.v.item, 0);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK_EQ_INT(ds_voice_keys(&L.v), k);
+    CHECK(L.v.psbt != NULL);
+    CHECK(!HAS(&L, "say cancelled", 0));
+    CHECK(!HAS(&L, "say wiped", 0));
+    char fp[9];
+    snprintf(fp, sizeof fp, "%08x", (unsigned)L.v.s.w.wallet_fp);
+    CHECK_EQ_STR(fp, "73c5da0a");
+    /* then a real # once the item has been said: the next item */
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 1);
+    CHECK(HAS(&L, "say change", mark));
+}
+
+/* # while an item is still being said does not skip it; once it has been
+ * said in full, # goes on. */
+static void test_hash_waits_for_the_item(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    CHECK(run_until(&L, "say sending", mark, 5000));
+    run_ms(&L, 300);
+    CHECK(ds_voice_speaking(&L.v));
+    press(&L, '#');
+    CHECK_EQ_INT(L.v.item, 0);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 0);
+    CHECK(HAS(&L, "chars pe9ug", mark)); /* the item went on to its end */
+    press(&L, '#');
+    run_ms(&L, 300);
+    CHECK_EQ_INT(L.v.item, 1);
+    /* the fee likewise: # during it does not reach the confirmation */
+    run_quiet(&L);
+    press(&L, '#');
+    run_ms(&L, 300);
+    CHECK_EQ_INT(L.v.item, 2);
+    press(&L, '#');
+    CHECK(!HAS(&L, "state confirm", mark));
+    run_quiet(&L);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state confirm", mark));
+}
+
+/* The core's input warnings, after the fee: inputs not ours. */
+static void test_warns_foreign_inputs(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("foreign input is not signed"));
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    for (uint32_t i = 0; i <= L.v.s.r.n_out; i++) {
+        CHECK(!HAS(&L, "say warn_inputs_unsigned", mark));
+        press(&L, '#');
+        run_quiet(&L);
+    }
+    static const char *const want[] = {"ear warn", "say warn_inputs_unsigned", "num 1", NULL};
+    CHECK(lines_in_a_row(&L, mark, want));
+    CHECK(!HAS(&L, "say warn_input_no_witness", mark));
+    CHECK(!HAS(&L, "state confirm", mark));
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state confirm", mark));
+    on_hook(&L, 500); /* and it signs the input of ours */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state hold-near", mark));
+}
+
+/* An input of ours without witness_utxo: built from the vector with two
+ * non_witness_utxo inputs by dropping the first one's witness_utxo (as
+ * test_psbt does). */
+static void test_warns_input_without_witness(void)
+{
+    static uint8_t buf[4096];
+    const psbt_vector *pv = vector("two inputs with non_witness_utxo");
+    size_t len = pv->psbt_len, at = 0;
+    memcpy(buf, pv->psbt, len);
+    for (size_t k = 5; k + 3 + 0x1f <= len; k++) {
+        if (buf[k] == 1 && buf[k + 1] == 1 && buf[k + 2] == 0x1f && buf[k + 11] == 0x16 &&
+            buf[k + 12] == 0 && buf[k + 13] == 0x14) {
+            at = k + 3;
+            break;
+        }
+    }
+    CHECK(at != 0);
+    size_t start = at - 3, end = at + 0x1f;
+    memmove(buf + start, buf + end, len - end);
+    len -= end - start;
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt_bytes(&L, buf, len);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK_EQ_INT(L.v.s.r.in[0].no_witness, 1);
+    review_to_confirm(&L);
+    static const char *const want[] = {"ear warn", "say warn_input_no_witness", NULL};
+    CHECK(lines_in_a_row(&L, mark, want));
+    CHECK(!HAS(&L, "say warn_inputs_unsigned", mark));
+    long w = find_line(&L, "say warn_input_no_witness", mark);
+    CHECK(w > find_line(&L, "say fee", mark));
+    CHECK(find_line(&L, "state confirm", mark) > w);
 }
 
 static void test_review_speaks_outputs(void)
@@ -1550,4 +1683,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_review_speaks_outputs, test_five_reads_whole_address,
           test_amount_units, test_hook_flash_signs, test_hook_timing_boundaries,
           test_key_does_not_confirm, test_hang_up_during_reception_restarts,
-          test_wrong_network_rejected, test_account_tones_decode)
+          test_wrong_network_rejected, test_account_tones_decode,
+          test_looping_wallet_drives_nothing, test_hash_waits_for_the_item,
+          test_warns_foreign_inputs, test_warns_input_without_witness)

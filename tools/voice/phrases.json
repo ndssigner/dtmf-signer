@@ -99,6 +99,14 @@
   "es": "Comisión alta.",
   "en": "High fee."
  },
+ "warn_inputs_unsigned": {
+  "es": "Atención: entradas que no se firmarán:",
+  "en": "Warning: inputs that will not be signed:"
+ },
+ "warn_input_no_witness": {
+  "es": "Atención: una entrada tuya no trae su importe y no se firmará.",
+  "en": "Warning: an input of yours has no amount attached and will not be signed."
+ },
  "sats": {
   "es": "sats.",
   "en": "sats."

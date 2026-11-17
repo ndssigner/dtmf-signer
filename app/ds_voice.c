@@ -59,8 +59,11 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define FRAME_GAP_MS 500u    /* silence after each part (a group ends at 300) */
 #define ADDR_ENDS 5          /* the address's first and last characters said */
 #define KEY_QUIET_RUNS 3 /* detections (10 ms each) without a key: it is over */
-#define PIN_KEY_RUNS 7   /* a PIN key counts once it has lasted 70 ms */
-#define PIN_GAP_RUNS 5   /* a PIN key is over after 50 ms without it */
+#define KEY_RUNS 7       /* a key counts once it has lasted 70 ms */
+#define KEY_GAP_RUNS 5   /* a key is over after 50 ms without it */
+#define ONSET_RUNS 2     /* a tone heard 20 ms has begun */
+#define DATA_ONSET_RUNS 12 /* two different tones begun within 120 ms: data */
+#define DATA_QUIET_RUNS 30 /* data is over after 300 ms without a tone */
 #define SENTENCE_GAP_MS 300u /* between the sentences of a prompt */
 #define ENTRY_GAP_MS 500u    /* between the entries of a list */
 
@@ -307,16 +310,65 @@ static int32_t out_address(const ds_voice *v, uint32_t i, char *addr, size_t cap
     return n > 0 ? n : 0;
 }
 
+/* Inputs that will not be signed: not ours (ownership checked and failed,
+ * or no derivation of ours), and ours by derivation but with no
+ * witness_utxo (ownership not checked). */
+static void unsigned_inputs(const ds_psbt_review *r, uint32_t *foreign, uint32_t *no_witness)
+{
+    *foreign = *no_witness = 0;
+    for (uint32_t k = 0; k < r->n_in; k++) {
+        if (r->in[k].ours) {
+            continue;
+        }
+        if (r->in[k].no_witness) {
+            (*no_witness)++;
+        } else {
+            (*foreign)++;
+        }
+    }
+}
+
+/* The review's items: the outputs, the fee, and the inputs' warnings when
+ * some input will not be signed. */
+static uint32_t review_items(const ds_voice *v)
+{
+    uint32_t f, nw;
+    unsigned_inputs(&v->s.r, &f, &nw);
+    return v->s.r.n_out + 1 + (f + nw > 0 ? 1 : 0);
+}
+
 /* Step k of the review's current item: an output ("you send" the amount
  * "to" the address, by its 5 first and 5 last characters or whole after 5;
- * change: "change" and the amount), or the fee ("high fee" when warned). */
+ * change: "change" and the amount), the fee ("high fee" when warned), or
+ * the inputs that will not be signed (the warn sound, then how many are not
+ * ours; and that one of ours has no amount attached). */
 static int review_step(ds_voice *v, int k)
 {
     const ds_psbt_review *r = &v->s.r;
     char addr[96], end[ADDR_ENDS + 1];
     int32_t n;
+    uint32_t foreign, no_witness;
 
-    if (v->item >= r->n_out) { /* the fee */
+    if (v->item > r->n_out) { /* the inputs' warnings */
+        if (k > 0) {
+            return 0;
+        }
+        unsigned_inputs(r, &foreign, &no_witness);
+        if (foreign > 0) {
+            ds_say_earcon(&v->say, DS_EAR_WARN);
+            clip(v, DS_P_WARN_INPUTS_UNSIGNED);
+            ds_say_number(&v->say, foreign);
+        }
+        if (no_witness > 0) {
+            if (foreign > 0) {
+                ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            }
+            ds_say_earcon(&v->say, DS_EAR_WARN);
+            clip(v, DS_P_WARN_INPUT_NO_WITNESS);
+        }
+        return 1;
+    }
+    if (v->item == r->n_out) { /* the fee */
         if (k > 0) {
             return 0;
         }
@@ -546,6 +598,13 @@ static void pump(ds_voice *v)
         }
         if (r == 0) {
             v->step = STEPS_DONE;
+            if (v->state == ST_REVIEW) {
+                /* every step played: this item has been said in full */
+                v->item_heard = 1;
+                if (v->item == v->items_heard) {
+                    v->items_heard++;
+                }
+            }
         }
     }
 }
@@ -609,17 +668,35 @@ static void listen_afresh(ds_voice *v)
     v->run_key = 0;
     v->run_n = 0;
     v->run_gap = 0;
+    v->onset_key = 0;
+    v->since_onset = 0;
+    v->data = 0;
+    v->data_quiet = 0;
 }
 
-/* A PIN key counts once it has been heard for 70 ms (a wallet still playing
- * the seed, 40 ms tones, each a different key from the last, is not
- * typing). Called once per 10 ms slice with the key heard now; dropouts
- * under 50 ms (the signer's own voice on the line can cause them) neither
- * end the key nor make it a new press. Returns the key to act on, or 0. */
-static char pin_key(ds_voice *v, char key)
+/* The one way a key is taken, in every state: it counts once it has been
+ * heard for 70 ms. A wallet still playing data tones (40 ms each, never the
+ * same tone twice in a row) is not typing: not in a PIN, not in a menu, not
+ * in the review. Called once per 10 ms slice with the key heard now;
+ * dropouts under 50 ms (the signer's own voice on the line can cause them)
+ * neither end the key nor make it a new press. Returns the key to act on,
+ * or 0. */
+static char held_key(ds_voice *v, char key)
 {
+    if (v->since_onset < UINT32_MAX) {
+        v->since_onset++;
+    }
+    if (v->data) {
+        /* data tones heard: no key until the burst is over */
+        v->data_quiet = key == 0 ? v->data_quiet + 1 : 0;
+        if (v->data_quiet >= DATA_QUIET_RUNS) {
+            v->data = 0;
+            v->data_quiet = 0;
+        }
+        return 0;
+    }
     if (key == 0) {
-        if (++v->run_gap >= PIN_GAP_RUNS) {
+        if (++v->run_gap >= KEY_GAP_RUNS) {
             v->run_key = 0;
             v->run_n = 0;
             v->held = 0;
@@ -632,8 +709,25 @@ static char pin_key(ds_voice *v, char key)
         v->run_key = key;
         v->run_n = 1;
     }
+    if (v->run_n == ONSET_RUNS && key != v->onset_key) {
+        /* a new tone (heard 20 ms: not a blip at a key's edge): a
+         * different one begun this soon after the last is data (60 ms
+         * apart), not a hand on a keypad. That also covers a data tone
+         * masked by the signer's voice between two of the same, which the
+         * bridging would join into one long key. */
+        if (v->onset_key != 0 && v->since_onset < DATA_ONSET_RUNS) {
+            v->data = 1;
+            v->data_quiet = 0;
+            v->run_key = 0;
+            v->run_n = 0;
+            v->held = 0;
+            return 0;
+        }
+        v->onset_key = key;
+        v->since_onset = 0;
+    }
     v->run_gap = 0;
-    if (v->run_key != v->held && v->run_n >= PIN_KEY_RUNS) {
+    if (v->run_key != v->held && v->run_n >= KEY_RUNS) {
         v->held = v->run_key;
         return v->held;
     }
@@ -679,6 +773,8 @@ static void clear_review(ds_voice *v)
     v->psbt_len = 0;
     v->item = 0;
     v->whole = 0;
+    v->item_heard = 0;
+    v->items_heard = 0;
 }
 
 /* "Wipe and start over": the session goes, the language chosen for this
@@ -892,6 +988,7 @@ static void review(ds_voice *v)
     ds_source src;
     int32_t r;
 
+    listen_afresh(v); /* the reception is over: nothing heard during it counts */
     r = ds_rx_psbt(&v->rx, &p, &len);
     if (r != DS_OK || len > DS_APP_PSBT_MAX) {
         sign_failed(v, DS_P_ERROR_PSBT);
@@ -911,6 +1008,8 @@ static void review(ds_voice *v)
     }
     v->item = 0;
     v->whole = 0;
+    v->item_heard = 0;
+    v->items_heard = 0;
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_OK);
     echo_said(v);
@@ -1294,12 +1393,18 @@ static void on_key(ds_voice *v, char c)
         break;
     case ST_REVIEW:
         if (c == '#') {
-            /* one item at a time: the confirmation only after the fee */
-            if (v->item < v->s.r.n_out) {
+            /* one item at a time, each once said in full (a # while it is
+             * said is ignored and it goes on); the confirmation only once
+             * every item has been said */
+            if (!v->item_heard) {
+                break;
+            }
+            if (v->item + 1 < review_items(v)) {
                 v->item++;
                 v->whole = 0;
+                v->item_heard = 0;
                 repeat(v);
-            } else {
+            } else if (v->items_heard >= review_items(v)) {
                 v->confirm_at = v->now;
                 enter(v, ST_CONFIRM);
             }
@@ -1346,7 +1451,6 @@ static void on_key(ds_voice *v, char c)
 static void hear(ds_voice *v, const int16_t *x, size_t n)
 {
     char k[UT_LIVE + 1];
-    int32_t got;
     uint32_t run;
     char key;
 
@@ -1368,23 +1472,15 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
         return; /* half-duplex: its own tones are not keys */
     }
     ut_listener_push(&v->l, x, n);
-    got = ut_listener_live(&v->l, k, sizeof k);
+    (void)ut_listener_live(&v->l, k, sizeof k); /* not used: keys go by length */
     key = key_now(&v->l, &run);
     if (v->deaf) {
         if (key == 0 && run >= KEY_QUIET_RUNS) {
             v->deaf = 0;
         }
-    } else if (v->state == ST_PIN || v->state == ST_KEYPAD_PIN) {
-        key = pin_key(v, key);
-        if (key != 0) {
-            v->keys++;
-            on_key(v, key);
-        }
-    } else {
-        for (int32_t i = 0; i < got; i++) {
-            v->keys++;
-            on_key(v, k[i]);
-        }
+    } else if ((key = held_key(v, key)) != 0) {
+        v->keys++;
+        on_key(v, key);
     }
     ds_wipe(k, sizeof k);
 }

@@ -22,9 +22,11 @@
  *     signer only listens (half-duplex) until the whole PSBT is heard. Then
  *     the review, one item at a time: each output ("you send" the amount
  *     "to" the address's first and last 5 characters; change: "change" and
- *     the amount), then the fee ("high fee" when the core warns). # next,
- *     0 repeat, 5 the whole address in groups of 4, * cancel. After the fee,
- *     # asks for the confirmation: a hook flash (a short hang-up) signs;
+ *     the amount), then the fee ("high fee" when the core warns), then,
+ *     when some input will not be signed, a warning (how many are not ours;
+ *     an input of ours without its amount attached). # next (once the item
+ *     has been said in full), 0 repeat, 5 the whole address in groups of 4,
+ *     * cancel. After the last item, # asks for the confirmation: a hook flash (a short hang-up) signs;
  *     keys never do. Then "signed, hold the handset to your wallet": # plays
  *     the signed PSBT as ur-tones data tones (multi-part URs, 100-byte
  *     fragments, two rounds), half-duplex; then 0 plays them again, # (or *)
@@ -37,6 +39,9 @@
  *   Amounts: automatic says 1 bitcoin (100 000 000 sat) and more in bitcoin
  *   (the whole part, "point", each decimal digit, trailing zeros dropped,
  *   "bitcoin"), less in sats ("sats").
+ *   Every key counts once it has sounded 70 ms, so the data tones of a
+ *   wallet still playing (40 ms, never the same twice in a row) are never
+ *   keys, in no state.
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
  *   character, the "next" sound when one is committed, "back" and the last
  *   one left after *; # ends it, * with nothing left cancels. A PIN key
@@ -136,7 +141,11 @@ typedef struct {
     int deaf;            /* 1: no key counts until none has sounded for 30 ms */
     char held;           /* PIN: the key acted on, still held */
     char run_key;        /* PIN: the key sounding, for run_n slices of 10 ms */
-    uint32_t run_n, run_gap; /* (dropouts under 30 ms bridged) */
+    uint32_t run_n, run_gap; /* (dropouts under 50 ms bridged) */
+    char onset_key;      /* the last key begun, and 10 ms slices since */
+    uint32_t since_onset;
+    int data;            /* data tones are sounding: no key until quiet */
+    uint32_t data_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */
     int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
     ds_multitap mt;      /* the PIN */
@@ -147,6 +156,8 @@ typedef struct {
     size_t psbt_len;
     uint32_t item;       /* review: the item said (the outputs, then the fee) */
     int whole;           /* review: the whole address, by 5 */
+    int item_heard;      /* review: the current item was said in full */
+    uint32_t items_heard;/* review: items said in full, in order, from the first */
     uint32_t confirm_at; /* when the confirmation step began */
     int unit;            /* DS_VOICE_UNIT_*: lasts until the power is cut */
     int out_kind;        /* what goes out: the signed PSBT or the account */
