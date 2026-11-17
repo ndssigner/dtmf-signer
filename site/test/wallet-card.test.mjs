@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { walletCard } from "../static/sim/wallet-card.mjs";
+import { walletCard, CardView } from "../static/sim/wallet-card.mjs";
 import { firstVisit, seenFirst } from "../static/sim/ui.mjs";
 
 const S = JSON.parse(readFileSync(new URL("../i18n/es.json", import.meta.url), "utf8"));
@@ -77,4 +77,33 @@ test("the hint opens on the first visit only", () => {
   seenFirst(storage);
   assert.equal(store.get("dtmf-first-seen"), "1");
   assert.equal(firstVisit(storage), false);
+});
+
+// The card area is a polite live region: a send must announce its details
+// once, not each time the countdown ticks.
+function fakeArea() {
+  const secs = { textContent: "" }, bar = { value: 0 };
+  let html = "", writes = 0;
+  return {
+    secs, bar, get writes() { return writes; },
+    get innerHTML() { return html; },
+    set innerHTML(v) { html = v; writes++; secs.textContent = /<span class="secs"[^>]*>([^<]*)</.exec(v)?.[1] ?? ""; bar.value = Number(/value="(\d+)"/.exec(v)?.[1] ?? 0); },
+    querySelector: (sel) => (sel === ".secs" ? secs : sel === "progress" ? bar : null),
+  };
+}
+test("while sending, the card is written once; the seconds and the progress change in place", () => {
+  const area = fakeArea(), view = new CardView(area, S);
+  const seed = { kind: "seed", info: { pin: "1234", fingerprint: "73c5da0a" } };
+  for (let left = 8; left >= 1; left--)
+    for (const step of [0, 0.5]) view.show({ kind: "sending", info: { what: "la semilla", seconds: left, progress: (8 - left + step) / 8 } }, seed);
+  assert.equal(area.writes, 1, "the details once");
+  assert.equal(area.secs.textContent, "1");
+  assert.equal(area.bar.value, 94);
+  assert.match(area.innerHTML, /<span class="secs" role="timer" aria-live="off">/);
+  view.show(seed);
+  assert.equal(area.writes, 2, "once more when it changes kind");
+  view.show(seed);
+  view.show(null);
+  assert.equal(area.writes, 3);
+  assert.equal(area.innerHTML, "");
 });

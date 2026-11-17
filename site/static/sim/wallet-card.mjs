@@ -20,7 +20,11 @@ export function walletCard(kind, info = {}, S) {
   switch (kind) {
     case "sending": {
       const pct = Math.round(100 * Math.min(1, Math.max(0, Number(info.progress) || 0)));
-      return card("", fill(S["card.sending"], { what: info.what, seconds: info.seconds }), `<progress max="100" value="${pct}"></progress>`);
+      // The seconds tick in place (CardView), in a timer that is not live:
+      // the card's details are announced once.
+      const [before, after = ""] = fill(S["card.sending"], { what: info.what }).split("{seconds}");
+      const title = `${esc(before)}<span class="secs" role="timer" aria-live="off">${esc(info.seconds)}</span>${esc(after)}`;
+      return `<div class="card"><h4>${title}</h4><progress max="100" value="${pct}"></progress></div>`;
     }
     case "seed":
       return card("", S["card.seed_title"], row(S["card.pin"], info.pin) + row(S["card.fp"], info.fingerprint), S["card.seed_note"]);
@@ -55,5 +59,26 @@ export function walletCard(kind, info = {}, S) {
       return card("", S["card.listening"], "", S["card.listening_note"]);
     default:
       throw new Error(`no wallet card ${kind}`);
+  }
+}
+
+// The card area (a polite live region): written only when what it shows
+// changes; a send's countdown and progress move in place.
+export class CardView {
+  constructor(el, S) { this.el = el; this.S = S; this.key = null; }
+  show(...cards) {
+    cards = cards.filter(Boolean);
+    const key = JSON.stringify(cards.map((c) => [c.kind, c.kind === "sending" ? { what: c.info.what } : c.info ?? null]));
+    if (key !== this.key) {
+      this.key = key;
+      this.el.innerHTML = cards.map((c) => walletCard(c.kind, c.info, this.S)).join("");
+      return;
+    }
+    const s = cards.find((c) => c.kind === "sending");
+    if (!s) return;
+    const secs = this.el.querySelector(".secs"), bar = this.el.querySelector("progress");
+    const text = String(s.info.seconds), pct = Math.round(100 * Math.min(1, Math.max(0, Number(s.info.progress) || 0)));
+    if (secs && secs.textContent !== text) secs.textContent = text;
+    if (bar && bar.value !== pct) bar.value = pct;
   }
 }

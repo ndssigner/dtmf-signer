@@ -5,7 +5,7 @@
 // the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
 import { SimWallet } from "./sim-wallet.mjs";
-import { walletCard } from "./wallet-card.mjs";
+import { CardView } from "./wallet-card.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey, LedFlash } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
@@ -183,14 +183,11 @@ export async function start(doc, loadModule) {
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
   // The wallet's screen: a card with what you need for what you just did.
-  const cardEl = { sim: root.querySelector('[data-panel="sim"] .wl-card'), yours: root.querySelector('[data-panel="yours"] .wl-card') };
+  const cards = { sim: new CardView(root.querySelector('[data-panel="sim"] .wl-card'), S),
+    yours: new CardView(root.querySelector('[data-panel="yours"] .wl-card'), S) };
   let card = null;            // { kind, info } on the simulated wallet, or null
   let sending = null;         // { what, total, then: the card once it is sent }
-  const shownCard = { sim: "", yours: "" };
-  function showCard(where, ...cards) {
-    const html = cards.filter(Boolean).map((c) => walletCard(c.kind, c.info, S)).join("");
-    if (html !== shownCard[where] && cardEl[where]) { cardEl[where].innerHTML = html; shownCard[where] = html; }
-  }
+  const showCard = (where, ...c) => cards[where].show(...c);
   const btnEls = [...root.querySelectorAll("[data-btn]")];
   let lastCls = -1;
   const ledEl = root.querySelector(".sim-led"), led = new LedFlash();
@@ -406,7 +403,7 @@ export async function start(doc, loadModule) {
     // may show it before the last one); on yours, listening.
     if (sending && sim.queued === 0) { card = sending.then; sending = null; }
     if (sending) showCard("sim", { kind: "sending", info: { what: sending.what, seconds: Math.ceil(sim.queued / RATE),
-      progress: Math.round(50 * (1 - sim.queued / sending.total)) / 50 } }, sending.then);
+      progress: 1 - sim.queued / sending.total } }, sending.then);
     else showCard("sim", card);
     showCard("yours", micSwitch.on ? { kind: "listening" } : null);
     requestAnimationFrame(frame);
