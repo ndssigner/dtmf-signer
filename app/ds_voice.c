@@ -21,7 +21,14 @@ enum {
     ST_GREET,      /* greeting; # to the menu */
     ST_MENU_EMPTY, /* the menu without a seed */
     ST_ABOUT,
-    ST_RESUME_ASK  /* off-hook after a hang-up: # resumes, * wipes */
+    ST_RESUME_ASK, /* off-hook after a hang-up: # resumes, * wipes */
+    ST_SEED_HOW,   /* by the handset, 1; by the keypad, 2 */
+    ST_SEED_AIR,   /* the wallet plays the encrypted seed (half-duplex) */
+    ST_PIN,        /* its PIN, by multi-tap */
+    ST_KEYPAD,     /* the seed typed: "*", the digits, "#" */
+    ST_KEYPAD_PIN, /* its PIN if it has one, by multi-tap; "#" alone: none */
+    ST_FINGERPRINT,/* the seed's fingerprint: # derives, * wipes */
+    ST_MENU_READY  /* the menu with a seed */
 };
 
 #define STEPS_DONE (-1)
@@ -37,21 +44,52 @@ static const char *state_name(int st)
     case ST_MENU_EMPTY: return "menu-empty";
     case ST_ABOUT: return "about";
     case ST_RESUME_ASK: return "resume-ask";
+    case ST_SEED_HOW: return "seed-how";
+    case ST_SEED_AIR: return "seed-air";
+    case ST_PIN: return "pin";
+    case ST_KEYPAD: return "seed-keypad";
+    case ST_KEYPAD_PIN: return "keypad-pin";
+    case ST_FINGERPRINT: return "fingerprint";
+    case ST_MENU_READY: return "menu-ready";
     default: return "?";
     }
 }
 
-/* The states a hang-up can come back to (# after "resume_ask"). Those
- * before the menu just start again. */
-static int resumable(int st)
+/* Where # after "resume_ask" goes back to when a hang-up left st (ST_IDLE:
+ * nowhere; the states before the menu just start again). A hang-up wipes
+ * what was being typed or received, so an input starts again: the seed is
+ * played or typed again. */
+static int resume_point(int st)
 {
-    return st == ST_MENU_EMPTY || st == ST_ABOUT;
+    switch (st) {
+    case ST_MENU_EMPTY:
+    case ST_ABOUT:
+    case ST_SEED_HOW:
+    case ST_FINGERPRINT:
+    case ST_MENU_READY:
+        return st;
+    case ST_SEED_AIR:
+    case ST_PIN:
+        return ST_SEED_AIR;
+    case ST_KEYPAD:
+    case ST_KEYPAD_PIN:
+        return ST_KEYPAD;
+    default:
+        return ST_IDLE;
+    }
+}
+
+/* The inputs: their prompt is not said again by itself (the silence of a
+ * reception or of someone typing), and keys there are data. */
+static int input(int st)
+{
+    return st == ST_SEED_AIR || st == ST_PIN || st == ST_KEYPAD || st == ST_KEYPAD_PIN;
 }
 
 /* The states whose prompt is said again after DS_VOICE_REPEAT_MS of silence. */
 static int repeats(int st)
 {
-    return st != ST_IDLE;
+    return st != ST_IDLE && !input(st);
 }
 
 /* ---- echo (as ds_app's) ---- */
@@ -184,6 +222,60 @@ static int say_step(ds_voice *v)
         }
         clip(v, DS_P_RESUME_ASK);
         break;
+    case ST_SEED_HOW:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_SEED_HOW);
+        break;
+    case ST_SEED_AIR:
+        /* the warning, then "listening": nothing more is said until the
+         * seed has been heard (half-duplex) */
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_AIR_WARNING);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ds_say_earcon(&v->say, DS_EAR_LISTEN);
+        break;
+    case ST_PIN:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_PIN_ASK);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        clip(v, DS_P_PIN_WARNING);
+        break;
+    case ST_KEYPAD:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_KEYPAD_ASK);
+        break;
+    case ST_KEYPAD_PIN:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_KEYPAD_PIN_ASK);
+        break;
+    case ST_FINGERPRINT:
+        if (k > 0) {
+            return 0;
+        }
+        snprintf(fp, sizeof fp, "%08x", (unsigned)v->seed_fp);
+        clip(v, DS_P_FINGERPRINT_IS);
+        ds_say_chars_grouped(&v->say, fp);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        clip(v, DS_P_IF_CORRECT_HASH);
+        break;
+    case ST_MENU_READY:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_MENU_READY);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        clip(v, DS_P_ABOUT);
+        break;
     default:
         return 0;
     }
@@ -236,16 +328,211 @@ static void repeat(ds_voice *v)
     pump(v);
 }
 
+/* ---- the secrets of an input ---- */
+
+/* The listener's groups and its live keys to zero: they held what was typed
+ * (a PIN's key presses, a seed's digits). The detector and the tone being
+ * heard are left alone, so a key still sounding is not heard again. */
+static void forget_keys(ds_voice *v)
+{
+    ut_keys *k = &v->l.keys;
+    ds_wipe(k->current, sizeof k->current);
+    ds_wipe(k->ready, sizeof k->ready);
+    ds_wipe(k->live, sizeof k->live);
+    k->clen = 0;
+    k->rhead = 0;
+    k->rcount = 0;
+    k->nlive = 0;
+}
+
+/* What was typed or received to zero: the receiver (and the seed group it
+ * holds), the PIN, the listener's groups. */
+static void drop_input(ds_voice *v)
+{
+    ds_rx_wipe(&v->rx);
+    v->rx_keys = 0;
+    ds_multitap_wipe(&v->mt);
+    forget_keys(v);
+}
+
 /* "Wipe and start over": the session goes, the language chosen for this
- * power-up stays. Tasks 8-9 wipe the seed, the wallet and the PSBT here. */
+ * power-up stays. Task 9 wipes the PSBT here too. */
 static void wipe(ds_voice *v)
 {
+    drop_input(v);
+    ds_session_wipe(&v->s);
+    v->seed_fp = 0;
     v->testnet = 0;
     v->resume_to = ST_IDLE;
     hush(v);
     clip(v, DS_P_WIPED);
     echo_said(v);
     go(v, ST_MENU_EMPTY);
+}
+
+/* ---- loading the seed ---- */
+
+/* A receiver for a seed, then st (ST_SEED_AIR or ST_KEYPAD). */
+static void start_seed(ds_voice *v, int st)
+{
+    drop_input(v);
+    ds_rx_init(&v->rx, v->rate, DS_RX_SEED);
+    v->armed = 0;
+    enter(v, st);
+}
+
+/* The seed is held: its PIN (st: ST_PIN or ST_KEYPAD_PIN). No key sounds
+ * now (the seed's group closed after 300 ms of silence), so the listener
+ * starts afresh. */
+static void ask_pin(ds_voice *v, int st)
+{
+    ds_wipe(&v->l, sizeof v->l);
+    ut_listener_init(&v->l, v->rate);
+    ds_multitap_init(&v->mt);
+    enter(v, st);
+}
+
+/* Loading failed or was refused: nothing stays; the question again. */
+static void seed_failed(ds_voice *v)
+{
+    drop_input(v);
+    ds_session_wipe(&v->s);
+    v->seed_fp = 0;
+    hush(v);
+    ds_say_earcon(&v->say, DS_EAR_FAIL);
+    clip(v, DS_P_ERROR_GENERIC);
+    echo_said(v);
+    go(v, ST_SEED_HOW);
+}
+
+/* The PIN is complete: decrypt, apply the policy, load. As ds_app's job_pin:
+ * the PIN, the group and the entropy are wiped on every path. By the
+ * handset the seed came by air (DS_AIR: encrypted with a PIN of 12 or more);
+ * typed on the keypad when asked it counts as a cable (DS_CABLE). */
+static void load_seed(ds_voice *v)
+{
+    uint8_t entropy[32];
+    size_t pin_len = v->mt.len;
+    int encrypted = pin_len > 0;
+    int channel = v->state == ST_PIN ? DS_AIR : DS_CABLE;
+    int32_t n, r;
+    ds_wallet tmp;
+    char l[24];
+
+    forget_keys(v);
+    if (ds_policy_accepts(encrypted ? DS_DATA_SEED_ENCRYPTED : DS_DATA_SEED_PLAIN,
+                          channel, pin_len) < 0) {
+        seed_failed(v); /* refused before it is even decrypted */
+        return;
+    }
+    n = ds_rx_seed(&v->rx, encrypted ? v->mt.text : NULL, entropy);
+    drop_input(v);
+    if (n < 0) {
+        ds_wipe(entropy, sizeof entropy);
+        seed_failed(v);
+        return;
+    }
+    ds_session_init(&v->s, v->testnet);
+    r = ds_session_seed(&v->s, entropy, (size_t)n, encrypted, pin_len, channel, 0);
+    if (r == DS_OK || r == DS_WARN_AIR) {
+        r = ds_wallet_load(&tmp, entropy, (size_t)n, NULL, v->testnet);
+        v->seed_fp = tmp.seed_fp;
+        ds_wallet_wipe(&tmp);
+    }
+    ds_wipe(entropy, sizeof entropy);
+    if (r != DS_OK) {
+        seed_failed(v);
+        return;
+    }
+    hush(v);
+    ds_say_earcon(&v->say, DS_EAR_OK);
+    echo_said(v);
+    v->state = ST_FINGERPRINT;
+    echo_line(v, "state fingerprint");
+    snprintf(l, sizeof l, "fingerprint %08x", (unsigned)v->seed_fp);
+    echo_line(v, l);
+    v->step = 0;
+    pump(v);
+}
+
+/* What a PIN key did (a DS_MT_ code), said back: each character only as a
+ * secret one ("say pin-char" in the echo). */
+static void pin_said(ds_voice *v, int r)
+{
+    ds_multitap *m = &v->mt;
+
+    switch (r) {
+    case DS_MT_SHOW:
+        hush(v);
+        ds_say_secret_char(&v->say, m->pending);
+        break;
+    case DS_MT_COMMIT:
+        hush(v);
+        ds_say_earcon(&v->say, DS_EAR_NEXT);
+        if (m->has_pending) {
+            ds_say_secret_char(&v->say, m->pending);
+        }
+        break;
+    case DS_MT_BACK:
+        hush(v);
+        ds_say_earcon(&v->say, DS_EAR_BACK);
+        if (m->len > 0) {
+            ds_say_secret_char(&v->say, m->text[m->len - 1]);
+        }
+        break;
+    case DS_MT_DONE:
+        load_seed(v);
+        return;
+    case DS_MT_CANCEL:
+        drop_input(v);
+        hush(v);
+        clip(v, DS_P_CANCELLED);
+        echo_said(v);
+        go(v, ST_SEED_HOW);
+        return;
+    default:
+        return;
+    }
+    echo_said(v);
+}
+
+/* The receiver's groups: a seed of the kind this state waits for goes on to
+ * its PIN; anything else is dropped (by the keypad, with the fail sound;
+ * by the handset, in silence: half-duplex). */
+static void poll_rx(ds_voice *v)
+{
+    int32_t r;
+    int keypad = v->state == ST_KEYPAD;
+
+    while ((r = ds_rx_poll(&v->rx)) != DS_RX_NONE) {
+        if (r == DS_RX_GOT_SEED) {
+            if ((v->rx.group[0] == '*') == keypad) {
+                ask_pin(v, keypad ? ST_KEYPAD_PIN : ST_PIN);
+                return;
+            }
+            /* a frame typed?, keypad digits played?: not here */
+            ds_rx_wipe(&v->rx);
+            ds_rx_init(&v->rx, v->rate, DS_RX_SEED);
+            v->rx_keys = 0;
+        }
+        if (keypad) {
+            hush(v);
+            ds_say_earcon(&v->say, DS_EAR_FAIL);
+            echo_said(v);
+        }
+    }
+}
+
+/* The seed's audio into the receiver; keys counted for the LED. */
+static int rx_in(ds_voice *v, const int16_t *x, size_t n)
+{
+    uint32_t got;
+
+    ds_rx_push(&v->rx, x, n);
+    got = v->rx.keys - v->rx_keys;
+    v->rx_keys = v->rx.keys;
+    v->keys += got;
+    return got > 0;
 }
 
 /* ---- keys ---- */
@@ -275,8 +562,9 @@ static void on_key(ds_voice *v, char c)
         }
         break;
     case ST_MENU_EMPTY:
-        /* '1' (load seed) comes with Task 8 */
-        if (c == '2') {
+        if (c == '1') {
+            enter(v, ST_SEED_HOW);
+        } else if (c == '2') {
             v->testnet = !v->testnet;
             hush(v);
             clip(v, v->testnet ? DS_P_NETWORK_NOW_TEST : DS_P_NETWORK_NOW_MAIN);
@@ -299,9 +587,57 @@ static void on_key(ds_voice *v, char c)
         if (c == '#') {
             st = v->resume_to;
             v->resume_to = ST_IDLE;
-            enter(v, st);
+            if (st == ST_SEED_AIR || st == ST_KEYPAD) {
+                start_seed(v, st);
+            } else {
+                enter(v, st);
+            }
         } else if (c == '*') {
             wipe(v);
+        } else if (c == '0') {
+            repeat(v);
+        }
+        break;
+    case ST_SEED_HOW:
+        if (c == '1') {
+            start_seed(v, ST_SEED_AIR);
+        } else if (c == '2') {
+            start_seed(v, ST_KEYPAD);
+        } else if (c == '*') {
+            enter(v, ST_MENU_EMPTY);
+        } else if (c == '0') {
+            repeat(v);
+        }
+        break;
+    case ST_PIN:
+    case ST_KEYPAD_PIN:
+        pin_said(v, ds_multitap_key(&v->mt, c, v->now));
+        break;
+    case ST_FINGERPRINT:
+        if (c == '#') {
+            if (ds_session_passphrase(&v->s, NULL, DS_CABLE, 0) == DS_OK) {
+                enter(v, ST_MENU_READY);
+            } else {
+                ds_session_wipe(&v->s);
+                v->seed_fp = 0;
+                hush(v);
+                ds_say_earcon(&v->say, DS_EAR_FAIL);
+                clip(v, DS_P_ERROR_GENERIC);
+                echo_said(v);
+                go(v, ST_MENU_EMPTY);
+            }
+        } else if (c == '*') {
+            wipe(v);
+        } else if (c == '0') {
+            repeat(v);
+        }
+        break;
+    case ST_MENU_READY:
+        if (c == '3') {
+            wipe(v);
+        } else if (c == '9') {
+            v->about_back = ST_MENU_READY;
+            enter(v, ST_ABOUT);
         } else if (c == '0') {
             repeat(v);
         }
@@ -319,7 +655,32 @@ void ds_voice_line_in(ds_voice *v, const int16_t *x, size_t n)
     if (v->state == ST_IDLE || !v->hook) {
         return; /* on-hook: nothing to hear */
     }
+    if (v->state == ST_SEED_AIR) {
+        /* half-duplex: the receiver hears only once the signer is quiet */
+        if (!ds_voice_speaking(v)) {
+            rx_in(v, x, n);
+            poll_rx(v);
+        }
+        return;
+    }
+    if (v->state == ST_KEYPAD && v->armed) {
+        if (rx_in(v, x, n) && ds_voice_speaking(v)) {
+            hush(v); /* the first digit barges in */
+        }
+        poll_rx(v);
+        return;
+    }
     ut_listener_push(&v->l, x, n);
+    if (v->state == ST_KEYPAD) {
+        /* the key that chose the keypad may still sound: the receiver
+         * starts once no key has been heard for 30 ms */
+        got = ut_listener_live(&v->l, k, sizeof k);
+        if (v->l.keys.live_key == 0 && v->l.keys.live_run >= 3) {
+            v->armed = 1;
+        }
+        ds_wipe(k, sizeof k);
+        return;
+    }
     got = ut_listener_live(&v->l, k, sizeof k);
     for (int32_t i = 0; i < got; i++) {
         v->keys++;
@@ -358,9 +719,14 @@ static void answer(ds_voice *v)
 /* A long on-hook: the session stays, to resume at the next off-hook. */
 static void hang_up(ds_voice *v)
 {
-    if (resumable(v->state)) {
-        v->resume_to = v->state;
+    int st = resume_point(v->state);
+    if (st != ST_IDLE) {
+        v->resume_to = st;
     }
+    /* what was being typed or received goes, the listener with it */
+    drop_input(v);
+    ds_wipe(&v->l, sizeof v->l);
+    ut_listener_init(&v->l, v->rate);
     enter(v, ST_IDLE);
 }
 
@@ -412,6 +778,9 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
     debounce(v, now_ms);
     if (!v->hook && v->state != ST_IDLE && now_ms - v->down_at >= DS_VOICE_HANGUP_MS) {
         hang_up(v);
+    }
+    if (v->hook && (v->state == ST_PIN || v->state == ST_KEYPAD_PIN)) {
+        pin_said(v, ds_multitap_tick(&v->mt, now_ms)); /* a pause commits */
     }
     if (!repeats(v->state) || !v->hook || ds_voice_speaking(v)) {
         v->quiet_at = now_ms;

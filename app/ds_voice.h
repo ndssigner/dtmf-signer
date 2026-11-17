@@ -7,6 +7,18 @@
  *   on-hook (idle) --off-hook--> [language list] --> greeting --#--> menu
  *   menu (no seed): 1 load seed, 2 network (says the new one), 9 about,
  *   0 repeat.
+ *   load seed: by the handset 1, by the keypad 2 (* back).
+ *     handset: the air warning, the "listen" sound, then the signer only
+ *       listens (half-duplex) until a crypto-seed frame is heard; then its
+ *       PIN by narrated multi-tap. By air the policy wants a PIN of 12
+ *       characters or more (DS_AIR); otherwise it fails and asks again.
+ *     keypad: "*", the digits, "#" (ur-tones keypad mode), then its PIN if
+ *       it has one, "#" alone if not. Typed when asked, it counts as a cable.
+ *     Then the seed's fingerprint: # loads the wallet (the menu with a seed:
+ *     3 wipe, 9 about, 0 repeat), * wipes. A failure says "error_generic".
+ *   PIN by multi-tap (ds_multitap): each key is said back as a secret
+ *   character, the "next" sound when one is committed, "back" and the last
+ *   one left after *; # ends it, * with nothing left cancels.
  *
  * Keys are heard while the signer speaks (barge-in): a key the state acts on
  * stops what is being said and acts; any other key is ignored and the
@@ -17,7 +29,8 @@
  * The hook is debounced (DS_VOICE_DEBOUNCE_MS). An on-hook of
  * DS_VOICE_FLASH_MIN_MS up to DS_VOICE_HANGUP_MS is a hook flash (the
  * confirmation of a signature, in the step that asks for it); a longer one
- * is a hang-up: the session is kept, and the next off-hook asks
+ * is a hang-up: the session is kept (what was being typed or received is
+ * wiped: an input starts again), and the next off-hook asks
  * "resume_ask": # resumes where it was (that prompt again), * wipes and goes
  * to the menu. Cutting the power (ds_voice_init again) zeroes everything.
  *
@@ -40,8 +53,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ds_multitap.h"
 #include "ds_pack.h"
+#include "ds_rx.h"
 #include "ds_say.h"
+#include "ds_session.h"
 #include "ur_tones.h"
 
 #define DS_VOICE_RATE DS_SAY_RATE   /* line_in and line_out */
@@ -70,6 +86,13 @@ typedef struct {
     uint32_t down_at;    /* when the debounced on-hook began */
     uint32_t now, quiet_at; /* the clock; the last time something was said */
     uint32_t keys;       /* keys heard (a count only) */
+    /* loading the seed (secrets: wiped on a hang-up, a wipe, a failure) */
+    ds_rx rx;            /* the seed's tones: by the handset or typed */
+    uint32_t rx_keys;    /* rx.keys already counted */
+    int armed;           /* keypad: the receiver hears (the choosing key is over) */
+    ds_multitap mt;      /* the PIN */
+    ds_session s;        /* zero until a seed is loaded */
+    uint32_t seed_fp;    /* the loaded seed's fingerprint (public) */
     char echo[DS_VOICE_ECHO_BUF]; /* NUL-separated lines */
     size_t echo_len;
     uint32_t echo_dropped;

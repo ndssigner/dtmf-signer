@@ -12,6 +12,7 @@
 #include "ds_say.h"
 #include "ds_voice.h"
 #include "test.h"
+#include "tones.h"
 #include "ur_tones.h"
 #include "voice_test_packs.h"
 
@@ -389,8 +390,378 @@ static void test_hang_up_keeps_session(void)
     CHECK(HAS(&L, "say greeting", 0));
 }
 
+/* ---- loading the seed ---- */
+
+static const uint8_t seed_6a[16] = {0x6a, 0xa7, 0x4b, 0xc0, 0x73, 0xa6, 0x71, 0x04,
+                                    0x57, 0x0c, 0xca, 0x7a, 0x05, 0x83, 0x9c, 0xa5};
+static const uint8_t zero16[16];
+static char seed_tones[UT_GROUP + 1];
+static int16_t seed_audio[TONES_RATE * 60];
+
+/* Audio played into the handset (or typed), with the line mixed in. */
+static void play(line_t *t, const int16_t *x, size_t n)
+{
+    static int16_t c[CHUNK];
+    for (size_t i = 0; i < n; i += CHUNK) {
+        size_t k = n - i < CHUNK ? n - i : CHUNK;
+        memset(c, 0, sizeof c);
+        memcpy(c, x + i, k * sizeof x[0]);
+        step(t, c);
+    }
+}
+
+/* A wallet playing tones next to the handset. */
+static void play_tones(line_t *t, const char *tones)
+{
+    play(t, seed_audio, tones_render(tones, seed_audio, sizeof seed_audio / sizeof seed_audio[0]));
+}
+
+/* The key that types c by multi-tap, and how many presses. */
+static char mt_key(char c, int *presses)
+{
+    static const char *cyc[10] = {"0", "1", "2ABC", "3DEF", "4GHI",
+                                  "5JKL", "6MNO", "7PQRS", "8TUV", "9WXYZ"};
+    for (int k = 0; k < 10; k++) {
+        const char *p = strchr(cyc[k], c);
+        if (p != NULL) {
+            *presses = (int)(p - cyc[k]) + 1;
+            return (char)('0' + k);
+        }
+    }
+    *presses = 0;
+    return 0;
+}
+
+/* Types text by multi-tap (waiting out the same key twice), without the
+ * final '#'. */
+static void type_mt(line_t *t, const char *text)
+{
+    char prev = 0;
+    for (const char *p = text; *p; p++) {
+        int n;
+        char k = mt_key(*p, &n);
+        if (k == prev)
+            run_ms(t, 1600);
+        for (int i = 0; i < n; i++)
+            press(t, k);
+        prev = k;
+    }
+}
+
+/* The PIN, then the timeout commits the last character and # ends it. */
+static void type_pin(line_t *t, const char *pin)
+{
+    type_mt(t, pin);
+    run_ms(t, 1600);
+    press(t, '#');
+}
+
+static void type_keys(line_t *t, const char *keys)
+{
+    for (const char *p = keys; *p; p++)
+        press(t, *p);
+}
+
+static int all_zero(const void *p, size_t n)
+{
+    const uint8_t *b = p;
+    for (size_t i = 0; i < n; i++)
+        if (b[i])
+            return 0;
+    return 1;
+}
+
+/* No line of the log from `from` holds a piece (4 characters or more) of secret. */
+static int log_free_of(const line_t *t, const char *secret, size_t from)
+{
+    size_t n = strlen(secret);
+    char piece[8];
+    for (size_t i = 0; i + 4 <= n; i++) {
+        memcpy(piece, secret + i, 4);
+        piece[4] = '\0';
+        if (strstr(t->log + from, piece) != NULL)
+            return 0;
+    }
+    return 1;
+}
+
+/* The menu, then 1 (load seed): the seed_how question asked. */
+static void to_seed_how(line_t *t)
+{
+    to_menu(t);
+    press(t, '1');
+    run_quiet(t);
+}
+
+/* By the handset: the warning, the wallet plays the frame, the PIN is asked. */
+static void air_seed_to_pin(line_t *t, const uint8_t *seed, const char *pin)
+{
+    CHECK(tones_seed_ur(seed, 16, pin, seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(t);
+    press(t, '1');
+    run_quiet(t);
+    play_tones(t, seed_tones);
+    run_ms(t, 500);
+}
+
+static void test_air_seed_with_long_pin(void)
+{
+    char fp[24];
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    CHECK(HAS(&L, "state seed-how", 0));
+    CHECK(HAS(&L, "say seed_how", 0));
+    long w = find_line(&L, "say air_warning", 0);
+    CHECK(w >= 0 && HAS(&L, "ear listen", (size_t)w));
+    long p = find_line(&L, "state pin", 0);
+    CHECK(p > w);
+    CHECK(p >= 0 && HAS(&L, "say pin_ask", (size_t)p));
+    CHECK(p >= 0 && HAS(&L, "say pin_warning", (size_t)p));
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    type_pin(&L, "ABC123DEF456");
+    run_ms(&L, 100);
+    /* one per press (A twice, B three times, ...), one NEXT per character */
+    CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 24);
+    CHECK_EQ_INT(count_lines(&L, "ear next", mark), 12);
+    long f = find_line(&L, "fingerprint 8b218e81", mark);
+    CHECK(f >= 0);
+    CHECK(f >= 0 && HAS(&L, "state fingerprint", mark));
+    CHECK(HAS(&L, "ear ok", mark));
+    long fi = find_line(&L, "say fingerprint_is", mark);
+    CHECK(fi >= 0 && HAS(&L, "chars 8b218e81", (size_t)fi));
+    CHECK(fi >= 0 && HAS(&L, "say if_correct_hash", (size_t)fi));
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state menu-ready", mark));
+    CHECK(HAS(&L, "say menu_ready", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    snprintf(fp, sizeof fp, "%08x", (unsigned)L.v.s.w.wallet_fp);
+    CHECK_EQ_STR(fp, "8b218e81");
+}
+
+static void test_air_seed_short_pin_refused(void)
+{
+    air_seed_to_pin(&L, seed_6a, "1234");
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    type_pin(&L, "1234");
+    run_quiet(&L);
+    long e = find_line(&L, "say error_generic", mark);
+    CHECK(e >= 0);
+    CHECK(e >= 0 && HAS(&L, "state seed-how", (size_t)e));
+    CHECK(!HAS(&L, "state fingerprint", mark));
+    CHECK(strstr(L.log + mark, "fingerprint ") == NULL);
+    CHECK(L.v.s.state != DS_S_SEED && L.v.s.state != DS_S_READY);
+    CHECK(all_zero(L.v.s.entropy, sizeof L.v.s.entropy));
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+}
+
+/* By the keypad: the digits, then the PIN (or none). */
+static void keypad_seed(line_t *t, const char *pin)
+{
+    CHECK(tones_seed_keypad(zero16, 16, pin, seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(t);
+    press(t, '2');
+    run_ms(t, 500); /* the prompt is playing: the digits barge in */
+    type_keys(t, seed_tones);
+    run_ms(t, 300);
+    CHECK(HAS(t, "say keypad_ask", 0));
+    CHECK(HAS(t, "state keypad-pin", 0));
+    CHECK(HAS(t, "say keypad_pin_ask", 0));
+    run_quiet(t);
+    if (pin != NULL)
+        type_pin(t, pin);
+    else
+        press(t, '#');
+    run_ms(t, 100);
+}
+
+static void test_keypad_seed_no_pin(void)
+{
+    keypad_seed(&L, NULL);
+    CHECK(HAS(&L, "state seed-keypad", 0));
+    CHECK(HAS(&L, "fingerprint 73c5da0a", 0));
+    CHECK(HAS(&L, "chars 73c5da0a", 0));
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    CHECK(log_free_of(&L, seed_tones + 1, 0)); /* no run of the seed's digits */
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    /* * at the fingerprint wipes */
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    press(&L, '*');
+    run_quiet(&L);
+    long w = find_line(&L, "say wiped", mark);
+    CHECK(w >= 0 && HAS(&L, "state menu-empty", (size_t)w));
+    CHECK_EQ_INT(L.v.s.state, 0);
+    CHECK(all_zero(&L.v.s, sizeof L.v.s));
+}
+
+static void test_keypad_seed_with_pin(void)
+{
+    keypad_seed(&L, "TEST7");
+    CHECK(HAS(&L, "fingerprint 73c5da0a", 0)); /* the PIN decrypted it */
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    CHECK(log_free_of(&L, seed_tones + 1, 0));
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+}
+
+static void test_pin_chars_never_in_echo(void)
+{
+    static const char pin[] = "ABC123DEF456";
+    air_seed_to_pin(&L, seed_6a, pin);
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    press(&L, '7');
+    press(&L, '*'); /* drops it: back */
+    type_pin(&L, pin);
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "ear back", mark));
+    CHECK(HAS(&L, "fingerprint 8b218e81", mark));
+    CHECK(log_free_of(&L, pin, 0));
+    /* while the PIN is typed, nothing but these lines */
+    long end = find_line(&L, "state fingerprint", mark);
+    CHECK(end > 0);
+    for (const char *p = L.log + mark; end > 0 && p < L.log + end;) {
+        const char *e = strchr(p, '\n');
+        int ok = (e - p == 12 && memcmp(p, "say pin-char", 12) == 0) ||
+                 (e - p == 8 && memcmp(p, "ear next", 8) == 0) ||
+                 (e - p == 8 && memcmp(p, "ear back", 8) == 0) ||
+                 (e - p == 6 && memcmp(p, "ear ok", 6) == 0);
+        if (!ok)
+            printf("unexpected while typing the PIN: %.*s\n", (int)(e - p), p);
+        CHECK(ok);
+        p = e + 1;
+    }
+}
+
+/* A hang-up mid-PIN wipes what was typed and the seed held; resuming starts
+ * that input again. */
+static void test_hang_up_mid_pin_wipes(void)
+{
+    static ut_listener fresh;
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    run_quiet(&L);
+    type_mt(&L, "ABC1");
+    CHECK(L.v.mt.len > 0);
+    size_t mark = L.log_len;
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    CHECK(HAS(&L, "state idle", mark));
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    memset(&fresh, 0, sizeof fresh);
+    ut_listener_init(&fresh, 16000);
+    CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "state resume-ask", mark));
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-air", mark)); /* the seed must be played again */
+    CHECK(HAS(&L, "ear listen", mark));
+    play_tones(&L, seed_tones);
+    run_ms(&L, 500);
+    CHECK(HAS(&L, "state pin", mark));
+    run_quiet(&L);
+    type_pin(&L, "ABC123DEF456");
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "fingerprint 8b218e81", mark));
+
+    /* mid keypad entry too */
+    CHECK(tones_seed_keypad(zero16, 16, NULL, seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(&L);
+    press(&L, '2');
+    run_quiet(&L);
+    char part[12];
+    memcpy(part, seed_tones, 11);
+    part[11] = '\0';
+    type_keys(&L, part);
+    mark = L.log_len;
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-keypad", mark));
+    (void)tones_next_part;
+}
+
+/* A key held long (ms of tone, then 100 ms of gap). */
+static void press_long(line_t *t, char k, uint32_t ms)
+{
+    static int16_t buf[16000];
+    char keys[2] = {k, 0};
+    size_t n = (size_t)(ms + 100) * 16;
+    ut_synth s;
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&s, keys, 16000, ms, 100, 0);
+    ut_synth_read(&s, buf, n);
+    play(t, buf, n);
+}
+
+/* The key that chose the keypad, held long, is not the seed's first digit:
+ * no fail sound, the prompt goes on. */
+static void test_keypad_choice_key_not_data(void)
+{
+    to_seed_how(&L);
+    size_t mark = L.log_len;
+    press_long(&L, '2', 400);
+    run_ms(&L, 400);
+    CHECK(HAS(&L, "state seed-keypad", mark));
+    CHECK(!HAS(&L, "ear fail", mark));
+    CHECK(ds_voice_speaking(&L.v)); /* keypad_ask not cut */
+    CHECK_EQ_INT(L.v.rx.keys, 0);
+}
+
+/* Half-duplex: a seed played while the warning is said is not heard. */
+static void test_air_listens_only_when_quiet(void)
+{
+    CHECK(tones_seed_ur(seed_6a, 16, "ABC123DEF456", seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(&L);
+    size_t mark = L.log_len;
+    press(&L, '1');
+    run_ms(&L, 500);
+    CHECK(ds_voice_speaking(&L.v));
+    play_tones(&L, seed_tones);
+    run_ms(&L, 500);
+    CHECK(!HAS(&L, "state pin", mark));
+    /* played again once it is quiet, it is */
+    run_quiet(&L);
+    play_tones(&L, seed_tones);
+    run_ms(&L, 500);
+    CHECK(HAS(&L, "state pin", mark));
+}
+
+static void test_reboot_wipes_everything(void)
+{
+    keypad_seed(&L, NULL);
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    ds_voice_init(&L.v, 16000, NULL, 0);
+    CHECK_EQ_INT(L.v.s.state, 0);
+    CHECK(all_zero(&L.v.s, sizeof L.v.s));
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    CHECK_EQ_INT(L.v.seed_fp, 0);
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
           test_key_during_prompt_barges_in, test_own_voice_is_not_a_key,
-          test_hang_up_keeps_session)
+          test_hang_up_keeps_session, test_air_seed_with_long_pin,
+          test_air_seed_short_pin_refused, test_keypad_seed_no_pin,
+          test_keypad_seed_with_pin, test_pin_chars_never_in_echo,
+          test_hang_up_mid_pin_wipes, test_keypad_choice_key_not_data,
+          test_air_listens_only_when_quiet, test_reboot_wipes_everything)
