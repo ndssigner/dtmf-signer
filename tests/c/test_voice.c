@@ -287,7 +287,7 @@ static void test_languages_listed_and_chosen(void)
 
 static void test_about_says_fingerprints(void)
 {
-    char want[16];
+    char want[32];
     power_up(&L, es_bin, ES_BIN_LEN);
     hook(&L, 1);
     run_ms(&L, 100);
@@ -300,8 +300,10 @@ static void test_about_says_fingerprints(void)
     press(&L, '9');
     run_quiet(&L);
     CHECK(HAS(&L, "state about", mark));
-    snprintf(want, sizeof want, "chars %02x%02x%02x%02x", es_bin_fp[0], es_bin_fp[1],
-             es_bin_fp[2], es_bin_fp[3]);
+    /* 8 bytes of each pack's SHA-256, 16 characters */
+    memcpy(want, "chars ", 6);
+    for (int i = 0; i < 8; i++)
+        snprintf(want + 6 + 2 * i, 3, "%02x", es_bin_fp[i]);
     long es_at = find_line(&L, "chars es", mark);
     CHECK(HAS(&L, "chars en", mark));
     CHECK(es_at >= 0 && HAS(&L, want, (size_t)es_at));
@@ -754,7 +756,11 @@ static void test_hang_up_mid_pin_wipes(void)
     mark = L.log_len;
     press(&L, '#');
     run_quiet(&L);
-    CHECK(HAS(&L, "state seed-air", mark)); /* the seed must be played again */
+    CHECK(HAS(&L, "state seed-how", mark)); /* the question again, not the reception */
+    CHECK(!HAS(&L, "state seed-air", mark));
+    press(&L, '1'); /* the seed must be played again */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-air", mark));
     CHECK(HAS(&L, "ear listen", mark));
     play_tones(&L, seed_tones);
     run_ms(&L, 500);
@@ -782,6 +788,10 @@ static void test_hang_up_mid_pin_wipes(void)
     run_ms(&L, 100);
     run_quiet(&L);
     press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-how", mark));
+    CHECK(!HAS(&L, "state seed-keypad", mark));
+    press(&L, '2');
     run_quiet(&L);
     CHECK(HAS(&L, "state seed-keypad", mark));
     (void)tones_next_part;
@@ -888,7 +898,12 @@ static void test_air_warning_once(void)
     hook(&L, 1);
     run_ms(&L, 100);
     run_quiet(&L);
-    press(&L, '#'); /* resume: seed-air again */
+    size_t mark = L.log_len;
+    press(&L, '#'); /* resume: a reception is not resumed, its question is */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-how", mark));
+    CHECK(!HAS(&L, "state seed-air", mark));
+    press(&L, '1'); /* seed-air again */
     run_quiet(&L);
     hook(&L, 0);
     run_ms(&L, 2000);
@@ -1780,12 +1795,14 @@ static void test_hook_flash_signs(void)
         between[bl > 12 ? bl - 12 : 0] = '\0';
         CHECK(strstr(between, "state ") == NULL);
     }
-    /* # back to the menu, with the redial note once; the signature zeroed */
+    /* # back to the menu; the signature zeroed. The redial note was said
+     * once in this call, when the seed had been typed: not again */
     m2 = L.log_len;
     press(&L, '#');
     run_quiet(&L);
-    long rn = find_line(&L, "say redial_note", m2);
-    CHECK(rn >= 0 && HAS(&L, "state menu-ready", (size_t)rn));
+    CHECK(HAS(&L, "state menu-ready", m2));
+    CHECK(!HAS(&L, "say redial_note", m2));
+    CHECK_EQ_INT(count_lines(&L, "say redial_note", 0), 1);
     CHECK(all_zero(L.v.out, sizeof L.v.out));
     CHECK_EQ_INT(L.v.cbor_len, 0);
     CHECK_EQ_INT(heavy_in_line, 0);
@@ -1798,9 +1815,11 @@ static void test_hook_timing_boundaries(void)
     to_ready(&L, 0);
     send_psbt(&L, pv);
     review_to_confirm(&L);
-    /* 30 ms: nothing */
+    /* 30 ms, 100 ms: nothing */
     size_t mark = L.log_len;
     on_hook(&L, 30);
+    run_quiet(&L);
+    on_hook(&L, 100);
     run_quiet(&L);
     CHECK(!HAS(&L, "hook-flash", mark));
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
@@ -1839,11 +1858,14 @@ static void test_hook_timing_boundaries(void)
     CHECK(all_zero(L.v.out, sizeof L.v.out));
     CHECK(HAS(&L, "state resume-ask", mark));
     CHECK_EQ_INT(L.v.sig_id, 2);
-    /* # resumes: the PSBT must be played again */
+    /* # resumes at the menu: the review is gone, 1 to play the PSBT again */
     run_quiet(&L);
+    size_t m2 = L.log_len;
     press(&L, '#');
     run_quiet(&L);
-    CHECK(HAS(&L, "state psbt-listen", mark));
+    CHECK(HAS(&L, "state menu-ready", m2));
+    CHECK(!HAS(&L, "state psbt-listen", m2));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
     CHECK_EQ_INT(heavy_in_line, 0);
 }
 
@@ -1872,7 +1894,9 @@ static void test_key_does_not_confirm(void)
     CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
 }
 
-static void test_hang_up_during_reception_restarts(void)
+/* A reception started by mistake can only be left by hanging up: resuming
+ * goes back to the menu, never into the reception again. */
+static void test_hang_up_during_reception_back_to_menu(void)
 {
     const psbt_vector *pv = vector("one input with change");
     to_ready(&L, 0);
@@ -1892,10 +1916,18 @@ static void test_hang_up_during_reception_restarts(void)
     hook(&L, 1);
     run_ms(&L, 100);
     run_quiet(&L);
+    size_t m2 = L.log_len;
     press(&L, '#');
     run_quiet(&L);
-    CHECK(HAS(&L, "state psbt-listen", mark));
-    CHECK(HAS(&L, "say psbt_listening", mark));
+    CHECK(HAS(&L, "state menu-ready", m2));
+    CHECK(!HAS(&L, "state psbt-listen", m2));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+    press(&L, '1'); /* to sign, the PSBT from the start */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state psbt-listen", m2));
+    CHECK(HAS(&L, "say psbt_listening", m2));
     CHECK_EQ_INT(L.v.rx.mode, DS_RX_PSBT);
     CHECK_EQ_INT(L.v.rx.keys, 0);
     CHECK_EQ_INT(L.v.rx.parts, 0);
@@ -1977,6 +2009,217 @@ static void test_account_tones_decode(void)
     CHECK(HAS(&L, "state menu-ready", m2));
 }
 
+/* The port may call ds_voice_hook only at each change, with no tick while
+ * the handset is down: the on-hook is still measured from its edge, so a
+ * long one is a hang-up and a short one a flash. */
+static void test_hook_seen_at_its_edges_only(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm(&L);
+    size_t mark = L.log_len;
+    uint32_t t0 = L.now;
+    ds_voice_hook(&L.v, 0, t0);
+    ds_voice_hook(&L.v, 1, t0 + 1600); /* no call, no tick in between */
+    L.now = t0 + 1600;
+    take_echo(&L);
+    run_ms(&L, 300);
+    CHECK(!HAS(&L, "hook-flash", mark));
+    CHECK(HAS(&L, "state idle", mark));
+    CHECK(HAS(&L, "state resume-ask", mark));
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    /* and a short one, the same way, is a flash: it signs */
+    run_quiet(&L);
+    press(&L, '#');
+    run_quiet(&L);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm(&L);
+    mark = L.log_len;
+    t0 = L.now;
+    ds_voice_hook(&L.v, 0, t0);
+    ds_voice_hook(&L.v, 1, t0 + 500);
+    L.now = t0 + 500;
+    take_echo(&L);
+    run_ms(&L, 300);
+    run_quiet(&L);
+    CHECK(HAS(&L, "hook-flash", mark));
+    CHECK(strstr(L.log + mark, "signed-psbt-begin") != NULL);
+}
+
+/* Up to the confirmation step, without waiting for its prompt. */
+static void review_to_confirm_now(line_t *t)
+{
+    size_t mark = t->log_len;
+    for (int i = 0; i < 40 && !HAS(t, "state confirm", mark); i++) {
+        run_quiet(t);
+        press(t, '#');
+    }
+    CHECK(HAS(t, "state confirm", mark));
+    CHECK(ds_voice_speaking(&t->v)); /* "to sign, hang up..." still being said */
+}
+
+/* A flash counts only once the step's prompt has been said in full: begun
+ * while "to sign..." or "to wipe..." is still being said, it does nothing. */
+static void test_flash_during_prompt_ignored(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm_now(&L);
+    size_t mark = L.log_len;
+    on_hook(&L, 500);
+    CHECK(HAS(&L, "hook-flash", mark));
+    run_quiet(&L);
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK(!HAS(&L, "state hold-near", mark));
+    /* once it has been said, a flash signs */
+    mark = L.log_len;
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(strstr(L.log + mark, "signed-psbt-begin") != NULL);
+    press(&L, '*');
+    run_quiet(&L);
+    /* the wipe the same way */
+    mark = L.log_len;
+    press(&L, '3');
+    CHECK(HAS(&L, "state wipe-confirm", mark));
+    CHECK(ds_voice_speaking(&L.v));
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say wiped", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(HAS(&L, "say wiped", mark));
+    CHECK_EQ_INT(L.v.s.state, 0);
+}
+
+/* A review item that cannot be queued whole (here a pack whose grammar
+ * cannot say the amount) is not said in part: the generic error, and the
+ * item is not heard, so # does not move on. */
+static void test_review_fails_closed(void)
+{
+    to_ready(&L, 0);
+    uint8_t nscales = L.v.packs.pack[0].nscales;
+    L.v.packs.pack[0].nscales = 0; /* 60000 cannot be said now */
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    CHECK(HAS(&L, "state review", mark));
+    long e = find_line(&L, "say error_generic", mark);
+    CHECK(e >= 0);
+    CHECK(!HAS(&L, "chars pe9ug", mark));
+    CHECK(!L.v.item_heard);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 0);
+    CHECK(!HAS(&L, "say change", mark));
+    /* said whole again: # moves on */
+    L.v.packs.pack[0].nscales = nscales;
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(HAS(&L, "chars pe9ug", mark));
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 1);
+    CHECK(HAS(&L, "say change", mark));
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+}
+
+/* The review names its keys after its first item, once, and as the hint
+ * after DS_VOICE_REPEAT_MS of silence. */
+static void test_review_names_keys(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    static const char *const first[] = {"chars pe9ug", "say review_keys", NULL};
+    CHECK(lines_in_a_row(&L, mark, first));
+    CHECK_EQ_INT(count_lines(&L, "say review_keys", mark), 1);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say change", mark));
+    CHECK_EQ_INT(count_lines(&L, "say review_keys", mark), 1);
+    size_t m2 = L.log_len;
+    run_ms(&L, DS_VOICE_REPEAT_MS + 500);
+    run_quiet(&L);
+    CHECK_EQ_INT(count_lines(&L, "say review_keys", m2), 1);
+    CHECK(!HAS(&L, "say change", m2)); /* the hint, not the item again */
+    CHECK_EQ_INT(L.v.item, 1);
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say change", m2));
+}
+
+/* By the keypad: the speakerphone warning the first time (once per
+ * power-up), and the redial note after the fingerprint, once the seed and
+ * its PIN were typed (once per call). */
+static void test_keypad_path_warns(void)
+{
+    keypad_seed(&L, NULL);
+    long k = find_line(&L, "state seed-keypad", 0);
+    long w = find_line(&L, "say pin_warning", 0);
+    CHECK(k >= 0 && w > k);
+    CHECK(w >= 0 && find_line(&L, "say keypad_ask", (size_t)w) >= 0);
+    run_quiet(&L);
+    long f = find_line(&L, "say if_correct_hash", 0);
+    long r = find_line(&L, "say redial_note", 0);
+    CHECK(f >= 0 && r > f);
+    CHECK_EQ_INT(count_lines(&L, "say redial_note", 0), 1);
+    press(&L, '0'); /* the fingerprint again: not the note */
+    run_quiet(&L);
+    CHECK_EQ_INT(count_lines(&L, "say redial_note", 0), 1);
+    /* wiped and typed again in the same power-up and call: neither again */
+    press(&L, '*');
+    run_quiet(&L);
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, 0);
+    size_t mark = L.log_len;
+    press(&L, '1');
+    run_quiet(&L);
+    press(&L, '2');
+    run_ms(&L, 500);
+    type_keys(&L, seed_tones);
+    run_ms(&L, 300);
+    run_quiet(&L);
+    press(&L, '#');
+    run_ms(&L, 500);
+    run_quiet(&L);
+    CHECK(HAS(&L, "state fingerprint", mark));
+    CHECK(!HAS(&L, "say pin_warning", mark));
+    CHECK(!HAS(&L, "say redial_note", mark));
+    /* a new call: the redial note again, the warning not */
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    size_t call = L.log_len;
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    press(&L, '#'); /* resume: the fingerprint */
+    run_quiet(&L);
+    press(&L, '*');
+    run_quiet(&L);
+    on_hook(&L, 500);
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '1');
+    run_quiet(&L);
+    press(&L, '2');
+    run_ms(&L, 500);
+    type_keys(&L, seed_tones);
+    run_ms(&L, 300);
+    run_quiet(&L);
+    press(&L, '#');
+    run_ms(&L, 500);
+    run_quiet(&L);
+    CHECK_EQ_INT(count_lines(&L, "say redial_note", call), 1);
+    CHECK(!HAS(&L, "say pin_warning", call));
+    CHECK(HAS(&L, "state fingerprint", mark));
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
@@ -1990,7 +2233,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_frame_tones_not_pin_keys, test_reboot_wipes_everything,
           test_review_speaks_outputs, test_five_reads_whole_address,
           test_amount_units, test_hook_flash_signs, test_hook_timing_boundaries,
-          test_key_does_not_confirm, test_hang_up_during_reception_restarts,
+          test_key_does_not_confirm, test_hang_up_during_reception_back_to_menu,
           test_wrong_network_rejected, test_account_tones_decode,
           test_looping_wallet_drives_nothing, test_hash_waits_for_the_item,
           test_warns_foreign_inputs, test_warns_input_without_witness,
@@ -1998,4 +2241,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_typing_pace_counts, test_gate_after_reception,
           test_multitap_same_key_paces, test_wipe_needs_hook,
           test_slow_wallet_never_wipes, test_slow_wallet_review_needs_every_item,
-          test_slow_wallet_never_wipes_resume_or_fingerprint)
+          test_slow_wallet_never_wipes_resume_or_fingerprint,
+          test_hook_seen_at_its_edges_only, test_flash_during_prompt_ignored,
+          test_review_fails_closed, test_review_names_keys, test_keypad_path_warns)

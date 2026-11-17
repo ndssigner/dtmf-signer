@@ -13,10 +13,12 @@
  *       listens (half-duplex) until a crypto-seed frame is heard; then its
  *       PIN by narrated multi-tap. By air the policy wants a PIN of 12
  *       characters or more (DS_AIR); otherwise it fails and asks again.
- *     keypad: "*", the digits, "#" (ur-tones keypad mode), then its PIN if
- *       it has one, "#" alone if not. Typed when asked, it counts as a cable.
- *     Then the seed's fingerprint: # loads the wallet, * asks to wipe. A failure
- *     says "error_generic".
+ *     keypad: the speakerphone warning (once per power-up), then "*", the
+ *       digits, "#" (ur-tones keypad mode), then its PIN if it has one, "#"
+ *       alone if not. Typed when asked, it counts as a cable.
+ *     Then the seed's fingerprint and, once per call, the redial note (a
+ *     PIN or a seed was typed): # loads the wallet, * asks to wipe. A
+ *     failure says "error_generic" (and the redial note likewise).
  *   menu (with a seed): 1 sign, 2 account, 3 wipe, 9 settings, 0 repeat.
  *   wipe (3 here, * after "resume_ask", * at a seed's fingerprint): "to
  *     wipe, hang up for a moment": a hook flash wipes (keys never do); * or
@@ -29,8 +31,11 @@
  *     when some input will not be signed, a warning (how many are not ours;
  *     an input of ours without its amount attached). # next (once the item
  *     has been said in full), 0 repeat, 5 the whole address in groups of 4,
- *     * cancel. After the last item, # asks for the confirmation: a hook flash (a short hang-up) signs;
- *     keys never do. Then "signed, hold the handset to your wallet": # plays
+ *     * cancel; these keys are named after the first item (once per review)
+ *     and are the hint after DS_VOICE_REPEAT_MS of silence. An item that
+ *     cannot be queued whole is not said: "error_generic", and it is not
+ *     heard. After the last item, # asks for the confirmation: a hook flash
+ *     (a short hang-up) signs; keys never do. Then "signed, hold the handset to your wallet": # plays
  *     the signed PSBT as ur-tones data tones (multi-part URs, 100-byte
  *     fragments, two rounds), half-duplex; then 0 plays them again, # (or *)
  *     back to the menu, with the redial note the first time in a call. An
@@ -71,15 +76,16 @@
  *
  * The hook is debounced (DS_VOICE_DEBOUNCE_MS). An on-hook of
  * DS_VOICE_FLASH_MIN_MS up to DS_VOICE_HANGUP_MS (both included) is a hook
- * flash (the confirmation of a signature, only in the step that asks for it
- * and only begun after that step began); a longer one is a hang-up: the
- * session is kept (what was being typed or received is wiped: an input
- * starts again; a review is cancelled and its PSBT must be played again;
- * a signed PSBT or the account waits to be played), and the next off-hook
- * asks
- * "resume_ask": # resumes where it was (that prompt again), * asks to wipe
- * (confirmed by a hook flash) and goes
- * to the menu. Cutting the power (ds_voice_init again) zeroes everything.
+ * flash: it signs in the confirmation step and wipes in the wipe step, each
+ * only once that step's prompt has been said in full and the on-hook began
+ * after it; anywhere else it does nothing. A longer one is a hang-up: the
+ * session is kept (what was being typed or received is wiped: an input is
+ * asked for again, the seed from "seed_how", a PSBT from the menu, so a
+ * reception started by mistake is never resumed; a review is cancelled; a
+ * signed PSBT or the account waits to be played), and the next off-hook
+ * asks "resume_ask": # resumes where it was (that prompt again), * asks to
+ * wipe (confirmed by a hook flash) and goes to the menu. Cutting the power
+ * (ds_voice_init again) zeroes everything.
  *
  * With one language (an empty pack region) there is no language list. With
  * more, before the greeting each language is offered in its own voice
@@ -168,6 +174,7 @@ typedef struct {
     int gate;            /* after data: no key until 1000 ms without a tone */
     uint32_t gate_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */
+    int keypad_warned;   /* the keypad's speakerphone warning (likewise) */
     int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
     ds_multitap mt;      /* the PIN */
     ds_session s;        /* zero until a seed is loaded */
@@ -179,7 +186,9 @@ typedef struct {
     int whole;           /* review: the whole address, by 5 */
     int item_heard;      /* review: the current item was said in full */
     uint32_t items_heard;/* review: items said in full, in order, from the first */
-    uint32_t confirm_at; /* when the confirmation step began */
+    int keys_said;       /* review: its keys were named (once per review) */
+    int prompt_heard;    /* confirm / wipe: the step's prompt said in full */
+    uint32_t confirm_at; /* ... at this time: a flash must begin after it */
     int unit;            /* DS_VOICE_UNIT_*: lasts until the power is cut */
     int out_kind;        /* what goes out: the signed PSBT or the account */
     uint8_t out[DS_VOICE_OUT_MAX]; /* its CBOR (the signed PSBT after a header) */

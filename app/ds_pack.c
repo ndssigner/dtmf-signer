@@ -222,14 +222,14 @@ int32_t ds_pack_number(const ds_pack *p, uint64_t n, uint16_t *out, size_t cap)
 
 /* -- The region --------------------------------------------------------- */
 
-static void fingerprint(const ds_pack *p, uint8_t fp[4])
+static void fingerprint(const ds_pack *p, uint8_t fp[DS_PACK_FP])
 {
     ds_sha256_ctx ctx;
     uint8_t h[32];
     ds_sha256_init(&ctx);
     ds_sha256_update(&ctx, p->data, p->len);
     ds_sha256_final(&ctx, h);
-    for (int k = 0; k < 4; k++)
+    for (int k = 0; k < DS_PACK_FP; k++)
         fp[k] = h[k];
 }
 

@@ -28,13 +28,13 @@ enum {
     ST_GREET,      /* greeting; # to the menu */
     ST_MENU_EMPTY, /* the menu without a seed */
     ST_ABOUT,
-    ST_RESUME_ASK, /* off-hook after a hang-up: # resumes, * wipes */
+    ST_RESUME_ASK, /* off-hook after a hang-up: # resumes, * asks to wipe (hook) */
     ST_SEED_HOW,   /* by the handset, 1; by the keypad, 2 */
     ST_SEED_AIR,   /* the wallet plays the encrypted seed (half-duplex) */
     ST_PIN,        /* its PIN, by multi-tap */
     ST_KEYPAD,     /* the seed typed: "*", the digits, "#" */
     ST_KEYPAD_PIN, /* its PIN if it has one, by multi-tap; "#" alone: none */
-    ST_FINGERPRINT,/* the seed's fingerprint: # derives, * wipes */
+    ST_FINGERPRINT,/* the seed's fingerprint: # derives, * asks to wipe (hook) */
     ST_MENU_READY, /* the menu with a seed */
     ST_PSBT_RX,    /* the wallet plays the PSBT (half-duplex) */
     ST_REVIEW,     /* the review, item by item */
@@ -56,6 +56,7 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 
 #define STEPS_DONE (-1)
 #define STEP_WAIT (-1)   /* say_step: nothing to queue yet, ask again */
+#define STEP_FAIL (-2)   /* say_step: the step could not be queued whole */
 #define SAT_PER_BTC 100000000u
 #define FRAME_GAP_MS 500u    /* silence after each part (a group ends at 300) */
 #define ADDR_ENDS 5          /* the address's first and last characters said */
@@ -100,9 +101,11 @@ static const char *state_name(int st)
 
 /* Where # after "resume_ask" goes back to when a hang-up left st (ST_IDLE:
  * nowhere; the states before the menu just start again). A hang-up wipes
- * what was being typed or received, so an input starts again: the seed is
- * played or typed again, and so is a PSBT (its review is cancelled: the
- * PSBT it reviewed is gone). What goes out waits to be played again. */
+ * what was being typed or received, so an input is not resumed: its
+ * question is asked again (how to load the seed; the menu, where 1 plays
+ * the PSBT again: its review is cancelled, the PSBT it reviewed is gone).
+ * A reception started by mistake is left only by hanging up, so it must
+ * never resume into itself. What goes out waits to be played again. */
 static int resume_point(int st)
 {
     switch (st) {
@@ -119,13 +122,12 @@ static int resume_point(int st)
     case ST_PSBT_RX:
     case ST_REVIEW:
     case ST_CONFIRM:
-        return ST_PSBT_RX;
+        return ST_MENU_READY;
     case ST_SEED_AIR:
     case ST_PIN:
-        return ST_SEED_AIR;
     case ST_KEYPAD:
     case ST_KEYPAD_PIN:
-        return ST_KEYPAD;
+        return ST_SEED_HOW;
     default:
         return ST_IDLE;
     }
@@ -261,9 +263,12 @@ static void clip(ds_voice *v, uint16_t id)
     ds_say_clip(&v->say, id);
 }
 
-static void hex4(const uint8_t b[4], char out[9])
+/* A pack's fingerprint (DS_PACK_FP bytes) as hex. */
+static void hex_fp(const uint8_t b[DS_PACK_FP], char out[2 * DS_PACK_FP + 1])
 {
-    snprintf(out, 9, "%02x%02x%02x%02x", b[0], b[1], b[2], b[3]);
+    for (int i = 0; i < DS_PACK_FP; i++) {
+        snprintf(out + 2 * i, 3, "%02x", b[i]);
+    }
 }
 
 /* An amount as the setting says (design 5.7): automatic says 1 bitcoin and
@@ -346,13 +351,16 @@ static uint32_t review_items(const ds_voice *v)
  * "to" the address, by its 5 first and 5 last characters or whole after 5;
  * change: "change" and the amount), the fee ("high fee" when warned), or
  * the inputs that will not be signed (the warn sound, then how many are not
- * ours; and that one of ours has no amount attached). */
+ * ours; and that one of ours has no amount attached). 1 when queued, 0 when
+ * the item is over, STEP_FAIL when any part of it could not be queued (it
+ * must never be heard in part). */
 static int review_step(ds_voice *v, int k)
 {
     const ds_psbt_review *r = &v->s.r;
     char addr[96], end[ADDR_ENDS + 1];
     int32_t n;
     uint32_t foreign, no_witness;
+    int bad = 0;
 
     if (v->item > r->n_out) { /* the inputs' warnings */
         if (k > 0) {
@@ -360,60 +368,60 @@ static int review_step(ds_voice *v, int k)
         }
         unsigned_inputs(r, &foreign, &no_witness);
         if (foreign > 0) {
-            ds_say_earcon(&v->say, DS_EAR_WARN);
-            clip(v, DS_P_WARN_INPUTS_UNSIGNED);
-            ds_say_number(&v->say, foreign);
+            bad |= ds_say_earcon(&v->say, DS_EAR_WARN) < 0;
+            bad |= ds_say_clip(&v->say, DS_P_WARN_INPUTS_UNSIGNED) < 0;
+            bad |= ds_say_number(&v->say, foreign) < 0;
         }
         if (no_witness > 0) {
             if (foreign > 0) {
-                ds_say_pause(&v->say, SENTENCE_GAP_MS);
+                bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
             }
-            ds_say_earcon(&v->say, DS_EAR_WARN);
-            clip(v, DS_P_WARN_INPUT_NO_WITNESS);
+            bad |= ds_say_earcon(&v->say, DS_EAR_WARN) < 0;
+            bad |= ds_say_clip(&v->say, DS_P_WARN_INPUT_NO_WITNESS) < 0;
         }
-        return 1;
+        return bad ? STEP_FAIL : 1;
     }
     if (v->item == r->n_out) { /* the fee */
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_FEE);
-        say_amount(v, r->fee);
+        bad |= ds_say_clip(&v->say, DS_P_FEE) < 0;
+        bad |= say_amount(v, r->fee) < 0;
         if (r->fee_warning) {
-            ds_say_pause(&v->say, SENTENCE_GAP_MS);
-            clip(v, DS_P_FEE_HIGH);
+            bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
+            bad |= ds_say_clip(&v->say, DS_P_FEE_HIGH) < 0;
         }
-        return 1;
+        return bad ? STEP_FAIL : 1;
     }
     if (k == 0) {
         if (r->out[v->item].kind == DS_OUT_CHANGE) {
-            clip(v, DS_P_CHANGE);
-            say_amount(v, r->out[v->item].amount);
+            bad |= ds_say_clip(&v->say, DS_P_CHANGE) < 0;
+            bad |= say_amount(v, r->out[v->item].amount) < 0;
         } else {
-            clip(v, DS_P_SENDING);
-            say_amount(v, r->out[v->item].amount);
-            clip(v, DS_P_TO);
+            bad |= ds_say_clip(&v->say, DS_P_SENDING) < 0;
+            bad |= say_amount(v, r->out[v->item].amount) < 0;
+            bad |= ds_say_clip(&v->say, DS_P_TO) < 0;
         }
-        return 1;
+        return bad ? STEP_FAIL : 1;
     }
     if (k > 1 || r->out[v->item].kind == DS_OUT_CHANGE) {
         return 0;
     }
     n = out_address(v, v->item, addr, sizeof addr);
     if (n == 0) { /* no address: "script" and its length */
-        ds_say_chars(&v->say, "script");
-        ds_say_number(&v->say, r->out[v->item].full_len);
+        bad |= ds_say_chars(&v->say, "script") < 0;
+        bad |= ds_say_number(&v->say, r->out[v->item].full_len) < 0;
     } else if (v->whole) {
-        ds_say_chars_grouped(&v->say, addr);
+        bad |= ds_say_chars_grouped(&v->say, addr) < 0;
     } else {
         memcpy(end, addr, ADDR_ENDS);
         end[ADDR_ENDS] = '\0';
-        ds_say_chars(&v->say, end);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ds_say_chars(&v->say, addr + n - ADDR_ENDS);
+        bad |= ds_say_chars(&v->say, end) < 0;
+        bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
+        bad |= ds_say_chars(&v->say, addr + n - ADDR_ENDS) < 0;
     }
     ds_wipe(addr, sizeof addr);
-    return 1;
+    return bad ? STEP_FAIL : 1;
 }
 
 /* Queues step v->step of the state's prompt; 0 when the prompt is over,
@@ -421,11 +429,13 @@ static int review_step(ds_voice *v, int k)
  * being said. */
 static void listen_afresh(ds_voice *v);
 static void close_gate(ds_voice *v);
+static void hush(ds_voice *v);
+static void redial_once(ds_voice *v);
 
 static int say_step(ds_voice *v)
 {
     int k = v->step;
-    char fp[9];
+    char fp[2 * DS_PACK_FP + 1];
 
     switch (v->state) {
     case ST_LANG:
@@ -464,7 +474,7 @@ static int say_step(ds_voice *v)
         } else if (k <= v->packs.n) {
             ds_say_chars(&v->say, v->packs.pack[k - 1].lang);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
-            hex4(v->packs.fp[k - 1], fp);
+            hex_fp(v->packs.fp[k - 1], fp);
             ds_say_chars_grouped(&v->say, fp);
         } else {
             return 0;
@@ -508,6 +518,11 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        if (!v->keypad_warned) { /* once per power-up: the keys and the PIN */
+            v->keypad_warned = 1;
+            clip(v, DS_P_PIN_WARNING);
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        }
         clip(v, DS_P_KEYPAD_ASK);
         break;
     case ST_KEYPAD_PIN:
@@ -517,6 +532,13 @@ static int say_step(ds_voice *v)
         clip(v, DS_P_KEYPAD_PIN_ASK);
         break;
     case ST_FINGERPRINT:
+        if (k == 1 && !v->redial_said) {
+            /* then the redial note, once per call: a PIN, or a seed by
+             * the keypad, was typed */
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            redial_once(v);
+            break;
+        }
         if (k > 0) {
             return 0;
         }
@@ -542,8 +564,17 @@ static int say_step(ds_voice *v)
         ds_say_earcon(&v->say, DS_EAR_LISTEN);
         break;
     case ST_REVIEW:
-        if (!review_step(v, k)) {
+        switch (review_step(v, k)) {
+        case 0:
             return 0;
+        case STEP_FAIL:
+            /* never heard in part: none of it, the error instead */
+            hush(v);
+            clip(v, DS_P_ERROR_GENERIC);
+            echo_said(v);
+            return STEP_FAIL;
+        default:
+            break;
         }
         break;
     case ST_CONFIRM:
@@ -600,23 +631,39 @@ static int say_step(ds_voice *v)
     return 1;
 }
 
+/* Every step of the state's prompt has been played. A review item: it has
+ * been heard (and after the first, once per review, its keys are named).
+ * The confirmation and the wipe: a flash counts from now on. */
+static void prompt_said(ds_voice *v)
+{
+    if (v->state == ST_REVIEW) {
+        v->item_heard = 1;
+        if (v->item == v->items_heard) {
+            v->items_heard++;
+        }
+        if (!v->keys_said) {
+            v->keys_said = 1;
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            clip(v, DS_P_REVIEW_KEYS);
+            echo_said(v);
+        }
+    } else if ((v->state == ST_CONFIRM || v->state == ST_WIPE_CONFIRM) && !v->prompt_heard) {
+        v->prompt_heard = 1;
+        v->confirm_at = v->now;
+    }
+}
+
 /* Queues the next steps while nothing is being said. */
 static void pump(ds_voice *v)
 {
     while (v->step != STEPS_DONE && !ds_say_busy(&v->say)) {
         int r = say_step(v);
-        if (r == STEP_WAIT) {
+        if (r == STEP_WAIT || r == STEP_FAIL) {
             break;
         }
         if (r == 0) {
             v->step = STEPS_DONE;
-            if (v->state == ST_REVIEW) {
-                /* every step played: this item has been said in full */
-                v->item_heard = 1;
-                if (v->item == v->items_heard) {
-                    v->items_heard++;
-                }
-            }
+            prompt_said(v);
         }
     }
 }
@@ -853,6 +900,17 @@ static void wipe(ds_voice *v)
     go(v, ST_MENU_EMPTY);
 }
 
+/* The redial note, the first time in this call: a seed or a PIN typed may
+ * be in the telephone's memory. Queued after what is queued. */
+static void redial_once(ds_voice *v)
+{
+    if (!v->redial_said) {
+        v->redial_said = 1;
+        clip(v, DS_P_REDIAL_NOTE);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+    }
+}
+
 /* ---- loading the seed ---- */
 
 /* A receiver for a seed, then st (ST_SEED_AIR or ST_KEYPAD). */
@@ -882,6 +940,8 @@ static void seed_failed(ds_voice *v)
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_FAIL);
     clip(v, DS_P_ERROR_GENERIC);
+    ds_say_pause(&v->say, SENTENCE_GAP_MS);
+    redial_once(v); /* a PIN, or a seed by the keypad, was typed */
     echo_said(v);
     go(v, ST_SEED_HOW);
 }
@@ -1069,6 +1129,7 @@ static void review(ds_voice *v)
     v->whole = 0;
     v->item_heard = 0;
     v->items_heard = 0;
+    v->keys_said = 0;
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_OK);
     echo_said(v);
@@ -1174,33 +1235,36 @@ static void play_out(ds_voice *v)
 }
 
 /* Done with what went out: zeroed; back to the menu, with the redial note
- * the first time in this call (a PIN or a seed typed may be in the
- * telephone's memory). */
+ * if this call has not had it. */
 static void leave_out(ds_voice *v)
 {
     clear_out(v);
     hush(v);
-    if (!v->redial_said) {
-        v->redial_said = 1;
-        clip(v, DS_P_REDIAL_NOTE);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        echo_said(v);
-    }
+    redial_once(v);
+    echo_said(v);
     go(v, ST_MENU_READY);
 }
 
-/* A short hang-up: in the confirmation step, and begun after it began, it
- * confirms and asks for the signature; anywhere else it is only echoed. */
+/* 1 when a flash may confirm this step: its prompt has been said in full,
+ * and the on-hook began after that. */
+static int flash_counts(const ds_voice *v)
+{
+    return v->job == JOB_NONE && v->prompt_heard &&
+           (int32_t)(v->down_at - v->confirm_at) >= 0;
+}
+
+/* A short hang-up: in the confirmation step it confirms and asks for the
+ * signature, in the wipe step it wipes (each only as flash_counts says);
+ * anywhere else it is only echoed. */
 static void flash(ds_voice *v)
 {
     echo_line(v, "hook-flash");
-    if (v->state == ST_WIPE_CONFIRM && v->job == JOB_NONE &&
-        (int32_t)(v->down_at - v->confirm_at) >= 0) {
+    if (v->state == ST_WIPE_CONFIRM && flash_counts(v)) {
         wipe(v);
         return;
     }
-    if (v->state == ST_CONFIRM && v->job == JOB_NONE && v->s.state == DS_S_REVIEW &&
-        (int32_t)(v->down_at - v->confirm_at) >= 0 && ds_session_confirm(&v->s) == DS_OK) {
+    if (v->state == ST_CONFIRM && flash_counts(v) && v->s.state == DS_S_REVIEW &&
+        ds_session_confirm(&v->s) == DS_OK) {
         ask_job(v, JOB_SIGN);
     }
 }
@@ -1332,7 +1396,7 @@ static int rx_in(ds_voice *v, const int16_t *x, size_t n)
 static void ask_wipe(ds_voice *v)
 {
     v->wipe_back = v->state;
-    v->confirm_at = v->now;
+    v->prompt_heard = 0;
     enter(v, ST_WIPE_CONFIRM);
 }
 
@@ -1479,7 +1543,7 @@ static void on_key(ds_voice *v, char c)
                 v->item_heard = 0;
                 repeat(v);
             } else if (v->items_heard >= review_items(v)) {
-                v->confirm_at = v->now;
+                v->prompt_heard = 0;
                 enter(v, ST_CONFIRM);
             }
         } else if (c == '5' && v->item < v->s.r.n_out &&
@@ -1663,6 +1727,7 @@ void ds_voice_hook(ds_voice *v, int off_hook, uint32_t now_ms)
 {
     off_hook = off_hook ? 1 : 0;
     if (off_hook != v->hook_raw) {
+        debounce(v, now_ms); /* the level that ends now, if it held long enough */
         v->hook_raw = off_hook;
         v->raw_at = now_ms;
     }
@@ -1700,7 +1765,13 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
         v->quiet_at = now_ms;
     } else if (now_ms - v->quiet_at >= DS_VOICE_REPEAT_MS) {
         v->quiet_at = now_ms;
-        repeat(v);
+        if (v->state == ST_REVIEW) {
+            hush(v); /* the review's hint: its keys (0 says the item again) */
+            clip(v, DS_P_REVIEW_KEYS);
+            echo_said(v);
+        } else {
+            repeat(v);
+        }
     }
     if (v->job != JOB_NONE) {
         v->job_seen = 1; /* runs at the next tick */

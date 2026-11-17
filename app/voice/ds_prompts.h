@@ -33,6 +33,7 @@ enum ds_prompt {
     DS_P_FEE_HIGH,
     DS_P_WARN_INPUTS_UNSIGNED,
     DS_P_WARN_INPUT_NO_WITNESS,
+    DS_P_REVIEW_KEYS,
     DS_P_SATS,
     DS_P_POINT,
     DS_P_BITCOIN,

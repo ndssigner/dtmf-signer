@@ -29,6 +29,7 @@ const char *const ds_prompt_name[DS_P_COUNT] = {
     "fee_high",
     "warn_inputs_unsigned",
     "warn_input_no_witness",
+    "review_keys",
     "sats",
     "point",
     "bitcoin",

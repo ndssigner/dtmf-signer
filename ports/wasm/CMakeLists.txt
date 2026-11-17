@@ -23,7 +23,7 @@ target_link_options(dtmf-signer-wasm PRIVATE
 # The voice firmware (the Centralita telephone exchange) as a second module,
 # dtmf-signer-voice.mjs: JavaScript only moves the line samples, the hook and
 # the pack region. Memory cannot grow, so it is sized here: the English pack
-# (~1.5 MB of data), the 1 MB pack region, ds_voice (~80 KB), the buffers and
+# (~700 KB of data), the 1 MB pack region, ds_voice (~80 KB), the buffers and
 # the stack, with room to spare.
 add_executable(dtmf-signer-voice-wasm voice.c)
 target_link_libraries(dtmf-signer-voice-wasm PRIVATE dtmf_app dtmf_core ds_voice_packs ds_warnings)

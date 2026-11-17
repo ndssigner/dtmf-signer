@@ -107,6 +107,10 @@
   "es": "Atención: una entrada tuya no trae su importe y no se firmará.",
   "en": "Warning: an input of yours has no amount attached and will not be signed."
  },
+ "review_keys": {
+  "es": "Almohadilla, siguiente. Cinco, dirección entera. Asterisco, cancelar.",
+  "en": "Hash, next. Five, whole address. Star, cancel."
+ },
  "sats": {
   "es": "sats.",
   "en": "sats."

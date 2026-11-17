@@ -236,7 +236,7 @@ static void test_scan_region(void)
     CHECK_EQ_STR(ps.pack[0].lang, "en");
     CHECK_EQ_STR(ps.pack[1].lang, "es");
     CHECK(ps.pack[1].data == region + 0x4000);
-    CHECK(memcmp(ps.fp[1], es_bin_fp, 4) == 0);
+    CHECK(memcmp(ps.fp[1], es_bin_fp, 8) == 0);
 
     /* Two valid packs back to back: the second starts on the next 4 KB
      * boundary after the first's end, however large the first is. */

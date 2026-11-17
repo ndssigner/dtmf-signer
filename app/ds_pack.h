@@ -46,11 +46,12 @@ int32_t ds_pack_clip(const ds_pack *p, uint16_t id, const uint8_t **adpcm,
 int32_t ds_pack_number(const ds_pack *p, uint64_t n, uint16_t *out, size_t cap);
 
 /* The packs the device can speak: slot 0 the built-in one, then those found
- * in the region; fp is the first 4 bytes of each pack's SHA-256 (said in
- * About, so it can be compared with the published hash). */
+ * in the region; fp is the first DS_PACK_FP bytes of each pack's SHA-256
+ * (said in About, so it can be compared with the published hash). */
+#define DS_PACK_FP 8
 typedef struct {
     ds_pack pack[DS_PACKS_MAX];
-    uint8_t fp[DS_PACKS_MAX][4];
+    uint8_t fp[DS_PACKS_MAX][DS_PACK_FP];
     int n;
 } ds_packs;
 
