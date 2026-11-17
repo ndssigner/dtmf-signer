@@ -39,7 +39,18 @@ function spellings(hex) {
 }
 const usesVar = (body, names) => names.some((n) => new RegExp(`var\\(\\s*${n}\\s*[,)]`).test(body));
 
-const CABLE_PART = /(^|[\s>+~])\.(c-[\w-]+|p-[\w-]+|port(?![\w])|port-[\w-]*|legend(?![\w-])|l-[\w-]+)/;
+// A rule styles the subject of its selector (the last compound): only that
+// is judged, so a cable class further left (`.legend + .mod`) excuses nothing.
+const compounds = (part) => part.split(/\s*[>+~]\s*|\s+/).filter(Boolean)
+  .map((c) => c.replace(/::?[\w-]+(\([^()]*\))?/g, ""));
+const CABLE_CLASS = /\.(c|p|l)-(power|audio|air|light|phone)(?![\w-])|\.port(?![\w-])|\.legend(?![\w-])/;
+// Cables, connectors (and their states), the legend and a legend's line (`.legend i`).
+function cablePart(part) {
+  const c = compounds(part), subject = c.at(-1) ?? "";
+  if (CABLE_CLASS.test(subject)) return true;
+  return /^i$/.test(subject) && c.length > 1 && /\.l-(power|audio|air|light|phone)(?![\w-])|\.legend(?![\w-])/.test(c.at(-2));
+}
+const CABLE_PART = { test: cablePart };
 const PRESS_PART = new RegExp("(^|[\\s>+~])(button|a|select|input|textarea|summary)(?![\\w-])|\\[role=\"?tab\"?\\]|(^|[\\s>+~])\\.(seg|cta)(?![\\w-])|^:focus-visible$");
 
 // Rules that use a colour where it does not belong, as messages.
@@ -130,6 +141,14 @@ test("the cable guard sees every cable colour: no second token, none hidden outs
   quiet(".legend .l-power { border-color: var(--power); } .c-power { stroke: var(--power); }");
 });
 
+test("only a selector's subject excuses a cable colour", () => {
+  bites(".legend + .mod { border-color: var(--audio); }", /^\.legend \+ \.mod: cable colour/);
+  bites(".bench .port ~ .sim-device { background: var(--audio); }", /sim-device: cable colour/);
+  bites(".l-panel { background: var(--audio); }", /l-panel: cable colour/);
+  bites(".legend i.x, .port.busy .label { color: var(--audio); }", /\.label: cable colour/);
+  quiet(".port.busy.p-audio, .port.emit::before, .legend .l-air i, svg.cables path.c-air:hover { border-color: var(--audio); }");
+});
+
 const CONFIG = JSON.parse(readFileSync(SITE + "config.json", "utf8"));
 const TYPES = ["power", "audio", "air", "light", "phone"];
 const TOKEN = { power: "--power", audio: "--audio", air: "--audio", light: "--light", phone: "--line-c" };
@@ -146,7 +165,7 @@ test("every cable type has its cable, connector and legend rule, from its token"
 });
 
 test("modules are neutral: one outline token, no cable colour anywhere on them", () => {
-  const mod = rules(css).filter(([sel]) => parts(sel).some((p) => /(^|\s)\.mod(?![\w-])|\.mod-[\w-]+/.test(p) && !CABLE_PART.test(p)));
+  const mod = rules(css).filter(([sel]) => parts(sel).some((p) => /\.mod(?![\w-])|\.mod-[\w-]+/.test(compounds(p).at(-1) ?? "") && !cablePart(p)));
   assert.ok(mod.some(([, body]) => /border:[^;]*var\(--module\)/.test(body)), ".mod outlined with --module");
   for (const [sel, body] of mod) assert.ok(!usesVar(body, CABLE), sel);
   assert.doesNotMatch(strip(css), /\.blk|--c-(power|audio|light|phone|idle)|\.lg-|\.link\b|type-(power|audio|light|phone)/);
