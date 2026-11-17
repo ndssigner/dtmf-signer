@@ -1,7 +1,7 @@
 {
  "greeting": {
-  "es": "DTMF-Signer.",
-  "en": "DTMF-Signer."
+  "es": "de te eme efe sáiner.",
+  "en": "D T M F signer."
  },
  "flashed": {
   "es": "¿Lo has grabado tú? Si no, vuelve a grabarlo. Almohadilla para seguir.",
@@ -16,11 +16,11 @@
   "en": "Sign, 1. Account, 2. Wipe, 3."
  },
  "network_now_main": {
-  "es": "Red: mainnet. Para cambiar, 2.",
+  "es": "Red: méinnet. Para cambiar, 2.",
   "en": "Network: mainnet. To change, 2."
  },
  "network_now_test": {
-  "es": "Red: testnet. Para cambiar, 2.",
+  "es": "Red: téstnet. Para cambiar, 2.",
   "en": "Network: testnet. To change, 2."
  },
  "about": {
@@ -32,7 +32,7 @@
   "en": "By the handset, 1. By the keypad, 2."
  },
  "air_warning": {
-  "es": "Acerca el auricular a tu wallet; el sonido lleva tu semilla.",
+  "es": "Acerca el auricular a tu guálet; el sonido lleva tu semilla.",
   "en": "Hold the handset to your wallet; the sound carries your seed."
  },
  "listening": {
@@ -40,7 +40,7 @@
   "en": "Listening."
  },
  "pin_ask": {
-  "es": "Teclea tu PIN y almohadilla.",
+  "es": "Teclea tu pin y almohadilla.",
   "en": "Type your PIN, then hash."
  },
  "pin_warning": {
@@ -48,7 +48,7 @@
   "en": "Each character is spoken; do not use the speakerphone."
  },
  "pin_ready": {
-  "es": "PIN listo. Almohadilla para seguir.",
+  "es": "Pin listo. Almohadilla para seguir.",
   "en": "PIN ready. Hash to continue."
  },
  "keypad_ask": {
@@ -56,7 +56,7 @@
   "en": "Type star, the digits, then hash."
  },
  "keypad_pin_ask": {
-  "es": "Ahora el PIN, y almohadilla.",
+  "es": "Ahora el pin, y almohadilla.",
   "en": "Now the PIN, then hash."
  },
  "fingerprint_is": {
@@ -100,7 +100,7 @@
   "en": "High fee."
  },
  "satoshis": {
-  "es": "satoshis.",
+  "es": "satóchis.",
   "en": "satoshis."
  },
  "sign_hook": {
@@ -108,7 +108,7 @@
   "en": "To sign, hang up for a moment, then pick up again."
  },
  "signed_hold_near": {
-  "es": "Firmado. Acerca el auricular a tu wallet; almohadilla para empezar.",
+  "es": "Firmado. Acerca el auricular a tu guálet; almohadilla para empezar.",
   "en": "Signed. Hold the handset to your wallet; hash to start."
  },
  "again_hint": {
@@ -116,7 +116,7 @@
   "en": "Zero to repeat; hash for the menu."
  },
  "account_hold_near": {
-  "es": "Acerca el auricular a tu wallet; almohadilla para enviar la cuenta.",
+  "es": "Acerca el auricular a tu guálet; almohadilla para enviar la cuenta.",
   "en": "Hold the handset to your wallet; hash to send the account."
  },
  "redial_note": {
@@ -152,148 +152,148 @@
   "en": "For English, press"
  },
  "c_0": {
-  "es": "cero",
-  "en": "zero"
+  "es": "cero.",
+  "en": "zero."
  },
  "c_1": {
-  "es": "uno",
-  "en": "one"
+  "es": "uno.",
+  "en": "one."
  },
  "c_2": {
-  "es": "dos",
-  "en": "two"
+  "es": "dos.",
+  "en": "two."
  },
  "c_3": {
-  "es": "tres",
-  "en": "three"
+  "es": "tres.",
+  "en": "three."
  },
  "c_4": {
-  "es": "cuatro",
-  "en": "four"
+  "es": "cuatro.",
+  "en": "four."
  },
  "c_5": {
-  "es": "cinco",
-  "en": "five"
+  "es": "cinco.",
+  "en": "five."
  },
  "c_6": {
-  "es": "seis",
-  "en": "six"
+  "es": "seis.",
+  "en": "six."
  },
  "c_7": {
-  "es": "siete",
-  "en": "seven"
+  "es": "siete.",
+  "en": "seven."
  },
  "c_8": {
-  "es": "ocho",
-  "en": "eight"
+  "es": "ocho.",
+  "en": "eight."
  },
  "c_9": {
-  "es": "nueve",
-  "en": "nine"
+  "es": "nueve.",
+  "en": "nine."
  },
  "c_a": {
-  "es": "a",
-  "en": "a"
+  "es": "a.",
+  "en": "ay."
  },
  "c_b": {
-  "es": "be",
-  "en": "bee"
+  "es": "be.",
+  "en": "bee."
  },
  "c_c": {
-  "es": "ce",
-  "en": "see"
+  "es": "ce.",
+  "en": "see."
  },
  "c_d": {
-  "es": "de",
-  "en": "dee"
+  "es": "de.",
+  "en": "dee."
  },
  "c_e": {
-  "es": "e",
-  "en": "e"
+  "es": "e.",
+  "en": "ee."
  },
  "c_f": {
-  "es": "efe",
-  "en": "eff"
+  "es": "efe.",
+  "en": "eff."
  },
  "c_g": {
-  "es": "ge",
-  "en": "gee"
+  "es": "ge.",
+  "en": "gee."
  },
  "c_h": {
-  "es": "hache",
-  "en": "aitch"
+  "es": "hache.",
+  "en": "aitch."
  },
  "c_i": {
-  "es": "i",
-  "en": "eye"
+  "es": "i.",
+  "en": "eye."
  },
  "c_j": {
-  "es": "jota",
-  "en": "jay"
+  "es": "jota.",
+  "en": "jay."
  },
  "c_k": {
-  "es": "ka",
-  "en": "kay"
+  "es": "ka.",
+  "en": "kay."
  },
  "c_l": {
-  "es": "ele",
-  "en": "ell"
+  "es": "ele.",
+  "en": "ell."
  },
  "c_m": {
-  "es": "eme",
-  "en": "em"
+  "es": "eme.",
+  "en": "em."
  },
  "c_n": {
-  "es": "ene",
-  "en": "en"
+  "es": "ene.",
+  "en": "en."
  },
  "c_o": {
-  "es": "o",
-  "en": "oh"
+  "es": "o.",
+  "en": "oh."
  },
  "c_p": {
-  "es": "pe",
-  "en": "pee"
+  "es": "pe.",
+  "en": "pee."
  },
  "c_q": {
-  "es": "cu",
-  "en": "cue"
+  "es": "cu.",
+  "en": "cue."
  },
  "c_r": {
-  "es": "erre",
-  "en": "ar"
+  "es": "erre.",
+  "en": "ar."
  },
  "c_s": {
-  "es": "ese",
-  "en": "ess"
+  "es": "ese.",
+  "en": "ess."
  },
  "c_t": {
-  "es": "te",
-  "en": "tee"
+  "es": "te.",
+  "en": "tee."
  },
  "c_u": {
-  "es": "u",
-  "en": "you"
+  "es": "u.",
+  "en": "you."
  },
  "c_v": {
-  "es": "uve",
-  "en": "vee"
+  "es": "uve.",
+  "en": "vee."
  },
  "c_w": {
-  "es": "uve doble",
-  "en": "double you"
+  "es": "uve doble.",
+  "en": "double you."
  },
  "c_x": {
-  "es": "equis",
-  "en": "ex"
+  "es": "equis.",
+  "en": "ex."
  },
  "c_y": {
-  "es": "i griega",
-  "en": "why"
+  "es": "i griega.",
+  "en": "why."
  },
  "c_z": {
-  "es": "zeta",
-  "en": "zee"
+  "es": "zeta.",
+  "en": "zee."
  },
  "n_cero": {
   "es": "cero",

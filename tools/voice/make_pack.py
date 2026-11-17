@@ -9,9 +9,16 @@
 English is compiled into the firmware (a C array); every other language is a
 separate pack written to the voice flash region (tools/voice/make_uf2.py).
 
-Per phrase: Piper (a subprocess) renders a WAV, which is resampled to 8 kHz,
-trimmed of silence (below -45 dBFS, 30 ms of padding kept), normalised to a
--3 dBFS peak and encoded as IMA ADPCM. The pack layout ("DSV2", little-endian):
+Per phrase: Piper (a subprocess) renders a WAV per part, the text being cut
+after each comma and full stop; each part is resampled to 8 kHz, notched (see
+notch_dtmf) and trimmed of silence at its two ends only, and the parts are
+joined with real silence (80 ms after a comma, 160 ms after a full stop, on top
+of the part's own tail). The trim is gentle so soft endings (a final vowel, f,
+s) survive: below -48 dBFS, 15 ms kept before and 70 ms after; isolated letters
+and digits (c_*) -55 dBFS and 110 ms after; number words (n_*, always chained
+with the next word) -45 dBFS and 30 ms after. Then the peak is normalised to
+-3 dBFS and the clip encoded as IMA ADPCM. The pack layout ("DSV2",
+little-endian):
 
     "DSV2" | lang (2 ASCII) | u16 format = 2 | u16 count | u32 total_len
     | u32 crc32 (IEEE, over the whole pack with this field as 0) | u32 grammar_off
@@ -46,6 +53,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import struct
 import subprocess
 import sys
@@ -60,8 +68,15 @@ import adpcm  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 RATE = 8000
-THRESHOLD_DBFS = -45.0
-PAD_MS = 30
+THRESHOLD_DBFS = -48.0
+PAD_MS = 15        # kept before the first sample above the threshold
+TAIL_MS = 70       # kept after the last one (soft vowels, f, s fade out)
+LETTER_THRESHOLD_DBFS = -55.0  # isolated letters and digits (c_*): the
+LETTER_TAIL_MS = 110           # gentlest trim, a final "e" or "f" must ring out
+NUMBER_THRESHOLD_DBFS = -45.0  # number words (n_*) are always chained with the
+NUMBER_TAIL_MS = 30            # next word, so they keep only a short tail
+COMMA_MS = 80      # silence after a comma, semicolon or colon
+STOP_MS = 160      # silence after a full stop, question or exclamation mark
 PEAK_DBFS = -3.0
 ENTRY = struct.Struct("<IIhBB")
 SLOT = 0x80000  # a pack must fit one slot of the voice flash region
@@ -304,7 +319,8 @@ def fetch_voice(lang: str) -> tuple[Path, dict]:
 def piper_wav(model: Path, text: str, out: Path) -> None:
     subprocess.run(
         [sys.executable, "-m", "piper", "-m", str(model), "-f", str(out),
-         "--noise-scale", "0", "--noise-w-scale", "0"],
+         "--noise-scale", "0", "--noise-w-scale", "0",
+         "--sentence-silence", "0"],
         input=text.encode("utf-8"), check=True, capture_output=True,
     )
 
@@ -378,16 +394,60 @@ def notch_dtmf(x, q: float = NOTCH_Q):
     return x
 
 
-def condition(x):
-    """Trim below -45 dBFS keeping 30 ms either side, peak to -3 dBFS."""
+def trim_ends(x, threshold=None, tail_ms=None):
+    """Cut the silence at the two ends only (never inside): below
+    THRESHOLD_DBFS, keeping PAD_MS before and TAIL_MS after the speech (real
+    samples where there are any, else zeros). None if it is all silence."""
     import numpy as np
-    keep = np.nonzero(np.abs(x) >= 10 ** (THRESHOLD_DBFS / 20))[0]
+    x = np.asarray(x, dtype=np.float64)
+    thr = THRESHOLD_DBFS if threshold is None else threshold
+    keep = np.nonzero(np.abs(x) >= 10 ** (thr / 20))[0]
     if len(keep) == 0:
+        return None
+    lead = RATE * PAD_MS // 1000
+    tail = RATE * (TAIL_MS if tail_ms is None else tail_ms) // 1000
+    a, b = max(0, keep[0] - lead), min(len(x), keep[-1] + 1 + tail)
+    return np.concatenate([np.zeros(lead - (keep[0] - a)), x[a:b],
+                           np.zeros(tail - (b - keep[-1] - 1))])
+
+
+def condition(x, key=""):
+    """trim_ends (gentler for a letter or digit, shorter for a number word,
+    chosen by the phrase id), then peak to -3 dBFS, as int16 samples."""
+    import numpy as np
+    if key.startswith("c_"):
+        y = trim_ends(x, LETTER_THRESHOLD_DBFS, LETTER_TAIL_MS)
+    elif key.startswith("n_"):
+        y = trim_ends(x, NUMBER_THRESHOLD_DBFS, NUMBER_TAIL_MS)
+    else:
+        y = trim_ends(x)
+    if y is None:
         return []
-    pad = RATE * PAD_MS // 1000
-    y = np.concatenate([np.zeros(pad), x[keep[0]:keep[-1] + 1], np.zeros(pad)])
     y = y * (10 ** (PEAK_DBFS / 20) / np.abs(y).max())
     return [int(v) for v in np.clip(np.round(y * 32767), -32768, 32767)]
+
+
+def split_text(text: str):
+    """[(part, silence_ms after it)]: cut after , ; : . ? ! that end a word
+    (not inside "1.5" or "ur-tones"); the last part gets no silence."""
+    parts = [(p.strip(), STOP_MS if p.rstrip()[-1] in ".?!" else COMMA_MS)
+             for p in re.split(r"(?<=[,;:.?!])\s+", text.strip()) if p.strip()]
+    if parts:
+        parts[-1] = (parts[-1][0], 0)
+    return parts
+
+
+def render_text(model, text: str, wav: Path):
+    import numpy as np
+    out = []
+    for part, gap in split_text(text):
+        piper_wav(model, part, wav)
+        x, rate = read_wav(wav)
+        y = trim_ends(notch_dtmf(resample(x, rate)))
+        if y is not None:
+            out.append(y)
+            out.append(np.zeros(RATE * gap // 1000))
+    return np.concatenate(out) if out else np.zeros(0)
 
 
 def render_clips(lang: str, phrases: dict):
@@ -399,9 +459,7 @@ def render_clips(lang: str, phrases: dict):
             if not text:
                 clips.append([])
                 continue
-            piper_wav(model, text, wav)
-            x, rate = read_wav(wav)
-            clips.append(condition(notch_dtmf(resample(x, rate))))
+            clips.append(condition(render_text(model, text, wav), key))
     return clips, voice["name"]
 
 
