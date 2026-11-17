@@ -321,3 +321,18 @@ test("the bubble still fits a narrow bench, the tail still over the earpiece", (
   const el = (r) => ({ getBoundingClientRect: () => r });
   assert.deepEqual(placeBubble(el(bubble), el(ear), el(phone), el(bench)), placeBubble(bubble, ear, phone, bench));
 });
+test("on a narrow bench the bubble moves aside so the telephone cable stays visible", () => {
+  // As at 375 px: the RJ11 port on the telephone's top edge at the left, its
+  // cable coming down from the signer; the earpiece lower right.
+  const bench = R(16, 541, 343, 1523), phone = R(30, 1068, 314, 347);
+  const line = R(70, 1060, 40, 18), ear = R(205, 1405, 70, 20);
+  const bubble = R(0, 0, 201, 69);
+  const { left, tail } = placeBubble(bubble, ear, phone, bench, 8, [line]);
+  assert.ok(left + bench.left >= line.right + 8, `${left + bench.left}: clear of the cable at ${line.right}`);
+  assert.ok(left + 201 <= 343, "inside the bench");
+  assert.ok(tail >= 12 && tail <= 201 - 12);
+  // Wide: the RJ11 on the telephone's side edge, its cable not above it: nothing moves.
+  const wb = R(100, 50, 1100, 700), wp = R(400, 230, 260, 380), we = R(650, 260, 20, 80);
+  const side = R(390, 400, 20, 40), wbub = R(0, 0, 300, 90);
+  assert.deepEqual(placeBubble(wbub, we, wp, wb, 8, [side]), placeBubble(wbub, we, wp, wb));
+});

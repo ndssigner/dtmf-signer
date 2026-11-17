@@ -36,7 +36,7 @@ header { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; align-items: center
 nav { display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; font-size: .95rem; }
 nav.site a { color: var(--muted); text-decoration: none; padding: .15rem 0; border-bottom: 2px solid transparent; }
 nav.site a:hover { color: var(--fg); border-bottom-color: var(--press); }
-details.langs { position: relative; font-size: .85rem; }
+details.langs { position: relative; font-size: .85rem; margin-left: auto; }
 details.langs summary { list-style: none; cursor: pointer; padding: .15rem .6rem; border-radius: 999px;
   border: 1px solid var(--line); color: var(--fg); background: var(--surface); white-space: nowrap; }
 details.langs summary::-webkit-details-marker { display: none; }

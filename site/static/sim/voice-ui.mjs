@@ -132,11 +132,18 @@ const TAIL_IN = 28;      // the tail this far from the bubble's right end, if it
 const TAIL_MIN = 12;
 const BUBBLE_GAP = 14;   // the tail's height, between the bubble and the telephone
 const BUBBLE_MIN = 180;  // px: the narrowest it is made
-export function placeBubble(bubble, ear, phone, bench, pad = 8) {
+// avoid: ports on the telephone's top edge (the RJ11 when stacked) whose
+// cable comes down through the space above it: the bubble moves to their
+// right when it fits, so the cable stays in sight.
+export function placeBubble(bubble, ear, phone, bench, pad = 8, avoid = []) {
   const r = (x) => (typeof x.getBoundingClientRect === "function" ? x.getBoundingClientRect() : x);
   const b = r(bubble), e = r(ear), p = r(phone), B = r(bench);
   const x = e.left + e.width / 2 - B.left;
-  const lo = pad, hi = B.width - b.width - pad;
+  let lo = pad;
+  const hi = B.width - b.width - pad;
+  for (const a of avoid.map(r))
+    if (a.top <= p.top + a.height && a.left + a.width + pad - B.left <= hi)
+      lo = Math.max(lo, Math.round(a.left + a.width + pad - B.left));
   const left = hi < lo ? Math.max(0, Math.round((B.width - b.width) / 2)) : Math.round(Math.min(hi, Math.max(lo, x - (b.width - TAIL_IN))));
   const tail = Math.round(Math.min(b.width - TAIL_MIN, Math.max(TAIL_MIN, x - left)));
   const top = Math.max(0, Math.round(p.top - B.top - b.height - BUBBLE_GAP));
@@ -195,13 +202,17 @@ export async function start(doc, loadModule, loadPack) {
   // ---- the earpiece's transcript, in a bubble above the telephone ----
   const bubble = bench.querySelector(".bubble"), saidEl = bubble?.querySelector(".said");
   const phoneEl = root.querySelector(".mod-phone"), earEl = root.querySelector('[data-port="phone.ear"]');
+  const lineEl = root.querySelector('[data-port="phone.line"]');
   function placeShown() {
     if (!bubble || !earEl || !phoneEl) return;
-    // No wider than from the telephone's left edge to just past the
-    // earpiece: it never covers the modules beside the telephone.
+    // No wider than from the telephone's left edge (or, stacked, from just
+    // right of its RJ11 cable) to just past the earpiece: it never covers
+    // the modules beside the telephone, nor that cable.
     const p = phoneEl.getBoundingClientRect(), e = earEl.getBoundingClientRect();
-    bubble.style.setProperty("--cap", `${Math.max(BUBBLE_MIN, Math.round(e.left + e.width / 2 - p.left + TAIL_IN))}px`);
-    const { left, top, tail } = placeBubble(bubble, earEl, phoneEl, bench);
+    const l = lineEl?.getBoundingClientRect();
+    const from = l && l.top <= p.top + l.height ? Math.max(p.left, l.right + 8) : p.left;
+    bubble.style.setProperty("--cap", `${Math.max(BUBBLE_MIN, Math.round(e.left + e.width / 2 - from + TAIL_IN))}px`);
+    const { left, top, tail } = placeBubble(bubble, earEl, phoneEl, bench, 8, lineEl ? [lineEl] : []);
     bubble.style.left = `${left}px`;
     bubble.style.top = `${top}px`;
     bubble.style.setProperty("--tail", `${tail}px`);
