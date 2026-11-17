@@ -8,11 +8,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { loadSite } from "./lib/i18n.mjs";
+import { loadSite, t } from "./lib/i18n.mjs";
 import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
 import { layout, rootPage, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
-import { parseStatus, statusTable } from "./lib/status.mjs";
+import { parseStatus, renderStatusSequence } from "./lib/status.mjs";
 import { validateBench, checkBenchAgainstCatalog } from "./lib/bench.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -43,45 +43,126 @@ function homePage(site, lang, tr) {
   return { title: "DTMF-Signer", body: html + list + "\n" + donateBlock(site, tr, "../"), fallback };
 }
 
-function profilePage(site, lang, tr, p, root) {
-  const { html, fallback } = content(site, lang, p.slug);
-  const sim = Boolean(p.simulator && site.modules.has(simModule(p)));
+// The tabs of a build, each its own page under <lang>/<slug>/: the
+// simulator at the build's own address, the rest in language-neutral folders.
+export const TABS = [["", "tab.try"], ["what/", "tab.what"], ["parts/", "tab.parts"], ["build/", "tab.build"],
+  ["status/", "tab.status"], ["downloads/", "tab.downloads"]];
+
+// The SHA-256 of a file, as hex: the one hash the site shows for downloads.
+export const packHash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+// Every build's language packs, read once: where each is published, its
+// size and its hash (the build tabs and the downloads page show them).
+export function packList(site, repoRoot) {
+  return site.config.profiles.flatMap((p) => Object.entries(p.simulator?.packs ?? {}).sort().map(([lang, path]) => {
+    const bytes = readFileSync(join(repoRoot, path));
+    return { slug: p.slug, lang, name: `${lang}.bin`, href: `sim/packs/${lang}.bin`, bytes, size: bytes.length, sha256: packHash(bytes) };
+  }));
+}
+
+const kib = (n) => `${Math.round(n / 1024)} KiB`;
+// Whether a build has a published firmware: its status says so.
+const released = (status) => status.firmware.find((s) => s.stage === "release")?.state === "done";
+
+// The pages of one build: the same header and tab bar, one tab each.
+// page(path, make) is build()'s, which wraps a body in the layout.
+function buildPages(site, lang, p, page) {
   const repoRoot = join(site.dir, "..");
+  const sim = Boolean(p.simulator && site.modules.has(simModule(p)));
   // A build not yet on a breadboard has no parts list, layout or files yet.
   const bom = join(repoRoot, p.hardware, "bom.csv");
   const rows = existsSync(bom) ? parseCsv(readFileSync(bom, "utf8")) : null;
   const status = parseStatus(readFileSync(join(repoRoot, p.hardware, "status.json"), "utf8"));
-  const title = tr(`profile.${p.slug}.title`);
-  const files = (p.files ?? []).map((f) => {
-    const name = basename(f);
-    return `<li><a href="${root}files/${escapeHtml(p.slug)}/${escapeHtml(name)}">${escapeHtml(name)}</a></li>`;
+  const slug = escapeHtml(p.slug);
+  const files = (root) => (p.files ?? []).map((f) => {
+    const name = escapeHtml(basename(f));
+    return `<li><a href="${root}files/${slug}/${name}">${name}</a></li>`;
   }).join("\n");
-  const parts = rows ? `
-<h2 id="parts">${escapeHtml(tr("profile.bom"))}</h2>
-${bomTable(rows, tr)}` : "";
-  const plan = p.image ? `
-<h2 id="layout">${escapeHtml(tr("profile.plan"))}</h2>
-<p><img src="${root}img/${escapeHtml(p.slug)}/${escapeHtml(basename(p.image))}" alt="${escapeHtml(tr("profile.plan"))}"></p>
-<p>${escapeHtml(tr("profile.files"))}</p>
+
+  for (const [tab, key] of TABS) {
+    page(`${p.slug}/${tab}`, (tr, root) => {
+      const e = (k, params) => escapeHtml(tr(k, params));
+      const title = tr(`profile.${p.slug}.title`);
+      const here = `${root}${lang}/${slug}/`;
+      const notYet = `<p class="not-yet">${e("build.not_yet")} <a href="${here}status/">${e("tab.status")}</a></p>`;
+      const tabs = TABS.map(([t, k]) => {
+        const label = k === "tab.try" ? `<span aria-hidden="true">▶</span> ${e(k)}` : e(k);
+        return `<a href="${here}${t}"${t === tab ? ' aria-current="page"' : ""}>${label}</a>`;
+      }).join("\n");
+      let body, fallback = false;
+      if (tab === "") {
+        body = sim ? simulatorBlock(site, tr, p, root, lang) : `<div class="simulator">
+<p>${e("sim.soon")}</p>
+<p>${e("sim.built", { commit: site.commit })}</p>
+</div>`;
+      } else if (tab === "what/") {
+        ({ html: body, fallback } = content(site, lang, p.slug));
+      } else if (tab === "parts/") {
+        body = rows ? bomTable(rows, tr) : notYet;
+      } else if (tab === "build/") {
+        const readme = p.readme ? `\n<li>${ext(blob(site, perLang(p.readme, lang)), tr("profile.readme"))}</li>` : "";
+        const plan = p.image ? `<h2 id="layout">${e("profile.plan")}</h2>
+<p><img src="${root}img/${slug}/${escapeHtml(basename(p.image))}" alt="${e("profile.plan")}"></p>
+<p>${e("profile.files")}</p>
 <ul>
-${files}
-</ul>` : "";
-  const readme = p.readme ? `\n<li>${ext(blob(site, perLang(p.readme, lang)), tr("profile.readme"))}</li>` : "";
-  const body = `<h1>${escapeHtml(title)}</h1>
-<p class="profile-id"><code>${escapeHtml(p.id)}</code></p>
-${html}
-<h2 id="status">${escapeHtml(tr("profile.status"))}</h2>
-${statusTable(status, tr)}
-<h2 id="simulator">${escapeHtml(tr("profile.sim"))}</h2>
-${sim ? simulatorBlock(site, tr, p, root, lang) : `<div class="simulator">
-<p>${escapeHtml(tr("sim.soon"))}</p>
-<p>${escapeHtml(tr("sim.built", { commit: site.commit }))}</p>
-</div>`}${parts}${plan}
-<h2 id="details">${escapeHtml(tr("profile.details"))}</h2>
+${files(root)}
+</ul>` : notYet;
+        body = `${plan}
+<h2 id="details">${e("profile.details")}</h2>
 <ul>${readme}
 <li>${ext(blob(site, perLang(p.docs, lang)), tr("profile.catalog"))}</li>
 </ul>`;
-  return { title: `${title} · DTMF-Signer`, body, fallback, wasm: sim };
+      } else if (tab === "status/") {
+        body = renderStatusSequence(status, tr);
+      } else {
+        body = downloadsTab(site, tr, p, status, root, files(root), notYet);
+      }
+      const head = `<div class="build-head">
+<img src="${root}img/builds/${slug}.svg" alt="">
+<div><h1>${escapeHtml(title)}</h1>
+<p class="lede">${e(`profile.${p.slug}.lede`)} <code class="profile-id">${escapeHtml(p.id)}</code></p></div>
+</div>
+<nav class="tabs" aria-label="${e("build.tabs")}">
+${tabs}
+</nav>
+`;
+      const name = tab ? `${tr(key)} · ` : "";
+      return { title: `${name}${title} · DTMF-Signer`, body: head + body, fallback, wasm: tab === "" && sim };
+    });
+  }
+}
+
+// A build's downloads: its released firmware (or where it stands), its
+// language packs with their size and hash, and the files for building it.
+function downloadsTab(site, tr, p, status, root, files, notYet) {
+  const e = (k, params) => escapeHtml(tr(k, params));
+  const rel = site.config.release;
+  let firmware = notYet;
+  if (rel && released(status)) {
+    const base = `${site.config.repo}/releases/download/${rel.tag}/`;
+    firmware = `<ul>
+<li>${ext(base + rel.uf2, rel.uf2)}</li>
+<li>${ext(base + rel.sums, rel.sums)}</li>
+<li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>
+</ul>`;
+  }
+  const fwTitle = rel && released(status) ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
+  const packs = site.packs.filter((k) => k.slug === p.slug).map((k) =>
+    `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(t(site, k.lang, "lang.name").text)}, ${kib(k.size)})<br>
+<span class="sha-label">SHA-256</span> <code class="sha">${k.sha256}</code></li>`).join("\n");
+  const packBlock = packs ? `
+<h2 id="packs">${e("downloads.packs")}</h2>
+<ul class="packs">
+${packs}
+</ul>
+<p class="verify"><span aria-hidden="true">🔎</span> ${e("downloads.verify")}</p>` : "";
+  const fileBlock = files ? `
+<h2 id="files">${e("downloads.files")}</h2>
+<ul>
+${files}
+</ul>` : "";
+  return `<h2 id="firmware">${fwTitle}</h2>
+${firmware}${packBlock}${fileBlock}`;
 }
 
 function donateBlock(site, tr, root) {
@@ -105,7 +186,7 @@ function downloadsPage(site, lang, tr, root) {
   const { tag, uf2, sums } = site.config.release;
   const latest = `${site.config.repo}/releases/download/${tag}/`;
   const layouts = site.config.profiles.filter((p) => p.image).map((p) =>
-    `<li><a href="../${p.slug}/#layout">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`).join("\n");
+    `<li><a href="../${p.slug}/build/#layout">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`).join("\n");
   const body = `<h1>${escapeHtml(tr("downloads.title"))}</h1>
 <h2 id="firmware">${escapeHtml(tr("downloads.firmware", { tag }))}</h2>
 <ul>
@@ -400,6 +481,10 @@ export function build({ siteDir, outDir, commit }) {
     if (entry.isFile()) files.set(entry.name, readFileSync(join(HERE, "static", entry.name)));
 
   const repoRoot = join(siteDir, "..");
+  site.packs = packList(site, repoRoot);
+  // Each build's pictogram.
+  for (const f of readdirSync(join(HERE, "static", "img", "builds")).filter((f) => f.endsWith(".svg")).sort())
+    files.set(`img/builds/${f}`, readFileSync(join(HERE, "static", "img", "builds", f)));
   if (site.config.donate)
     for (const img of ["donate-bitcoin.png", "donate-lightning.png"])
       files.set(`img/${img}`, readFileSync(join(repoRoot, "docs", "images", img)));
@@ -415,28 +500,27 @@ export function build({ siteDir, outDir, commit }) {
     files.set("sim/ur-tones-crypto.js", readFileSync(join(UR_TONES_JS, "crypto.js")));
     files.set("sim/ur-tones.js", readFileSync(join(UR_TONES_JS, "ur-tones.js")));
   }
-  // The voice build's language packs: the .bin as the Pico takes it, and the
-  // same bytes as a module, which the page can import (its CSP lets it load
-  // scripts from the site, and fetch nothing).
-  for (const p of site.config.profiles.filter((x) => site.modules.has(simModule(x))))
-    for (const [lang, path] of Object.entries(p.simulator.packs ?? {}).sort()) {
-      const bytes = readFileSync(join(repoRoot, path));
-      files.set(`sim/packs/${lang}.bin`, bytes);
-      files.set(`sim/packs/${lang}.mjs`, Buffer.from(`// ${basename(path)}, base64 (the same bytes as ${lang}.bin).\nexport default "${bytes.toString("base64")}";\n`));
-    }
+  // The language packs: the .bin as the Pico takes it, always (a download),
+  // and, for a built simulator, the same bytes as a module the page can
+  // import (its CSP lets it load scripts from the site, and fetch nothing).
+  for (const k of site.packs) {
+    files.set(k.href, k.bytes);
+    const p = site.config.profiles.find((x) => x.slug === k.slug);
+    if (site.modules.has(simModule(p)))
+      files.set(`sim/packs/${k.lang}.mjs`, Buffer.from(`// ${basename(p.simulator.packs[k.lang])}, base64 (the same bytes as ${k.lang}.bin).\nexport default "${k.bytes.toString("base64")}";\n`));
+  }
 
   for (const { code: lang } of site.config.languages) {
     const page = (path, make) => {
       const tr = translator(site, lang);
       const root = "../".repeat(1 + path.split("/").filter(Boolean).length);
-      const { title, body, fallback, wasm } = make(tr);
+      const { title, body, fallback, wasm } = make(tr, root);
       files.set(`${lang}/${path}index.html`,
         Buffer.from(layout({ site, lang, tr, root, title, body, path, nav, fallback, wasm })));
     };
     page("", (tr) => homePage(site, lang, tr));
     if (site.config.release) page("downloads/", (tr) => downloadsPage(site, lang, tr, "../../"));
-    for (const p of site.config.profiles)
-      page(`${p.slug}/`, (tr) => profilePage(site, lang, tr, p, "../../"));
+    for (const p of site.config.profiles) buildPages(site, lang, p, page);
   }
 
   rmSync(outDir, { recursive: true, force: true });

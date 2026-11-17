@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseStatus } from "../lib/status.mjs";
+import { readFileSync } from "node:fs";
+import { parseStatus, renderStatusSequence } from "../lib/status.mjs";
 import { buildInto, brokenLinks, text } from "./helpers.mjs";
 
 const ok = () => ({
@@ -27,13 +28,30 @@ test("links must be http(s)", () => {
 });
 
 const files = buildInto();
-test("the build page shows its status, translated, with notes and links", () => {
-  const html = text(files, "es/cable-qr/index.html");
-  assert.match(html, /<h2 id="status">/);
+// The class each state of status.json gets on the page.
+const CLASS = { done: "done", doing: "wip", planned: "planned", na: "na" };
+test("the status tab shows each part as a sequence of stages, translated, with notes and links", () => {
+  for (const [b, dir] of [["cable-qr", "breadboard"], ["centralita", "phone"]]) {
+    const status = JSON.parse(readFileSync(new URL(`../../hardware/${dir}/status.json`, import.meta.url), "utf8"));
+    const html = text(files, `es/${b}/status/index.html`);
+    const lists = [...html.matchAll(/<ol class="stages">([\s\S]*?)<\/ol>/g)].map((m) => m[1]);
+    assert.equal(lists.length, 2, b);
+    lists.forEach((ol, i) => {
+      const part = ["hardware", "firmware"][i];
+      const got = [...ol.matchAll(/<li class="([^"]+)">/g)].map((m) => m[1]);
+      assert.deepEqual(got, status[part].map((s) => CLASS[s.state]), `${b} ${part}`);
+    });
+  }
+  const html = text(files, "es/cable-qr/status/index.html");
   assert.match(html, /Placa perforada/);
-  assert.match(html, /class="state done"/);
-  assert.match(html, /class="state planned"/);
+  assert.match(html, /SPICE/);
   assert.match(html, /href="https:\/\/github\.com\/ndssigner\/dtmf-signer\/releases\/tag\/v0\.2\.0-alpha"/);
+});
+test("a stage in progress is marked wip", () => {
+  const s = ok(); s.hardware[1].state = "doing"; s.firmware[0].state = "done";
+  const html = renderStatusSequence(s, (k) => k);
+  assert.match(html, /<li class="wip">[\s\S]*?status\.hardware\.simulation/);
+  assert.match(html, /<li class="done">[\s\S]*?status\.firmware\.core/);
 });
 test("links still resolve", () => {
   assert.deepEqual(brokenLinks(files), []);

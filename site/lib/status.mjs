@@ -9,7 +9,6 @@ export const STAGES = {
   firmware: ["core", "port", "simulator", "release", "review"],
 };
 export const STATES = ["done", "doing", "planned", "na"];
-const MARK = { done: "✅", doing: "🔧", planned: "⏳", na: "—" };
 
 export function parseStatus(text) {
   const status = JSON.parse(text);
@@ -25,24 +24,31 @@ export function parseStatus(text) {
   return status;
 }
 
-export function statusTable(status, tr) {
-  const rows = (part) => status[part].map((s) => {
-    const note = s.note ? escapeHtml(s.note) : "";
-    const extra = s.link
-      ? ` <a href="${escapeHtml(s.link)}" rel="noopener noreferrer">${note || escapeHtml(tr("status.link"))}</a>`
-      : note ? " " + note : "";
-    return `<li><span class="state ${s.state}" title="${escapeHtml(tr(`status.${s.state}`))}">${MARK[s.state]}</span> ${escapeHtml(tr(`status.${part}.${s.stage}`))}${extra}</li>`;
-  }).join("\n");
-  const legend = STATES.map((s) => `${MARK[s]} ${escapeHtml(tr(`status.${s}`))}`).join(" · ");
-  return `<div class="status">
-<div><h3>${escapeHtml(tr("status.hardware"))}</h3>
-<ul>
-${rows("hardware")}
-</ul></div>
-<div><h3>${escapeHtml(tr("status.firmware"))}</h3>
-<ul>
-${rows("firmware")}
-</ul></div>
-</div>
-<p class="legend">${legend}</p>`;
+// The class each state gets on the page: done, wip (in progress), planned, na.
+const CLASS = { done: "done", doing: "wip", planned: "planned", na: "na" };
+
+// Each part (hardware, firmware) as a sequence of stages, in order: a dot
+// per stage coloured by its state (the state also said in words, for screen
+// readers and on hover), its label, its note and its link.
+export function renderStatusSequence(status, tr) {
+  const e = (k) => escapeHtml(tr(k));
+  const part = (name) => {
+    const items = status[name].map((s) => {
+      const note = s.note ? escapeHtml(s.note) : "";
+      const extra = s.link
+        ? ` <a href="${escapeHtml(s.link)}" rel="noopener noreferrer">${note || e("status.link")}</a>`
+        : note ? ` <span class="note">${note}</span>` : "";
+      return `<li class="${CLASS[s.state]}"><span class="dot" title="${e(`status.${s.state}`)}" aria-hidden="true"></span><b>${e(`status.${name}.${s.stage}`)}</b> <span class="visually-hidden">(${e(`status.${s.state}`)})</span>${extra}</li>`;
+    }).join("\n");
+    return `<section class="stage-part">
+<h2 id="${name}">${e(`status.${name}`)}</h2>
+<ol class="stages">
+${items}
+</ol>
+</section>`;
+  };
+  const key = STATES.map((s) => `<span class="${CLASS[s]}"><span class="dot" aria-hidden="true"></span>${e(`status.${s}`)}</span>`).join("\n");
+  return `${part("hardware")}
+${part("firmware")}
+<p class="stage-key">${key}</p>`;
 }

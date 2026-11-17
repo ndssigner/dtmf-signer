@@ -1,24 +1,20 @@
-The reference build: it **listens by cable and speaks by QR**. The tones
-reach it through a headphone cable from the phone or computer that holds
-your wallet; the signed transaction comes back as QR codes on its own small
-screen, which your wallet reads with its camera. There is no microphone and
-no speaker, so it cannot hear the room or be heard in it.
+It **listens by cable and speaks by QR**. Your wallet's tones reach it
+through a headphone cable; the signed transaction comes back as QR codes on
+its small screen, for your wallet's camera. No microphone, no speaker: it
+cannot hear the room or be heard in it.
 
-It is the build that works today, on a breadboard or a perfboard, with a
-Raspberry Pi Pico, a small OLED screen, a few push buttons and a handful of
-resistors and capacitors.
+The tones speak [ur-tones](https://github.com/ndssigner/ur-tones/blob/main/SPEC.md); you can hear and decode them with its
+[web tool](https://ndssigner.github.io/ur-tones/).
 
-You can try it below, in the simulator: the firmware itself, compiled to WebAssembly, with a test wallet that sends it a seed and a transaction.
-
-## What it does
+## It does
 
 - Receives your seed as tones, protected by a PIN, and never shows it: only
   its fingerprint.
 - Shows your wallet's account as a QR, for your wallet to watch.
-- Receives a transaction to sign, shows you on its screen what it spends and
-  where it sends it, and signs only when you confirm with its buttons.
+- Shows on its screen what a transaction spends and where it sends it, and
+  signs only when you confirm with its buttons.
 
-## What it does not do
+## It does not
 
-- It keeps nothing: when it is switched off, the seed is gone.
-- No Taproot or multisig yet.
+- Keep anything: when it is switched off, the seed is gone.
+- Taproot or multisig, yet.
