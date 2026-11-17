@@ -143,6 +143,14 @@ export function placeBubble(bubble, ear, phone, bench, pad = 8) {
   return { left, top, tail };
 }
 
+// The test seed's keypad code ("*", four digits a word, "#") in groups, so
+// it reads and wraps; and shown in the first-time guide from the wallet's
+// own keypadCode(), what ⌨ Type code dials (el: the guide's <code>, if any).
+export const keypadGroups = (code) => (String(code).match(/[*#]|[0-9]{1,4}/g) ?? []).join(" ");
+export function showKeypadCode(el, wallet) {
+  if (el) el.textContent = keypadGroups(wallet.keypadCode());
+}
+
 const fromBase64 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
 export async function start(doc, loadModule, loadPack) {
@@ -338,8 +346,10 @@ export async function start(doc, loadModule, loadPack) {
 
   // ---- the simulated wallet, next to the handset ----
   const netSel = root.querySelector(".wd-net"), fpEl = root.querySelector(".wl-fp"), netEl = root.querySelector(".wl-net");
+  const codeEl = doc.querySelector("details.first .keypad-code");
   function setNetwork(net) {
     wallet.setNetwork(net);
+    showKeypadCode(codeEl, wallet);
     if (fpEl) fpEl.textContent = wallet.pair().fingerprint;
     if (netEl) netEl.textContent = net;
   }

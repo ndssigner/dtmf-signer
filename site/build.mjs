@@ -335,8 +335,8 @@ function walletBody(tr, sim, module) {
   const air = Boolean(module.air);
   // The page starts on mainnet, as the selector does; ui.mjs follows it.
   const fp = sim.nets?.mainnet?.fingerprint ?? "";
-  const act = (cls, icon, label, tipKey) =>
-    `<button type="button" class="${cls}" ${tip(tr(tipKey), false)}><span aria-hidden="true">${icon}</span>${e(label)}</button>`;
+  const act = (cls, icon, label, tipKey, params) =>
+    `<button type="button" class="${cls}" ${tip(tr(tipKey, params), false)}><span aria-hidden="true">${icon}</span>${e(label)}</button>`;
   return `<div class="wl-screen">
 <div class="wl-bar"><h3 class="mod-title">${e(module.title)}</h3>
 <div class="seg" role="group" aria-label="${e("bench.who")}"><button type="button" data-who="sim" aria-pressed="true" ${tip(tr("wallet.who_sim_tip"), false)}>${e("wallet.who_sim")}</button><button type="button" data-who="yours" aria-pressed="false" ${tip(tr("wallet.who_yours_tip"), false)}>${e("wallet.who_yours")}</button></div>
@@ -346,7 +346,7 @@ function walletBody(tr, sim, module) {
 <dt>${e("wallet.fingerprint")}</dt><dd class="wl-fp">${escapeHtml(fp)}</dd>
 <dt>${e("wallet.pin")}</dt><dd>${escapeHtml(sim.pin ?? "")}</dd>
 <dt>${e("wallet.net")}</dt><dd><span class="wl-net">mainnet</span> <span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></dd></dl>
-<div class="wl-acts">${act("wd-seed", "🌱", "wallet.act_seed", air ? "wallet.seed_air_tip" : "wallet.seed_tip")}${act("wd-psbt", "₿", "wallet.act_pay", "wallet.psbt_tip")}${air
+<div class="wl-acts">${act("wd-seed", "🌱", "wallet.act_seed", air ? "wallet.seed_air_tip" : "wallet.seed_tip", { pin: sim.pin ?? "" })}${act("wd-psbt", "₿", "wallet.act_pay", "wallet.psbt_tip")}${air
     ? `<button type="button" class="wd-listen" aria-pressed="false" ${tip(tr("wallet.listen_tip"), false)}><span aria-hidden="true">👂</span>${e("wallet.listen")}</button>`
     : act("wd-scan", "📷", "wallet.act_scan", "wallet.scan_tip")}</div>
 <div class="wl-card" aria-live="polite"></div>
@@ -386,7 +386,9 @@ function firstHint(tr, voice = false) {
   };
   // The Centralita: the telephone's keys, the wallet by the handset.
   const keys = { hash: "<b>#</b>", one: "<b>1</b>", two: "<b>2</b>", flash: "<b>R</b>", type: b("⌨", "phone.type"),
-    seed: b("🌱", "wallet.act_seed"), pay: b("₿", "wallet.act_pay"), listen: b("👂", "wallet.listen") };
+    seed: b("🌱", "wallet.act_seed"), pay: b("₿", "wallet.act_pay"), listen: b("👂", "wallet.listen"),
+    // The test seed's keypad code: voice-ui.mjs fills it from what ⌨ Type code dials.
+    code: `<details class="kcode"><summary>${escapeHtml(tr("first.show_code"))}</summary><code class="keypad-code"></code></details>` };
   const steps = voice ? [1, 2, 3, 4].map((n) => step(`first.voice.${n}`, keys)) : [
     step("first.1", { seed: b("🌱", "wallet.act_seed") }), step("first.2"),
     step("first.3", { pay: b("₿", "wallet.act_pay") }), step("first.4", { scan: b("📷", "wallet.act_scan") })];

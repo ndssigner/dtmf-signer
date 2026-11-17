@@ -297,6 +297,10 @@ details.first { background: var(--surface); border-radius: 14px; box-shadow: var
 details.first summary { cursor: pointer; font-weight: 600; }
 details.first ol { margin: .5rem 0 .2rem; padding-left: 1.3rem; }
 details.first li { margin: .2rem 0; }
+details.kcode { display: inline; }
+details.kcode summary { display: inline; cursor: pointer; color: var(--muted); text-decoration: underline dotted; }
+details.kcode[open] { display: block; }
+details.kcode code { display: block; margin-top: .2rem; font-family: var(--mono); overflow-wrap: break-word; word-spacing: .1em; }
 .sim-mobile { display: flex; align-items: center; gap: .5rem; margin: 0 0 .6rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 10px; font-size: .85rem; }
 .sim-mobile[hidden] { display: none; }
 .sim-mobile-close { margin-left: auto; border: 0; background: none; color: var(--fg); cursor: pointer; font-size: 1rem; }

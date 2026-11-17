@@ -415,3 +415,46 @@ test("the first-time hint: a folded list, closed in the page, open on a first vi
   }
   assert.ok(text(files, "es/cable-qr/index.html").includes("¿Primera vez? Prueba esto"));
 });
+
+// ---- Task 7, fix round 1 ----
+for (const [slug, skip] of [["cable-qr", SKIP], ["centralita", VOICE_SKIP]]) {
+  test(`${slug}: no placeholder left unfilled on the page (tooltips included)`, { skip }, () => {
+    for (const lang of ["en", "es"]) {
+      const html = text(files, `${lang}/${slug}/index.html`).replace(/<script type="application\/json"[\s\S]*?<\/script>/g, "");
+      assert.deepEqual(html.match(/\{[a-z_]+\}/g) ?? [], [], `${lang}/${slug}`);
+    }
+  });
+}
+test("the Centralita's guide: or type the keypad code yourself, folded, filled by the page", { skip: VOICE_SKIP }, () => {
+  for (const [lang, say, show] of [["es", "o tecléalo tú:", "ver código"], ["en", "or type it yourself:", "show code"]]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    const li = /<details class="first">[\s\S]*?<ol>\s*<li>[\s\S]*?<\/li>\s*<li>([\s\S]*?)<\/li>/.exec(html)[1];
+    assert.ok(li.toLowerCase().includes(say), li);
+    assert.match(li, new RegExp(`<details class="kcode"><summary>${show}</summary><code class="keypad-code"></code></details>`), lang);
+  }
+});
+test("the keypad code in fours, as the guide shows it", async () => {
+  const { keypadGroups } = await import("../static/sim/voice-ui.mjs");
+  assert.equal(keypadGroups("*000000010002#"), "* 0000 0001 0002 #");
+  assert.equal(keypadGroups("*12345#"), "* 1234 5 #");
+  assert.equal(keypadGroups(""), "");
+});
+test("the guide's code is what ⌨ Type code dials, on each network", { skip: VOICE_SKIP }, async () => {
+  const { showKeypadCode, keypadGroups } = await import("../static/sim/voice-ui.mjs");
+  const { SimWallet } = await import("../static/sim/sim-wallet.mjs");
+  const { loadUrTones } = await import("./urtones-helpers.mjs");
+  const wallet = new SimWallet({ sim: {}, U: loadUrTones(), data: voiceData("es"), el: {} });
+  const codes = new Set();
+  for (const net of ["mainnet", "testnet"]) {
+    wallet.setNetwork(net);
+    const el = { textContent: "" };
+    showKeypadCode(el, wallet);
+    assert.equal(el.textContent, keypadGroups(wallet.keypadCode()), net);
+    assert.equal(el.textContent.replace(/ /g, ""), wallet.keypadCode(), net);
+    codes.add(el.textContent);
+  }
+  assert.equal(codes.size, 2, "each network its own seed");
+  showKeypadCode(null, wallet);   // no guide on the page: nothing breaks
+  const ui = readFileSync(new URL("../static/sim/voice-ui.mjs", import.meta.url), "utf8");
+  assert.match(ui, /setNetwork\(net\) \{[\s\S]*?showKeypadCode\(/, "refreshed when the network changes");
+});
