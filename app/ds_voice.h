@@ -39,13 +39,19 @@
  *   Amounts: automatic says 1 bitcoin (100 000 000 sat) and more in bitcoin
  *   (the whole part, "point", each decimal digit, trailing zeros dropped,
  *   "bitcoin"), less in sats ("sats").
- *   Every key counts once it has sounded 70 ms, so the data tones of a
- *   wallet still playing (40 ms, never the same twice in a row) are never
- *   keys, in no state.
+ *   Keys and a wallet's data tones on the same line, in every state: a key
+ *   must sound 70 ms and is acted on 250 ms after it began; a tone that
+ *   begins 250 ms or less after a different one began, after 120 ms or
+ *   less of silence, marks the line as carrying data (a wallet plays a tone
+ *   every 60 ms by cable, 160 ms by air), and no key counts until 700 ms
+ *   without a tone (the same key again, multi-tap, is never data); and once
+ *   a seed or a PSBT has been received, or the signer's own tones have
+ *   played, no key counts until the line has had no tone for 1000 ms (a
+ *   wallet looping its parts pauses 400 to 600 ms between them).
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
  *   character, the "next" sound when one is committed, "back" and the last
  *   one left after *; # ends it, * with nothing left cancels. A PIN key
- *   counts once it has sounded 70 ms (a wallet's data tones are shorter).
+ *   counts as any key does (above).
  *   The decrypt and the derivation run from ds_voice_tick, never from
  *   ds_voice_line_in: the key that asks for them gets a short sound.
  *
@@ -146,6 +152,10 @@ typedef struct {
     uint32_t since_onset;
     int data;            /* data tones are sounding: no key until quiet */
     uint32_t data_quiet;
+    char pending;        /* a key held, waiting 250 ms from its start (data?) */
+    uint32_t gap_before, since_tone; /* silence before the tone; since one */
+    int gate;            /* after data: no key until 1000 ms without a tone */
+    uint32_t gate_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */
     int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
     ds_multitap mt;      /* the PIN */

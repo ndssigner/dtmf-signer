@@ -116,16 +116,17 @@ static void run_quiet(line_t *t)
         step(t, NULL);
 }
 
-/* A telephone key: 100 ms of tone, 100 ms of gap. */
+/* A telephone key: 100 ms of tone, 200 ms of gap (a person typing: the
+ * next key begins 300 ms after this one). */
 static void press(line_t *t, char k)
 {
-    static int16_t buf[3200];
+    static int16_t buf[4800];
     char keys[2] = {k, 0};
     ut_synth s;
     memset(buf, 0, sizeof buf);
-    ut_synth_init(&s, keys, 16000, 100, 100, 0);
-    ut_synth_read(&s, buf, 3200);
-    for (int i = 0; i < 20; i++)
+    ut_synth_init(&s, keys, 16000, 100, 200, 0);
+    ut_synth_read(&s, buf, 4800);
+    for (int i = 0; i < 30; i++)
         step(t, buf + i * CHUNK);
 }
 
@@ -227,13 +228,13 @@ static void test_languages_listed_and_chosen(void)
     CHECK(c1 >= 0 && c2 > c1);
     size_t mark = L.log_len;
     /* step by step to know which sample follows the choice */
-    static int16_t buf[3200];
+    static int16_t buf[4800];
     ut_synth s;
     memset(buf, 0, sizeof buf);
-    ut_synth_init(&s, "2", 16000, 100, 100, 0);
-    ut_synth_read(&s, buf, 3200);
+    ut_synth_init(&s, "2", 16000, 100, 200, 0);
+    ut_synth_read(&s, buf, 4800);
     size_t chosen_at = 0;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 30; i++) {
         step(&L, buf + i * CHUNK);
         if (!chosen_at && HAS(&L, "lang es", mark))
             chosen_at = L.out_len;
@@ -805,13 +806,13 @@ static void test_pin_keys_forgotten(void)
     type_mt(&L, "ABC123DEF456");
     press(&L, '#'); /* commits the 6 */
     /* # again ends it: from the moment the PIN is taken, no digit is left */
-    static int16_t buf[3200];
+    static int16_t buf[4800];
     ut_synth syn;
     memset(buf, 0, sizeof buf);
-    ut_synth_init(&syn, "#", 16000, 100, 100, 0);
-    ut_synth_read(&syn, buf, 3200);
+    ut_synth_init(&syn, "#", 16000, 100, 200, 0);
+    ut_synth_read(&syn, buf, 4800);
     int seen = 0;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 30; i++) {
         step(&L, buf + i * CHUNK);
         if (HAS(&L, "state fingerprint", 0)) {
             seen = 1;
@@ -856,7 +857,7 @@ static void test_air_warning_once(void)
  * key that asked for them, never inside ds_voice_line_in. */
 static void test_heavy_work_in_tick(void)
 {
-    static int16_t buf[3200];
+    static int16_t buf[4800];
     ut_synth syn;
     heavy_in_line = 0;
     air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
@@ -864,10 +865,10 @@ static void test_heavy_work_in_tick(void)
     type_mt(&L, "ABC123DEF456");
     run_ms(&L, 1600);
     memset(buf, 0, sizeof buf);
-    ut_synth_init(&syn, "#", 16000, 100, 100, 0);
-    ut_synth_read(&syn, buf, 3200);
+    ut_synth_init(&syn, "#", 16000, 100, 200, 0);
+    ut_synth_read(&syn, buf, 4800);
     int i = 0;
-    for (; i < 20 && L.v.job == 0; i++) { /* line_in only, until the job is asked */
+    for (; i < 30 && L.v.job == 0; i++) { /* line_in only, until the job is asked */
         int16_t o[CHUNK];
         ds_voice_line_out(&L.v, o, CHUNK);
         ds_voice_line_in(&L.v, buf + i * CHUNK, CHUNK);
@@ -891,7 +892,7 @@ static void test_heavy_work_in_tick(void)
         CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
     }
     take_echo(&L);
-    for (; i < 20; i++)
+    for (; i < 30; i++)
         step(&L, buf + i * CHUNK);
     run_quiet(&L);
     CHECK(HAS(&L, "fingerprint 8b218e81", 0));
@@ -1159,6 +1160,121 @@ static const uint8_t *hear_tones(line_t *t, const char **type, size_t *len)
     return NULL;
 }
 
+
+/* A wallet looping the PSBT's parts at a pace: cable (40/20/400 ms) or air
+ * (80/80/600 ms, ur-tones SPEC). */
+static void play_part_paced(line_t *t, const char *tones, int air)
+{
+    static int16_t a[TONES_RATE * 120];
+    ut_synth syn;
+    if (air)
+        ut_synth_init(&syn, tones, TONES_RATE, 80, 80, 600);
+    else
+        ut_synth_init(&syn, tones, TONES_RATE, 40, 20, 400);
+    size_t n = ut_synth_read(&syn, a, sizeof a / sizeof a[0]);
+    CHECK(n < sizeof a / sizeof a[0]);
+    play(t, a, n);
+    run_ms(t, air ? 600 : 400);
+}
+
+/* The wallet keeps looping (at either pace) all through the review and the
+ * menu with a seed: nothing is a key. A person's key after a second of
+ * quiet is. */
+static void looping_wallet_at(int air)
+{
+    const psbt_vector *pv = vector("one input with change");
+    to_ready(&L, 0);
+    send_psbt(&L, pv);
+    long rv = find_line(&L, "state review", 0);
+    CHECK(rv >= 0);
+    uint32_t k = ds_voice_keys(&L.v);
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play_part_paced(&L, part_tones, air);
+    }
+    CHECK(rv >= 0 && strstr(L.log + rv + 13, "state ") == NULL);
+    CHECK_EQ_INT(L.v.item, 0);
+    CHECK(L.v.item_heard); /* item 0 said in full, never cut */
+    CHECK(HAS(&L, "chars pe9ug", (size_t)(rv < 0 ? 0 : rv)));
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK_EQ_INT(ds_voice_keys(&L.v), k);
+    CHECK(L.v.psbt != NULL);
+    CHECK(!HAS(&L, "say cancelled", 0));
+    CHECK(!HAS(&L, "say wiped", 0));
+    CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
+    /* a second of quiet, then a person's # */
+    run_quiet(&L);
+    run_ms(&L, 1100);
+    size_t mark = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 1);
+    CHECK(HAS(&L, "say change", mark));
+    /* * cancels: the menu with a seed, while the wallet loops on */
+    press(&L, '*');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state menu-ready", mark));
+    mark = L.log_len;
+    k = ds_voice_keys(&L.v);
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play_part_paced(&L, part_tones, air);
+    }
+    CHECK(strstr(L.log + mark, "state ") == NULL); /* no wipe, no new sign */
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    CHECK_EQ_INT(ds_voice_keys(&L.v), k);
+    CHECK(!HAS(&L, "say wiped", 0));
+    CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
+}
+
+static void test_looping_wallet_cable_pace(void)
+{
+    looping_wallet_at(0);
+}
+
+static void test_looping_wallet_air_pace(void)
+{
+    looping_wallet_at(1);
+}
+
+/* Once the PSBT is in, no key counts until the line has had no tone for a
+ * second: lone 80 ms tones 800 ms apart (a wallet still playing, its other
+ * tones lost) pass the length and rhythm rules, not the gate. */
+static void test_gate_after_reception(void)
+{
+    static int16_t a[TONES_RATE];
+    ut_synth syn;
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    CHECK(HAS(&L, "state review", 0));
+    uint32_t k = ds_voice_keys(&L.v);
+    for (int i = 0; i < 10; i++) {
+        memset(a, 0, sizeof a);
+        ut_synth_init(&syn, "#", TONES_RATE, 80, 720, 0);
+        size_t n = ut_synth_read(&syn, a, TONES_RATE * 8 / 10);
+        play(&L, a, n);
+    }
+    CHECK_EQ_INT(ds_voice_keys(&L.v), k);
+    CHECK_EQ_INT(L.v.item, 0);
+    run_quiet(&L);
+    run_ms(&L, 1100);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.item, 1);
+}
+
+/* Normal typing: a key 300 ms after a different one counts. */
+static void test_typing_pace_counts(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    press(&L, '9'); /* settings */
+    press(&L, '2'); /* 300 ms later: always bitcoin */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state settings", mark));
+    CHECK(HAS(&L, "say unit_btc", mark));
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_BTC);
+}
 
 /* A wallet that keeps looping the PSBT's parts once the signer has it: its
  * 40 ms data tones (never the same tone twice in a row) are no keys, in the
@@ -1685,4 +1801,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_key_does_not_confirm, test_hang_up_during_reception_restarts,
           test_wrong_network_rejected, test_account_tones_decode,
           test_looping_wallet_drives_nothing, test_hash_waits_for_the_item,
-          test_warns_foreign_inputs, test_warns_input_without_witness)
+          test_warns_foreign_inputs, test_warns_input_without_witness,
+          test_looping_wallet_cable_pace, test_looping_wallet_air_pace,
+          test_typing_pace_counts, test_gate_after_reception)

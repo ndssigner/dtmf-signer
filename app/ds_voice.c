@@ -62,8 +62,10 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define KEY_RUNS 7       /* a key counts once it has lasted 70 ms */
 #define KEY_GAP_RUNS 5   /* a key is over after 50 ms without it */
 #define ONSET_RUNS 2     /* a tone heard 20 ms has begun */
-#define DATA_ONSET_RUNS 12 /* two different tones begun within 120 ms: data */
-#define DATA_QUIET_RUNS 30 /* data is over after 300 ms without a tone */
+#define DATA_ONSET_RUNS 25 /* a different tone begun within 250 ms: data */
+#define DATA_QUIET_RUNS 70 /* data is over after 700 ms without a tone */
+#define DATA_GAP_RUNS 12 /* ... with 120 ms or less of silence before it */
+#define GATE_QUIET_RUNS 100 /* after data: no key until 1000 ms without a tone */
 #define SENTENCE_GAP_MS 300u /* between the sentences of a prompt */
 #define ENTRY_GAP_MS 500u    /* between the entries of a list */
 
@@ -415,6 +417,7 @@ static int review_step(ds_voice *v, int k)
  * STEP_WAIT when the step is not ready yet. Called only while nothing is
  * being said. */
 static void listen_afresh(ds_voice *v);
+static void close_gate(ds_voice *v);
 
 static int say_step(ds_voice *v)
 {
@@ -563,7 +566,7 @@ static int say_step(ds_voice *v)
             ds_say_pause(&v->say, FRAME_GAP_MS);
             v->out_sent++;
         } else if (!v->out_heard) {
-            listen_afresh(v); /* nothing heard during the tones counts */
+            close_gate(v); /* nothing heard during the tones counts */
             v->out_heard = 1;
             clip(v, DS_P_AGAIN_HINT);
         } else {
@@ -672,19 +675,48 @@ static void listen_afresh(ds_voice *v)
     v->since_onset = 0;
     v->data = 0;
     v->data_quiet = 0;
+    v->gate = 0;
+    v->gate_quiet = 0;
+    v->pending = 0;
+    v->gap_before = 0;
+    v->since_tone = 0;
 }
 
-/* The one way a key is taken, in every state: it counts once it has been
- * heard for 70 ms. A wallet still playing data tones (40 ms each, never the
- * same tone twice in a row) is not typing: not in a PIN, not in a menu, not
- * in the review. Called once per 10 ms slice with the key heard now;
- * dropouts under 50 ms (the signer's own voice on the line can cause them)
- * neither end the key nor make it a new press. Returns the key to act on,
- * or 0. */
+/* A data reception ended (a seed, a PSBT) or the signer's own tones did:
+ * the listener afresh, and no key at all, in any state, until the line has
+ * had no tone for 1000 ms. A wallet looping its parts pauses 400 to 600 ms
+ * between them, so it never opens the gate; a person waits longer than
+ * that before pressing. */
+static void close_gate(ds_voice *v)
+{
+    listen_afresh(v);
+    v->gate = 1;
+}
+
+/* The one way a key is taken, in every state, once the gate is open (see
+ * close_gate). A key must sound 70 ms; dropouts under 50 ms (the signer's
+ * own voice on the line can cause them) neither end it nor make it a new
+ * press. Length alone cannot tell a wallet's data tones from a person (at
+ * air pace a data tone lasts 80 ms), so rhythm does: a tone that begins
+ * 250 ms or less after the previous one began, is a different key, and
+ * follows 120 ms or less of silence marks the line as carrying data (a
+ * wallet plays a tone every 60 or 160 ms with 20 or 80 ms between, never
+ * the same twice in a row; a person types slower), and no key counts until
+ * 700 ms without a tone. The same key again (multi-tap) is never data. So
+ * that the first tone of a burst is not taken either, a key is acted on
+ * only 250 ms after it began, if no data was seen meanwhile. Called once
+ * per 10 ms slice with the key heard now; returns the key to act on, or 0. */
 static char held_key(ds_voice *v, char key)
 {
+    char c;
+
     if (v->since_onset < UINT32_MAX) {
         v->since_onset++;
+    }
+    if (key != 0) {
+        v->since_tone = 0;
+    } else if (v->since_tone < UINT32_MAX) {
+        v->since_tone++;
     }
     if (v->data) {
         /* data tones heard: no key until the burst is over */
@@ -694,6 +726,13 @@ static char held_key(ds_voice *v, char key)
             v->data_quiet = 0;
         }
         return 0;
+    }
+    /* a key held long enough is acted on once 250 ms have passed since it
+     * began with no other tone begun meanwhile: then it is no data */
+    if (v->pending != 0 && v->since_onset > DATA_ONSET_RUNS) {
+        c = v->pending;
+        v->pending = 0;
+        return c;
     }
     if (key == 0) {
         if (++v->run_gap >= KEY_GAP_RUNS) {
@@ -706,21 +745,25 @@ static char held_key(ds_voice *v, char key)
     if (key == v->run_key) {
         v->run_n++;
     } else {
+        v->gap_before = v->run_gap; /* the silence before this tone */
         v->run_key = key;
         v->run_n = 1;
     }
-    if (v->run_n == ONSET_RUNS && key != v->onset_key) {
+    if (v->run_n == ONSET_RUNS) {
         /* a new tone (heard 20 ms: not a blip at a key's edge): a
-         * different one begun this soon after the last is data (60 ms
-         * apart), not a hand on a keypad. That also covers a data tone
-         * masked by the signer's voice between two of the same, which the
-         * bridging would join into one long key. */
-        if (v->onset_key != 0 && v->since_onset < DATA_ONSET_RUNS) {
+         * different key from the last, begun 250 ms or less after it with
+         * the short silence of a sender between them, is data. The silence
+         * is measured too because the signer's own voice can hide the first
+         * slices of a person's key, making its start look later. */
+        if (v->onset_key != 0 && key != v->onset_key && v->since_onset <= DATA_ONSET_RUNS &&
+            v->gap_before <= DATA_GAP_RUNS) {
             v->data = 1;
             v->data_quiet = 0;
             v->run_key = 0;
             v->run_n = 0;
             v->held = 0;
+            v->pending = 0;
+            v->onset_key = 0;
             return 0;
         }
         v->onset_key = key;
@@ -729,7 +772,7 @@ static char held_key(ds_voice *v, char key)
     v->run_gap = 0;
     if (v->run_key != v->held && v->run_n >= KEY_RUNS) {
         v->held = v->run_key;
-        return v->held;
+        v->pending = v->held; /* acted on 250 ms after it began */
     }
     return 0;
 }
@@ -809,7 +852,7 @@ static void start_seed(ds_voice *v, int st)
  * starts afresh. */
 static void ask_pin(ds_voice *v, int st)
 {
-    listen_afresh(v);
+    close_gate(v); /* a wallet may still be playing the seed */
     ds_multitap_init(&v->mt);
     enter(v, st);
 }
@@ -988,7 +1031,7 @@ static void review(ds_voice *v)
     ds_source src;
     int32_t r;
 
-    listen_afresh(v); /* the reception is over: nothing heard during it counts */
+    close_gate(v); /* the reception is over: nothing heard during it counts */
     r = ds_rx_psbt(&v->rx, &p, &len);
     if (r != DS_OK || len > DS_APP_PSBT_MAX) {
         sign_failed(v, DS_P_ERROR_PSBT);
@@ -1477,6 +1520,12 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
     if (v->deaf) {
         if (key == 0 && run >= KEY_QUIET_RUNS) {
             v->deaf = 0;
+        }
+    } else if (v->gate) {
+        v->gate_quiet = key == 0 ? v->gate_quiet + 1 : 0;
+        if (v->gate_quiet >= GATE_QUIET_RUNS) {
+            v->gate = 0;
+            v->gate_quiet = 0;
         }
     } else if ((key = held_key(v, key)) != 0) {
         v->keys++;
