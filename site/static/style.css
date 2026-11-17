@@ -325,6 +325,11 @@ details.kcode code { display: block; margin-top: .2rem; font-family: var(--mono)
   width: max-content; max-width: 16rem; white-space: normal; writing-mode: horizontal-tb; padding: .35rem .5rem; border-radius: 6px;
   background: var(--fg); color: var(--bg); font: .75rem/1.35 var(--sans); z-index: 10; pointer-events: none; }
 .port[data-tip] { position: absolute; }
+/* Inside a module the tip goes to the module's help strip (ui.mjs), never over its buttons. */
+.mod [data-tip]:hover::after, .mod [data-tip]:focus-visible::after, .mod [data-tip].tip-open::after { content: none; }
+.mod-help { box-sizing: content-box; margin: auto 0 0; padding-top: .4rem; height: calc(4 * 1.35 * .75rem); overflow-y: auto;
+  flex: none; border-top: 1px dashed var(--line); color: var(--muted); font: .75rem/1.35 var(--sans); text-align: left; }
+.mod-help:empty::before { content: "ⓘ"; opacity: .5; }
 .info { cursor: help; }
 
 /* The Centralita: a signer with no screen, a telephone, a wallet at its handset. */
@@ -394,7 +399,9 @@ button.ph-type[aria-pressed="true"] { background: var(--press); color: var(--pre
 .bubble::after { content: ""; position: absolute; bottom: -11px; left: var(--tail, 50%); width: 18px; height: 18px; background: var(--surface);
   border-right: 2px solid var(--fg); border-bottom: 2px solid var(--fg); transform: translateX(-50%) rotate(45deg) skew(12deg, 12deg); }
 .bubble small { display: block; font-size: .72rem; color: var(--muted); }
-.bubble .said { display: block; max-height: calc(var(--bubble-room, 8rem) - 3.4rem); overflow-y: auto; }
+/* Whole lines only, so no letter is cut (3 beside the telephone, 5 stacked). */
+.bubble .said { display: block; max-height: calc(1.35em * var(--said-lines, 3)); overflow-y: auto; }
+.bench[data-orient="v"]:has(.col-far) { --bubble-room: 10rem; --said-lines: 5; }
 .bubble .said:empty::before { content: "…"; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {

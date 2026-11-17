@@ -135,16 +135,18 @@ const BUBBLE_MIN = 180;  // px: the narrowest it is made
 // avoid: ports on the telephone's top edge (the RJ11 when stacked) whose
 // cable comes down through the space above it: the bubble moves to their
 // right when it fits, so the cable stays in sight.
-export function placeBubble(bubble, ear, phone, bench, pad = 8, avoid = []) {
+// align "right" (stacked): flush with the telephone's right edge.
+export function placeBubble(bubble, ear, phone, bench, pad = 8, avoid = [], align = "ear") {
   const r = (x) => (typeof x.getBoundingClientRect === "function" ? x.getBoundingClientRect() : x);
   const b = r(bubble), e = r(ear), p = r(phone), B = r(bench);
   const x = e.left + e.width / 2 - B.left;
   let lo = pad;
   const hi = B.width - b.width - pad;
   for (const a of avoid.map(r))
-    if (a.top <= p.top + a.height && a.left + a.width + pad - B.left <= hi)
+    if (a.top <= p.top + a.height && Math.round(a.left + a.width + pad - B.left) <= hi)
       lo = Math.max(lo, Math.round(a.left + a.width + pad - B.left));
-  const left = hi < lo ? Math.max(0, Math.round((B.width - b.width) / 2)) : Math.round(Math.min(hi, Math.max(lo, x - (b.width - TAIL_IN))));
+  const want = align === "right" ? p.left + p.width - B.left - b.width : x - (b.width - TAIL_IN);
+  const left = hi < lo ? Math.max(0, Math.round((B.width - b.width) / 2)) : Math.round(Math.min(hi, Math.max(lo, want)));
   const tail = Math.round(Math.min(b.width - TAIL_MIN, Math.max(TAIL_MIN, x - left)));
   const top = Math.max(0, Math.round(p.top - B.top - b.height - BUBBLE_GAP));
   return { left, top, tail };
@@ -211,8 +213,11 @@ export async function start(doc, loadModule, loadPack) {
     const p = phoneEl.getBoundingClientRect(), e = earEl.getBoundingClientRect();
     const l = lineEl?.getBoundingClientRect();
     const from = l && l.top <= p.top + l.height ? Math.max(p.left, l.right + 8) : p.left;
-    bubble.style.setProperty("--cap", `${Math.max(BUBBLE_MIN, Math.round(e.left + e.width / 2 - from + TAIL_IN))}px`);
-    const { left, top, tail } = placeBubble(bubble, earEl, phoneEl, bench, 8, lineEl ? [lineEl] : []);
+    // Stacked: from just right of the telephone cable to the telephone's right edge, flush with it.
+    const stacked = bench.dataset.orient === "v";
+    const to = stacked ? p.right : e.left + e.width / 2 + TAIL_IN;
+    bubble.style.setProperty("--cap", `${Math.max(BUBBLE_MIN, Math.floor(to - from))}px`);
+    const { left, top, tail } = placeBubble(bubble, earEl, phoneEl, bench, 8, lineEl ? [lineEl] : [], stacked ? "right" : "ear");
     bubble.style.left = `${left}px`;
     bubble.style.top = `${top}px`;
     bubble.style.setProperty("--tail", `${tail}px`);

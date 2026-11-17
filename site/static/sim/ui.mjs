@@ -143,13 +143,37 @@ export function mobileNote(doc) {
   update();
 }
 
-// Tooltips: a tap opens one, a tap elsewhere closes it.
+// A module's help: what is pointed at, focused or tapped in a module tells
+// its story in the strip under that module (nothing floats over the
+// buttons); it stays until the pointer or focus leaves the module. Returns
+// false for a tip outside the modules, which still floats.
+export function showHelp(target) {
+  const t = target?.closest?.("[data-tip]"), mod = t?.closest?.(".mod");
+  const strip = mod?.querySelector(".mod-help");
+  if (!strip) return false;
+  strip.textContent = t.dataset.tip;
+  return true;
+}
+export function leaveHelp(mod, to) {
+  const strip = mod?.querySelector?.(".mod-help");
+  if (strip && !(to && mod.contains(to))) strip.textContent = "";
+}
+
+// Tooltips: a tap opens one, a tap elsewhere closes it; inside a module
+// they go to its help strip instead.
 export function tapTips(doc, root) {
   doc.addEventListener("click", (e) => {
     const t = e.target.closest?.("[data-tip]");
     for (const o of root.querySelectorAll(".tip-open")) if (o !== t) o.classList.remove("tip-open");
+    if (showHelp(e.target)) return;
     if (t && e.pointerType === "touch") t.classList.toggle("tip-open");
   });
+  root.addEventListener("pointerover", (e) => showHelp(e.target));
+  root.addEventListener("focusin", (e) => showHelp(e.target));
+  for (const mod of root.querySelectorAll(".mod")) {
+    mod.addEventListener("pointerleave", () => leaveHelp(mod, null));
+    mod.addEventListener("focusout", (e) => leaveHelp(mod, e.relatedTarget));
+  }
 }
 
 export async function start(doc, loadModule) {

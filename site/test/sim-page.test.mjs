@@ -5,7 +5,7 @@ import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
 import { validateBench } from "../lib/bench.mjs";
-import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone, buttonsDown } from "../static/sim/ui.mjs";
+import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone, buttonsDown, showHelp, leaveHelp } from "../static/sim/ui.mjs";
 
 const files = buildInto();
 const SIM_CSP = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
@@ -464,4 +464,29 @@ test("your wallet's mic button says it turns this computer's mic on, in both bui
       const html = text(files, `${lang}/${slug}/index.html`);
       assert.match(html, new RegExp(`class="mic-toggle"[^>]*>(<span[^>]*>🎙</span> ?)?${on}<`), `${lang}/${slug}`);
     }
+});
+test("every module keeps a strip for its help, and a module's tips show there, not floating", { skip: SKIP }, () => {
+  for (const slug of ["cable-qr", "centralita"]) {
+    const html = text(files, `es/${slug}/index.html`);
+    const mods = [...html.matchAll(/<section class="mod [\s\S]*?<\/section>/g)].map((m) => m[0]);
+    assert.ok(mods.length >= 3, slug);
+    for (const m of mods) assert.match(m, /<p class="mod-help"[^>]*><\/p>\s*<\/section>$/, `${slug}: ${m.slice(0, 60)}`);
+  }
+  const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.mod \[data-tip\]:hover::after[^{]*\{[^}]*content: none/);
+  // A fixed height, whole lines: the module never grows or shrinks with the text.
+  assert.match(css, /\.mod-help \{[^}]*[^-]height: calc\(4 \* 1\.35 \* \.75rem\);[^}]*overflow-y: auto/);
+});
+test("pointing at something in a module tells its story in that module's strip; leaving the module clears it", () => {
+  const strip = { textContent: "" };
+  const mod = { querySelector: (s) => (s === ".mod-help" ? strip : null), contains: (n) => n === btn || n === mod };
+  const btn = { dataset: { tip: "Colgar un momento: R" }, closest: (s) => (s === "[data-tip]" ? btn : s === ".mod" ? mod : null) };
+  showHelp(btn);
+  assert.equal(strip.textContent, "Colgar un momento: R");
+  leaveHelp(mod, btn);
+  assert.equal(strip.textContent, "Colgar un momento: R", "still inside the module");
+  leaveHelp(mod, null);
+  assert.equal(strip.textContent, "");
+  const outside = { dataset: { tip: "x" }, closest: (s) => (s === "[data-tip]" ? outside : null) };
+  assert.equal(showHelp(outside), false, "a tip outside the modules floats as before");
 });

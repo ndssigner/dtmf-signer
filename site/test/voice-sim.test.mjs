@@ -336,3 +336,12 @@ test("on a narrow bench the bubble moves aside so the telephone cable stays visi
   const side = R(390, 400, 20, 40), wbub = R(0, 0, 300, 90);
   assert.deepEqual(placeBubble(wbub, we, wp, wb, 8, [side]), placeBubble(wbub, we, wp, wb));
 });
+test("stacked, the bubble sits flush with the telephone's right edge, clear of its cable", () => {
+  const bench = R(16, 541, 343, 1523), phone = R(30, 1068, 314, 347);
+  const line = R(57, 1056, 43, 24), ear = R(162, 1405, 82, 20);
+  const bubble = R(0, 0, 200, 69);
+  const { left, tail } = placeBubble(bubble, ear, phone, bench, 8, [line], "right");
+  assert.equal(left + 200, phone.left + phone.width - bench.left, "flush right");
+  assert.ok(left + bench.left >= line.left + line.width, "the cable shows");
+  assert.ok(tail >= 12 && tail <= 200 - 12);
+});

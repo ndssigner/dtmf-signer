@@ -479,6 +479,7 @@ function simulatorBlock(site, tr, p, root, lang) {
     return `<section class="mod mod-${m.kind}" data-module="${m.id}"${m.air ? " data-air" : ""} data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
 ${m.kind === "wallet" || m.kind === "you" ? "" : `<h3 class="mod-title">${e(m.title)}</h3>\n`}${ports}
 ${blockBody(m.kind, tr, { ...s, nets }, m)}
+<p class="mod-help" aria-hidden="true"></p>
 </section>`;
   };
   const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;
