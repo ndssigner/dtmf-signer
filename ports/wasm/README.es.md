@@ -28,3 +28,15 @@ texto de la pantalla), `dsw_take_echo` y `dsw_echo`, `dsw_keys`,
 `dsw_wants_reboot`, `dsw_version`, `dsw_listening` y `dsw_qr_shown` (lo
 que anima el dibujo del simulador), y `dsw_picker_cell` para los tests. Mira
 `main.c`.
+
+## El módulo de voz
+
+`tools/build-wasm.sh` también construye `build/wasm/dtmf-signer-voice.mjs`:
+el firmware de teléfono sin pantalla (`app/ds_voice`, la Centralita) con las
+mismas opciones. JavaScript solo mueve lo que llevaría una línea telefónica:
+el gancho (`dvw_hook`), el reloj (`dvw_advance`), las muestras de entrada y
+salida a 16 kHz (`dvw_in_buf` y `dvw_in`, `dvw_out_buf` y `dvw_out`) y la
+región de paquetes (`dvw_region_buf`, `dvw_region_len`: 1 MB donde la página
+copia los paquetes de idioma antes de `dvw_init`; el inglés va dentro).
+`dvw_take_echo` y `dvw_echo`, `dvw_keys` y `dvw_version` son como arriba. Su
+memoria es fija, de 8 MB. Mira `voice.c`.
