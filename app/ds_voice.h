@@ -15,11 +15,12 @@
  *       characters or more (DS_AIR); otherwise it fails and asks again.
  *     keypad: "*", the digits, "#" (ur-tones keypad mode), then its PIN if
  *       it has one, "#" alone if not. Typed when asked, it counts as a cable.
- *     Then the seed's fingerprint: # loads the wallet, * wipes. A failure
+ *     Then the seed's fingerprint: # loads the wallet, * asks to wipe. A failure
  *     says "error_generic".
  *   menu (with a seed): 1 sign, 2 account, 3 wipe, 9 settings, 0 repeat.
- *   wipe (3): "to wipe, hang up for a moment": a hook flash wipes (keys
- *     never do); * or # back to the menu.
+ *   wipe (3 here, * after "resume_ask", * at a seed's fingerprint): "to
+ *     wipe, hang up for a moment": a hook flash wipes (keys never do); * or
+ *     # back to where it was asked.
  *   sign: "listening for the transaction", the "listen" sound, then the
  *     signer only listens (half-duplex) until the whole PSBT is heard. Then
  *     the review, one item at a time: each output ("you send" the amount
@@ -76,7 +77,8 @@
  * starts again; a review is cancelled and its PSBT must be played again;
  * a signed PSBT or the account waits to be played), and the next off-hook
  * asks
- * "resume_ask": # resumes where it was (that prompt again), * wipes and goes
+ * "resume_ask": # resumes where it was (that prompt again), * asks to wipe
+ * (confirmed by a hook flash) and goes
  * to the menu. Cutting the power (ds_voice_init again) zeroes everything.
  *
  * With one language (an empty pack region) there is no language list. With
@@ -140,6 +142,7 @@ typedef struct {
     int state;
     int resume_to;       /* the state a hang-up left (0: none) */
     int about_back;      /* the state About returns to */
+    int wipe_back;       /* the state the wipe step returns to (# or *) */
     int step;            /* the next part of the state's prompt to queue */
     int testnet;
     /* the hook */

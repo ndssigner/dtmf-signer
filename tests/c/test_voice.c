@@ -156,6 +156,15 @@ static void hook(line_t *t, int off)
     take_echo(t);
 }
 
+/* On-hook for ms, then off-hook again (a hook flash when 200 to 1500). */
+static void on_hook(line_t *t, uint32_t ms)
+{
+    hook(t, 0);
+    run_ms(t, ms);
+    hook(t, 1);
+    run_ms(t, 300);
+}
+
 /* Where the line `want` is in the log at or after `from`, or -1. */
 static long find_line(const line_t *t, const char *want, size_t from)
 {
@@ -426,7 +435,17 @@ static void test_hang_up_keeps_session(void)
     run_ms(&L, 100);
     run_quiet(&L);
     mark = L.log_len;
+    press(&L, '*'); /* asks to wipe: no key wipes, the hook does */
+    run_quiet(&L);
+    CHECK(HAS(&L, "state wipe-confirm", mark));
+    CHECK(HAS(&L, "say wipe_hook", mark));
+    CHECK(!HAS(&L, "say wiped", mark));
+    press(&L, '#'); /* back to the question */
+    run_quiet(&L);
+    CHECK(find_line(&L, "state resume-ask", mark) > find_line(&L, "state wipe-confirm", mark));
     press(&L, '*');
+    run_quiet(&L);
+    on_hook(&L, 500);
     run_quiet(&L);
     long w = find_line(&L, "say wiped", mark);
     CHECK(w >= 0);
@@ -645,10 +664,20 @@ static void test_keypad_seed_no_pin(void)
     CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
     CHECK(log_free_of(&L, seed_tones + 1, 0)); /* no run of the seed's digits */
     CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
-    /* * at the fingerprint wipes */
+    /* * at the fingerprint asks to wipe; # goes back; * and a flash wipe */
     run_quiet(&L);
     size_t mark = L.log_len;
     press(&L, '*');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say wipe_hook", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(find_line(&L, "state fingerprint", mark) > find_line(&L, "state wipe-confirm", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    press(&L, '*');
+    run_quiet(&L);
+    on_hook(&L, 500);
     run_quiet(&L);
     long w = find_line(&L, "say wiped", mark);
     CHECK(w >= 0 && HAS(&L, "state menu-empty", (size_t)w));
@@ -866,7 +895,9 @@ static void test_air_warning_once(void)
     hook(&L, 1);
     run_ms(&L, 100);
     run_quiet(&L);
-    press(&L, '*'); /* wipe */
+    press(&L, '*'); /* wipe, confirmed by the hook */
+    run_quiet(&L);
+    on_hook(&L, 500);
     run_quiet(&L);
     press(&L, '1');
     run_quiet(&L);
@@ -1090,13 +1121,6 @@ static void review_to_confirm(line_t *t)
 }
 
 /* On-hook for ms, then off-hook again. */
-static void on_hook(line_t *t, uint32_t ms)
-{
-    hook(t, 0);
-    run_ms(t, ms);
-    hook(t, 1);
-    run_ms(t, 300);
-}
 
 static int hex_to_bytes(const char *hex, uint8_t *out, size_t cap)
 {
@@ -1391,6 +1415,41 @@ static void test_slow_wallet_review_needs_every_item(void)
     CHECK(strstr(L.log, "signed-psbt") == NULL);
     CHECK(!HAS(&L, "say wiped", 0));
     CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
+}
+
+/* A slow wallet looping near the handset after a hang-up (at "resume_ask")
+ * and at a seed's fingerprint: whatever keys it presses, it never wipes. */
+static void test_slow_wallet_never_wipes_resume_or_fingerprint(void)
+{
+    const psbt_vector *pv = vector("one input with change");
+    int32_t n = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
+    to_ready(&L, 0);
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "state resume-ask", 0));
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play(&L, paced_audio, render_paced(part_tones, 200, 150, 600));
+    }
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say wiped", 0));
+    CHECK(L.v.s.state >= DS_S_READY);
+    CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
+    /* at the fingerprint */
+    keypad_seed(&L, NULL);
+    run_quiet(&L);
+    CHECK(HAS(&L, "state fingerprint", 0));
+    size_t mark = L.log_len;
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play(&L, paced_audio, render_paced(part_tones, 200, 150, 600));
+    }
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say wiped", mark));
+    CHECK(L.v.s.state >= DS_S_SEED);
 }
 
 /* Normal typing: a key 300 ms after a different one counts. */
@@ -1938,4 +1997,5 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_looping_wallet_cable_pace, test_looping_wallet_air_pace,
           test_typing_pace_counts, test_gate_after_reception,
           test_multitap_same_key_paces, test_wipe_needs_hook,
-          test_slow_wallet_never_wipes, test_slow_wallet_review_needs_every_item)
+          test_slow_wallet_never_wipes, test_slow_wallet_review_needs_every_item,
+          test_slow_wallet_never_wipes_resume_or_fingerprint)

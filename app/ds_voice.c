@@ -42,7 +42,7 @@ enum {
     ST_HOLD_NEAR,  /* signed (or the account): # plays it */
     ST_TONES,      /* it plays as data tones; then 0 again, # the menu */
     ST_SETTINGS,   /* the unit of the amounts, About */
-    ST_WIPE_CONFIRM /* a hook flash wipes; * or # back */
+    ST_WIPE_CONFIRM /* a hook flash wipes; * or # back to wipe_back */
 };
 
 /* heavy work, run from a tick */
@@ -116,8 +116,6 @@ static int resume_point(int st)
         return st;
     case ST_TONES:
         return ST_HOLD_NEAR;
-    case ST_WIPE_CONFIRM:
-        return ST_MENU_READY;
     case ST_PSBT_RX:
     case ST_REVIEW:
     case ST_CONFIRM:
@@ -1328,6 +1326,16 @@ static int rx_in(ds_voice *v, const int16_t *x, size_t n)
 
 /* ---- keys ---- */
 
+/* A key asked to wipe (menu 3, "start over" after a hang-up, a seed's
+ * fingerprint rejected): no key ever wipes, a hook flash does. # or *
+ * goes back to where it was asked. */
+static void ask_wipe(ds_voice *v)
+{
+    v->wipe_back = v->state;
+    v->confirm_at = v->now;
+    enter(v, ST_WIPE_CONFIRM);
+}
+
 /* * in the review: cancelled, nothing signed. */
 static void sign_cancel(ds_voice *v)
 {
@@ -1399,7 +1407,7 @@ static void on_key(ds_voice *v, char c)
                 enter(v, st);
             }
         } else if (c == '*') {
-            wipe(v);
+            ask_wipe(v); /* wipe and start over: the hook confirms */
         } else if (c == '0') {
             repeat(v);
         }
@@ -1423,7 +1431,7 @@ static void on_key(ds_voice *v, char c)
         if (c == '#') {
             ask_job(v, JOB_DERIVE);
         } else if (c == '*') {
-            wipe(v);
+            ask_wipe(v); /* not this seed: the hook confirms the wipe */
         } else if (c == '0') {
             repeat(v);
         }
@@ -1434,8 +1442,7 @@ static void on_key(ds_voice *v, char c)
         } else if (c == '2') {
             ask_job(v, JOB_ACCOUNT);
         } else if (c == '3') {
-            v->confirm_at = v->now; /* a key never wipes: the hook does */
-            enter(v, ST_WIPE_CONFIRM);
+            ask_wipe(v);
         } else if (c == '9') {
             enter(v, ST_SETTINGS);
         } else if (c == '0') {
@@ -1488,7 +1495,7 @@ static void on_key(ds_voice *v, char c)
     case ST_WIPE_CONFIRM:
         /* keys never wipe: only a hook flash does */
         if (c == '*' || c == '#') {
-            enter(v, ST_MENU_READY);
+            enter(v, v->wipe_back);
         } else if (c == '0') {
             repeat(v);
         }
@@ -1611,7 +1618,9 @@ static void answer(ds_voice *v)
 /* A long on-hook: the session stays, to resume at the next off-hook. */
 static void hang_up(ds_voice *v)
 {
-    int st = resume_point(v->state);
+    /* the wipe step resumes where it was asked (after "resume_ask": what
+     * that offered still stands) */
+    int st = resume_point(v->state == ST_WIPE_CONFIRM ? v->wipe_back : v->state);
     if (st != ST_IDLE) {
         v->resume_to = st;
     }
