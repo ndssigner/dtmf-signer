@@ -258,12 +258,16 @@ const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no
   "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "card.sending", "card.what_seed", "card.what_psbt", "card.seed_title",
   "card.pin", "card.fp", "card.seed_note", "card.psbt_title", "card.send", "card.to", "card.change", "card.fee", "card.total", "card.psbt_note",
   "card.scan_ok", "card.scan_bad", "card.scan_qr", "card.size", "card.noqr_note", "card.listening", "card.listening_note"];
-// The Centralita's (voice-ui.mjs).
-const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.check_seed", "wallet.out", "wallet.change",
-  "wallet.fee", "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "wallet.no_broadcast", "wallet.got", "wallet.keypad_code",
-  "wallet.listening", "wallet.heard", "phone.lift", "phone.hang", "status.idle", "status.on_hook", "status.speaking",
-  "status.air_in", "status.air_out", "status.keypad", "status.listening_line", "say.pin_char", "say.tones",
-  "status.mic", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported"];
+// The Centralita's (voice-ui.mjs): the same wallet's card, by air.
+const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.out", "wallet.change", "wallet.fee", "wallet.sig_ok", "wallet.sig_bad",
+  "wallet.bytes", "wallet.no_broadcast", "wallet.got", "phone.lift", "phone.hang", "status.on_hook", "status.speaking",
+  "status.tones", "status.air_in", "status.air_out", "status.keypad", "status.listening_line", "say.pin_char", "say.tones",
+  "status.mic", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "card.sending", "card.what_seed", "card.what_psbt",
+  "card.pin", "card.fp", "card.send", "card.to", "card.change", "card.fee", "card.total", "card.scan_ok", "card.scan_bad",
+  "card.size", "card.listening", "card.listening_note", "card.hearing", "card.parts"];
+// Its card titles and notes say "through the air" where Cable y QR's say "by cable".
+const VOICE_CARD_AIR = { "card.seed_title": "card.seed_title_air", "card.seed_note": "card.seed_note_air",
+  "card.psbt_title": "card.psbt_title_air", "card.psbt_note": "card.psbt_note_air", "card.scan_qr": "card.heard_air" };
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
 // A telephone's keypad, with the letters multi-tap types.
 const KEYPAD = [["1", ""], ["2", "ABC"], ["3", "DEF"], ["4", "GHI"], ["5", "JKL"], ["6", "MNO"], ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"], ["*", ""], ["0", ""], ["#", ""]];
@@ -282,6 +286,9 @@ export function blockBody(kind, tr, sim = {}, module = {}) {
   switch (kind) {
     case "charger":
       return `<p class="mod-icon" aria-hidden="true">🔌</p>`;
+    case "you":
+      // You, by the handset: the voice is for you, the tones for the wallet.
+      return `<p class="you-who"><span class="mod-icon" aria-hidden="true">🧑</span><span class="mod-title">${e(module.title)}</span> <small>${e("bench.you_what")}</small></p>`;
     case "voice-signer":
       return `<div class="vs-device" ${tip(tr("vsim.device"))} aria-label="${e("vsim.device")}">
 <p class="mod-icon" aria-hidden="true">🗣</p>${module.led ? `
@@ -297,7 +304,6 @@ ${keys}
 <p class="ph-row"><button type="button" class="ph-flash" aria-label="${e("phone.flash")}" ${tip(tr("phone.flash"), false)}>R</button>
 <button type="button" class="ph-type" aria-pressed="false" disabled ${tip(tr("phone.type_tip"), false)}><span aria-hidden="true">⌨</span> ${e("phone.type")}</button>
 <label ${tip(tr("phone.sound"), false)}><input type="checkbox" class="ph-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("phone.sound")}</span></label></p>
-<p class="ph-caption" aria-live="polite"></p>
 </div>`;
     }
     case "signer": {
@@ -312,37 +318,6 @@ ${buttons}
     }
     case "wallet":
       return walletBody(tr, sim, module);
-    case "sim-wallet":
-      if (module.air) return airWallet(tr, sim);
-      return `<div class="wd-screen">
-<p class="wd-title">${e("wallet.wallet")}</p>
-<p class="wd-row"><label ${tip(tr("wallet.network_tip"), false)}><span aria-hidden="true">🌐</span><span class="visually-hidden">${e("wallet.network")}</span>
-<select class="wd-net" autocomplete="off" aria-label="${e("wallet.network")}">
-<option value="mainnet">mainnet</option>
-<option value="testnet">testnet</option>
-</select></label>
-<button type="button" class="wd-stop" aria-label="${e("wallet.stop")}" ${tip(tr("wallet.stop"), false)}><span aria-hidden="true">⏹</span></button></p>
-<button type="button" class="wd-seed" ${tip(tr("wallet.seed_tip"), false)}><span aria-hidden="true">🌱</span> ${e("wallet.seed")}</button>
-<p class="wd-row"><button type="button" class="wd-psbt" ${tip(tr("wallet.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("wallet.psbt")}</button>
-<span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></p>
-<button type="button" class="wd-scan" ${tip(tr("wallet.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("wallet.scan")}</button>
-<p class="wd-status" aria-live="polite">${e("wallet.idle")}</p>
-<p class="wd-check" aria-live="polite"></p>
-<textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
-<p class="wd-opts"><label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
-<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
-</div>`;
-    case "your-wallet":
-      if (module.air) return airYourWallet(tr, sim);
-      return `<div class="wd-screen yp">
-<p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>
-<p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
-<button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
-<meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
-<p class="mic-note">${e("mic.note")}</p>
-<p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
-<a class="yw-scan" href="${escapeHtml(sim.tools?.nunchuk ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("yw.scan")}</a></p>
-</div>`;
     default:
       throw new Error(`no block for kind ${kind}`);
   }
@@ -352,8 +327,12 @@ ${buttons}
 // edge; who runs the app is chosen inside it, the simulated wallet or your
 // own device (this computer's microphone hearing its speaker). The card
 // area shows what you need for what you just did (ui.mjs fills it).
+// Held to a telephone's handset (module.air, the Centralita): it plays and
+// listens through the air, so its third action is Listen, not Scan; yours
+// is this computer's microphone and speakers in place of the handset's.
 function walletBody(tr, sim, module) {
   const e = (k, params) => escapeHtml(tr(k, params));
+  const air = Boolean(module.air);
   // The page starts on mainnet, as the selector does; ui.mjs follows it.
   const fp = sim.nets?.mainnet?.fingerprint ?? "";
   const act = (cls, icon, label, tipKey) =>
@@ -367,7 +346,9 @@ function walletBody(tr, sim, module) {
 <dt>${e("wallet.fingerprint")}</dt><dd class="wl-fp">${escapeHtml(fp)}</dd>
 <dt>${e("wallet.pin")}</dt><dd>${escapeHtml(sim.pin ?? "")}</dd>
 <dt>${e("wallet.net")}</dt><dd><span class="wl-net">mainnet</span> <span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></dd></dl>
-<div class="wl-acts">${act("wd-seed", "🌱", "wallet.act_seed", "wallet.seed_tip")}${act("wd-psbt", "₿", "wallet.act_pay", "wallet.psbt_tip")}${act("wd-scan", "📷", "wallet.act_scan", "wallet.scan_tip")}</div>
+<div class="wl-acts">${act("wd-seed", "🌱", "wallet.act_seed", air ? "wallet.seed_air_tip" : "wallet.seed_tip")}${act("wd-psbt", "₿", "wallet.act_pay", "wallet.psbt_tip")}${air
+    ? `<button type="button" class="wd-listen" aria-pressed="false" ${tip(tr("wallet.listen_tip"), false)}><span aria-hidden="true">👂</span>${e("wallet.listen")}</button>`
+    : act("wd-scan", "📷", "wallet.act_scan", "wallet.scan_tip")}</div>
 <div class="wl-card" aria-live="polite"></div>
 <textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
 <div class="wl-foot"><label ${tip(tr("wallet.network_tip"), false)}>${e("wallet.net")}
@@ -376,18 +357,19 @@ function walletBody(tr, sim, module) {
 <option value="testnet">testnet</option>
 </select></label>
 <button type="button" class="wd-stop" aria-label="${e("wallet.stop")}" ${tip(tr("wallet.stop"), false)}><span aria-hidden="true">⏹</span></button>
-<label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
-<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></div>
+${air ? "" : `<label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
+`}<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></div>
 </div>
 <div class="wl-yours" data-panel="yours" hidden>
 <p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
-<p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>
+${air ? `<p class="yw-ear"><span aria-hidden="true">🔊</span> ${e("yw.air_speakers")}</p>` : `<p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>`}
 <button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
 <meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
 <div class="wl-card" aria-live="polite"></div>
 <p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
-<a class="yw-scan" href="${escapeHtml(sim.tools?.nunchuk ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("yw.scan")}</a></p>
-<p class="mic-note">${e("mic.note")}</p>
+${air ? `<a class="yw-listen" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.listen_tip"), false)}><span aria-hidden="true">👂</span> ${e("yw.listen")}</a>`
+    : `<a class="yw-scan" href="${escapeHtml(sim.tools?.nunchuk ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("yw.scan")}</a>`}</p>
+<p class="mic-note">${e(air ? "yw.handset_note" : "mic.note")}</p>
 </div>
 </div>`;
 }
@@ -395,61 +377,25 @@ function walletBody(tr, sim, module) {
 // The first time on a simulator: a static, foldable list of what to try,
 // closed in the page; ui.mjs opens it on a first visit only. Nothing in it
 // tracks, highlights or blocks: the bench is free to use from the start.
-function firstHint(tr) {
+function firstHint(tr, voice = false) {
   const b = (icon, key) => `<b>${icon} ${escapeHtml(tr(key))}</b>`;
   const step = (key, params = {}) => {
     let t = escapeHtml(tr(key));
-    for (const [k, v] of Object.entries(params)) t = t.replace(`{${k}}`, v);
+    for (const [k, v] of Object.entries(params)) t = t.replaceAll(`{${k}}`, v);
     return `<li>${t}</li>`;
   };
+  // The Centralita: the telephone's keys, the wallet by the handset.
+  const keys = { hash: "<b>#</b>", one: "<b>1</b>", two: "<b>2</b>", flash: "<b>R</b>", type: b("⌨", "phone.type"),
+    seed: b("🌱", "wallet.act_seed"), pay: b("₿", "wallet.act_pay"), listen: b("👂", "wallet.listen") };
+  const steps = voice ? [1, 2, 3, 4].map((n) => step(`first.voice.${n}`, keys)) : [
+    step("first.1", { seed: b("🌱", "wallet.act_seed") }), step("first.2"),
+    step("first.3", { pay: b("₿", "wallet.act_pay") }), step("first.4", { scan: b("📷", "wallet.act_scan") })];
   return `<details class="first">
 <summary>${escapeHtml(tr("first.title"))}</summary>
 <ol>
-${step("first.1", { seed: b("🌱", "wallet.act_seed") })}
-${step("first.2")}
-${step("first.3", { pay: b("₿", "wallet.act_pay") })}
-${step("first.4", { scan: b("📷", "wallet.act_scan") })}
+${steps.join("\n")}
 </ol>
 </details>`;
-}
-
-// Your own wallet device next to a telephone's handset: this computer's
-// microphone and speakers stand in for the handset (the Centralita).
-function airYourWallet(tr, sim) {
-  const e = (k, params) => escapeHtml(tr(k, params));
-  return `<div class="wd-screen yp">
-<p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
-<p class="yw-ear"><span aria-hidden="true">🔊</span> ${e("yw.air_speakers")}</p>
-<button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
-<meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
-<p class="mic-note">${e("yw.handset_note")}</p>
-<p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
-<a class="yw-listen" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.listen_tip"), false)}><span aria-hidden="true">👂</span> ${e("yw.listen")}</a></p>
-</div>`;
-}
-
-// The simulated wallet next to a telephone's handset: it plays by air and
-// listens to the earpiece (no camera: the Centralita has no screen).
-function airWallet(tr, sim) {
-  const e = (k, params) => escapeHtml(tr(k, params));
-  return `<div class="wd-screen">
-<p class="wd-title">${e("wallet.wallet")}</p>
-<p class="wd-row"><label ${tip(tr("wallet.network_tip"), false)}><span aria-hidden="true">🌐</span><span class="visually-hidden">${e("wallet.network")}</span>
-<select class="wd-net" autocomplete="off" aria-label="${e("wallet.network")}">
-<option value="mainnet">mainnet</option>
-<option value="testnet">testnet</option>
-</select></label>
-<button type="button" class="wd-stop" aria-label="${e("wallet.stop")}" ${tip(tr("wallet.stop"), false)}><span aria-hidden="true">⏹</span></button></p>
-<button type="button" class="wd-seed" ${tip(tr("wallet.seed_air_tip", { pin: sim.pin ?? "" }), false)}><span aria-hidden="true">🌱</span> ${e("wallet.seed")}</button>
-<button type="button" class="wd-keypad" ${tip(tr("wallet.keypad_tip"), false)}><span aria-hidden="true">⌨</span> ${e("wallet.keypad")}</button>
-<p class="wd-row"><button type="button" class="wd-psbt" ${tip(tr("wallet.psbt_tip"), false)}><span aria-hidden="true">₿</span> ${e("wallet.psbt")}</button>
-<span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></p>
-<button type="button" class="wd-listen" aria-pressed="false" ${tip(tr("wallet.listen_tip"), false)}><span aria-hidden="true">👂</span> ${e("wallet.listen")}</button>
-<p class="wd-status" aria-live="polite">${e("wallet.idle")}</p>
-<p class="wd-check" aria-live="polite"></p>
-<textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
-<p class="wd-opts"><label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
-</div>`;
 }
 
 // What the signer can say on a page, for the text alternative: the phrases
@@ -506,6 +452,7 @@ function simulatorBlock(site, tr, p, root, lang) {
   const bench = p.bench;
   const voice = simModule(p) === "dtmf-signer-voice.mjs";
   const strings = Object.fromEntries((voice ? VOICE_SIM_KEYS : SIM_KEYS).map((k) => [k, tr(k)]));
+  if (voice) for (const [k, air] of Object.entries(VOICE_CARD_AIR)) strings[k] = tr(air);
   const links = Object.fromEntries(bench.modes.map((m) => [m.id, m.links]));
   // The voice build: the page's language pack, if there is one (English is
   // built in), and what it can say.
@@ -524,12 +471,11 @@ function simulatorBlock(site, tr, p, root, lang) {
     }).join("\n");
     const hidden = first.modules.includes(m.id) ? "" : " hidden";
     return `<section class="mod mod-${m.kind}" data-module="${m.id}"${m.air ? " data-air" : ""} data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
-${m.kind === "wallet" ? "" : `<h3 class="mod-title">${e(m.title)}</h3>\n`}${ports}
+${m.kind === "wallet" || m.kind === "you" ? "" : `<h3 class="mod-title">${e(m.title)}</h3>\n`}${ports}
 ${blockBody(m.kind, tr, { ...s, nets }, m)}
 </section>`;
   };
   const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;
-  const modes = bench.modes.map((m, i) => `<button type="button" role="tab" data-mode="${m.id}" aria-selected="${i === 0}">${e(m.title)}</button>`).join("\n");
   // Only what this bench's links carry.
   const portType = new Map(bench.modules.flatMap((m) => (m.ports ?? []).map((pt) => [`${m.id}.${pt.id}`, pt.type])));
   const carried = new Set(bench.modes.flatMap((m) => m.links.map((l) => portType.get(l.from))));
@@ -540,14 +486,12 @@ ${m.links.map((l) => `<li>${e(`bench.link.${m.id}.${l.channel}`)}</li>`).join("\
   return `<div class="simulator" id="sim"${voice ? ' data-firmware="voice"' : ""}>
 <p class="sim-mobile" hidden><span aria-hidden="true">📱</span> ${e("sim.mobile")} <button type="button" class="sim-mobile-close" aria-label="${e("sim.close")}">✕</button></p>
 <p class="sim-warning" ${tip(tr("sim.warning"))}><span aria-hidden="true">⚠</span> ${e("sim.warning_short")}</p>
-${bench.modules.some((m) => m.kind === "wallet") ? firstHint(tr) + "\n" : ""}${bench.modes.length < 2 ? "" : `<div class="sim-modes" role="tablist" aria-label="${e("bench.modes")}">
-${modes}
-</div>
-`}<div class="bench" data-mode="${first.id}" data-orient="h">
+${bench.modules.some((m) => m.kind === "wallet") ? firstHint(tr, voice) + "\n" : ""}<div class="bench" data-mode="${first.id}" data-orient="h"${bench.turn ? ` data-turn="${Number(bench.turn)}"` : ""}>
 ${column("power")}
 ${column("signer")}
 ${column("peer")}
-<svg class="cables" aria-hidden="true"></svg>
+${bench.modules.some((m) => m.column === "far") ? column("far") + "\n" : ""}<svg class="cables" aria-hidden="true"></svg>${voice ? `
+<p class="bubble" aria-live="polite"><small>${e("bench.bubble")}</small><span class="said"></span></p>` : ""}
 </div>
 <p class="sim-status" role="status" aria-live="polite">${e("sim.loading")}</p>
 <ul class="legend">

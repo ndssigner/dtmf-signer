@@ -4,8 +4,10 @@
 
 export const TURN_WIDTH = 720;   // under this width the bench is drawn top to bottom
 
-export function orientationFor(width) {
-  return width < TURN_WIDTH ? "v" : "h";
+// turn: a bench with more modules side by side may stack at a wider width
+// (its data-turn, from the build's config).
+export function orientationFor(width, turn = TURN_WIDTH) {
+  return width < turn ? "v" : "h";
 }
 
 const r = (n) => Math.round(n * 10) / 10;

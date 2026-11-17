@@ -55,6 +55,11 @@ export function walletCard(kind, info = {}, S) {
       return card("", S["wallet.waiting"]);
     case "noqr":
       return card("", S["wallet.no_qr"], "", S["card.noqr_note"]);
+    case "hearing": {
+      // The simulated wallet at the earpiece: the frames heard so far.
+      const parts = Number(info.parts) > 0 ? row(S["card.parts"], info.parts) : "";
+      return card("", S["card.hearing"], parts);
+    }
     case "listening":
       return card("", S["card.listening"], "", S["card.listening_note"]);
     default:

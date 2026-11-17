@@ -218,7 +218,7 @@ export async function start(doc, loadModule) {
 
   // ---- the bench: orientation, links ----
   function drawLinks() {
-    bench.dataset.orient = orientationFor(bench.clientWidth);
+    bench.dataset.orient = orientationFor(bench.clientWidth, Number(bench.dataset.turn) || undefined);
     const box = bench.getBoundingClientRect();
     svg.replaceChildren();
     paths = [];
@@ -379,7 +379,7 @@ export async function start(doc, loadModule) {
     const warn = wallet.mismatch();
     if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }
     // Light what is active, only when it changes.
-    const active = activeChannels({ mode: who === "yours" ? "your-wallet" : "sim-wallet", queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
+    const active = activeChannels({ who, queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
       scanning: wallet.scanning, micOn: micSwitch.on, micDbfs });
     const key = [...active].sort().join(" ");
     if (key !== lastActive) {

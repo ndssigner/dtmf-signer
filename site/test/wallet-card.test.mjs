@@ -107,3 +107,11 @@ test("while sending, the card is written once; the seconds and the progress chan
   assert.equal(area.writes, 3);
   assert.equal(area.innerHTML, "");
 });
+
+test("hearing: the simulated wallet listening at the earpiece, the frames heard so far", () => {
+  const h = walletCard("hearing", { parts: 3 }, S);
+  assert.ok(plain(h).includes(S["card.hearing"]), h);
+  assert.match(h, /<code>3<\/code>/);
+  assert.doesNotMatch(walletCard("hearing", { parts: 0 }, S), /<code>/, "nothing heard yet: no count");
+  assert.doesNotMatch(walletCard("hearing", { parts: EVIL }, S), /<img/);
+});

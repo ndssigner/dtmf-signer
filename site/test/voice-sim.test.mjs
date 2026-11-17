@@ -137,7 +137,8 @@ test("the text alternative says what the signer says, never a PIN character", as
   const t = new Transcript(phrases, { "say.pin_char": "•", "say.tones": "♪" }, ["en", "es"]);
   for (const l of ["state lang", "say lang_press", "say c_1", "say lang_press", "say c_2"]) t.push(l);
   assert.equal(t.push("lang es"), null);
-  assert.equal(t.push("state greet"), "For English, press 1 Para español, pulsa 2");
+  for (const l of ["say lang_press", "say c_1", "say lang_press", "say c_2"]) t.push(l);   // the list again, unasked
+  assert.equal(t.push("state greet"), "For English, press 1 Para español, pulsa 2 For English, press 1 Para español, pulsa 2");
   t.push("say greeting");
   assert.equal(t.end(), "de te eme efe sáiner.");
   for (const l of ["say pin-char", "say pin-char", "ear next", "chars 73c5da0a", "num 60000", "tones 0123", "tones 4567"]) t.push(l);
@@ -201,33 +202,75 @@ test("About speaks each pack's fingerprint: 16 hex characters of its SHA-256", {
   assert.ok(echo.slice(at).includes(`chars ${want}`), echo.slice(at).join("|"));
 });
 
-// ---- Your wallet: this computer stands in for the handset ----
-import { voiceActivity, leaveVoiceMode, MIC_BACKLOG_MS } from "../static/sim/voice-ui.mjs";
+// ---- who runs the wallet: this computer stands in for the handset with yours ----
+import { voiceActivity, leaveVoiceMode, MIC_BACKLOG_MS, tonesAfter, placeBubble } from "../static/sim/voice-ui.mjs";
+import { wireWho } from "../static/sim/ui.mjs";
+
+const VA = (o) => voiceActivity({ who: "sim", offHook: true, micQueued: 0, keysQueued: 0, speaking: false, tonesOut: false,
+  walletListening: false, micOn: false, micDbfs: -100, quietMs: Infinity, ...o });
 
 test("your wallet: the microphone lights the air in only when on and above the threshold", () => {
-  const base = { mode: "your-wallet", offHook: true, micQueued: 0, keysQueued: 0, speaking: false, walletListening: false, micOn: false, micDbfs: -100 };
-  assert.ok(!voiceActivity(base).on.has("air-in"));
-  assert.ok(!voiceActivity({ ...base, micOn: true, micDbfs: -70 }).on.has("air-in"));
-  const a = voiceActivity({ ...base, micOn: true, micDbfs: -30 });
+  const base = { who: "yours" };
+  assert.ok(!VA(base).on.has("air-in"));
+  assert.ok(!VA({ ...base, micOn: true, micDbfs: -70 }).on.has("air-in"));
+  const a = VA({ ...base, micOn: true, micDbfs: -30 });
   assert.ok(a.on.has("air-in"));
   assert.ok(a.on.has("line"));
-  assert.equal(voiceActivity({ ...base, micOn: true }).status, "status.mic");
-  assert.ok(voiceActivity({ ...base, speaking: true }).on.has("air-out"), "the speakers carry the earpiece to your device");
+  assert.equal(VA({ ...base, micOn: true }).status, "status.mic");
 });
-test("simulated wallet: unchanged — the air out lights only while the wallet listens", () => {
-  const base = { mode: "sim-wallet", offHook: true, micQueued: 0, keysQueued: 0, speaking: true, walletListening: false };
-  assert.ok(!voiceActivity(base).on.has("air-out"));
-  assert.ok(voiceActivity({ ...base, walletListening: true }).on.has("air-out"));
+test("speaking words lights the cable to your ear, not the wallet's; data tones light the wallet's", () => {
+  for (const who of ["sim", "yours"]) {
+    const words = VA({ who, speaking: true });
+    assert.ok(words.on.has("voice") && !words.on.has("tones"), who);
+    assert.equal(words.status, "status.speaking");
+    const tones = VA({ who, speaking: true, tonesOut: true });
+    assert.ok(tones.on.has("tones") && !tones.on.has("voice"), who);
+    assert.equal(tones.status, "status.tones");
+    const quiet = VA({ who, tonesOut: true });
+    assert.ok(!quiet.on.has("tones") && !quiet.on.has("voice"), `${who}: silence carries nothing`);
+  }
 });
-test("leaving a mode stops the microphone, empties the handset microphone and the dialling", () => {
-  let stopped = 0;
+test("the simulated wallet listening keeps its cable busy; yours cannot be seen listening", () => {
+  assert.ok(VA({ walletListening: true }).on.has("tones"));
+  assert.equal(VA({ walletListening: true }).status, "status.air_out");
+  assert.ok(!VA({ who: "yours", walletListening: true }).on.has("tones"));
+  assert.ok(!VA({ walletListening: true, offHook: false }).on.has("tones"), "on the hook nothing sounds");
+});
+test("the earpiece plays data tones from a tones echo until the next words", () => {
+  let t = false;
+  for (const [line, want] of [["state tones", false], ["tones 0123", true], ["state tones", true], ["tones 4567", true],
+    ["say again_hint", false], ["num 3", false], ["tones 89", true], ["chars ab", false], ["tones 1", true], ["ear ok", false]]) {
+    t = tonesAfter(t, line);
+    assert.equal(t, want, line);
+  }
+});
+test("leaving who runs the wallet stops the microphone, empties the handset microphone, the dialling and the listening", () => {
+  let stopped = 0, unheard = 0;
   const vs = { cleared: 0, dialStop: 0, clearMic() { this.cleared++; }, stopDialling() { this.dialStop++; } };
-  leaveVoiceMode({ vs, mic: { stop() { stopped++; } } });
-  assert.equal(vs.cleared, 1);
-  assert.equal(vs.dialStop, 1);
-  assert.equal(stopped, 1);
+  leaveVoiceMode({ vs, mic: { stop() { stopped++; } }, wallet: { stopListening() { unheard++; } } });
+  assert.deepEqual([vs.cleared, vs.dialStop, stopped, unheard], [1, 1, 1, 1]);
   leaveVoiceMode({ vs, mic: null });
   assert.equal(vs.cleared, 2);
+});
+function fakeButton(who, pressed) {
+  const b = new EventTarget();
+  const attrs = { "aria-pressed": String(pressed) };
+  return Object.assign(b, { dataset: { who }, getAttribute: (k) => attrs[k], setAttribute: (k, v) => { attrs[k] = v; } });
+}
+test("switching who runs the wallet stops everything (the Centralita: mic, handset-mic queue, dialling, listening)", () => {
+  const n = { clearMic: 0, stopDialling: 0, mic: 0, listen: 0 };
+  const vs = { clearMic() { n.clearMic++; }, stopDialling() { n.stopDialling++; } };
+  const mic = { stop() { n.mic++; } }, wallet = { stopListening() { n.listen++; } };
+  const buttons = [fakeButton("sim", true), fakeButton("yours", false)];
+  const panels = [{ dataset: { panel: "sim" }, hidden: false }, { dataset: { panel: "yours" }, hidden: true }];
+  const w = wireWho({ buttons, panels, leave: () => leaveVoiceMode({ vs, mic, wallet }) });
+  buttons[1].dispatchEvent(new Event("click"));
+  assert.deepEqual(n, { clearMic: 1, stopDialling: 1, mic: 1, listen: 1 });
+  assert.equal(w.who, "yours");
+  buttons[0].dispatchEvent(new Event("click"));
+  assert.deepEqual(n, { clearMic: 2, stopDialling: 2, mic: 2, listen: 2 });
+  const ui = readFileSync(new URL("../static/sim/voice-ui.mjs", import.meta.url), "utf8");
+  assert.match(ui, /wireWho\(\{[\s\S]*?leaveVoiceMode\(\{ vs, mic: [^}]*\}, wallet \}\)/, "the page wires the selector to leaveVoiceMode");
 });
 test("the microphone never runs the line far behind: the backlog cap is a few seconds", () => {
   assert.ok(MIC_BACKLOG_MS >= 1000 && MIC_BACKLOG_MS <= 3000);
@@ -236,18 +279,45 @@ test("the microphone never runs the line far behind: the backlog cap is a few se
 test("your wallet: the speakers carry the earpiece only (the microphone is never played back: it would howl)", async () => {
   const { speakerMix } = await import("../static/sim/voice-ui.mjs");
   const ear = Int16Array.from([100, -100]), room = Int16Array.from([50, 50]);
-  assert.deepEqual([...speakerMix("sim-wallet", ear, room)], [150, -50]);
-  assert.deepEqual([...speakerMix("your-wallet", ear, room)], [100, -100]);
+  assert.deepEqual([...speakerMix("sim", ear, room)], [150, -50]);
+  assert.deepEqual([...speakerMix("yours", ear, room)], [100, -100]);
 });
 test("your wallet: ⏩ (simulated wallet only) never mutes the speakers", async () => {
   const { speakersOn } = await import("../static/sim/voice-ui.mjs");
-  assert.equal(speakersOn({ mode: "your-wallet", sound: true, fast: true }), true);
-  assert.equal(speakersOn({ mode: "sim-wallet", sound: true, fast: true }), false);
-  assert.equal(speakersOn({ mode: "your-wallet", sound: false, fast: false }), false);
+  assert.equal(speakersOn({ who: "yours", sound: true, fast: true }), true);
+  assert.equal(speakersOn({ who: "sim", sound: true, fast: true }), false);
+  assert.equal(speakersOn({ who: "yours", sound: false, fast: false }), false);
 });
 test("your wallet: while the signer speaks (and 1 s after), the microphone hearing its echo does not light the air in", () => {
-  const base = { mode: "your-wallet", offHook: true, micQueued: 0, keysQueued: 0, walletListening: false, micOn: true, micDbfs: -30 };
-  assert.ok(!voiceActivity({ ...base, speaking: true, quietMs: 0 }).on.has("air-in"));
-  assert.ok(!voiceActivity({ ...base, speaking: false, quietMs: 500 }).on.has("air-in"));
-  assert.ok(voiceActivity({ ...base, speaking: false, quietMs: 1200 }).on.has("air-in"));
+  const base = { who: "yours", micOn: true, micDbfs: -30 };
+  assert.ok(!VA({ ...base, speaking: true, quietMs: 0 }).on.has("air-in"));
+  assert.ok(!VA({ ...base, speaking: false, quietMs: 500 }).on.has("air-in"));
+  assert.ok(VA({ ...base, speaking: false, quietMs: 1200 }).on.has("air-in"));
+});
+
+// ---- the earpiece's transcript: a speech bubble above the telephone ----
+const R = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
+test("the bubble sits above the telephone, inside the bench, its tail over the earpiece (wide)", () => {
+  const bench = R(100, 50, 1100, 700), phone = R(400, 230, 260, 380), ear = R(650, 260, 20, 80);
+  const bubble = R(0, 0, 300, 90);
+  const { left, top, tail } = placeBubble(bubble, ear, phone, bench);
+  assert.ok(left >= 0 && left + 300 <= 1100, String(left));
+  assert.ok(top >= 0 && top + 90 <= phone.top - bench.top, `${top}: above the telephone`);
+  assert.equal(left + tail, ear.left + ear.width / 2 - bench.left, "the tail over the earpiece");
+  assert.ok(tail >= 12 && tail <= 300 - 12);
+});
+test("the bubble still fits a narrow bench, the tail still over the earpiece", () => {
+  const bench = R(16, 0, 343, 2400), phone = R(16, 700, 343, 330), ear = R(150, 1018, 70, 24);
+  const bubble = R(0, 0, 327, 110);
+  const { left, top, tail } = placeBubble(bubble, ear, phone, bench);
+  assert.ok(left >= 0 && left + 327 <= 343, String(left));
+  assert.ok(top + 110 <= phone.top - bench.top);
+  assert.equal(left + tail, 185 - 16);
+  // An earpiece near the bench's edge: the bubble stays in, the tail moves along it (never off it).
+  const edge = placeBubble(bubble, R(330, 1018, 40, 24), phone, bench);
+  assert.ok(edge.left >= 0 && edge.left + 327 <= 343);
+  assert.ok(edge.tail >= 12 && edge.tail <= 327 - 12);
+  // Elements work as well as rects.
+  const el = (r) => ({ getBoundingClientRect: () => r });
+  assert.deepEqual(placeBubble(el(bubble), el(ear), el(phone), el(bench)), placeBubble(bubble, ear, phone, bench));
 });

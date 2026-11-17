@@ -97,10 +97,6 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .simulator { padding: .75rem 0; width: min(72rem, calc(100vw - 32px)); margin-left: calc(50% - min(36rem, 50vw - 16px)); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sim-warning { font-size: .85rem; color: var(--muted); margin: 0 0 .5rem; display: inline-block; }
-.sim-modes { display: flex; gap: .4rem; margin: .25rem 0 1rem; flex-wrap: wrap; }
-.sim-modes button { padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
-.sim-modes button[aria-selected="true"] { background: var(--press); color: var(--press-fg); border-color: var(--press); }
-.sim-modes[hidden] { display: none; }
 
 /* The bench's visual language: every module the same neutral outline (what
    a thing is, its title and icon say); the cables and their connectors are
@@ -117,7 +113,7 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .mod-title { margin: 0 0 .5rem; font-size: 1rem; text-align: center; }
 .mod-icon { font-size: 1.6rem; margin: .2rem 0; text-align: center; }
 .mod-charger { text-align: center; }
-.mod-sim-wallet, .mod-your-wallet, .mod-wallet { border-radius: 30px; }
+.mod-wallet { border-radius: 30px; }
 /* The signer and its peers share the row's height, so their facing ports
    (at the same percentage) line up; the charger stays small, centred on 5V. */
 .col-signer .mod, .col-peer .mod { flex: 1; display: flex; flex-direction: column; justify-content: center; }
@@ -133,8 +129,6 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .port.p-phone { border-color: var(--line-c); }
 [data-port$=".qr"], [data-port$=".camera"] { --at: 26%; }
 [data-port$=".in"], [data-port$=".jack"] { --at: 82%; }
-[data-port$=".mic"], [data-port$=".speaker-near"] { --at: 30%; }
-[data-port$=".ear"], [data-port$=".mic-near"] { --at: 70%; }
 /* Side by side: on the left and right edges, at heights that line up
    across modules, upright, in a margin of the module kept for them so they
    never cover what is inside. */
@@ -152,10 +146,7 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .bench .port.edge-top, .bench .port.edge-bottom { writing-mode: horizontal-tb; padding: .2rem .4rem; left: var(--at, 50%); }
 .bench .port.edge-top { top: 0; transform: translate(-50%, -50%); }
 .bench .port.edge-bottom { bottom: 0; transform: translate(-50%, 50%); }
-.bench[data-orient="h"] .col-peer .mod-phone { padding-bottom: 1.4rem; }
-.bench[data-orient="h"] .col-peer .mod-sim-wallet[data-air] { padding-top: 1.4rem; }
-.col-peer .mod-phone, .col-peer .mod-sim-wallet[data-air] { flex: none; }
-.col-peer:has(.mod-phone) { gap: 3rem; }
+.col-peer .mod-phone { flex: none; }
 /* Stacked (narrow): every connector moves to the top or bottom edge, still
    labelled, at the same x across modules. */
 .bench[data-orient="v"] .port { writing-mode: horizontal-tb; }
@@ -252,7 +243,10 @@ svg.cables path.busy.c-air { stroke-dasharray: 8 7; }
    you just did. Only what you press is teal. */
 .bench[data-orient="h"]:has(.mod-wallet) { grid-template-columns: minmax(5rem, 7rem) minmax(13.5rem, 1fr) minmax(14rem, 21rem); }
 .col-peer .mod-wallet { padding-top: .7rem; padding-bottom: .7rem; padding-right: .7rem; }
-.bench[data-orient="v"] .col-peer .mod-wallet { padding: 1.3rem .7rem .7rem; }
+.col-far .mod-wallet { padding: .7rem; }
+.bench[data-orient="h"] .col-far .mod-wallet { padding-left: var(--margin); }
+/* Stacked, the wallet's connectors sit on its top edge: room kept above its app bar. */
+.bench[data-orient="v"] .mod-wallet { padding: 1.3rem .7rem .7rem; }
 .wl-screen { flex: 1; display: flex; flex-direction: column; gap: .7rem; background: var(--sunk); border-radius: 22px; padding: .8rem; min-height: 26rem; font-size: .9rem; }
 .wl-bar { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
 .wl-bar .mod-title { margin: 0; font-size: 1.05rem; text-align: left; }
@@ -337,9 +331,58 @@ button.ph-hook[aria-pressed="true"] { background: var(--press); color: var(--pre
 .ph-type { height: 1.8rem; padding: 0 .6rem; border-radius: 10px; border: 1px solid var(--line); background: var(--sunk); color: var(--fg); cursor: pointer; white-space: nowrap; }
 button.ph-type[aria-pressed="true"] { background: var(--press); color: var(--press-fg); border-color: var(--press); }
 .ph-type:disabled { opacity: .45; cursor: not-allowed; }
-.ph-caption { margin: 0; min-height: 2.6em; max-width: 14rem; font-size: .8rem; color: var(--muted); text-align: center; }
 .sim-credits { list-style: none; padding: 0; margin: .4rem 0; font-size: .75rem; color: var(--muted); }
 .col-signer .mod-voice-signer { flex: none; }
+
+/* The Centralita's bench: charger over signer | the telephone | you over the
+   wallet. The telephone's connectors on its right edge (earpiece above,
+   microphone below); room above it for the earpiece's bubble. Stacked:
+   charger, signer, telephone, you (a chip on the left, clear of the cables
+   to the wallet), the wallet. */
+.bench:has(.col-far) { --bubble-room: 8rem; }
+.bench[data-orient="h"]:has(.col-far) { grid-template-columns: minmax(8rem, 10rem) minmax(12.5rem, 1fr) minmax(14rem, 21rem);
+  grid-template-rows: auto 1fr; column-gap: 5rem; row-gap: 2.4rem; }
+.bench[data-orient="h"]:has(.col-far) .col-power { grid-column: 1; grid-row: 1; }
+.bench[data-orient="h"]:has(.col-far) .col-signer { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+.bench[data-orient="h"]:has(.col-far) .col-peer { grid-column: 2; grid-row: 1 / 3; }
+.bench[data-orient="h"]:has(.col-far) .col-far { grid-column: 3; grid-row: 1 / 3; }
+.col-peer:has(.mod-phone) { padding-top: var(--bubble-room, 0); justify-content: flex-start; }
+.col-far { justify-content: flex-start; gap: 2.4rem; }
+.bench[data-orient="h"] .col-peer .edge-far-side { right: 0; top: var(--at, 50%); transform: translate(50%, -50%); }
+.bench[data-orient="h"] .col-far .edge-peer-side { left: 0; top: var(--at, 50%); transform: translate(-50%, -50%); }
+.bench[data-orient="h"] .col-peer .mod-phone { padding-right: var(--margin); }
+.bench[data-orient="h"] .col-far .mod { padding-left: var(--margin); }
+[data-port="phone.ear"] { --at: 22%; }
+[data-port="phone.mic"] { --at: 78%; }
+[data-port="wallet.mic-near"] { --at: 22%; }
+[data-port="wallet.speaker-near"] { --at: 62%; }
+.bench[data-orient="v"] .col-peer .edge-far-side { left: var(--at, 50%); bottom: 0; transform: translate(-50%, 50%); }
+.bench[data-orient="v"] .col-far .edge-peer-side { left: var(--at, 50%); top: 0; transform: translate(-50%, -50%); }
+.bench[data-orient="v"] [data-port="phone.ear"] { --at: 55%; }
+.bench[data-orient="v"] [data-port="phone.mic"], .bench[data-orient="v"] [data-port="wallet.speaker-near"] { --at: 88%; }
+.bench[data-orient="v"] [data-port="wallet.mic-near"] { --at: 67%; }
+/* The telephone cable at the left, clear of the bubble's tail on the earpiece. */
+.bench[data-orient="v"]:has(.col-far) [data-port$=".line"] { --at: 15%; }
+/* You: a small module, your ear on its edge (upright: the module is short). */
+.mod-you { align-self: flex-start; max-width: 46%; padding: .55rem .8rem; }
+.bench[data-orient="h"] .mod-you { max-width: none; }
+.bench[data-orient="h"] .col-far .mod-you { padding-left: 2.8rem; }
+.bench[data-orient="h"] .mod-you .port { writing-mode: horizontal-tb; padding: .2rem .4rem; }
+.bench[data-orient="v"] .col-far .mod-you { padding-top: 1.1rem; padding-bottom: .55rem; }
+.you-who { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: .1rem .45rem; }
+.you-who .mod-icon { margin: 0; font-size: 1.5rem; }
+.you-who .mod-title { margin: 0; font-family: var(--round); font-weight: 700; }
+.you-who small { color: var(--muted); font-size: .8rem; }
+/* The earpiece's transcript: a comic speech bubble, its tail on the earpiece
+   (voice-ui.mjs places it and sets --tail); the text scrolls if long. */
+.bubble { position: absolute; z-index: 4; left: 0; top: 0; margin: 0; width: max-content; max-width: min(22rem, calc(100% - 1rem), var(--cap, 100%));
+  background: var(--surface); color: var(--fg); border: 2px solid var(--fg); border-radius: 18px; padding: .4rem .8rem .5rem;
+  font-size: .9rem; line-height: 1.35; box-shadow: var(--tray); }
+.bubble::after { content: ""; position: absolute; bottom: -11px; left: var(--tail, 50%); width: 18px; height: 18px; background: var(--surface);
+  border-right: 2px solid var(--fg); border-bottom: 2px solid var(--fg); transform: translateX(-50%) rotate(45deg) skew(12deg, 12deg); }
+.bubble small { display: block; font-size: .72rem; color: var(--muted); }
+.bubble .said { display: block; max-height: calc(var(--bubble-room, 8rem) - 3.4rem); overflow-y: auto; }
+.bubble .said:empty::before { content: "…"; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
   svg.cables path.busy, svg.cables path.busy:not(.c-power) { animation: none; stroke-width: 6; }

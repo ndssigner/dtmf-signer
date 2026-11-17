@@ -1,19 +1,20 @@
 // What is happening on the bench, from the simulator's state: the channels
-// to light up (only while active, and only in their mode), and the one line
+// to light up (only while active, and only for who runs the wallet: "sim"
+// or "yours"), and the one line
 // of status that names the most telling of them.
 import { MIC_ACTIVE_DBFS } from "./mic.mjs";
 
-export function activeChannels({ mode, queued, listening, qrShown, scanning, micOn, micDbfs }) {
+export function activeChannels({ who, queued, listening, qrShown, scanning, micOn, micDbfs }) {
   const on = new Set(["power"]);
-  if (mode === "sim-wallet" && queued > 0) on.add("line-in");
-  if (mode === "your-wallet" && micOn) {
+  if (who === "sim" && queued > 0) on.add("line-in");
+  if (who === "yours" && micOn) {
     on.add("mic");
     if (listening && micDbfs > MIC_ACTIVE_DBFS) on.add("line-in");
   }
   if (listening) on.add("listening");
   if (qrShown) on.add("qr");
   // Only the simulated wallet's camera: the page cannot see yours.
-  if (qrShown && scanning && mode === "sim-wallet") on.add("camera");
+  if (qrShown && scanning && who === "sim") on.add("camera");
   return on;
 }
 

@@ -225,21 +225,78 @@ test("the text alternative: what the signer says, in the languages it can speak,
   assert.equal(es.phrases.en.menu_empty, "Load seed, 1.");
   assert.equal(en.phrases.es, undefined);
   assert.equal(en.phrases.en.c_a, undefined, "letters come from the echo's own text");
-  assert.match(text(files, "es/centralita/index.html"), /<p class="ph-caption"[^>]*aria-live="polite"/);
 });
-test("the simulated wallet by the handset: a PIN of 12 or more, a listen button, no camera", { skip: VOICE_SKIP }, () => {
-  const html = text(files, "en/centralita/index.html");
+test("the Centralita's wallet: the same one module, the selector inside, Seed / Pay / Listen, no camera", { skip: VOICE_SKIP }, () => {
   assert.ok(voiceData("en").pin.length >= 12);
-  const w = /<section class="mod mod-sim-wallet[\s\S]*?<\/section>/.exec(html)[0];
-  for (const c of ["wd-seed", "wd-keypad", "wd-psbt", "wd-listen", "wd-net", "wd-stop"]) assert.match(w, new RegExp(`class="${c}"`), c);
-  assert.doesNotMatch(w, /wd-scan/);
-  assert.match(html, /data-port="sim-wallet\.speaker-near"/);
-  assert.match(html, /data-port="sim-wallet\.mic-near"/);
+  for (const [lang, acts] of [["es", ["Semilla", "Pagar", "Escuchar"]], ["en", ["Seed", "Pay", "Listen"]]]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    assert.doesNotMatch(html, /class="sim-modes"|role="tab"|<button[^>]*data-mode=|data-module="(sim|your)-wallet"/, lang);
+    const w = /<section class="mod mod-wallet" data-module="wallet"[\s\S]*?<\/section>/.exec(html)[0];
+    assert.match(w, /<div class="seg" role="group"[^>]*>[\s\S]*?data-who="sim" aria-pressed="true"[\s\S]*?data-who="yours" aria-pressed="false"/);
+    const a = /<div class="wl-acts">([\s\S]*?)<\/div>/.exec(w)[1];
+    assert.deepEqual([...a.matchAll(/class="(wd-[a-z]+)"/g)].map((m) => m[1]), ["wd-seed", "wd-psbt", "wd-listen"]);
+    for (const t of ["🌱", "₿", "👂", ...acts]) assert.ok(a.includes(t), `${lang}: ${t}`);
+    assert.doesNotMatch(w, /wd-scan|yw-cam/);
+    for (const c of ["wd-net", "wd-stop", "wd-fast", "wl-card", "mic-toggle", "mic-level", "yw-urtones"]) assert.match(w, new RegExp(`class="${c}"`), c);
+    assert.match(w, /<div class="wl-yours" data-panel="yours" hidden>/);
+    assert.match(w, /data-port="wallet\.speaker-near"/);
+    assert.match(w, /data-port="wallet\.mic-near"/);
+  }
+  const yw = /<div class="wl-yours" data-panel="yours"[\s\S]*?<\/section>/.exec(text(files, "es/centralita/index.html"))[0];
+  assert.ok(yw.includes("Micrófono de este ordenador") && yw.includes("Altavoces de este ordenador"));
+});
+test("you hear the voice: a module with your ear, fed by the earpiece; the wallet gets the tones", { skip: VOICE_SKIP }, () => {
+  for (const [lang, ear, title] of [["es", "👂 oído", "Tú"], ["en", "👂 ear", "You"]]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    const you = /<section class="mod mod-you" data-module="you"[\s\S]*?<\/section>/.exec(html)?.[0];
+    assert.ok(you, lang);
+    assert.ok(you.includes("🧑") && you.includes(title), lang);
+    assert.match(you, new RegExp(`<span class="port p-air edge-peer-side" data-port="you\\.ear-in"[^>]*>${ear}</span>`), lang);
+    // The telephone's connectors on its right edge: the earpiece above, the microphone below.
+    const phone = /<section class="mod mod-phone"[\s\S]*?<\/section>/.exec(html)[0];
+    const ports = [...phone.matchAll(/<span class="port p-air edge-far-side" data-port="phone\.(ear|mic)"/g)].map((m) => m[1]);
+    assert.deepEqual(ports, ["ear", "mic"], lang);
+  }
+  const links = voiceData("en").links.wallet.map((l) => `${l.from}>${l.to}:${l.channel}`);
+  for (const l of ["phone.ear>you.ear-in:voice", "phone.ear>wallet.mic-near:tones", "wallet.speaker-near>phone.mic:air-in", "signer.line>phone.line:line", "charger.usb>signer.5v:power"])
+    assert.ok(links.includes(l), l);
+  const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.bench\[data-orient="h"\] \.col-peer \.edge-far-side \{[^}]*right: 0/);
+  assert.match(css, /\[data-port="phone\.ear"\] \{[^}]*--at: \d+%/);
+});
+test("the earpiece's transcript: a speech bubble over the bench, live, saying what it is", { skip: VOICE_SKIP }, () => {
+  for (const [lang, said] of [["es", "transcripción"], ["en", "transcript"]]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    const bench = /<div class="bench"[\s\S]*?<p class="sim-status"/.exec(html)[0];
+    const b = /<p class="bubble"[^>]*>([\s\S]*?)<\/p>/.exec(bench);
+    assert.ok(b, lang);
+    assert.match(b[0], /aria-live="polite"/);
+    assert.ok(b[1].includes("🔈") && b[1].toLowerCase().includes(said), b[1]);
+    assert.match(b[1], /<span class="said"><\/span>/);
+    assert.doesNotMatch(html, /ph-caption/);
+  }
+  assert.doesNotMatch(text(files, "es/cable-qr/index.html"), /class="bubble"/);
+});
+test("the Centralita's legend calls the RJ11 a telephone cable", { skip: VOICE_SKIP }, () => {
+  for (const [lang, t] of [["es", "cable telefónico"], ["en", "telephone cable"]]) {
+    const legend = /<ul class="legend">([\s\S]*?)<\/ul>/.exec(text(files, `${lang}/centralita/index.html`))[1];
+    assert.match(legend, new RegExp(`<li class="l-phone"><i aria-hidden="true"></i>${t}</li>`), lang);
+  }
+});
+test("the Centralita's first-time hint: the telephone's way, folded", { skip: VOICE_SKIP }, () => {
+  for (const lang of ["es", "en"]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    const d = /<details class="first">\s*<summary>[^<]+<\/summary>\s*<ol>([\s\S]*?)<\/ol>\s*<\/details>/.exec(html);
+    assert.ok(d, lang);
+    assert.equal((d[1].match(/<li>/g) ?? []).length, 4, lang);
+    for (const t of ["⌨", "🌱", "₿", "👂", "<b>R</b>", "<b>#</b>"]) assert.ok(d[1].includes(t), `${lang}: ${t}`);
+    assert.doesNotMatch(d[1], /📷|OK/, lang);
+  }
 });
 test("the telephone has a Type code button: off until lifted, a short tip, in both languages", { skip: VOICE_SKIP }, () => {
   for (const [lang, label] of [["en", "Type code"], ["es", "Teclear código"]]) {
     const html = text(files, `${lang}/centralita/index.html`);
-    const phone = /<div class="ph-phone">[\s\S]*?<p class="ph-caption"/.exec(html)[0];
+    const phone = /<div class="ph-phone">[\s\S]*?<\/section>/.exec(html)[0];
     const b = /<button type="button" class="ph-type"[^>]*>[\s\S]*?<\/button>/.exec(phone)?.[0];
     assert.ok(b, lang);
     assert.match(b, /aria-pressed="false"/);
@@ -271,21 +328,6 @@ test("the Centralita's status: designed, simulated; the breadboard and the port 
   assert.equal(st("firmware", "core"), "done");
   assert.equal(st("firmware", "port"), "planned");
   assert.equal(st("firmware", "simulator"), "done");
-});
-
-test("the Centralita offers the simulated wallet and your wallet, this computer as the handset", { skip: VOICE_SKIP }, () => {
-  const html = text(files, "es/centralita/index.html");
-  assert.match(html, /<div class="sim-modes" role="tablist"[^>]*>(?![^<]*hidden)/);
-  for (const m of ["sim-wallet", "your-wallet"]) assert.match(html, new RegExp(`data-mode="${m}"`));
-  const yw = /<section class="mod mod-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
-  assert.match(yw, /class="mic-toggle"/);
-  assert.match(yw, /class="mic-level"/);
-  assert.ok(yw.includes("Micrófono de este ordenador"));
-  assert.ok(yw.includes("Altavoces de este ordenador"));
-  assert.match(yw, /<a class="yw-urtones" href="https:\/\/ndssigner\.github\.io\/ur-tones\/"/);
-  for (const p of ["your-wallet.speaker-near", "your-wallet.mic-near"]) assert.match(html, new RegExp(`data-port="${p.replace(".", "\\.")}"`));
-  const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "centralita");
-  assert.deepEqual(validateBench(p.bench), []);
 });
 
 // ---- the bench's visual language: neutral modules, coloured connectors and cables ----

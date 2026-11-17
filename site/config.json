@@ -196,6 +196,7 @@
         }
       },
       "bench": {
+        "turn": 820,
         "modules": [
           {
             "id": "charger",
@@ -205,7 +206,7 @@
             "ports": [
               {
                 "id": "usb",
-                "edge": "signer-side",
+                "edge": "bottom",
                 "type": "power",
                 "dir": "out",
                 "label": "USB 5V"
@@ -226,7 +227,7 @@
             "ports": [
               {
                 "id": "5v",
-                "edge": "power-side",
+                "edge": "top",
                 "type": "power",
                 "dir": "in",
                 "label": "5V"
@@ -259,77 +260,70 @@
                 "label": "RJ11"
               },
               {
-                "id": "mic",
-                "edge": "bottom",
-                "type": "air",
-                "dir": "in",
-                "label": "🎙"
-              },
-              {
                 "id": "ear",
-                "edge": "bottom",
+                "edge": "far-side",
                 "type": "air",
                 "dir": "out",
-                "label": "🔈"
+                "label": "bench.ear"
+              },
+              {
+                "id": "mic",
+                "edge": "far-side",
+                "type": "air",
+                "dir": "in",
+                "label": "bench.mic"
               }
             ]
           },
           {
-            "id": "sim-wallet",
-            "kind": "sim-wallet",
-            "column": "peer",
-            "title": "bench.sim_wallet",
-            "air": true,
+            "id": "you",
+            "kind": "you",
+            "column": "far",
+            "title": "bench.you",
             "ports": [
               {
-                "id": "speaker-near",
-                "edge": "top",
-                "type": "air",
-                "dir": "out",
-                "label": "🔊"
-              },
-              {
-                "id": "mic-near",
-                "edge": "top",
+                "id": "ear-in",
+                "edge": "peer-side",
                 "type": "air",
                 "dir": "in",
-                "label": "🎙"
+                "label": "bench.your_ear"
               }
             ]
           },
           {
-            "id": "your-wallet",
-            "kind": "your-wallet",
-            "column": "peer",
-            "title": "bench.your_wallet",
+            "id": "wallet",
+            "kind": "wallet",
+            "column": "far",
+            "title": "bench.wallet",
             "air": true,
             "ports": [
               {
-                "id": "speaker-near",
-                "edge": "top",
-                "type": "air",
-                "dir": "out",
-                "label": "🔊"
-              },
-              {
                 "id": "mic-near",
-                "edge": "top",
+                "edge": "peer-side",
                 "type": "air",
                 "dir": "in",
-                "label": "🎙"
+                "label": "bench.mic"
+              },
+              {
+                "id": "speaker-near",
+                "edge": "peer-side",
+                "type": "air",
+                "dir": "out",
+                "label": "bench.speaker"
               }
             ]
           }
         ],
         "modes": [
           {
-            "id": "sim-wallet",
-            "title": "bench.mode_sim_wallet",
+            "id": "wallet",
+            "title": "bench.wallet",
             "modules": [
               "charger",
               "signer",
               "phone",
-              "sim-wallet"
+              "you",
+              "wallet"
             ],
             "links": [
               {
@@ -343,46 +337,19 @@
                 "channel": "line"
               },
               {
-                "from": "sim-wallet.speaker-near",
-                "to": "phone.mic",
-                "channel": "air-in"
+                "from": "phone.ear",
+                "to": "you.ear-in",
+                "channel": "voice"
               },
               {
                 "from": "phone.ear",
-                "to": "sim-wallet.mic-near",
-                "channel": "air-out"
-              }
-            ]
-          },
-          {
-            "id": "your-wallet",
-            "title": "bench.mode_your_wallet",
-            "modules": [
-              "charger",
-              "signer",
-              "phone",
-              "your-wallet"
-            ],
-            "links": [
-              {
-                "from": "charger.usb",
-                "to": "signer.5v",
-                "channel": "power"
+                "to": "wallet.mic-near",
+                "channel": "tones"
               },
               {
-                "from": "signer.line",
-                "to": "phone.line",
-                "channel": "line"
-              },
-              {
-                "from": "your-wallet.speaker-near",
+                "from": "wallet.speaker-near",
                 "to": "phone.mic",
                 "channel": "air-in"
-              },
-              {
-                "from": "phone.ear",
-                "to": "your-wallet.mic-near",
-                "channel": "air-out"
               }
             ]
           }

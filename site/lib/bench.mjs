@@ -3,7 +3,8 @@
 // build checks it, and checks it against the profile in docs/catalog.md, so
 // the drawing can never show a port the specification does not have.
 
-const COLUMNS = new Set(["power", "signer", "peer"]);
+// far: what is held to a peer (your ear and the wallet at a telephone's handset).
+const COLUMNS = new Set(["power", "signer", "peer", "far"]);
 // What a link carries: power, audio by cable, sound through the air, light
 // (a QR to a camera), a telephone line; and a serial line.
 const TYPES = new Set(["power", "audio", "air", "light", "uart", "phone"]);

@@ -75,7 +75,7 @@ const portOf = (b, id) => { const [m, p] = id.split("."); return b.modules.find(
 test("sound through the air is its own port type; the telephone line stays phone", () => {
   const p = centralita();
   assert.deepEqual(validateBench(p.bench), []);
-  for (const id of ["phone.mic", "phone.ear", "sim-wallet.speaker-near", "sim-wallet.mic-near", "your-wallet.speaker-near", "your-wallet.mic-near"])
+  for (const id of ["phone.mic", "phone.ear", "wallet.speaker-near", "wallet.mic-near", "you.ear-in"])
     assert.equal(portOf(p.bench, id).type, "air", id);
   assert.equal(portOf(p.bench, "signer.line").type, "phone");
   assert.equal(portOf(p.bench, "phone.line").type, "phone");
@@ -83,7 +83,7 @@ test("sound through the air is its own port type; the telephone line stays phone
 });
 test("an air port linked to an audio port is refused", () => {
   const p = centralita();
-  const wallet = p.bench.modules.find((m) => m.id === "sim-wallet");
+  const wallet = p.bench.modules.find((m) => m.id === "wallet");
   wallet.ports.find((x) => x.id === "speaker-near").type = "audio";
   assert.ok(validateBench(p.bench).some((e) => /audio to air/.test(e)), validateBench(p.bench).join("\n"));
   const q = profile();
@@ -95,4 +95,14 @@ test("an unknown port type is refused", () => {
   const p = profile();
   signer(p.bench).ports[0].type = "smoke";
   assert.ok(validateBench(p.bench).some((e) => e.includes("type smoke")));
+});
+
+test("a bench may turn to stacked at its own width (the Centralita's has four modules side by side)", async () => {
+  const { orientationFor } = await import("../static/sim/bench.mjs");
+  assert.equal(orientationFor(790, 820), "v");
+  assert.equal(orientationFor(830, 820), "h");
+  assert.equal(orientationFor(730), "h");
+  const p = centralita();
+  assert.ok(p.bench.turn >= 720, "the Centralita turns wider");
+  assert.ok(p.bench.modules.some((m) => m.column === "far"), "you and the wallet beyond the telephone");
 });
