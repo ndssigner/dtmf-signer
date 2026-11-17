@@ -87,9 +87,10 @@ state.
 2. `INV-2` — The PIN and the passphrase never leave the signer, not even as
    an echo. The one carve-out: on a telephone on the signer's own line, the
    earpiece is the signer's own output to the user, like its screen, so
-   each PIN character may be spoken back there as it is typed, and never
-   afterwards, but only through the handset (on a speakerphone it is heard
-   aloud; the signer warns once, §4.1). The seed and the passphrase are never spoken.
+   each PIN character may be spoken back there as it is typed or corrected,
+   and never afterwards, but only through the handset (on a speakerphone it
+   is heard aloud; the signer warns once, §4.1). The seed and the
+   passphrase are never spoken.
 3. `INV-3` — Nothing is signed without physical confirmation on the signer.
 4. `INV-4` — Nothing is signed before its summary has been presented on a
    verification output the signer controls (§5).

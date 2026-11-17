@@ -16,5 +16,5 @@ Spanish voice: Piper es_ES-sharvard-medium (speaker 0), trained on the Sharvard 
 The Spanish audio is equalised after synthesis (200 Hz high-pass, a gentle dip
 around 400 Hz) and resampled; see `tools/voice/make_pack.py`.
 
-The generated audio is distributed with the project under its licence. No
-recording of any person's own voice is used.
+The generated audio is distributed with the project under its licence. Never
+the voice of anyone in this project.

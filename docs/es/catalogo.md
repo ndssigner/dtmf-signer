@@ -163,7 +163,8 @@ Crece con cada montaje que alguien haga y mida.
   pulsadas mientras el firmador las pide) y lo que capta el micrófono del
   auricular (`AIR`). Un colgado corto (200 a 1500 ms) es la confirmación, y
   ningún sonido puede imitarlo. Un colgado más largo conserva la sesión: al
-  volver a descolgar, el firmador ofrece seguir. Cortar la corriente lo
+  volver a descolgar, el firmador ofrece seguir (una entrada, o una
+  recepción, se vuelve a pedir desde su pregunta). Cortar la corriente lo
   borra todo. El PIN se teclea por multipulsación y cada carácter tecleado
   se dice de vuelta en el auricular (por el auricular: con el manos libres
   se oye en voz alta, y el firmador avisa una vez); la semilla no se dice
@@ -182,7 +183,8 @@ Crece con cada montaje que alguien haga y mida.
   firmar ni borrar: eso pide el gancho. Aleja la wallet del auricular fuera
   de las transferencias de datos. Un manos
   libres dice las teclas en voz alta, y la memoria de rellamada puede
-  guardar lo marcado (ver `IN-PHONEPAD`). Una fuente de línea mal hecha
+  guardar lo marcado (ver `IN-PHONEPAD`). La sesión sobrevive a un
+  colgado: corta la corriente al terminar. Una fuente de línea mal hecha
   puede dañar el teléfono: limita la corriente y comprueba las cifras con
   las normas (TBR 21 / ETSI ES 201 970 en Europa, TIA-968 en Estados
   Unidos).
@@ -373,7 +375,11 @@ Crece con cada montaje que alguien haga y mida.
   hace en la wallet. Quien oiga el auricular conoce los importes y los
   destinos (privacidad, no robo). Pide un momento tranquilo: un carácter
   mal oído es una dirección equivocada que parece correcta, para eso está
-  la dirección entera a petición. Ver la
+  la dirección entera a petición. Un paquete de voz dice los importes y las
+  direcciones, así que un paquete manipulado puede mentir: comprueba el
+  SHA-256 completo del archivo del paquete con el publicado antes de
+  instalarlo, y compara la huella que dice Acerca de (sus 16 primeros
+  caracteres hexadecimales). Ver la
   [§5 de la especificación](especificacion.md#5-verificar-lo-que-se-firma).
 - **Vectores:** previstos (el texto hablado de un resumen).
 

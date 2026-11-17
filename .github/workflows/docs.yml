@@ -1,7 +1,7 @@
 # Checks the documents: links and anchors resolve, and English and Spanish match.
 name: docs
 
-# Only when a document, the checker or this workflow changes.
+# Only when a document, the checkers or this workflow changes.
 on:
   push:
     branches: [main]
@@ -10,6 +10,7 @@ on:
       - "LICENSE*"
       - "tools/check_docs.py"
       - "tests/test_check_docs.py"
+      - "tests/test_spec_phone.py"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - "LICENSE*"
       - "tools/check_docs.py"
       - "tests/test_check_docs.py"
+      - "tests/test_spec_phone.py"
       - ".github/workflows/docs.yml"
 
 permissions:
@@ -33,5 +35,9 @@ jobs:
           python-version: "3.11"
       - name: Tests of the checker
         run: python3 -m unittest discover -s tests -p 'test_check_docs.py' -v
+      # The core workflow skips Markdown-only changes, so the spec and the
+      # catalog's Centralita checks run here too.
+      - name: The phone build in the spec and the catalog
+        run: python3 -m unittest discover -s tests -p 'test_spec_phone.py' -v
       - name: Links, anchors and English/Spanish parity
         run: python3 tools/check_docs.py

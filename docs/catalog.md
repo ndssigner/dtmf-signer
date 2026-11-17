@@ -156,7 +156,8 @@ build someone makes and measures.
   the signer asks for them) and what the handset's microphone picks up
   (`AIR`). A short hang-up (on-hook 200 to 1500 ms) is the confirmation,
   and no sound can fake it. A longer hang-up keeps the session: on the next
-  pick-up the signer offers to resume. Cutting the power wipes everything.
+  pick-up the signer offers to resume (an input, or a reception, is asked
+  for again from its question). Cutting the power wipes everything.
   The PIN is typed by multi-tap, and each typed character is spoken back in
   the earpiece (through the handset: on a speakerphone it is heard aloud,
   and the signer warns once); the seed is never spoken.
@@ -172,7 +173,8 @@ build someone makes and measures.
   cannot skip the spoken summary, sign or wipe: those need the hook. Keep
   the wallet away from the handset outside data transfers. A speakerphone
   says the keys aloud, and the redial memory may keep what was dialled
-  (see `IN-PHONEPAD`). A line source that is wrong can hurt the
+  (see `IN-PHONEPAD`). The session survives a hang-up: cut the power when
+  you are done. A line source that is wrong can hurt the
   telephone: limit the current, and check the figures against the
   standards (TBR 21 / ETSI ES 201 970 in Europe, TIA-968 in the United
   States).
@@ -352,6 +354,10 @@ build someone makes and measures.
   Whoever hears the earpiece learns the amounts and destinations (privacy,
   not theft). It needs a quiet moment: a misheard character is a wrong
   address that looks right, so the whole address is there to be asked for.
+  A voice pack speaks the amounts and the addresses, so a tampered pack can
+  lie: check the pack file's full SHA-256 against the published one before
+  installing it, and compare the fingerprint About speaks (its first 16
+  hexadecimal characters).
   See [§5 of the specification](../SPEC.md#5-verifying-what-is-signed).
 - **Vectors:** planned (the spoken text of a summary).
 

@@ -91,10 +91,10 @@ ningún estado.
    como eco. La única salvedad: en un teléfono en la propia línea del
    firmador, el auricular es una salida del propio firmador hacia el
    usuario, como su pantalla, así que cada carácter del PIN puede decirse
-   de vuelta ahí mientras se teclea, y nunca después, pero solo por el
-   auricular (con el manos libres se oye en voz alta; el firmador avisa
-   una vez, §4.1). La semilla y la
-   passphrase no se dicen nunca.
+   de vuelta ahí mientras se teclea o se corrige, y nunca después, pero
+   solo por el auricular (con el manos libres se oye en voz alta; el
+   firmador avisa una vez, §4.1). La semilla y la passphrase no se dicen
+   nunca.
 3. `INV-3` — No se firma nada sin confirmación física en el firmador.
 4. `INV-4` — No se firma nada antes de haber presentado su resumen por una
    salida de verificación que controla el firmador (§5).
