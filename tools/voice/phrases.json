@@ -12,8 +12,8 @@
   "en": "Load seed, 1."
  },
  "menu_ready": {
-  "es": "Firmar, 1. Cuenta, 2. Borrar, 3.",
-  "en": "Sign, 1. Account, 2. Wipe, 3."
+  "es": "Firmar, 1. Cuenta, 2. Borrar, 3. Ajustes, 9.",
+  "en": "Sign, 1. Account, 2. Wipe, 3. Settings, 9."
  },
  "network_now_main": {
   "es": "La red es méinnet. Para cambiar, 2.",
@@ -99,9 +99,17 @@
   "es": "Comisión alta.",
   "en": "High fee."
  },
- "satoshis": {
-  "es": "satóchis.",
-  "en": "satoshis."
+ "sats": {
+  "es": "sats.",
+  "en": "sats."
+ },
+ "point": {
+  "es": "coma",
+  "en": "point"
+ },
+ "bitcoin": {
+  "es": "bitcóin.",
+  "en": "bitcoin."
  },
  "sign_hook": {
   "es": "Para firmar, cuelga un momento y vuelve a descolgar.",
@@ -122,6 +130,22 @@
  "redial_note": {
   "es": "Tu teléfono puede recordar lo último que marcaste.",
   "en": "Your telephone may remember the last number you dialled."
+ },
+ "settings_menu": {
+  "es": "Importes automáticos, 1. En bitcóin, 2. En sats, 3. Acerca de, 9. Asterisco para volver.",
+  "en": "Automatic amounts, 1. In bitcoin, 2. In sats, 3. About, 9. Star to go back."
+ },
+ "unit_auto": {
+  "es": "Importes automáticos.",
+  "en": "Automatic amounts."
+ },
+ "unit_btc": {
+  "es": "Importes en bitcóin.",
+  "en": "Amounts in bitcoin."
+ },
+ "unit_sats": {
+  "es": "Importes en sats.",
+  "en": "Amounts in sats."
  },
  "error_network": {
   "es": "Rred equivocada.",
