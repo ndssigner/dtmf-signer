@@ -113,10 +113,22 @@ void ds_say_set_pack(ds_say *s, const ds_pack *pack)
 
 void ds_say_clear(ds_say *s)
 {
+    /* the queue and the clip playing may be a PIN's characters: wiped */
+    ds_wipe(s->q, sizeof s->q);
     s->qhead = 0;
     s->qcount = 0;
     s->mode = M_IDLE;
     s->silence = 0;
+    s->gap_after = 0;
+    s->adpcm = NULL;
+    s->nib_total = 0;
+    s->nib_pos = 0;
+    ds_wipe(&s->st, sizeof s->st);
+    ds_wipe(s->blk, sizeof s->blk);
+    s->blen = 0;
+    s->bpos = 0;
+    s->phase = 0;
+    s->s0 = 0;
 }
 
 static int room(const ds_say *s, unsigned n)

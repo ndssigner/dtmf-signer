@@ -31,6 +31,11 @@ typedef struct {
 
 static line_t L;
 
+/* Times a seed was decrypted or a wallet derived inside ds_voice_line_in
+ * (seen as the session, the seed group or the fingerprint changing there):
+ * that work belongs to ds_voice_tick, never to the audio path. */
+static int heavy_in_line;
+
 static void take_echo(line_t *t)
 {
     char l[DS_VOICE_ECHO_MAX];
@@ -68,7 +73,13 @@ static void step(line_t *t, const int16_t *key)
         memcpy(t->out + t->out_len, o, sizeof o);
         t->out_len += CHUNK;
     }
-    ds_voice_line_in(&t->v, in, CHUNK);
+    {
+        int st = t->v.s.state, held = t->v.rx.has_group;
+        uint32_t fp = t->v.seed_fp;
+        ds_voice_line_in(&t->v, in, CHUNK);
+        if (t->v.s.state != st || (held && !t->v.rx.has_group) || t->v.seed_fp != fp)
+            heavy_in_line++;
+    }
     t->now += 10;
     ds_voice_tick(&t->v, t->now);
     take_echo(t);
@@ -519,10 +530,10 @@ static void test_air_seed_with_long_pin(void)
     run_quiet(&L);
     size_t mark = L.log_len;
     type_pin(&L, "ABC123DEF456");
-    run_ms(&L, 100);
+    run_ms(&L, 500); /* the work runs from a tick, then ear ok, then the prompt */
     /* one per press (A twice, B three times, ...), one NEXT per character */
     CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 24);
-    CHECK_EQ_INT(count_lines(&L, "ear next", mark), 12);
+    CHECK_EQ_INT(count_lines(&L, "ear next", mark), 13); /* and one for # */
     long f = find_line(&L, "fingerprint 8b218e81", mark);
     CHECK(f >= 0);
     CHECK(f >= 0 && HAS(&L, "state fingerprint", mark));
@@ -579,7 +590,7 @@ static void keypad_seed(line_t *t, const char *pin)
         type_pin(t, pin);
     else
         press(t, '#');
-    run_ms(t, 100);
+    run_ms(t, 500);
 }
 
 static void test_keypad_seed_no_pin(void)
@@ -658,6 +669,12 @@ static void test_hang_up_mid_pin_wipes(void)
     memset(&fresh, 0, sizeof fresh);
     ut_listener_init(&fresh, 16000);
     CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
+    /* what the voice was saying (a PIN character's clip) is gone too */
+    CHECK(all_zero(L.v.say.q, sizeof L.v.say.q));
+    CHECK(L.v.say.adpcm == NULL);
+    CHECK(all_zero(L.v.say.blk, sizeof L.v.say.blk));
+    CHECK(all_zero(&L.v.say.st, sizeof L.v.say.st));
+    CHECK_EQ_INT(L.v.say.s0, 0);
     hook(&L, 1);
     run_ms(&L, 100);
     CHECK(HAS(&L, "state resume-ask", mark));
@@ -744,6 +761,151 @@ static void test_air_listens_only_when_quiet(void)
     CHECK(HAS(&L, "state pin", mark));
 }
 
+/* No key of a PIN left in the listener: its groups, its live view, its
+ * segmenter (the detections waiting, the current, previous and last tone). */
+static int listener_holds(const ut_listener *l, const char *keys)
+{
+    const ut_keys *k = &l->keys;
+    for (const char *c = keys; *c; c++) {
+        for (uint32_t i = 0; i < 3; i++)
+            if (k->look[i].key == *c)
+                return 1;
+        if (k->cur_key == *c || k->last_key == *c || k->prev_key == *c ||
+            k->live_key == *c)
+            return 1;
+        if (memchr(k->current, *c, sizeof k->current) ||
+            memchr(k->ready, *c, sizeof k->ready) || memchr(k->live, *c, sizeof k->live))
+            return 1;
+    }
+    return 0;
+}
+
+static void test_pin_keys_forgotten(void)
+{
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    run_quiet(&L);
+    type_mt(&L, "ABC123DEF456");
+    press(&L, '#'); /* commits the 6 */
+    /* # again ends it: from the moment the PIN is taken, no digit is left */
+    static int16_t buf[3200];
+    ut_synth syn;
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&syn, "#", 16000, 100, 100, 0);
+    ut_synth_read(&syn, buf, 3200);
+    int seen = 0;
+    for (int i = 0; i < 20; i++) {
+        step(&L, buf + i * CHUNK);
+        if (HAS(&L, "state fingerprint", 0)) {
+            seen = 1;
+            CHECK(!listener_holds(&L.v.l, "0123456789"));
+        }
+    }
+    CHECK(seen);
+    CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
+}
+
+/* Said once per power-up: not on a second entry, not after a resume or a
+ * wipe. */
+static void test_air_warning_once(void)
+{
+    to_seed_how(&L);
+    press(&L, '1');
+    run_quiet(&L);
+    hook(&L, 0); /* hang up while listening */
+    run_ms(&L, 2000);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    press(&L, '#'); /* resume: seed-air again */
+    run_quiet(&L);
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    press(&L, '*'); /* wipe */
+    run_quiet(&L);
+    press(&L, '1');
+    run_quiet(&L);
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK_EQ_INT(count_lines(&L, "state seed-air", 0), 3);
+    CHECK_EQ_INT(count_lines(&L, "ear listen", 0), 3);
+    CHECK_EQ_INT(count_lines(&L, "say air_warning", 0), 1);
+}
+
+/* The decrypt and the derivation run from ds_voice_tick, a tick after the
+ * key that asked for them, never inside ds_voice_line_in. */
+static void test_heavy_work_in_tick(void)
+{
+    static int16_t buf[3200];
+    ut_synth syn;
+    heavy_in_line = 0;
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    run_quiet(&L);
+    type_mt(&L, "ABC123DEF456");
+    run_ms(&L, 1600);
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&syn, "#", 16000, 100, 100, 0);
+    ut_synth_read(&syn, buf, 3200);
+    int i = 0;
+    for (; i < 20 && L.v.job == 0; i++) { /* line_in only, until the job is asked */
+        int16_t o[CHUNK];
+        ds_voice_line_out(&L.v, o, CHUNK);
+        ds_voice_line_in(&L.v, buf + i * CHUNK, CHUNK);
+    }
+    CHECK(L.v.job != 0);
+    CHECK_EQ_INT(L.v.s.state, 0); /* nothing loaded yet */
+    CHECK(L.v.rx.has_group);
+    L.now += 10;
+    ds_voice_tick(&L.v, L.now); /* the tick that sees it: not yet */
+    CHECK_EQ_INT(L.v.s.state, 0);
+    L.now += 10;
+    ds_voice_tick(&L.v, L.now);
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    CHECK_EQ_INT(L.v.job, 0);
+    {
+        /* the PIN taken, the listener is wiped whole: groups, live view,
+         * segmenter, detector */
+        static ut_listener fresh;
+        memset(&fresh, 0, sizeof fresh);
+        ut_listener_init(&fresh, 16000);
+        CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
+    }
+    take_echo(&L);
+    for (; i < 20; i++)
+        step(&L, buf + i * CHUNK);
+    run_quiet(&L);
+    CHECK(HAS(&L, "fingerprint 8b218e81", 0));
+    press(&L, '#'); /* the derivation, also from a tick */
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    CHECK_EQ_INT(heavy_in_line, 0);
+    /* and by the keypad */
+    keypad_seed(&L, "TEST7");
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
+    CHECK_EQ_INT(heavy_in_line, 0);
+}
+
+/* A wallet still looping the seed frame during the PIN step: its 40 ms tones
+ * are not keys (not even its '#'); a real key press still is. */
+static void test_frame_tones_not_pin_keys(void)
+{
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    play_tones(&L, seed_tones);
+    run_ms(&L, 2000);
+    CHECK(!HAS(&L, "say pin-char", mark));
+    CHECK(strstr(L.log + mark, "state ") == NULL);
+    CHECK_EQ_INT(L.v.mt.len, 0);
+    CHECK(!L.v.mt.has_pending);
+    CHECK_EQ_INT(L.v.job, 0);
+    press(&L, '5');
+    CHECK(HAS(&L, "say pin-char", mark));
+    CHECK(L.v.mt.has_pending && L.v.mt.pending == '5');
+}
+
 static void test_reboot_wipes_everything(void)
 {
     keypad_seed(&L, NULL);
@@ -764,4 +926,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_air_seed_short_pin_refused, test_keypad_seed_no_pin,
           test_keypad_seed_with_pin, test_pin_chars_never_in_echo,
           test_hang_up_mid_pin_wipes, test_keypad_choice_key_not_data,
-          test_air_listens_only_when_quiet, test_reboot_wipes_everything)
+          test_air_listens_only_when_quiet, test_pin_keys_forgotten,
+          test_air_warning_once, test_heavy_work_in_tick,
+          test_frame_tones_not_pin_keys, test_reboot_wipes_everything)

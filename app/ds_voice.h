@@ -8,7 +8,8 @@
  *   menu (no seed): 1 load seed, 2 network (says the new one), 9 about,
  *   0 repeat.
  *   load seed: by the handset 1, by the keypad 2 (* back).
- *     handset: the air warning, the "listen" sound, then the signer only
+ *     handset: the air warning (once per power-up), the "listen" sound,
+ *       then the signer only
  *       listens (half-duplex) until a crypto-seed frame is heard; then its
  *       PIN by narrated multi-tap. By air the policy wants a PIN of 12
  *       characters or more (DS_AIR); otherwise it fails and asks again.
@@ -18,7 +19,10 @@
  *     3 wipe, 9 about, 0 repeat), * wipes. A failure says "error_generic".
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
  *   character, the "next" sound when one is committed, "back" and the last
- *   one left after *; # ends it, * with nothing left cancels.
+ *   one left after *; # ends it, * with nothing left cancels. A PIN key
+ *   counts once it has sounded 70 ms (a wallet's data tones are shorter).
+ *   The decrypt and the derivation run from ds_voice_tick, never from
+ *   ds_voice_line_in: the key that asks for them gets a short sound.
  *
  * Keys are heard while the signer speaks (barge-in): a key the state acts on
  * stops what is being said and acts; any other key is ignored and the
@@ -89,7 +93,12 @@ typedef struct {
     /* loading the seed (secrets: wiped on a hang-up, a wipe, a failure) */
     ds_rx rx;            /* the seed's tones: by the handset or typed */
     uint32_t rx_keys;    /* rx.keys already counted */
-    int armed;           /* keypad: the receiver hears (the choosing key is over) */
+    int deaf;            /* 1: no key counts until none has sounded for 30 ms */
+    char held;           /* PIN: the key acted on, still held */
+    char run_key;        /* PIN: the key sounding, for run_n slices of 10 ms */
+    uint32_t run_n, run_gap; /* (dropouts under 30 ms bridged) */
+    int air_warned;      /* the air warning was said (once per power-up) */
+    int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
     ds_multitap mt;      /* the PIN */
     ds_session s;        /* zero until a seed is loaded */
     uint32_t seed_fp;    /* the loaded seed's fingerprint (public) */

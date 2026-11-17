@@ -54,7 +54,8 @@ typedef struct {
 void ds_say_init(ds_say *s, const ds_pack *pack);
 /* The language: affects what is queued from now on. */
 void ds_say_set_pack(ds_say *s, const ds_pack *pack);
-/* Drops what is queued and what plays (the log is kept). */
+/* Drops what is queued and what plays, wiped (it may be a PIN's
+ * characters); the log is kept. */
 void ds_say_clear(ds_say *s);
 
 /* Each returns DS_OK, DS_ERR_SPACE when the queue lacks room (nothing is
