@@ -5,13 +5,20 @@
  * (ds_say picks the pack when an item starts playing) and a long prompt
  * (About) never has to fit the say queue at once. Entering a state, a
  * repeat (0, or DS_VOICE_REPEAT_MS of silence) and a resume all restart the
- * steps from 0. */
+ * steps from 0. A step may also wait (STEP_WAIT): the tones of the next part
+ * are made in ds_voice_tick, and the step is queued once they are ready.
+ *
+ * Heavy work never runs in ds_voice_line_in: taking a frame heard
+ * (ds_rx_poll: Reed-Solomon, fountain codes), the review, the signing and
+ * making a part into tones all run from ds_voice_tick. */
 #include "ds_voice.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include "ds_about.h"
+#include "ds_base64.h"
+#include "ds_bitcoin.h"
 #include "ds_core.h"
 #include "ds_prompts.h"
 
@@ -28,12 +35,29 @@ enum {
     ST_KEYPAD,     /* the seed typed: "*", the digits, "#" */
     ST_KEYPAD_PIN, /* its PIN if it has one, by multi-tap; "#" alone: none */
     ST_FINGERPRINT,/* the seed's fingerprint: # derives, * wipes */
-    ST_MENU_READY  /* the menu with a seed */
+    ST_MENU_READY, /* the menu with a seed */
+    ST_PSBT_RX,    /* the wallet plays the PSBT (half-duplex) */
+    ST_REVIEW,     /* the review, item by item */
+    ST_CONFIRM,    /* a hook flash signs */
+    ST_HOLD_NEAR,  /* signed (or the account): # plays it */
+    ST_TONES,      /* it plays as data tones; then 0 again, # the menu */
+    ST_SETTINGS    /* the unit of the amounts, About */
 };
 
-enum { JOB_NONE = 0, JOB_PIN, JOB_DERIVE }; /* heavy work, run from a tick */
+/* heavy work, run from a tick */
+enum { JOB_NONE = 0, JOB_PIN, JOB_DERIVE, JOB_SIGN, JOB_ACCOUNT };
+
+/* What goes out as tones. */
+enum { OUT_NONE = 0, OUT_SIGNED, OUT_ACCOUNT };
+
+/* The signed PSBT's echo, one step per take (as ds_app's). */
+enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 
 #define STEPS_DONE (-1)
+#define STEP_WAIT (-1)   /* say_step: nothing to queue yet, ask again */
+#define SAT_PER_BTC 100000000u
+#define FRAME_GAP_MS 500u    /* silence after each part (a group ends at 300) */
+#define ADDR_ENDS 5          /* the address's first and last characters said */
 #define KEY_QUIET_RUNS 3 /* detections (10 ms each) without a key: it is over */
 #define PIN_KEY_RUNS 7   /* a PIN key counts once it has lasted 70 ms */
 #define PIN_GAP_RUNS 5   /* a PIN key is over after 50 ms without it */
@@ -56,6 +80,12 @@ static const char *state_name(int st)
     case ST_KEYPAD_PIN: return "keypad-pin";
     case ST_FINGERPRINT: return "fingerprint";
     case ST_MENU_READY: return "menu-ready";
+    case ST_PSBT_RX: return "psbt-listen";
+    case ST_REVIEW: return "review";
+    case ST_CONFIRM: return "confirm";
+    case ST_HOLD_NEAR: return "hold-near";
+    case ST_TONES: return "tones";
+    case ST_SETTINGS: return "settings";
     default: return "?";
     }
 }
@@ -63,7 +93,8 @@ static const char *state_name(int st)
 /* Where # after "resume_ask" goes back to when a hang-up left st (ST_IDLE:
  * nowhere; the states before the menu just start again). A hang-up wipes
  * what was being typed or received, so an input starts again: the seed is
- * played or typed again. */
+ * played or typed again, and so is a PSBT (its review is cancelled: the
+ * PSBT it reviewed is gone). What goes out waits to be played again. */
 static int resume_point(int st)
 {
     switch (st) {
@@ -72,7 +103,15 @@ static int resume_point(int st)
     case ST_SEED_HOW:
     case ST_FINGERPRINT:
     case ST_MENU_READY:
+    case ST_SETTINGS:
+    case ST_HOLD_NEAR:
         return st;
+    case ST_TONES:
+        return ST_HOLD_NEAR;
+    case ST_PSBT_RX:
+    case ST_REVIEW:
+    case ST_CONFIRM:
+        return ST_PSBT_RX;
     case ST_SEED_AIR:
     case ST_PIN:
         return ST_SEED_AIR;
@@ -88,13 +127,15 @@ static int resume_point(int st)
  * reception or of someone typing), and keys there are data. */
 static int input(int st)
 {
-    return st == ST_SEED_AIR || st == ST_PIN || st == ST_KEYPAD || st == ST_KEYPAD_PIN;
+    return st == ST_SEED_AIR || st == ST_PIN || st == ST_KEYPAD || st == ST_KEYPAD_PIN ||
+           st == ST_PSBT_RX;
 }
 
-/* The states whose prompt is said again after DS_VOICE_REPEAT_MS of silence. */
+/* The states whose prompt is said again after DS_VOICE_REPEAT_MS of silence
+ * (not the tones: 0 plays them again when asked). */
 static int repeats(int st)
 {
-    return st != ST_IDLE && !input(st);
+    return st != ST_IDLE && st != ST_TONES && !input(st);
 }
 
 /* ---- echo (as ds_app's) ---- */
@@ -131,6 +172,53 @@ static void echo_said(ds_voice *v)
     }
 }
 
+/* The signed PSBT's echo stops when its bytes are zeroed before it ended. */
+static void echo_signed_abort(ds_voice *v)
+{
+    char l[40];
+    if (v->sig_phase != SIG_NONE) {
+        snprintf(l, sizeof l, "signed-psbt-abort %u", (unsigned)v->sig_id);
+        echo_line(v, l);
+        v->sig_phase = SIG_NONE;
+        v->sig_pos = 0;
+    }
+}
+
+/* The next line of the signed PSBT's echo (cap >= DS_VOICE_ECHO_MAX): the
+ * PSBT is the end of the CBOR in v->out. */
+static int32_t echo_signed_next(ds_voice *v, char *l, size_t cap)
+{
+    const uint8_t *psbt = v->out + (v->cbor_len - v->out_len);
+    int32_t r;
+    size_t n;
+
+    switch (v->sig_phase) {
+    case SIG_BEGIN:
+        v->sig_phase = SIG_CHUNKS;
+        v->sig_pos = 0;
+        return (int32_t)snprintf(l, cap, "signed-psbt-begin %u %u", (unsigned)v->sig_id,
+                                 (unsigned)v->out_len);
+    case SIG_CHUNKS:
+        n = v->out_len - v->sig_pos;
+        if (n > DS_VOICE_ECHO_CHUNK) {
+            n = DS_VOICE_ECHO_CHUNK;
+        }
+        memcpy(l, "signed-psbt ", 12);
+        r = ds_base64_encode(psbt + v->sig_pos, n, l + 12, cap - 12);
+        v->sig_pos += n;
+        if (v->sig_pos >= v->out_len) {
+            v->sig_phase = SIG_END;
+        }
+        return r < 0 ? r : 12 + r;
+    case SIG_END:
+        v->sig_phase = SIG_NONE;
+        v->sig_pos = 0;
+        return (int32_t)snprintf(l, cap, "signed-psbt-end %u", (unsigned)v->sig_id);
+    default:
+        return 0;
+    }
+}
+
 int32_t ds_voice_take_echo(ds_voice *v, char *out, size_t cap)
 {
     size_t n;
@@ -145,7 +233,7 @@ int32_t ds_voice_take_echo(ds_voice *v, char *out, size_t cap)
         return r;
     }
     if (v->echo_len == 0) {
-        return 0;
+        return echo_signed_next(v, out, cap);
     }
     n = strlen(v->echo);
     memcpy(out, v->echo, n + 1);
@@ -170,8 +258,112 @@ static void hex4(const uint8_t b[4], char out[9])
     snprintf(out, 9, "%02x%02x%02x%02x", b[0], b[1], b[2], b[3]);
 }
 
-/* Queues step v->step of the state's prompt; 0 when the prompt is over.
- * Called only while nothing is being said. */
+/* An amount as the setting says (design 5.7): automatic says 1 bitcoin and
+ * more in bitcoin, less in sats. In bitcoin: the whole part as a number,
+ * "point" and each decimal digit (trailing zeros dropped; none: no point),
+ * "bitcoin". In sats: the number, "sats". */
+static int32_t say_amount(ds_voice *v, uint64_t sat)
+{
+    int btc = v->unit == DS_VOICE_UNIT_BTC ||
+              (v->unit == DS_VOICE_UNIT_AUTO && sat >= SAT_PER_BTC);
+    uint32_t frac = (uint32_t)(sat % SAT_PER_BTC);
+    int32_t r;
+    char d[9];
+    int n;
+
+    if (!btc) {
+        r = ds_say_number(&v->say, sat);
+        return r < 0 ? r : ds_say_clip(&v->say, DS_P_SATS);
+    }
+    r = ds_say_number(&v->say, sat / SAT_PER_BTC);
+    if (r >= 0 && frac > 0) {
+        snprintf(d, sizeof d, "%08u", (unsigned)frac);
+        for (n = 8; d[n - 1] == '0'; n--) {
+        }
+        r = ds_say_clip(&v->say, DS_P_POINT);
+        for (int i = 0; i < n && r >= 0; i++) {
+            r = ds_say_number(&v->say, (uint64_t)(d[i] - '0'));
+        }
+    }
+    return r < 0 ? r : ds_say_clip(&v->say, DS_P_BITCOIN);
+}
+
+int32_t ds_voice_say_amount(ds_voice *v, uint64_t sat)
+{
+    int32_t r = say_amount(v, sat);
+    echo_said(v);
+    return r < 0 ? DS_ERR_SPACE : DS_OK;
+}
+
+/* The address of output i of the review into addr; its length, or 0 when
+ * the script has none (as ds_review: "Script, N bytes"). */
+static int32_t out_address(const ds_voice *v, uint32_t i, char *addr, size_t cap)
+{
+    const ds_out *o = &v->s.r.out[i];
+    int32_t n = 0;
+    if (o->full_len <= DS_TX_SCRIPT_KEEP) {
+        n = ds_address(o->script, o->full_len, v->s.r.testnet, addr, cap);
+    }
+    return n > 0 ? n : 0;
+}
+
+/* Step k of the review's current item: an output ("you send" the amount
+ * "to" the address, by its 5 first and 5 last characters or whole after 5;
+ * change: "change" and the amount), or the fee ("high fee" when warned). */
+static int review_step(ds_voice *v, int k)
+{
+    const ds_psbt_review *r = &v->s.r;
+    char addr[96], end[ADDR_ENDS + 1];
+    int32_t n;
+
+    if (v->item >= r->n_out) { /* the fee */
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_FEE);
+        say_amount(v, r->fee);
+        if (r->fee_warning) {
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            clip(v, DS_P_FEE_HIGH);
+        }
+        return 1;
+    }
+    if (k == 0) {
+        if (r->out[v->item].kind == DS_OUT_CHANGE) {
+            clip(v, DS_P_CHANGE);
+            say_amount(v, r->out[v->item].amount);
+        } else {
+            clip(v, DS_P_SENDING);
+            say_amount(v, r->out[v->item].amount);
+            clip(v, DS_P_TO);
+        }
+        return 1;
+    }
+    if (k > 1 || r->out[v->item].kind == DS_OUT_CHANGE) {
+        return 0;
+    }
+    n = out_address(v, v->item, addr, sizeof addr);
+    if (n == 0) { /* no address: "script" and its length */
+        ds_say_chars(&v->say, "script");
+        ds_say_number(&v->say, r->out[v->item].full_len);
+    } else if (v->whole) {
+        ds_say_chars_grouped(&v->say, addr);
+    } else {
+        memcpy(end, addr, ADDR_ENDS);
+        end[ADDR_ENDS] = '\0';
+        ds_say_chars(&v->say, end);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ds_say_chars(&v->say, addr + n - ADDR_ENDS);
+    }
+    ds_wipe(addr, sizeof addr);
+    return 1;
+}
+
+/* Queues step v->step of the state's prompt; 0 when the prompt is over,
+ * STEP_WAIT when the step is not ready yet. Called only while nothing is
+ * being said. */
+static void listen_afresh(ds_voice *v);
+
 static int say_step(ds_voice *v)
 {
     int k = v->step;
@@ -281,8 +473,60 @@ static int say_step(ds_voice *v)
             return 0;
         }
         clip(v, DS_P_MENU_READY);
+        break;
+    case ST_PSBT_RX:
+        /* then nothing is said until the PSBT has been heard (half-duplex) */
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_PSBT_LISTENING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, DS_P_ABOUT);
+        ds_say_earcon(&v->say, DS_EAR_LISTEN);
+        break;
+    case ST_REVIEW:
+        if (!review_step(v, k)) {
+            return 0;
+        }
+        break;
+    case ST_CONFIRM:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_SIGN_HOOK);
+        break;
+    case ST_HOLD_NEAR:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, v->out_kind == OUT_SIGNED ? DS_P_SIGNED_HOLD_NEAR : DS_P_ACCOUNT_HOLD_NEAR);
+        break;
+    case ST_TONES:
+        /* each part as it is made (in a tick), a silence after it; then the
+         * hint, and keys are heard again */
+        if (v->out_sent < v->out_total) {
+            if (v->out_made <= v->out_sent) {
+                return STEP_WAIT;
+            }
+            ds_say_tones(&v->say, v->tones[v->out_sent % 2]);
+            ds_say_pause(&v->say, FRAME_GAP_MS);
+            v->out_sent++;
+        } else if (!v->out_heard) {
+            listen_afresh(v); /* nothing heard during the tones counts */
+            v->out_heard = 1;
+            clip(v, DS_P_AGAIN_HINT);
+        } else {
+            return 0;
+        }
+        break;
+    case ST_SETTINGS:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_SETTINGS_MENU);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        clip(v, v->unit == DS_VOICE_UNIT_BTC    ? DS_P_UNIT_BTC
+                : v->unit == DS_VOICE_UNIT_SATS ? DS_P_UNIT_SATS
+                                                : DS_P_UNIT_AUTO);
         break;
     default:
         return 0;
@@ -296,7 +540,11 @@ static int say_step(ds_voice *v)
 static void pump(ds_voice *v)
 {
     while (v->step != STEPS_DONE && !ds_say_busy(&v->say)) {
-        if (!say_step(v)) {
+        int r = say_step(v);
+        if (r == STEP_WAIT) {
+            break;
+        }
+        if (r == 0) {
             v->step = STEPS_DONE;
         }
     }
@@ -404,11 +652,42 @@ static void drop_input(ds_voice *v)
     v->job_seen = 0;
 }
 
+/* What goes out (the signed PSBT, the account) to zero, with its parts and
+ * tones; its echo, if not over, says it was aborted. */
+static void clear_out(ds_voice *v)
+{
+    echo_signed_abort(v);
+    ds_wipe(v->out, sizeof v->out);
+    ds_wipe(&v->enc, sizeof v->enc);
+    ds_wipe(&v->frame, sizeof v->frame);
+    ds_wipe(v->tones, sizeof v->tones);
+    v->cbor_len = 0;
+    v->out_len = 0;
+    v->out_kind = OUT_NONE;
+    v->out_total = v->out_made = v->out_sent = 0;
+    v->out_heard = 0;
+}
+
+/* The review ends: cancelled (nothing signed) unless it was signed; the
+ * PSBT received goes with the receiver. */
+static void clear_review(ds_voice *v)
+{
+    ds_session_cancel(&v->s); /* a no-op in READY */
+    ds_rx_wipe(&v->rx);
+    v->rx_keys = 0;
+    v->psbt = NULL;
+    v->psbt_len = 0;
+    v->item = 0;
+    v->whole = 0;
+}
+
 /* "Wipe and start over": the session goes, the language chosen for this
- * power-up stays. Task 9 wipes the PSBT here too. */
+ * power-up and the unit of the amounts stay. */
 static void wipe(ds_voice *v)
 {
     drop_input(v);
+    clear_review(v);
+    clear_out(v);
     ds_session_wipe(&v->s);
     v->seed_fp = 0;
     v->testnet = 0;
@@ -531,6 +810,238 @@ static void derive(ds_voice *v)
     go(v, ST_MENU_EMPTY);
 }
 
+/* ---- the review, the signature, the account ---- */
+
+/* The error phrase for a review that failed. */
+static uint16_t error_phrase(int32_t r)
+{
+    switch (r) {
+    case DS_ERR_NETWORK: return DS_P_ERROR_NETWORK;
+    case DS_ERR_CHANGE: return DS_P_ERROR_CHANGE;
+    case DS_ERR_PSBT:
+    case DS_ERR_UNSUPPORTED:
+    case DS_ERR_AMOUNTS:
+    case DS_ERR_SIGHASH: return DS_P_ERROR_PSBT;
+    default: return DS_P_ERROR_GENERIC;
+    }
+}
+
+/* Nothing is signed: the fail sound, what went wrong, the menu. */
+static void sign_failed(ds_voice *v, uint16_t phrase)
+{
+    clear_review(v);
+    clear_out(v);
+    hush(v);
+    ds_say_earcon(&v->say, DS_EAR_FAIL);
+    clip(v, phrase);
+    echo_said(v);
+    go(v, ST_MENU_READY);
+}
+
+static int32_t psbt_read(void *ctx, uint32_t off, uint8_t *buf, size_t n)
+{
+    const ds_voice *v = ctx;
+    if ((size_t)off > v->psbt_len || n > v->psbt_len - off) {
+        return DS_ERR_PSBT;
+    }
+    memcpy(buf, v->psbt + off, n);
+    return (int32_t)n;
+}
+
+/* The signed PSBT goes 8 bytes into v->out, room for its CBOR header. */
+static int32_t out_write(void *ctx, const uint8_t *p, size_t n)
+{
+    ds_voice *v = ctx;
+    if (n > sizeof v->out - 8 - v->out_len) {
+        return DS_ERR_SPACE;
+    }
+    memcpy(v->out + 8 + v->out_len, p, n);
+    v->out_len += n;
+    return (int32_t)n;
+}
+
+static ds_source psbt_source(ds_voice *v)
+{
+    ds_source src;
+    src.read = psbt_read;
+    src.ctx = v;
+    src.len = (uint32_t)v->psbt_len;
+    return src;
+}
+
+/* 1 if a signed PSBT of psbt_len bytes with n_ours inputs signed is sure to
+ * fit v->out as CBOR and go out in at most UT_MAX_PARTS parts (as ds_app's
+ * check for its QR): the signer never signs what it cannot give back. */
+static int fits_out(size_t psbt_len, uint32_t n_ours)
+{
+    size_t bound;
+    if (psbt_len > DS_APP_PSBT_MAX || n_ours > DS_MAX_INPUTS) {
+        return 0;
+    }
+    bound = psbt_len + (size_t)n_ours * 112 + 8;
+    return bound <= DS_VOICE_OUT_MAX &&
+           (bound + DS_VOICE_FRAGMENT - 1) / DS_VOICE_FRAGMENT <= UT_MAX_PARTS;
+}
+
+/* The whole PSBT was heard (from a tick): analyse it, then say its first
+ * item. Any error: nothing to sign. */
+static void review(ds_voice *v)
+{
+    const uint8_t *p = NULL;
+    size_t len = 0;
+    ds_source src;
+    int32_t r;
+
+    r = ds_rx_psbt(&v->rx, &p, &len);
+    if (r != DS_OK || len > DS_APP_PSBT_MAX) {
+        sign_failed(v, DS_P_ERROR_PSBT);
+        return;
+    }
+    v->psbt = p;
+    v->psbt_len = len;
+    src = psbt_source(v);
+    r = ds_session_review(&v->s, &src, DS_AIR);
+    if (r != DS_OK) {
+        sign_failed(v, error_phrase(r));
+        return;
+    }
+    if (v->s.r.n_ours == 0 || !fits_out(len, v->s.r.n_ours)) {
+        sign_failed(v, DS_P_ERROR_GENERIC); /* nothing of ours, or too big */
+        return;
+    }
+    v->item = 0;
+    v->whole = 0;
+    hush(v);
+    ds_say_earcon(&v->say, DS_EAR_OK);
+    echo_said(v);
+    go(v, ST_REVIEW);
+}
+
+/* What goes out is ready in v->out (cbor_len bytes): its parts, then "hold
+ * the handset to your wallet". */
+static void start_out(ds_voice *v, int kind)
+{
+    const uint8_t *cbor = v->out;
+    if (ut_fountain_encoder_init(&v->enc, cbor, v->cbor_len, DS_VOICE_FRAGMENT) < 0) {
+        sign_failed(v, DS_P_ERROR_GENERIC);
+        return;
+    }
+    v->out_kind = kind;
+    v->out_total = DS_VOICE_ROUNDS * v->enc.seq_len;
+    hush(v);
+    ds_say_earcon(&v->say, DS_EAR_OK);
+    echo_said(v);
+    go(v, ST_HOLD_NEAR);
+}
+
+/* The flash confirmed (from a tick): sign, consuming the confirmation. The
+ * signed PSBT becomes its CBOR in place (the header in the 8 bytes before
+ * it), so one buffer holds both; the PSBT received is no longer needed. */
+static void job_sign(ds_voice *v)
+{
+    ds_source src = psbt_source(v);
+    ds_sink dst;
+    int32_t r;
+    size_t len;
+
+    dst.write = out_write;
+    dst.ctx = v;
+    clear_out(v);
+    r = ds_session_sign(&v->s, &src, &dst);
+    len = v->out_len;
+    if (r == DS_OK) {
+        r = ut_psbt_to_cbor(v->out + 8, len, v->out, sizeof v->out);
+    }
+    if (r < 0) {
+        sign_failed(v, DS_P_ERROR_GENERIC);
+        return;
+    }
+    v->cbor_len = (size_t)r;
+    clear_review(v);
+    if (v->cbor_len < sizeof v->out) {
+        ds_wipe(v->out + v->cbor_len, sizeof v->out - v->cbor_len); /* the old tail */
+    }
+    v->sig_id++;
+    v->sig_phase = SIG_BEGIN;
+    v->sig_pos = 0;
+    start_out(v, OUT_SIGNED);
+}
+
+/* The account (from a tick): its descriptor in the echo, its CBOR out. */
+static void job_account(ds_voice *v)
+{
+    char desc[200];
+    int32_t n;
+
+    clear_out(v);
+    n = ds_wallet_account_cbor(&v->s.w, v->out, sizeof v->out);
+    if (n <= 0) {
+        sign_failed(v, DS_P_ERROR_GENERIC);
+        return;
+    }
+    v->cbor_len = (size_t)n;
+    if (ds_wallet_descriptor(&v->s.w, desc, sizeof desc) > 0) {
+        echo_line(v, desc);
+    }
+    start_out(v, OUT_ACCOUNT);
+}
+
+/* The next part as tones (from a tick), into the buffer not playing: part
+ * out_made is made once part out_made - 1 has been queued, so the one
+ * before it, which used that buffer, has been played. */
+static void make_part(ds_voice *v)
+{
+    const char *type = v->out_kind == OUT_SIGNED ? "crypto-psbt" : "crypto-account";
+    int32_t r;
+
+    v->enc.seq_num = v->out_made; /* the next is part out_made + 1 */
+    r = ut_fountain_next_frame(&v->enc, type, &v->frame);
+    if (r >= 0) {
+        r = ut_frame_encode(&v->frame, v->tones[v->out_made % 2], sizeof v->tones[0]);
+    }
+    ds_wipe(&v->frame, sizeof v->frame);
+    if (r < 0) {
+        v->out_total = v->out_made; /* cannot happen: stop at what was made */
+        return;
+    }
+    v->out_made++;
+}
+
+/* # (or 0 after them): the tones from the first part. */
+static void play_out(ds_voice *v)
+{
+    v->out_made = v->out_sent = 0;
+    v->out_heard = 0;
+    enter(v, ST_TONES);
+}
+
+/* Done with what went out: zeroed; back to the menu, with the redial note
+ * the first time in this call (a PIN or a seed typed may be in the
+ * telephone's memory). */
+static void leave_out(ds_voice *v)
+{
+    clear_out(v);
+    hush(v);
+    if (!v->redial_said) {
+        v->redial_said = 1;
+        clip(v, DS_P_REDIAL_NOTE);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        echo_said(v);
+    }
+    go(v, ST_MENU_READY);
+}
+
+/* A short hang-up: in the confirmation step, and begun after it began, it
+ * confirms and asks for the signature; anywhere else it is only echoed. */
+static void flash(ds_voice *v)
+{
+    echo_line(v, "hook-flash");
+    if (v->state == ST_CONFIRM && v->job == JOB_NONE && v->s.state == DS_S_REVIEW &&
+        (int32_t)(v->down_at - v->confirm_at) >= 0 && ds_session_confirm(&v->s) == DS_OK) {
+        ask_job(v, JOB_SIGN);
+    }
+}
+
 static void run_job(ds_voice *v)
 {
     int job = v->job;
@@ -541,6 +1052,10 @@ static void run_job(ds_voice *v)
         load_seed(v);
     } else if (job == JOB_DERIVE && v->state == ST_FINGERPRINT) {
         derive(v);
+    } else if (job == JOB_SIGN && v->state == ST_CONFIRM && v->s.state == DS_S_CONFIRMED) {
+        job_sign(v);
+    } else if (job == JOB_ACCOUNT && v->state == ST_MENU_READY && v->s.state == DS_S_READY) {
+        job_account(v);
     }
 }
 
@@ -612,6 +1127,28 @@ static void poll_rx(ds_voice *v)
     }
 }
 
+/* The PSBT's parts (from a tick): complete, it is reviewed; anything else is
+ * dropped and listening goes on. */
+static void poll_psbt(ds_voice *v)
+{
+    int32_t r;
+    while ((r = ds_rx_poll(&v->rx)) != DS_RX_NONE) {
+        if (r == DS_RX_DONE) {
+            review(v);
+            return;
+        }
+    }
+}
+
+/* Sign (1 in the menu with a seed): a receiver for the PSBT. */
+static void start_psbt(ds_voice *v)
+{
+    drop_input(v);
+    clear_review(v);
+    ds_rx_init(&v->rx, v->rate, DS_RX_PSBT);
+    enter(v, ST_PSBT_RX);
+}
+
 /* The seed's audio into the receiver; keys counted for the LED. */
 static int rx_in(ds_voice *v, const int16_t *x, size_t n)
 {
@@ -625,6 +1162,16 @@ static int rx_in(ds_voice *v, const int16_t *x, size_t n)
 }
 
 /* ---- keys ---- */
+
+/* * in the review: cancelled, nothing signed. */
+static void sign_cancel(ds_voice *v)
+{
+    clear_review(v);
+    hush(v);
+    clip(v, DS_P_CANCELLED);
+    echo_said(v);
+    go(v, ST_MENU_READY);
+}
 
 static void on_key(ds_voice *v, char c)
 {
@@ -681,6 +1228,8 @@ static void on_key(ds_voice *v, char c)
             v->resume_to = ST_IDLE;
             if (st == ST_SEED_AIR || st == ST_KEYPAD) {
                 start_seed(v, st);
+            } else if (st == ST_PSBT_RX) {
+                start_psbt(v); /* from the start: the PSBT is played again */
             } else {
                 enter(v, st);
             }
@@ -715,13 +1264,77 @@ static void on_key(ds_voice *v, char c)
         }
         break;
     case ST_MENU_READY:
-        if (c == '3') {
+        if (c == '1') {
+            start_psbt(v);
+        } else if (c == '2') {
+            ask_job(v, JOB_ACCOUNT);
+        } else if (c == '3') {
             wipe(v);
         } else if (c == '9') {
-            v->about_back = ST_MENU_READY;
-            enter(v, ST_ABOUT);
+            enter(v, ST_SETTINGS);
         } else if (c == '0') {
             repeat(v);
+        }
+        break;
+    case ST_SETTINGS:
+        if (c >= '1' && c <= '3') {
+            v->unit = c == '1' ? DS_VOICE_UNIT_AUTO : c == '2' ? DS_VOICE_UNIT_BTC
+                                                                : DS_VOICE_UNIT_SATS;
+            hush(v);
+            clip(v, c == '1' ? DS_P_UNIT_AUTO : c == '2' ? DS_P_UNIT_BTC : DS_P_UNIT_SATS);
+            echo_said(v);
+        } else if (c == '9') {
+            v->about_back = ST_SETTINGS;
+            enter(v, ST_ABOUT);
+        } else if (c == '#' || c == '*') {
+            enter(v, ST_MENU_READY);
+        } else if (c == '0') {
+            repeat(v);
+        }
+        break;
+    case ST_REVIEW:
+        if (c == '#') {
+            /* one item at a time: the confirmation only after the fee */
+            if (v->item < v->s.r.n_out) {
+                v->item++;
+                v->whole = 0;
+                repeat(v);
+            } else {
+                v->confirm_at = v->now;
+                enter(v, ST_CONFIRM);
+            }
+        } else if (c == '5' && v->item < v->s.r.n_out &&
+                   v->s.r.out[v->item].kind != DS_OUT_CHANGE) {
+            v->whole = 1;
+            repeat(v);
+        } else if (c == '0') {
+            repeat(v);
+        } else if (c == '*') {
+            sign_cancel(v);
+        }
+        break;
+    case ST_CONFIRM:
+        /* keys never confirm: only a hook flash does */
+        if (c == '0') {
+            repeat(v);
+        } else if (c == '*') {
+            sign_cancel(v);
+        }
+        break;
+    case ST_HOLD_NEAR:
+        if (c == '#') {
+            play_out(v);
+        } else if (c == '*') {
+            leave_out(v);
+        } else if (c == '0') {
+            repeat(v);
+        }
+        break;
+    case ST_TONES:
+        if (c == '0') {
+            play_out(v);
+        } else if (c == '#' || c == '*') {
+            leave_out(v);
         }
         break;
     default:
@@ -737,11 +1350,11 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
     uint32_t run;
     char key;
 
-    if (v->state == ST_SEED_AIR) {
-        /* half-duplex: the receiver hears only once the signer is quiet */
+    if (v->state == ST_SEED_AIR || v->state == ST_PSBT_RX) {
+        /* half-duplex: the receiver hears only once the signer is quiet;
+         * what it heard is taken in ds_voice_tick */
         if (!ds_voice_speaking(v)) {
             rx_in(v, x, n);
-            poll_rx(v);
         }
         return;
     }
@@ -749,8 +1362,10 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
         if (rx_in(v, x, n) && ds_voice_speaking(v)) {
             hush(v); /* the first digit barges in */
         }
-        poll_rx(v);
         return;
+    }
+    if (v->state == ST_TONES && !v->out_heard) {
+        return; /* half-duplex: its own tones are not keys */
     }
     ut_listener_push(&v->l, x, n);
     got = ut_listener_live(&v->l, k, sizeof k);
@@ -806,6 +1421,7 @@ size_t ds_voice_line_out(ds_voice *v, int16_t *out, size_t n)
 static void answer(ds_voice *v)
 {
     listen_afresh(v); /* nothing heard before counts */
+    v->redial_said = 0; /* a new call */
     if (v->resume_to != ST_IDLE) {
         enter(v, ST_RESUME_ASK);
     } else if (v->packs.n > 1 && !v->lang_chosen) {
@@ -822,15 +1438,13 @@ static void hang_up(ds_voice *v)
     if (st != ST_IDLE) {
         v->resume_to = st;
     }
-    /* what was being typed or received goes, the listener with it */
+    /* what was being typed or received goes, the listener with it; a
+     * review is cancelled (a sign asked for but not run is dropped too) */
     drop_input(v);
+    if (v->psbt != NULL || v->s.state == DS_S_REVIEW || v->s.state == DS_S_CONFIRMED) {
+        clear_review(v);
+    }
     enter(v, ST_IDLE);
-}
-
-/* A short on-hook. Task 9: in the confirm step it signs. */
-static void flash(ds_voice *v)
-{
-    echo_line(v, "hook-flash");
 }
 
 static void debounce(ds_voice *v, uint32_t now)
@@ -847,7 +1461,7 @@ static void debounce(ds_voice *v, uint32_t now)
     }
     if (v->state != ST_IDLE) {
         down = v->raw_at - v->down_at;
-        if (down >= DS_VOICE_HANGUP_MS) {
+        if (down > DS_VOICE_HANGUP_MS) {
             hang_up(v); /* no tick came while on-hook */
         } else {
             if (down >= DS_VOICE_FLASH_MIN_MS) {
@@ -873,11 +1487,24 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
 {
     v->now = now_ms;
     debounce(v, now_ms);
-    if (!v->hook && v->state != ST_IDLE && now_ms - v->down_at >= DS_VOICE_HANGUP_MS) {
+    /* still on-hook (not even bouncing back) past DS_VOICE_HANGUP_MS */
+    if (!v->hook && !v->hook_raw && v->state != ST_IDLE &&
+        now_ms - v->down_at > DS_VOICE_HANGUP_MS) {
         hang_up(v);
     }
     if (v->job != JOB_NONE && v->job_seen) {
         run_job(v);
+    }
+    /* what the receivers heard, and the next part out: never on the audio path */
+    if (v->hook && v->job == JOB_NONE) {
+        if (v->state == ST_SEED_AIR || (v->state == ST_KEYPAD && !v->deaf)) {
+            poll_rx(v);
+        } else if (v->state == ST_PSBT_RX) {
+            poll_psbt(v);
+        } else if (v->state == ST_TONES && v->out_made < v->out_total &&
+                   v->out_made <= v->out_sent) {
+            make_part(v);
+        }
     }
     if (v->hook && v->job == JOB_NONE &&
         (v->state == ST_PIN || v->state == ST_KEYPAD_PIN)) {

@@ -15,8 +15,28 @@
  *       characters or more (DS_AIR); otherwise it fails and asks again.
  *     keypad: "*", the digits, "#" (ur-tones keypad mode), then its PIN if
  *       it has one, "#" alone if not. Typed when asked, it counts as a cable.
- *     Then the seed's fingerprint: # loads the wallet (the menu with a seed:
- *     3 wipe, 9 about, 0 repeat), * wipes. A failure says "error_generic".
+ *     Then the seed's fingerprint: # loads the wallet, * wipes. A failure
+ *     says "error_generic".
+ *   menu (with a seed): 1 sign, 2 account, 3 wipe, 9 settings, 0 repeat.
+ *   sign: "listening for the transaction", the "listen" sound, then the
+ *     signer only listens (half-duplex) until the whole PSBT is heard. Then
+ *     the review, one item at a time: each output ("you send" the amount
+ *     "to" the address's first and last 5 characters; change: "change" and
+ *     the amount), then the fee ("high fee" when the core warns). # next,
+ *     0 repeat, 5 the whole address in groups of 4, * cancel. After the fee,
+ *     # asks for the confirmation: a hook flash (a short hang-up) signs;
+ *     keys never do. Then "signed, hold the handset to your wallet": # plays
+ *     the signed PSBT as ur-tones data tones (multi-part URs, 100-byte
+ *     fragments, two rounds), half-duplex; then 0 plays them again, # (or *)
+ *     back to the menu, with the redial note the first time in a call. An
+ *     error (wrong network, invalid PSBT, change not ours...) says so and
+ *     goes back to the menu: nothing is signed.
+ *   account: the account (crypto-account UR) the same way, "hash to send".
+ *   settings: the amounts automatic 1, in bitcoin 2, in sats 3 (until the
+ *     power is cut); About 9; * or # back.
+ *   Amounts: automatic says 1 bitcoin (100 000 000 sat) and more in bitcoin
+ *   (the whole part, "point", each decimal digit, trailing zeros dropped,
+ *   "bitcoin"), less in sats ("sats").
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
  *   character, the "next" sound when one is committed, "back" and the last
  *   one left after *; # ends it, * with nothing left cancels. A PIN key
@@ -31,10 +51,13 @@
  * said again.
  *
  * The hook is debounced (DS_VOICE_DEBOUNCE_MS). An on-hook of
- * DS_VOICE_FLASH_MIN_MS up to DS_VOICE_HANGUP_MS is a hook flash (the
- * confirmation of a signature, in the step that asks for it); a longer one
- * is a hang-up: the session is kept (what was being typed or received is
- * wiped: an input starts again), and the next off-hook asks
+ * DS_VOICE_FLASH_MIN_MS up to DS_VOICE_HANGUP_MS (both included) is a hook
+ * flash (the confirmation of a signature, only in the step that asks for it
+ * and only begun after that step began); a longer one is a hang-up: the
+ * session is kept (what was being typed or received is wiped: an input
+ * starts again; a review is cancelled and its PSBT must be played again;
+ * a signed PSBT or the account waits to be played), and the next off-hook
+ * asks
  * "resume_ask": # resumes where it was (that prompt again), * wipes and goes
  * to the menu. Cutting the power (ds_voice_init again) zeroes everything.
  *
@@ -46,11 +69,19 @@
  * The echo (ds_voice_take_echo) is public data only, one line per take:
  * "state <name>", what is said ("say <id>", "num N", "chars X", "ear ok",
  * "tones K"; a secret character only as "say pin-char"), "lang xx",
- * "hook-flash", "echo-dropped N". Never a PIN, a seed or a tone group.
+ * "hook-flash", "fingerprint xxxxxxxx", the account's descriptor,
+ * "echo-dropped N", and the signed PSBT as ds_app gives it:
+ *   signed-psbt-begin <id> <bytes>
+ *   signed-psbt <base64 of up to 48 bytes>     (in order, as many as needed)
+ *   signed-psbt-end <id>
+ * or "signed-psbt-abort <id>" if it was left before the end. Never a PIN, a
+ * seed or a tone group heard.
  *
  * Everything is inside the struct: no malloc, no globals. It points only at
- * the built-in English pack and the pack region (both read-only flash).
- * Declare it static, never on the stack. */
+ * the built-in English pack and the pack region (both read-only flash), and
+ * into itself (the PSBT received, in its receiver). It is about 80 KB (42 KB
+ * the receiver, 20 KB what goes out): declare it static, never on the
+ * stack. */
 #ifndef DS_VOICE_H
 #define DS_VOICE_H
 
@@ -67,10 +98,19 @@
 #define DS_VOICE_RATE DS_SAY_RATE   /* line_in and line_out */
 #define DS_VOICE_DEBOUNCE_MS 50u
 #define DS_VOICE_FLASH_MIN_MS 200u  /* a shorter on-hook is ignored */
-#define DS_VOICE_HANGUP_MS 1500u    /* from here on, a hang-up */
+#define DS_VOICE_HANGUP_MS 1500u    /* longer than this, a hang-up */
 #define DS_VOICE_REPEAT_MS 6000u    /* silence before a prompt is said again */
 #define DS_VOICE_ECHO_BUF 1024
-#define DS_VOICE_ECHO_MAX DS_SAY_TOKEN_MAX /* the cap ds_voice_take_echo needs */
+#define DS_VOICE_ECHO_MAX 256       /* the cap ds_voice_take_echo needs */
+#define DS_VOICE_ECHO_CHUNK 48      /* signed PSBT bytes per echo line */
+#define DS_VOICE_FRAGMENT 100       /* bytes per part of what goes out as tones */
+#define DS_VOICE_ROUNDS 2           /* it goes out as 2 x its fragments' parts */
+/* What goes out: the signed PSBT as CBOR (at most the PSBT, 112 bytes per
+ * input of ours, the byte string's header) or the account's CBOR. */
+#define DS_VOICE_OUT_MAX (DS_APP_PSBT_MAX + DS_MAX_INPUTS * 112 + 8)
+
+/* How amounts are said (the setting lasts until the power is cut). */
+enum { DS_VOICE_UNIT_AUTO = 0, DS_VOICE_UNIT_BTC, DS_VOICE_UNIT_SATS };
 
 typedef struct {
     ds_packs packs;      /* slot 0: built-in English */
@@ -102,6 +142,25 @@ typedef struct {
     ds_multitap mt;      /* the PIN */
     ds_session s;        /* zero until a seed is loaded */
     uint32_t seed_fp;    /* the loaded seed's fingerprint (public) */
+    /* the review, the signature, the account (zeroed when left) */
+    const uint8_t *psbt; /* the PSBT received, inside rx.work */
+    size_t psbt_len;
+    uint32_t item;       /* review: the item said (the outputs, then the fee) */
+    int whole;           /* review: the whole address, by 5 */
+    uint32_t confirm_at; /* when the confirmation step began */
+    int unit;            /* DS_VOICE_UNIT_*: lasts until the power is cut */
+    int out_kind;        /* what goes out: the signed PSBT or the account */
+    uint8_t out[DS_VOICE_OUT_MAX]; /* its CBOR (the signed PSBT after a header) */
+    size_t cbor_len, out_len;      /* the CBOR; the signed PSBT at its end */
+    ut_fountain_encoder enc;       /* its parts */
+    ut_frame frame;                /* a part being made into tones */
+    char tones[2][UT_MAX_FRAME + 1]; /* the part playing, the next one */
+    uint32_t out_total, out_made, out_sent; /* parts: to send, made, queued */
+    int out_heard;       /* the tones are over: keys are heard again */
+    int redial_said;     /* the redial note was said in this call */
+    uint32_t sig_id;     /* signed PSBTs so far, for the echo */
+    int sig_phase;       /* the signed PSBT's echo: where it is */
+    size_t sig_pos;
     char echo[DS_VOICE_ECHO_BUF]; /* NUL-separated lines */
     size_t echo_len;
     uint32_t echo_dropped;
@@ -137,5 +196,9 @@ uint32_t ds_voice_keys(const ds_voice *v);
 
 /* 1 while the signer is speaking (something queued or playing). */
 int ds_voice_speaking(const ds_voice *v);
+
+/* Queues an amount of sat as the unit setting says it (the review uses it;
+ * public for tests). Returns DS_OK or DS_ERR_SPACE. */
+int32_t ds_voice_say_amount(ds_voice *v, uint64_t sat);
 
 #endif

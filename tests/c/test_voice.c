@@ -6,11 +6,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "ds_base64.h"
 #include "ds_core.h"
 #include "ds_pack.h"
 #include "ds_prompts.h"
 #include "ds_say.h"
 #include "ds_voice.h"
+#include "psbt_vectors.h"
 #include "test.h"
 #include "tones.h"
 #include "ur_tones.h"
@@ -23,7 +25,7 @@
 typedef struct {
     ds_voice v;
     uint32_t now;
-    char log[1 << 16]; /* echo lines, each ending in '\n' */
+    char log[1 << 18]; /* echo lines, each ending in '\n' */
     size_t log_len;
     int16_t out[OUT_MAX];
     size_t out_len;
@@ -31,10 +33,17 @@ typedef struct {
 
 static line_t L;
 
-/* Times a seed was decrypted or a wallet derived inside ds_voice_line_in
- * (seen as the session, the seed group or the fingerprint changing there):
+/* Times heavy work was done inside ds_voice_line_in: a seed decrypted or a
+ * wallet derived, a frame decoded (a seed group or a PSBT part taken), a
+ * PSBT reviewed or signed, a part made into tones (seen as the session, the
+ * receiver, the fingerprint, the signed PSBT or the parts changing there):
  * that work belongs to ds_voice_tick, never to the audio path. */
 static int heavy_in_line;
+
+/* What the signer plays into the handset, heard by a wallet: when tapping,
+ * every sample of line_out goes into this listener. */
+static ut_listener tap;
+static int tapping;
 
 static void take_echo(line_t *t)
 {
@@ -73,11 +82,20 @@ static void step(line_t *t, const int16_t *key)
         memcpy(t->out + t->out_len, o, sizeof o);
         t->out_len += CHUNK;
     }
+    if (tapping)
+        ut_listener_push(&tap, o, CHUNK);
     {
         int st = t->v.s.state, held = t->v.rx.has_group;
-        uint32_t fp = t->v.seed_fp;
+        uint32_t fp = t->v.seed_fp, parts = t->v.rx.parts, made = t->v.out_made;
+        size_t out = t->v.cbor_len;
         ds_voice_line_in(&t->v, in, CHUNK);
-        if (t->v.s.state != st || (held && !t->v.rx.has_group) || t->v.seed_fp != fp)
+        int now = t->v.s.state;
+        /* a cancel (back to READY) or a wipe (0) is no work; loading,
+         * deriving, reviewing, signing are */
+        int worked = now != st && (now == DS_S_SEED || now == DS_S_REVIEW ||
+                                   now == DS_S_CONFIRMED || (st == DS_S_SEED && now == DS_S_READY));
+        if (worked || held != t->v.rx.has_group || t->v.seed_fp != fp ||
+            t->v.rx.parts > parts || t->v.out_made > made || t->v.cbor_len > out)
             heavy_in_line++;
     }
     t->now += 10;
@@ -918,6 +936,606 @@ static void test_reboot_wipes_everything(void)
     CHECK_EQ_INT(L.v.seed_fp, 0);
 }
 
+/* ---- signing: the review, the hook flash, the signature out ---- */
+
+static const psbt_vector *vector(const char *name)
+{
+    for (size_t i = 0; i < sizeof psbt_vectors / sizeof psbt_vectors[0]; i++)
+        if (strcmp(psbt_vectors[i].name, name) == 0)
+            return &psbt_vectors[i];
+    CHECK(0);
+    return &psbt_vectors[0];
+}
+
+/* Until the line `want` appears in the log at or after `from` (at most ms). */
+static int run_until(line_t *t, const char *want, size_t from, uint32_t ms)
+{
+    for (uint32_t i = 0; i < ms / 10; i++) {
+        if (HAS(t, want, from))
+            return 1;
+        step(t, NULL);
+    }
+    return HAS(t, want, from);
+}
+
+/* The lines `want` (NULL-terminated) one right after the other, from `from`. */
+static int lines_in_a_row(const line_t *t, size_t from, const char *const *want)
+{
+    long at = find_line(t, want[0], from);
+    while (at >= 0) {
+        const char *p = t->log + at;
+        int ok = 1;
+        for (int i = 0; want[i] != NULL; i++) {
+            size_t n = strlen(want[i]);
+            if (strncmp(p, want[i], n) != 0 || p[n] != '\n') {
+                ok = 0;
+                break;
+            }
+            p += n + 1;
+        }
+        if (ok)
+            return 1;
+        at = find_line(t, want[0], (size_t)at + 1);
+    }
+    return 0;
+}
+
+/* The lines `want` in this order (others may come between), from `from`. */
+static int lines_in_order(const line_t *t, size_t from, const char *const *want)
+{
+    long at = (long)from;
+    for (int i = 0; want[i] != NULL; i++) {
+        at = find_line(t, want[i], (size_t)at);
+        if (at < 0) {
+            printf("missing in order: %s\n", want[i]);
+            return 0;
+        }
+        at += (long)strlen(want[i]) + 1;
+    }
+    return 1;
+}
+
+/* The seed 00..00 typed on the keypad (no PIN), on mainnet or testnet, up to
+ * the menu with a seed. */
+static void to_ready(line_t *t, int testnet)
+{
+    CHECK(tones_seed_keypad(zero16, 16, NULL, seed_tones, sizeof seed_tones) > 0);
+    to_menu(t);
+    if (testnet) {
+        press(t, '2');
+        run_quiet(t);
+    }
+    press(t, '1');
+    run_quiet(t);
+    press(t, '2');
+    run_ms(t, 500);
+    type_keys(t, seed_tones);
+    run_ms(t, 300);
+    run_quiet(t);
+    press(t, '#'); /* no PIN */
+    run_ms(t, 500);
+    run_quiet(t);
+    press(t, '#'); /* the fingerprint is right */
+    run_quiet(t);
+    CHECK_EQ_INT(t->v.s.state, DS_S_READY);
+    CHECK(HAS(t, "state menu-ready", 0));
+}
+
+static ut_fountain_encoder psbt_enc;
+static uint8_t psbt_cbor[4096];
+static char part_tones[UT_MAX_FRAME + 1];
+
+/* Sign (1), then the wallet plays the PSBT's parts next to the handset until
+ * the signer stops listening. */
+static void send_psbt(line_t *t, const psbt_vector *pv)
+{
+    int32_t n = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(n > 0);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
+    size_t mark = t->log_len;
+    press(t, '1');
+    run_quiet(t);
+    CHECK(HAS(t, "state psbt-listen", mark));
+    CHECK(HAS(t, "say psbt_listening", mark));
+    CHECK(HAS(t, "ear listen", mark));
+    for (uint32_t i = 0; i < 4 * psbt_enc.seq_len && !HAS(t, "state review", mark) && !HAS(t, "ear fail", mark);
+         i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play_tones(t, part_tones);
+        run_ms(t, 400);
+    }
+    run_ms(t, 100);
+}
+
+/* Through every item of the review to the confirmation step. */
+static void review_to_confirm(line_t *t)
+{
+    for (uint32_t i = 0; i <= t->v.s.r.n_out; i++) {
+        run_quiet(t);
+        press(t, '#');
+    }
+    run_quiet(t);
+    CHECK(HAS(t, "say sign_hook", 0));
+}
+
+/* On-hook for ms, then off-hook again. */
+static void on_hook(line_t *t, uint32_t ms)
+{
+    hook(t, 0);
+    run_ms(t, ms);
+    hook(t, 1);
+    run_ms(t, 300);
+}
+
+static int hex_to_bytes(const char *hex, uint8_t *out, size_t cap)
+{
+    size_t n = strlen(hex) / 2;
+    if (n > cap)
+        return -1;
+    for (size_t i = 0; i < n; i++) {
+        unsigned b;
+        if (sscanf(hex + 2 * i, "%2x", &b) != 1)
+            return -1;
+        out[i] = (uint8_t)b;
+    }
+    return (int)n;
+}
+
+static int contains(const uint8_t *hay, size_t n, const uint8_t *needle, size_t k)
+{
+    for (size_t i = 0; i + k <= n; i++)
+        if (memcmp(hay + i, needle, k) == 0)
+            return 1;
+    return 0;
+}
+
+/* The signed PSBT the echo gave (begin, chunks, end), from `from`: its length
+ * or -1. */
+static int32_t echo_signed(const line_t *t, size_t from, uint8_t *buf, size_t cap)
+{
+    unsigned id = 0, bytes = 0, end = 0;
+    size_t len = 0;
+    int begun = 0;
+    const char *p = t->log + from;
+    while (*p) {
+        const char *e = strchr(p, '\n');
+        char l[DS_VOICE_ECHO_MAX];
+        size_t n = (size_t)(e - p);
+        if (n >= sizeof l)
+            return -1;
+        memcpy(l, p, n);
+        l[n] = '\0';
+        if (sscanf(l, "signed-psbt-begin %u %u", &id, &bytes) == 2) {
+            begun = 1;
+            len = 0;
+        } else if (begun && strncmp(l, "signed-psbt ", 12) == 0) {
+            CHECK(strlen(l + 12) <= 64);
+            int32_t k = ds_base64_decode(l + 12, strlen(l + 12), buf + len, cap - len);
+            if (k <= 0)
+                return -1;
+            len += (size_t)k;
+        } else if (begun && sscanf(l, "signed-psbt-end %u", &end) == 1) {
+            return end == id && len == bytes ? (int32_t)len : -1;
+        }
+        p = e + 1;
+    }
+    return -1;
+}
+
+static uint8_t fountain_work[UT_FOUNTAIN_WORK(DS_VOICE_OUT_MAX)];
+static ut_fountain_decoder out_dec;
+
+/* # plays what goes out; a wallet next to the handset decodes it. Returns
+ * the message (and its type) or NULL. */
+static const uint8_t *hear_tones(line_t *t, const char **type, size_t *len)
+{
+    static char grp[UT_GROUP + 1];
+    static char ur[UT_MAX_UR + 1];
+    const uint8_t *msg = NULL;
+    int32_t r = 0, n;
+    CHECK(ut_fountain_decoder_init(&out_dec, fountain_work, sizeof fountain_work) >= 0);
+    ut_listener_init(&tap, 16000);
+    tapping = 1;
+    size_t mark = t->log_len;
+    press(t, '#');
+    CHECK(run_until(t, "say again_hint", mark, 600000));
+    run_quiet(t);
+    ut_listener_flush(&tap);
+    tapping = 0;
+    while ((n = ut_listener_group(&tap, grp, sizeof grp)) > 0) {
+        if (ut_frame_to_ur(grp, ur, sizeof ur, NULL) < 0)
+            continue;
+        r = ut_fountain_receive(&out_dec, ur);
+    }
+    CHECK_EQ_INT(r, 1);
+    if (r == 1 && ut_fountain_result(&out_dec, type, &msg, len) >= 0)
+        return msg;
+    return NULL;
+}
+
+static void test_review_speaks_outputs(void)
+{
+    heavy_in_line = 0;
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    CHECK(HAS(&L, "ear ok", mark));
+    CHECK(HAS(&L, "state review", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    static const char *const out1[] = {"say sending", "num 60000", "say sats", "say to",
+                                       "chars bc1qk", "chars pe9ug", NULL};
+    CHECK(lines_in_a_row(&L, mark, out1));
+    CHECK(!HAS(&L, "say change", mark));
+    press(&L, '#');
+    run_quiet(&L);
+    static const char *const out2[] = {"say change", "num 39000", "say sats", NULL};
+    CHECK(lines_in_a_row(&L, mark, out2));
+    CHECK(!HAS(&L, "say fee", mark));
+    press(&L, '#');
+    run_quiet(&L);
+    static const char *const fee[] = {"say fee", "num 1000", "say sats", NULL};
+    CHECK(lines_in_a_row(&L, mark, fee));
+    CHECK(!HAS(&L, "say fee_high", mark));
+    CHECK(!HAS(&L, "say sign_hook", mark));
+    static const char *const order[] = {"say sending", "say change", "say fee", NULL};
+    CHECK(lines_in_order(&L, mark, order));
+    /* 0 repeats the item */
+    size_t m2 = L.log_len;
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, m2, fee));
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state confirm", mark));
+    CHECK(HAS(&L, "say sign_hook", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW); /* nothing confirmed by keys */
+    /* * cancels: back to the menu, nothing signed, the PSBT gone */
+    m2 = L.log_len;
+    press(&L, '*');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state menu-ready", m2));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    CHECK(L.v.psbt == NULL);
+    CHECK(strstr(L.log, "signed-psbt") == NULL);
+    CHECK_EQ_INT(heavy_in_line, 0);
+}
+
+static void test_five_reads_whole_address(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    press(&L, '5');
+    run_quiet(&L);
+    CHECK(HAS(&L, "chars bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug", mark));
+    CHECK(!HAS(&L, "chars bc1qk", mark));
+    /* 5 on the change (no address to read): nothing */
+    press(&L, '#');
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '5');
+    run_quiet(&L);
+    CHECK(strstr(L.log + mark, "chars ") == NULL);
+}
+
+static void test_amount_units(void)
+{
+    to_ready(&L, 0);
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_AUTO);
+    size_t mark = L.log_len;
+    CHECK_EQ_INT(ds_voice_say_amount(&L.v, 150000000), DS_OK);
+    run_quiet(&L);
+    static const char *const a1[] = {"num 1", "say point", "num 5", "say bitcoin", NULL};
+    CHECK(lines_in_a_row(&L, mark, a1));
+    mark = L.log_len;
+    CHECK_EQ_INT(ds_voice_say_amount(&L.v, 51720), DS_OK);
+    run_quiet(&L);
+    static const char *const a2[] = {"num 51720", "say sats", NULL};
+    CHECK(lines_in_a_row(&L, mark, a2));
+    mark = L.log_len;
+    CHECK_EQ_INT(ds_voice_say_amount(&L.v, 100000000), DS_OK);
+    run_quiet(&L);
+    static const char *const a3[] = {"num 1", "say bitcoin", NULL};
+    CHECK(lines_in_a_row(&L, mark, a3));
+    CHECK(!HAS(&L, "say point", mark));
+    /* settings (9): always bitcoin */
+    mark = L.log_len;
+    press(&L, '9');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state settings", mark));
+    CHECK(HAS(&L, "say settings_menu", mark));
+    CHECK(HAS(&L, "say unit_auto", mark));
+    mark = L.log_len;
+    press(&L, '2');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say unit_btc", mark));
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_BTC);
+    mark = L.log_len;
+    CHECK_EQ_INT(ds_voice_say_amount(&L.v, 51720), DS_OK);
+    run_quiet(&L);
+    static const char *const b1[] = {"num 0", "say point", "num 0", "num 0", "num 0",
+                                     "num 5", "num 1", "num 7", "num 2", "say bitcoin",
+                                     NULL};
+    CHECK(lines_in_a_row(&L, mark, b1));
+    /* always sats */
+    press(&L, '3');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_SATS);
+    mark = L.log_len;
+    CHECK_EQ_INT(ds_voice_say_amount(&L.v, 150000000), DS_OK);
+    run_quiet(&L);
+    static const char *const c1[] = {"num 150000000", "say sats", NULL};
+    CHECK(lines_in_a_row(&L, mark, c1));
+    /* About from the settings, and back; * back to the menu */
+    mark = L.log_len;
+    press(&L, '9');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state about", mark));
+    press(&L, '#');
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "state settings", mark));
+    press(&L, '*');
+    run_ms(&L, 100);
+    CHECK(find_line(&L, "state menu-ready", mark) > find_line(&L, "state about", mark));
+    /* it lasts until the power is cut, a wipe included */
+    run_quiet(&L);
+    press(&L, '3');
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_SATS);
+    ds_voice_init(&L.v, 16000, NULL, 0);
+    CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_AUTO);
+}
+
+static void test_hook_flash_signs(void)
+{
+    static uint8_t signed_psbt[DS_VOICE_OUT_MAX], sig[80];
+    const psbt_vector *pv = vector("one input with change");
+    heavy_in_line = 0;
+    to_ready(&L, 0);
+    send_psbt(&L, pv);
+    review_to_confirm(&L);
+    size_t mark = L.log_len;
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(HAS(&L, "hook-flash", mark));
+    CHECK(HAS(&L, "ear ok", mark));
+    CHECK(HAS(&L, "state hold-near", mark));
+    CHECK(HAS(&L, "say signed_hold_near", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY); /* signing consumed the confirmation */
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    int32_t n = echo_signed(&L, mark, signed_psbt, sizeof signed_psbt);
+    CHECK(n > (int32_t)pv->psbt_len);
+    int k = hex_to_bytes(pv->signatures[0].sig_hex, sig, sizeof sig);
+    CHECK(k > 60);
+    CHECK(n > 0 && k > 0 && contains(signed_psbt, (size_t)n, sig, (size_t)k));
+    /* # plays it: a wallet decodes the same bytes */
+    const char *type = NULL;
+    size_t len = 0;
+    size_t m2 = L.log_len;
+    const uint8_t *msg = hear_tones(&L, &type, &len);
+    CHECK(msg != NULL && type != NULL && strcmp(type, "crypto-psbt") == 0);
+    const uint8_t *p = NULL;
+    size_t plen = 0;
+    CHECK(msg != NULL && ut_cbor_to_psbt(msg, len, &p, &plen) >= 0);
+    CHECK(p != NULL && n > 0 && plen == (size_t)n && memcmp(p, signed_psbt, plen) == 0);
+    /* 2 rounds of 100-byte parts, its own tones never taken as keys */
+    CHECK_EQ_INT(count_lines(&L, "state tones", m2), 1);
+    long first = find_line(&L, "state tones", m2), hint = find_line(&L, "say again_hint", m2);
+    CHECK(first >= 0 && hint > first);
+    {
+        uint32_t parts = (uint32_t)((len + 99) / 100);
+        int frames = 0;
+        for (const char *q = L.log + first; q < L.log + hint; q = strchr(q, '\n') + 1)
+            if (strncmp(q, "tones ", 6) == 0)
+                frames++;
+        CHECK_EQ_INT(frames, 2 * parts);
+        char between[1 << 14];
+        size_t bl = (size_t)(hint - first) < sizeof between - 1 ? (size_t)(hint - first)
+                                                                 : sizeof between - 1;
+        memcpy(between, L.log + first + 12, bl > 12 ? bl - 12 : 0);
+        between[bl > 12 ? bl - 12 : 0] = '\0';
+        CHECK(strstr(between, "state ") == NULL);
+    }
+    /* # back to the menu, with the redial note once; the signature zeroed */
+    m2 = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    long rn = find_line(&L, "say redial_note", m2);
+    CHECK(rn >= 0 && HAS(&L, "state menu-ready", (size_t)rn));
+    CHECK(all_zero(L.v.out, sizeof L.v.out));
+    CHECK_EQ_INT(L.v.cbor_len, 0);
+    CHECK_EQ_INT(heavy_in_line, 0);
+}
+
+static void test_hook_timing_boundaries(void)
+{
+    const psbt_vector *pv = vector("one input with change");
+    heavy_in_line = 0;
+    to_ready(&L, 0);
+    send_psbt(&L, pv);
+    review_to_confirm(&L);
+    /* 30 ms: nothing */
+    size_t mark = L.log_len;
+    on_hook(&L, 30);
+    run_quiet(&L);
+    CHECK(!HAS(&L, "hook-flash", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK(strstr(L.log + mark, "state ") == NULL);
+    /* 200 ms: signs */
+    on_hook(&L, 200);
+    run_quiet(&L);
+    CHECK(strstr(L.log + mark, "signed-psbt-begin 1 ") != NULL);
+    CHECK(HAS(&L, "state hold-near", mark));
+    /* * leaves it; again with 1500 ms: signs */
+    press(&L, '*');
+    run_quiet(&L);
+    CHECK(all_zero(L.v.out, sizeof L.v.out));
+    send_psbt(&L, pv);
+    review_to_confirm(&L);
+    mark = L.log_len;
+    on_hook(&L, 1500);
+    run_quiet(&L);
+    CHECK(strstr(L.log + mark, "signed-psbt-begin 2 ") != NULL);
+    CHECK(HAS(&L, "state hold-near", mark));
+    CHECK(!HAS(&L, "state idle", mark));
+    press(&L, '*');
+    run_quiet(&L);
+    /* 1600 ms: a hang-up; nothing signed; resume asked */
+    send_psbt(&L, pv);
+    review_to_confirm(&L);
+    mark = L.log_len;
+    hook(&L, 0);
+    run_ms(&L, 1600);
+    hook(&L, 1);
+    run_ms(&L, 300);
+    CHECK(HAS(&L, "state idle", mark));
+    CHECK(!HAS(&L, "hook-flash", mark));
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY); /* the review cancelled */
+    CHECK(all_zero(L.v.out, sizeof L.v.out));
+    CHECK(HAS(&L, "state resume-ask", mark));
+    CHECK_EQ_INT(L.v.sig_id, 2);
+    /* # resumes: the PSBT must be played again */
+    run_quiet(&L);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state psbt-listen", mark));
+    CHECK_EQ_INT(heavy_in_line, 0);
+}
+
+static void test_key_does_not_confirm(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm(&L);
+    size_t mark = L.log_len;
+    type_keys(&L, "1234567890#5#");
+    run_ms(&L, 2000);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK(strstr(L.log + mark, "state ") == NULL);
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+    CHECK(L.v.job == 0);
+    /* nor in the review before the confirmation step: a flash there is no confirmation */
+    press(&L, '*');
+    run_quiet(&L);
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    mark = L.log_len;
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
+}
+
+static void test_hang_up_during_reception_restarts(void)
+{
+    const psbt_vector *pv = vector("one input with change");
+    to_ready(&L, 0);
+    int32_t n = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+    size_t na = tones_render(part_tones, seed_audio, sizeof seed_audio / sizeof seed_audio[0]);
+    play(&L, seed_audio, na / 2); /* half a part */
+    CHECK(L.v.rx.keys > 0);
+    size_t mark = L.log_len;
+    hook(&L, 0);
+    run_ms(&L, 2000);
+    CHECK(HAS(&L, "state idle", mark));
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state psbt-listen", mark));
+    CHECK(HAS(&L, "say psbt_listening", mark));
+    CHECK_EQ_INT(L.v.rx.mode, DS_RX_PSBT);
+    CHECK_EQ_INT(L.v.rx.keys, 0);
+    CHECK_EQ_INT(L.v.rx.parts, 0);
+    /* the whole PSBT now: reviewed */
+    mark = L.log_len;
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
+    for (uint32_t i = 0; i < 4 * psbt_enc.seq_len && !HAS(&L, "state review", mark); i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play_tones(&L, part_tones);
+        run_ms(&L, 400);
+    }
+    CHECK(HAS(&L, "state review", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+}
+
+static void test_wrong_network_rejected(void)
+{
+    to_ready(&L, 1); /* a testnet signer */
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change")); /* a mainnet PSBT */
+    run_quiet(&L);
+    static const char *const want[] = {"ear fail", "say error_network", NULL};
+    CHECK(lines_in_a_row(&L, mark, want));
+    CHECK(HAS(&L, "state menu-ready", mark));
+    CHECK(!HAS(&L, "state review", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
+}
+
+static void test_account_tones_decode(void)
+{
+    static uint8_t want[512];
+    char desc[256];
+    to_ready(&L, 0);
+    int32_t wn = ds_wallet_account_cbor(&L.v.s.w, want, sizeof want);
+    CHECK(wn > 0);
+    CHECK(ds_wallet_descriptor(&L.v.s.w, desc, sizeof desc) > 0);
+    size_t mark = L.log_len;
+    press(&L, '2');
+    run_quiet(&L);
+    CHECK(HAS(&L, desc, mark)); /* the descriptor, whole, in the echo */
+    CHECK(strncmp(desc, "wpkh([73c5da0a/84", 17) == 0);
+    CHECK(HAS(&L, "state hold-near", mark));
+    CHECK(HAS(&L, "say account_hold_near", mark));
+    const char *type = NULL;
+    size_t len = 0;
+    const uint8_t *msg = hear_tones(&L, &type, &len);
+    CHECK(msg != NULL && type != NULL && strcmp(type, "crypto-account") == 0);
+    CHECK(msg != NULL && wn > 0 && len == (size_t)wn && memcmp(msg, want, len) == 0);
+    /* 0 plays it again */
+    size_t m2 = L.log_len;
+    press(&L, '0');
+    run_ms(&L, 3000);
+    CHECK(HAS(&L, "state tones", m2));
+    hook(&L, 0); /* a hang-up while it plays: resumed, it waits for # again */
+    run_ms(&L, 2000);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    m2 = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state hold-near", m2));
+    CHECK(HAS(&L, "say account_hold_near", m2));
+    /* the redial note once per call: this call has not had it */
+    msg = hear_tones(&L, &type, &len);
+    CHECK(msg != NULL);
+    m2 = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say redial_note", m2));
+    press(&L, '2');
+    run_quiet(&L);
+    msg = hear_tones(&L, &type, &len);
+    m2 = L.log_len;
+    press(&L, '#');
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say redial_note", m2));
+    CHECK(HAS(&L, "state menu-ready", m2));
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
@@ -928,4 +1546,8 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_hang_up_mid_pin_wipes, test_keypad_choice_key_not_data,
           test_air_listens_only_when_quiet, test_pin_keys_forgotten,
           test_air_warning_once, test_heavy_work_in_tick,
-          test_frame_tones_not_pin_keys, test_reboot_wipes_everything)
+          test_frame_tones_not_pin_keys, test_reboot_wipes_everything,
+          test_review_speaks_outputs, test_five_reads_whole_address,
+          test_amount_units, test_hook_flash_signs, test_hook_timing_boundaries,
+          test_key_does_not_confirm, test_hang_up_during_reception_restarts,
+          test_wrong_network_rejected, test_account_tones_decode)
