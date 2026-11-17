@@ -108,10 +108,10 @@
             }
           },
           {
-            "id": "sim-wallet",
-            "kind": "sim-wallet",
+            "id": "wallet",
+            "kind": "wallet",
             "column": "peer",
-            "title": "bench.sim_wallet",
+            "title": "bench.wallet",
             "ports": [
               {
                 "id": "camera",
@@ -128,38 +128,16 @@
                 "label": "bench.headphones"
               }
             ]
-          },
-          {
-            "id": "your-wallet",
-            "kind": "your-wallet",
-            "column": "peer",
-            "title": "bench.your_wallet",
-            "ports": [
-              {
-                "id": "camera",
-                "edge": "signer-side",
-                "type": "light",
-                "dir": "in",
-                "label": "bench.camera"
-              },
-              {
-                "id": "jack",
-                "edge": "signer-side",
-                "type": "audio",
-                "dir": "out",
-                "label": "bench.mic_speaker"
-              }
-            ]
           }
         ],
         "modes": [
           {
-            "id": "sim-wallet",
-            "title": "bench.mode_sim_wallet",
+            "id": "wallet",
+            "title": "bench.wallet",
             "modules": [
               "charger",
               "signer",
-              "sim-wallet"
+              "wallet"
             ],
             "links": [
               {
@@ -169,37 +147,11 @@
               },
               {
                 "from": "signer.qr",
-                "to": "sim-wallet.camera",
+                "to": "wallet.camera",
                 "channel": "camera"
               },
               {
-                "from": "sim-wallet.jack",
-                "to": "signer.in",
-                "channel": "line-in"
-              }
-            ]
-          },
-          {
-            "id": "your-wallet",
-            "title": "bench.mode_your_wallet",
-            "modules": [
-              "charger",
-              "signer",
-              "your-wallet"
-            ],
-            "links": [
-              {
-                "from": "charger.usb",
-                "to": "signer.5v",
-                "channel": "power"
-              },
-              {
-                "from": "signer.qr",
-                "to": "your-wallet.camera",
-                "channel": "camera"
-              },
-              {
-                "from": "your-wallet.jack",
+                "from": "wallet.jack",
                 "to": "signer.in",
                 "channel": "line-in"
               }

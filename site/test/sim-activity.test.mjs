@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { activeChannels, statusKey, LedFlash, LED_SHOW_MS } from "../static/sim/activity.mjs";
-import { leaveMode } from "../static/sim/ui.mjs";
+import { leaveMode, wireWho } from "../static/sim/ui.mjs";
 
 const A = (o) => activeChannels({ mode: "sim-wallet", queued: 0, listening: false, qrShown: false, scanning: false, micOn: false, micDbfs: -100, ...o });
 
@@ -95,4 +95,31 @@ test("the board's LED flashes once per tone heard, and goes out between tones", 
   assert.equal(led.update(0, 70), true, "a reset of the count does not light it again, nor cut a flash");
   assert.equal(led.update(0, 120), false);
   assert.ok(LED_SHOW_MS < 60);
+});
+
+// The selector inside the wallet: the same module, someone else runs it.
+function fakeButton(who, pressed) {
+  const b = new EventTarget();
+  const attrs = { "aria-pressed": String(pressed) };
+  return Object.assign(b, { dataset: { who }, getAttribute: (k) => attrs[k], setAttribute: (k, v) => { attrs[k] = v; } });
+}
+test("switching who runs the wallet stops everything", () => {
+  let cleared = 0, stopped = 0, closed = 0, changed = [];
+  const sim = { clearAudio() { cleared++; } };
+  const mic = { stop() { stopped++; } };
+  const speaker = { close() { closed++; } };
+  const buttons = [fakeButton("sim", true), fakeButton("yours", false)];
+  const panels = [{ dataset: { panel: "sim" }, hidden: false }, { dataset: { panel: "yours" }, hidden: true }];
+  const w = wireWho({ buttons, panels, leave: () => leaveMode({ sim, mic, speaker }), onChange: (who) => changed.push(who) });
+  assert.equal(w.who, "sim");
+  buttons[0].dispatchEvent(new Event("click"));
+  assert.deepEqual([cleared, stopped, closed], [0, 0, 0], "the same choice changes nothing");
+  buttons[1].dispatchEvent(new Event("click"));
+  assert.deepEqual([cleared, stopped, closed], [1, 1, 1], "line cleared, microphone stopped, speakers closed");
+  assert.equal(w.who, "yours");
+  assert.deepEqual(panels.map((p) => p.hidden), [true, false]);
+  assert.deepEqual(buttons.map((b) => b.getAttribute("aria-pressed")), ["false", "true"]);
+  buttons[0].dispatchEvent(new Event("click"));
+  assert.deepEqual([cleared, stopped, closed], [2, 2, 2]);
+  assert.deepEqual(changed, ["yours", "sim"]);
 });

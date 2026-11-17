@@ -1,11 +1,11 @@
 // The simulator on its page: draws the OLED, turns the on-screen buttons
-// and the keyboard into the button held, runs the simulated wallet or the
-// microphone of this computer, draws the bench's links and lights the ones
-// that are active. Everything it needs comes from #sim-data (JSON written by
+// and the keyboard into the button held, runs the wallet (the simulated one,
+// or yours through the microphone of this computer: chosen inside the
+// wallet), draws the bench's links and lights the ones that are active. Everything it needs comes from #sim-data (JSON written by
 // the site's build) and the page's markup.
 import { Simulator, RATE } from "./core.mjs";
 import { SimWallet } from "./sim-wallet.mjs";
-import { seedCheck, psbtCheck } from "./checks.mjs";
+import { walletCard } from "./wallet-card.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { activeChannels, statusKey, LedFlash } from "./activity.mjs";
 import { startMic, MicSwitch } from "./mic.mjs";
@@ -49,6 +49,49 @@ export function leaveMode({ sim, mic, speaker }) {
   mic?.stop();
   speaker?.close();         // tones already scheduled on the speakers stop too
   return null;
+}
+
+// Who runs the wallet, chosen inside it: the same module and connectors,
+// someone else behind them. A change first leaves what the other one was
+// doing (leave: the line emptied, the microphone and the speakers stopped).
+export function wireWho({ buttons, panels, leave, onChange }) {
+  let who = buttons.find((b) => b.getAttribute("aria-pressed") === "true")?.dataset.who ?? buttons[0]?.dataset.who;
+  const set = (next) => {
+    if (next === who) return;
+    leave();
+    who = next;
+    for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.who === who));
+    for (const p of panels) p.hidden = p.dataset.panel !== who;
+    onChange?.(who);
+  };
+  for (const b of buttons) b.addEventListener("click", () => set(b.dataset.who));
+  return { get who() { return who; }, set };
+}
+
+// The first-time hint: open on a first visit only. Storage may be blocked
+// (a private window): then it is always a first visit, and nothing breaks.
+const FIRST_KEY = "dtmf-first-seen";
+export function firstVisit(storage) {
+  try { return !storage?.getItem(FIRST_KEY); } catch { return true; }
+}
+export function seenFirst(storage) {
+  try { storage?.setItem(FIRST_KEY, "1"); } catch { /* not kept: it opens again next time */ }
+}
+function storageOf(view) {
+  try { return view?.localStorage ?? null; } catch { return null; }
+}
+// Opens the hint if this is a first visit; the visit is recorded when the
+// hint is toggled by hand or at the first action on the bench (seen()).
+// It never follows, highlights or blocks anything.
+export function firstHint(doc) {
+  const d = doc.querySelector?.("details.first");
+  if (!d) return () => {};
+  const storage = storageOf(doc.defaultView);
+  if (firstVisit(storage)) d.open = true;
+  let done = false;
+  const seen = () => { if (!done) { done = true; seenFirst(storage); } };
+  d.querySelector("summary")?.addEventListener("click", seen);
+  return seen;
 }
 
 // A phone: a narrow screen and a touch pointer, both (a touch laptop or a
@@ -112,6 +155,7 @@ export function tapTips(doc, root) {
 export async function start(doc, loadModule) {
   const data = JSON.parse(doc.getElementById("sim-data").textContent);
   mobileNote(doc);
+  const seen = firstHint(doc);
   const S = data.strings;
   const status = doc.querySelector(".sim-status");
   let module;
@@ -131,24 +175,31 @@ export async function start(doc, loadModule) {
   const img = ctx.createImageData(128, 64);
   const screenText = root.querySelector(".screen-text");
   const echoPre = root.querySelector(".echo");
-  const wdStatus = root.querySelector(".wd-status");
   const sound = root.querySelector(".wd-sound");
   const fast = root.querySelector(".wd-fast");
-  const wallet = new SimWallet({ sim, U: UrTones, sha256: UrTonesCrypto.sha256, S, data, el: { out: root.querySelector(".wd-out"), status: wdStatus } });
+  const wallet = new SimWallet({ sim, U: UrTones, sha256: UrTonesCrypto.sha256, S, data, el: { out: root.querySelector(".wd-out") } });
   const bench = root.querySelector(".bench");
   const svg = bench.querySelector("svg.cables");
   const micBtn = root.querySelector(".mic-toggle");
   const micLevel = root.querySelector(".mic-level");
-  let walletNote = "";        // a passing message on the wallet (no QR, reading…)
+  // The wallet's screen: a card with what you need for what you just did.
+  const cardEl = { sim: root.querySelector('[data-panel="sim"] .wl-card'), yours: root.querySelector('[data-panel="yours"] .wl-card') };
+  let card = null;            // { kind, info } on the simulated wallet, or null
+  let sending = null;         // { what, total, then: the card once it is sent }
+  const shownCard = { sim: "", yours: "" };
+  function showCard(where, ...cards) {
+    const html = cards.filter(Boolean).map((c) => walletCard(c.kind, c.info, S)).join("");
+    if (html !== shownCard[where] && cardEl[where]) { cardEl[where].innerHTML = html; shownCard[where] = html; }
+  }
   const btnEls = [...root.querySelectorAll("[data-btn]")];
   let lastCls = -1;
   const ledEl = root.querySelector(".sim-led"), led = new LedFlash();
   let ledOn = false;
-  let checkText = "", lastCheck = "", lastWarn = null;   // what to check on the signer
-  const wdCheck = root.querySelector(".wd-check"), wdWarn = root.querySelector(".wd-warn");
+  let lastWarn = null;
+  const wdWarn = root.querySelector(".wd-warn");
   let echo = [];
   let audio = null, nextStart = 0;
-  let mode = bench.dataset.mode;
+  const mode = bench.dataset.mode;
   let micDbfs = -100;
   // The microphone of this computer: the audio context is made in the click
   // itself, so the browser lets it run.
@@ -166,9 +217,9 @@ export async function start(doc, loadModule) {
     micBtn.setAttribute("aria-pressed", String(micSwitch.on));
   }
   let paths = [];            // [{ el, channel, ports: [from, to] }]
-  let last = performance.now(), lastLine = "", lastStatus = "", lastActive = "";
+  let last = performance.now(), lastStatus = "", lastActive = "";
 
-  // ---- the bench: orientation, links, modes ----
+  // ---- the bench: orientation, links ----
   function drawLinks() {
     bench.dataset.orient = orientationFor(bench.clientWidth);
     const box = bench.getBoundingClientRect();
@@ -186,22 +237,26 @@ export async function start(doc, loadModule) {
     }
     lastActive = "";         // new paths: apply the activity again on the next frame
   }
-  function switchMode(next) {
-    if (next === mode) return;
-    leaveMode({ sim, mic: { stop: () => micSwitch.cancel() }, speaker: audio });
-    audio = null; nextStart = 0;
-    micDbfs = -100;
-    micShown();
-    mode = next;
-    bench.dataset.mode = mode;
-    for (const el of root.querySelectorAll("[data-modes]")) el.hidden = !el.dataset.modes.split(" ").includes(mode);
-    for (const b of root.querySelectorAll(".sim-modes [data-mode]")) b.setAttribute("aria-selected", String(b.dataset.mode === mode));
-    drawLinks();
-  }
-  for (const b of root.querySelectorAll(".sim-modes [data-mode]")) b.addEventListener("click", () => switchMode(b.dataset.mode));
   new ResizeObserver(() => drawLinks()).observe(bench);
 
-  // ---- the microphone of this computer (mode "your-wallet") ----
+  // ---- who runs the wallet: the simulated one or yours ----
+  const whoSwitch = wireWho({
+    buttons: [...root.querySelectorAll(".seg [data-who]")],
+    panels: [...root.querySelectorAll("[data-panel]")],
+    leave: () => {
+      leaveMode({ sim, mic: { stop: () => micSwitch.cancel() }, speaker: audio });
+      audio = null; nextStart = 0;
+      micDbfs = -100;
+      sending = null; card = null;
+      wallet.scanning = false;
+    },
+    onChange: () => { micShown(); lastActive = ""; },
+  });
+  // The first action on the bench: the hint has been seen.
+  bench.addEventListener("pointerdown", seen);
+  bench.addEventListener("keydown", seen);
+
+  // ---- the microphone of this computer (your wallet) ----
   micBtn?.addEventListener("click", () => {
     if (!micSwitch.on) micDbfs = -100;
     const p = micSwitch.toggle();
@@ -257,31 +312,46 @@ export async function start(doc, loadModule) {
   function stopSending() {
     leaveMode({ sim, speaker: audio });
     audio = null; nextStart = 0;
+    sending = null;
   }
-  root.querySelector(".wd-seed").addEventListener("click", () => {
-    send(wallet.sendSeed());
-    walletNote = ""; checkText = seedCheck(wallet.pair(), data.pin, S).join("\n");
-  });
-  root.querySelector(".wd-psbt").addEventListener("click", () => {
-    send(wallet.sendPsbt());
-    walletNote = ""; checkText = psbtCheck(wallet.pair(), S).join("\n");
-  });
-  root.querySelector(".wd-stop").addEventListener("click", () => { stopSending(); walletNote = ""; });
+  // Sending: a card counting down, then what to check on the signer.
+  function sendWith(samples, what, then) {
+    send(samples);
+    sending = { what, total: sim.queued, then };
+    card = null;
+  }
+  root.querySelector(".wd-seed").addEventListener("click", () =>
+    sendWith(wallet.sendSeed(), S["card.what_seed"], { kind: "seed", info: { pin: data.pin, fingerprint: wallet.pair().fingerprint } }));
+  root.querySelector(".wd-psbt").addEventListener("click", () =>
+    sendWith(wallet.sendPsbt(), S["card.what_psbt"], { kind: "psbt", info: { outputs: wallet.pair().outputs, fee: wallet.pair().fee } }));
+  root.querySelector(".wd-stop").addEventListener("click", () => { stopSending(); card = null; });
+  // The account the wallet holds, for the network chosen.
+  const netSel = root.querySelector(".wd-net"), fpEl = root.querySelector(".wl-fp"), netEl = root.querySelector(".wl-net");
+  function setNetwork(net) {
+    wallet.setNetwork(net);
+    if (fpEl) fpEl.textContent = wallet.pair().fingerprint;
+    if (netEl) netEl.textContent = net;
+  }
   // The selector as the page shows it (a browser may restore it on reload).
-  wallet.setNetwork(root.querySelector(".wd-net").value);
-  root.querySelector(".wd-net").addEventListener("change", (e) => {
+  setNetwork(netSel.value);
+  netSel.addEventListener("change", (e) => {
     stopSending();
-    wallet.setNetwork(e.target.value);
-    walletNote = ""; checkText = "";
+    setNetwork(e.target.value);
+    card = null;
   });
-  root.querySelector(".wd-scan").addEventListener("click", () => {
-    const r = wallet.scan();
-    walletNote = { "no-qr": S["wallet.no_qr"], waiting: S["wallet.waiting"], ok: S["wallet.got"] }[r] ?? "";
-    checkText = wallet.last?.lines.join("\n") ?? "";
-  });
+  // What scanning the signer's screen gave.
+  function scanCard(r) {
+    if (r === "no-qr") return { kind: "noqr" };
+    if (r === "waiting") return { kind: "reading" };
+    const l = wallet.last ?? { lines: [] };
+    return r === "ok" ? { kind: "scan", info: { ok: l.ok, bytes: l.bytes, lines: l.rows } } : { kind: "scan", info: { lines: l.lines } };
+  }
+  // The last action is the one the card shows (tones still sending go on).
+  root.querySelector(".wd-scan").addEventListener("click", () => { sending = null; card = scanCard(wallet.scan()); });
 
   function frame(now) {
-    const dt = (now - last) * speedFor(sim, fast.checked && mode === "sim-wallet");
+    const who = whoSwitch.who;
+    const dt = (now - last) * speedFor(sim, fast.checked && who === "sim");
     last = now;
     const { dirty, echo: lines } = sim.advance(dt);
     for (const l of lines) {
@@ -295,11 +365,9 @@ export async function start(doc, loadModule) {
     }
     // While scanning, the wallet takes the signed PSBT as soon as it is there.
     if (wallet.scanning && !sim.qrShown()) wallet.scanning = false;
-    // While scanning, the wallet reads what the QR holds as soon as it is there.
-    if (wallet.scanning && walletNote === S["wallet.waiting"]) {
-      const r = wallet.scan();
-      if (r !== "waiting") { walletNote = r === "ok" ? S["wallet.got"] : ""; checkText = wallet.last?.lines.join("\n") ?? ""; }
-    }
+    // While scanning, the wallet reads what the QR holds as soon as it is
+    // there; if the QR goes away first, it sees none.
+    if (card?.kind === "reading") card = wallet.scanning ? scanCard(wallet.scan()) : { kind: "noqr" };
     // The buttons: down while the firmware is given them.
     if (sim.cls !== lastCls) {
       lastCls = sim.cls;
@@ -313,9 +381,8 @@ export async function start(doc, loadModule) {
     wallet.watch();
     const warn = wallet.mismatch();
     if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }
-    if (checkText !== lastCheck) { wdCheck.textContent = checkText; lastCheck = checkText; }
     // Light what is active, only when it changes.
-    const active = activeChannels({ mode, queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
+    const active = activeChannels({ mode: who === "yours" ? "your-wallet" : "sim-wallet", queued: sim.queued, listening: sim.listening(), qrShown: sim.qrShown(),
       scanning: wallet.scanning, micOn: micSwitch.on, micDbfs });
     const key = [...active].sort().join(" ");
     if (key !== lastActive) {
@@ -335,9 +402,13 @@ export async function start(doc, loadModule) {
       draw(ctx, img, sim.frame(), sim.contrast());
       screenText.textContent = sim.lines().join("\n").replace(/\s+$/gm, "");
     }
-    const left = Math.ceil(sim.queued / RATE);
-    const text = left > 0 ? S["wallet.sending"].replace("{seconds}", String(left)) : walletNote || S["wallet.idle"];
-    if (text !== lastLine) { wdStatus.textContent = text; lastLine = text; }
+    // The wallet's card: what is being sent, from the first tone (the signer
+    // may show it before the last one); on yours, listening.
+    if (sending && sim.queued === 0) { card = sending.then; sending = null; }
+    if (sending) showCard("sim", { kind: "sending", info: { what: sending.what, seconds: Math.ceil(sim.queued / RATE),
+      progress: Math.round(50 * (1 - sim.queued / sending.total)) / 50 } }, sending.then);
+    else showCard("sim", card);
+    showCard("yours", micSwitch.on ? { kind: "listening" } : null);
     requestAnimationFrame(frame);
   }
   draw(ctx, img, sim.frame(), sim.contrast());

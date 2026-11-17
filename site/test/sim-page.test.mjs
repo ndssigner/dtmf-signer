@@ -68,15 +68,15 @@ test("four times faster only while tones play and no button is down", () => {
 });
 test("no numbered steps or paragraphs of help: icons and tooltips instead", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
-  const sim = html.slice(html.indexOf('id="sim"'), html.indexOf('id="sim-data"'));
+  // The first-time hint is the one list, folded away (its own test below).
+  const sim = html.slice(html.indexOf('id="sim"'), html.indexOf('id="sim-data"')).replace(/<details class="first">[\s\S]*?<\/details>/, "");
   assert.doesNotMatch(sim, /<ol>/);
   assert.doesNotMatch(sim, /sim\.step/);
   assert.match(sim, /data-tip="/);
 });
-test("both modes and every port of the bench are on the page", { skip: SKIP }, () => {
+test("every port of the bench is on the page", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
-  for (const m of ["sim-wallet", "your-wallet"]) assert.match(html, new RegExp(`data-mode="${m}"`));
-  for (const p of ["signer.5v", "signer.qr", "signer.in", "sim-wallet.camera", "sim-wallet.jack", "your-wallet.camera", "your-wallet.jack", "charger.usb"])
+  for (const p of ["signer.5v", "signer.qr", "signer.in", "wallet.camera", "wallet.jack", "charger.usb"])
     assert.match(html, new RegExp(`class="port[^"]*"[^>]*data-port="${p.replace(".", "\\.")}"`), p);
   for (const m of html.matchAll(/<span class="port[^>]*>/g)) assert.match(m[0], /aria-label="[^"]+"/);
 });
@@ -87,7 +87,7 @@ test("the real screen and buttons sit inside the signer's block", { skip: SKIP }
   assert.ok(block.indexOf("sim-oled") > 0 && block.indexOf("sim-oled") < end);
   assert.ok(block.indexOf('data-btn="ok"') > 0 && block.indexOf('data-btn="ok"') < end);
 });
-test("mode 2 says it is only for trying, in both languages", { skip: SKIP }, () => {
+test("your own wallet says it is only for trying, in both languages", { skip: SKIP }, () => {
   assert.ok(text(files, "en/cable-qr/index.html").includes("Only for trying it out: this build is meant to be used with an audio cable."));
   assert.ok(text(files, "es/cable-qr/index.html").includes("Solo para probarlo: esta implementación está pensada para usarse con cable de audio."));
 });
@@ -117,18 +117,18 @@ test("text shown in English on another language's page is marked lang=en", () =>
   assert.match(text(buildInto(FIX), "xx/index.html"), /<div lang="en">/);
 });
 
-test("each mode's text alternative describes its own connections", { skip: SKIP }, () => {
+test("the text alternative describes the connections, the cable and your own device's", { skip: SKIP }, () => {
   const html = text(files, "en/cable-qr/index.html");
-  const yp = /<ul class="connections[^"]*" data-modes="your-wallet"[^>]*>([\s\S]*?)<\/ul>/.exec(html);
-  assert.ok(yp, "your-wallet list");
-  assert.match(yp[1], /microphone/i);
-  assert.doesNotMatch(yp[1], /Tones by cable/);
+  const lists = [...html.matchAll(/<ul class="connections[^"]*"[^>]*>([\s\S]*?)<\/ul>/g)];
+  assert.equal(lists.length, 1);
+  assert.match(lists[0][1], /headphone/i);
+  assert.match(lists[0][1], /microphone/i);
 });
 
 test("the wallet is never called a phone (the telephone is the exchange's)", { skip: SKIP }, () => {
   const es = text(files, "es/cable-qr/index.html"), en = text(files, "en/cable-qr/index.html");
-  for (const t of ["Wallet simulada", "Tu wallet", "Tu dispositivo con wallet"]) assert.ok(es.includes(t), t);
-  for (const t of ["Simulated wallet", "Your wallet", "Your wallet device"]) assert.ok(en.includes(t), t);
+  for (const t of ["🧪 Simulada", "📱 La tuya"]) assert.ok(es.includes(t), t);
+  for (const t of ["🧪 Simulated", "📱 Yours"]) assert.ok(en.includes(t), t);
   assert.doesNotMatch(es, /class="(ph|yp)-/);
   const sim = (h) => /<div class="simulator"[\s\S]*?<script type="application\/json"/.exec(h)[0];
   assert.doesNotMatch(sim(es), /móvil simulado|smartphone/i);
@@ -141,7 +141,7 @@ test("the simulated wallet has a network selector, a stop button, a mismatch mar
   assert.match(html, /<select class="wd-net"[^>]*>\s*<option value="mainnet"[^>]*>mainnet<\/option>\s*<option value="testnet"[^>]*>testnet<\/option>/);
   assert.match(html, /<button type="button" class="wd-stop"/);
   assert.match(html, /<span class="wd-warn"[^>]*hidden/);
-  assert.match(html, /<p class="wd-check" aria-live="polite">/);
+  assert.match(html, /<div class="wl-card" aria-live="polite">/);
 });
 
 test("every file of the simulator is published", { skip: SKIP }, async () => {
@@ -162,7 +162,7 @@ test("the phone notice is on the page, hidden until a phone is seen", { skip: SK
 });
 test("your wallet names its tools: ur-tones for the tones, a compatible wallet to scan", { skip: SKIP }, () => {
   const html = text(files, "es/cable-qr/index.html");
-  const yw = /<section class="mod mod-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  const yw = /<div class="wl-yours" data-panel="yours"[\s\S]*?<\/section>/.exec(html)[0];
   assert.match(yw, /<a class="yw-urtones" href="https:\/\/ndssigner\.github\.io\/ur-tones\/"/);
   assert.match(yw, /<a class="yw-scan" href="https:\/\/nunchuk\.io\/"/);
   assert.ok(yw.includes("Nunchuk"));
@@ -307,7 +307,7 @@ for (const [slug, skip, types] of BENCHES) {
     const html = text(files, `en/${slug}/index.html`);
     assert.doesNotMatch(html, /class="blk|class="lg-|type-(power|audio|light|phone|air)/);
     const mods = [...html.matchAll(/<section class="([^"]*)" data-module=/g)].map((m) => m[1]);
-    assert.ok(mods.length >= 4);
+    assert.ok(mods.length >= 3);
     for (const c of mods) assert.match(c, /^mod mod-[a-z-]+$/, c);
     const ports = [...html.matchAll(/<span class="(port [^"]*)" data-port="([^"]+)"/g)];
     assert.ok(ports.length >= 4);
@@ -321,4 +321,55 @@ test("both simulators draw links as c-<type> paths, busy while they carry someth
     assert.match(ui, /classList\.toggle\("busy"/, f);
     assert.doesNotMatch(ui, /"link |\.links"|"active"|blk-/, f);
   }
+});
+
+// ---- Cable y QR: the wallet as one phone, simulated or yours ----
+test("one wallet module, the selector inside it, its two ports labelled, no mode tabs", { skip: SKIP }, () => {
+  for (const [lang, cam, jack] of [["es", "cámara", "auriculares"], ["en", "camera", "headphones"]]) {
+    const html = text(files, `${lang}/cable-qr/index.html`);
+    assert.doesNotMatch(html, /class="sim-modes"|role="tab"|<button[^>]*data-mode=/, lang);
+    assert.doesNotMatch(html, /data-module="(sim|your)-wallet"/, lang);
+    const mods = [...html.matchAll(/<section class="mod mod-wallet" data-module="wallet"/g)];
+    assert.equal(mods.length, 1, lang);
+    const w = /<section class="mod mod-wallet" data-module="wallet"[\s\S]*?<\/section>/.exec(html)[0];
+    const seg = /<div class="seg" role="group" aria-label="[^"]+">([\s\S]*?)<\/div>/.exec(w);
+    assert.ok(seg, `${lang}: the selector is inside the wallet`);
+    assert.match(seg[1], /<button type="button" data-who="sim" aria-pressed="true"[^>]*>🧪 /);
+    assert.match(seg[1], /<button type="button" data-who="yours" aria-pressed="false"[^>]*>📱 /);
+    assert.match(w, /<div class="wl-sim" data-panel="sim">/);
+    assert.match(w, /<div class="wl-yours" data-panel="yours" hidden>/);
+    assert.match(w, /<span class="port p-light edge-signer-side" data-port="wallet\.camera" data-type="light" data-dir="in"[^>]*aria-label="[^"]+"[^>]*>[^<]*/);
+    assert.match(w, /<span class="port p-audio edge-signer-side" data-port="wallet\.jack" data-type="audio" data-dir="out"[^>]*aria-label="[^"]+"[^>]*>[^<]*/);
+    assert.ok(/data-port="wallet\.camera"[^>]*>([^<]+)</.exec(w)[1].includes(cam), lang);
+    assert.ok(/data-port="wallet\.jack"[^>]*>([^<]+)</.exec(w)[1].includes(jack), lang);
+  }
+});
+test("the simulated wallet shows its account and three actions; the footer its network, sound and speed", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  const sim = /<div class="wl-sim" data-panel="sim">[\s\S]*?<div class="wl-yours"/.exec(html)[0];
+  const acct = /<dl class="wl-acct">([\s\S]*?)<\/dl>/.exec(sim)[1];
+  for (const t of ["1234", "73c5da0a", "mainnet", "PIN"]) assert.ok(acct.includes(t), t);
+  assert.match(acct, /<dd class="wl-fp">73c5da0a<\/dd>/);
+  const acts = /<div class="wl-acts">([\s\S]*?)<\/div>/.exec(sim)[1];
+  assert.deepEqual([...acts.matchAll(/class="(wd-[a-z]+)"/g)].map((m) => m[1]), ["wd-seed", "wd-psbt", "wd-scan"]);
+  for (const t of ["🌱", "₿", "📷", "Semilla", "Pagar", "Escanear"]) assert.ok(acts.includes(t), t);
+  const foot = /<div class="wl-foot">([\s\S]*?)<\/div>/.exec(sim)[1];
+  for (const c of ["wd-net", "wd-stop", "wd-sound", "wd-fast"]) assert.match(foot, new RegExp(`class="${c}"`), c);
+});
+test("your wallet: this computer's microphone, a level, and the tools", { skip: SKIP }, () => {
+  const html = text(files, "es/cable-qr/index.html");
+  const yw = /<div class="wl-yours" data-panel="yours"[\s\S]*?<\/section>/.exec(html)[0];
+  for (const c of ["yw-mic", "yw-cam", "mic-toggle", "mic-level", "mic-note", "wl-card"]) assert.match(yw, new RegExp(`class="${c}"`), c);
+  assert.ok(yw.includes("este ordenador"));
+});
+test("the first-time hint: a folded list, closed in the page, open on a first visit by script only", { skip: SKIP }, () => {
+  for (const lang of ["es", "en"]) {
+    const html = text(files, `${lang}/cable-qr/index.html`);
+    const d = /<details class="first">\s*<summary>([^<]+)<\/summary>\s*<ol>([\s\S]*?)<\/ol>\s*<\/details>/.exec(html);
+    assert.ok(d, lang);
+    assert.equal((d[2].match(/<li>/g) ?? []).length, 4, lang);
+    for (const t of ["🌱", "₿", "📷", "Load seed", "Sign PSBT"]) assert.ok(d[2].includes(t), `${lang}: ${t}`);
+    assert.ok(html.indexOf('class="first"') < html.indexOf('class="bench"'), "above the bench");
+  }
+  assert.ok(text(files, "es/cable-qr/index.html").includes("¿Primera vez? Prueba esto"));
 });

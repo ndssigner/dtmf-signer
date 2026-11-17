@@ -28,17 +28,17 @@ test("a missing I/O capability is refused", () => {
 });
 test("a link between ports of different types is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "sim-wallet.camera", to: "signer.in", channel: "x" });
+  p.bench.modes[0].links.push({ from: "wallet.camera", to: "signer.in", channel: "x" });
   assert.ok(validateBench(p.bench).length > 0);
 });
 test("a link to a port that does not exist is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "sim-wallet.nope", to: "signer.in", channel: "x" });
-  assert.ok(validateBench(p.bench).some((e) => e.includes("sim-wallet.nope")));
+  p.bench.modes[0].links.push({ from: "wallet.nope", to: "signer.in", channel: "x" });
+  assert.ok(validateBench(p.bench).some((e) => e.includes("wallet.nope")));
 });
 test("a link running against its ports' directions is refused", () => {
   const p = profile();
-  p.bench.modes[0].links.push({ from: "signer.in", to: "sim-wallet.jack", channel: "x" });
+  p.bench.modes[0].links.push({ from: "signer.in", to: "wallet.jack", channel: "x" });
   assert.ok(validateBench(p.bench).length > 0);
 });
 test("orientation turns at 720 px", () => {
@@ -87,8 +87,8 @@ test("an air port linked to an audio port is refused", () => {
   wallet.ports.find((x) => x.id === "speaker-near").type = "audio";
   assert.ok(validateBench(p.bench).some((e) => /audio to air/.test(e)), validateBench(p.bench).join("\n"));
   const q = profile();
-  q.bench.modules.find((m) => m.id === "sim-wallet").ports.push({ id: "spk", edge: "top", type: "air", dir: "out", label: "x" });
-  q.bench.modes[0].links.push({ from: "sim-wallet.spk", to: "signer.in", channel: "x" });
+  q.bench.modules.find((m) => m.id === "wallet").ports.push({ id: "spk", edge: "top", type: "air", dir: "out", label: "x" });
+  q.bench.modes[0].links.push({ from: "wallet.spk", to: "signer.in", channel: "x" });
   assert.ok(validateBench(q.bench).some((e) => /air to audio/.test(e)));
 });
 test("an unknown port type is refused", () => {

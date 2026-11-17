@@ -103,6 +103,8 @@ export class SimWallet {
     const sig = scanCheck(r, this.pair(), S);
     this.el.out.value = r.base64;
     this.el.out.hidden = false;
-    return { ok: sig.ok, lines: [...held, ...sig.lines, S["wallet.no_broadcast"]] };
+    // lines: all of it as text; bytes and rows (what it holds, the
+    // signature) for the wallet's card, which says the rest itself.
+    return { ok: sig.ok, lines: [...held, ...sig.lines, S["wallet.no_broadcast"]], bytes: r.bytes, rows: [...held, ...sig.lines.slice(1)] };
   }
 }

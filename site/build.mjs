@@ -255,7 +255,9 @@ const UR_TONES_JS = join(HERE, "..", "third_party", "ur-tones", "web", "src");
 const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no_qr", "wallet.waiting", "wallet.got",
   "wallet.qr_repo", "wallet.qr_account", "wallet.qr_xpub", "wallet.no_broadcast", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported", "status.idle", "status.line_in", "status.listening",
   "status.qr", "status.camera", "status.mic", "wallet.check_seed", "wallet.out", "wallet.change", "wallet.fee",
-  "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes"];
+  "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "card.sending", "card.what_seed", "card.what_psbt", "card.seed_title",
+  "card.pin", "card.fp", "card.seed_note", "card.psbt_title", "card.send", "card.to", "card.change", "card.fee", "card.total", "card.psbt_note",
+  "card.scan_ok", "card.scan_bad", "card.scan_qr", "card.size", "card.noqr_note", "card.listening", "card.listening_note"];
 // The Centralita's (voice-ui.mjs).
 const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.check_seed", "wallet.out", "wallet.change",
   "wallet.fee", "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "wallet.no_broadcast", "wallet.got", "wallet.keypad_code",
@@ -308,6 +310,8 @@ ${buttons}
 </div>
 </div>`;
     }
+    case "wallet":
+      return walletBody(tr, sim, module);
     case "sim-wallet":
       if (module.air) return airWallet(tr, sim);
       return `<div class="wd-screen">
@@ -342,6 +346,71 @@ ${buttons}
     default:
       throw new Error(`no block for kind ${kind}`);
   }
+}
+
+// The wallet (Cable y QR): one phone with an app, its connectors on its
+// edge; who runs the app is chosen inside it, the simulated wallet or your
+// own device (this computer's microphone hearing its speaker). The card
+// area shows what you need for what you just did (ui.mjs fills it).
+function walletBody(tr, sim, module) {
+  const e = (k, params) => escapeHtml(tr(k, params));
+  // The page starts on mainnet, as the selector does; ui.mjs follows it.
+  const fp = sim.nets?.mainnet?.fingerprint ?? "";
+  const act = (cls, icon, label, tipKey) =>
+    `<button type="button" class="${cls}" ${tip(tr(tipKey), false)}><span aria-hidden="true">${icon}</span>${e(label)}</button>`;
+  return `<div class="wl-screen">
+<div class="wl-bar"><h3 class="mod-title">${e(module.title)}</h3>
+<div class="seg" role="group" aria-label="${e("bench.who")}"><button type="button" data-who="sim" aria-pressed="true" ${tip(tr("wallet.who_sim_tip"), false)}>${e("wallet.who_sim")}</button><button type="button" data-who="yours" aria-pressed="false" ${tip(tr("wallet.who_yours_tip"), false)}>${e("wallet.who_yours")}</button></div>
+</div>
+<div class="wl-sim" data-panel="sim">
+<dl class="wl-acct"><dt>${e("wallet.account")}</dt><dd>${e("wallet.account_test")}</dd>
+<dt>${e("wallet.fingerprint")}</dt><dd class="wl-fp">${escapeHtml(fp)}</dd>
+<dt>${e("wallet.pin")}</dt><dd>${escapeHtml(sim.pin ?? "")}</dd>
+<dt>${e("wallet.net")}</dt><dd><span class="wl-net">mainnet</span> <span class="wd-warn" ${tip(tr("wallet.mismatch"))} aria-label="${e("wallet.mismatch")}" hidden>⚠</span></dd></dl>
+<div class="wl-acts">${act("wd-seed", "🌱", "wallet.act_seed", "wallet.seed_tip")}${act("wd-psbt", "₿", "wallet.act_pay", "wallet.psbt_tip")}${act("wd-scan", "📷", "wallet.act_scan", "wallet.scan_tip")}</div>
+<div class="wl-card" aria-live="polite"></div>
+<textarea class="wd-out" readonly rows="3" hidden aria-label="${e("wallet.got")}"></textarea>
+<div class="wl-foot"><label ${tip(tr("wallet.network_tip"), false)}>${e("wallet.net")}
+<select class="wd-net" autocomplete="off" aria-label="${e("wallet.network")}">
+<option value="mainnet">mainnet</option>
+<option value="testnet">testnet</option>
+</select></label>
+<button type="button" class="wd-stop" aria-label="${e("wallet.stop")}" ${tip(tr("wallet.stop"), false)}><span aria-hidden="true">⏹</span></button>
+<label ${tip(tr("sim.sound"), false)}><input type="checkbox" class="wd-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("sim.sound")}</span></label>
+<label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></div>
+</div>
+<div class="wl-yours" data-panel="yours" hidden>
+<p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
+<p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>
+<button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
+<meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
+<div class="wl-card" aria-live="polite"></div>
+<p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
+<a class="yw-scan" href="${escapeHtml(sim.tools?.nunchuk ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.scan_tip"), false)}><span aria-hidden="true">📷</span> ${e("yw.scan")}</a></p>
+<p class="mic-note">${e("mic.note")}</p>
+</div>
+</div>`;
+}
+
+// The first time on a simulator: a static, foldable list of what to try,
+// closed in the page; ui.mjs opens it on a first visit only. Nothing in it
+// tracks, highlights or blocks: the bench is free to use from the start.
+function firstHint(tr) {
+  const b = (icon, key) => `<b>${icon} ${escapeHtml(tr(key))}</b>`;
+  const step = (key, params = {}) => {
+    let t = escapeHtml(tr(key));
+    for (const [k, v] of Object.entries(params)) t = t.replace(`{${k}}`, v);
+    return `<li>${t}</li>`;
+  };
+  return `<details class="first">
+<summary>${escapeHtml(tr("first.title"))}</summary>
+<ol>
+${step("first.1", { seed: b("🌱", "wallet.act_seed") })}
+${step("first.2")}
+${step("first.3", { pay: b("₿", "wallet.act_pay") })}
+${step("first.4", { scan: b("📷", "wallet.act_scan") })}
+</ol>
+</details>`;
 }
 
 // Your own wallet device next to a telephone's handset: this computer's
@@ -442,7 +511,8 @@ function simulatorBlock(site, tr, p, root, lang) {
   // built in), and what it can say.
   const pack = voice && s.packs?.[lang] ? lang : null;
   const extra = voice ? { pack, phrases: voicePhrases(pack ? ["en", pack] : ["en"]) } : { tools: s.tools };
-  const data = JSON.stringify({ pin: s.pin, networks: simNetworks(site, p), ...extra, repo: site.config.repo, strings, links }).replace(/</g, "\\u003c");
+  const nets = simNetworks(site, p);
+  const data = JSON.stringify({ pin: s.pin, networks: nets, ...extra, repo: site.config.repo, strings, links }).replace(/</g, "\\u003c");
   const e = (k, params) => escapeHtml(tr(k, params));
   const first = bench.modes[0];
   const label = (l) => (l.startsWith("bench.") ? tr(l) : l);
@@ -454,9 +524,8 @@ function simulatorBlock(site, tr, p, root, lang) {
     }).join("\n");
     const hidden = first.modules.includes(m.id) ? "" : " hidden";
     return `<section class="mod mod-${m.kind}" data-module="${m.id}"${m.air ? " data-air" : ""} data-column="${m.column}" data-modes="${modesOf(m.id)}" aria-label="${e(m.title)}"${hidden}>
-<h3 class="mod-title">${e(m.title)}</h3>
-${ports}
-${blockBody(m.kind, tr, s, m)}
+${m.kind === "wallet" ? "" : `<h3 class="mod-title">${e(m.title)}</h3>\n`}${ports}
+${blockBody(m.kind, tr, { ...s, nets }, m)}
 </section>`;
   };
   const column = (c) => `<div class="col col-${c}">\n${bench.modules.filter((m) => m.column === c).map(block).join("\n")}\n</div>`;
@@ -471,10 +540,10 @@ ${m.links.map((l) => `<li>${e(`bench.link.${m.id}.${l.channel}`)}</li>`).join("\
   return `<div class="simulator" id="sim"${voice ? ' data-firmware="voice"' : ""}>
 <p class="sim-mobile" hidden><span aria-hidden="true">📱</span> ${e("sim.mobile")} <button type="button" class="sim-mobile-close" aria-label="${e("sim.close")}">✕</button></p>
 <p class="sim-warning" ${tip(tr("sim.warning"))}><span aria-hidden="true">⚠</span> ${e("sim.warning_short")}</p>
-<div class="sim-modes" role="tablist" aria-label="${e("bench.modes")}"${bench.modes.length < 2 ? " hidden" : ""}>
+${bench.modules.some((m) => m.kind === "wallet") ? firstHint(tr) + "\n" : ""}${bench.modes.length < 2 ? "" : `<div class="sim-modes" role="tablist" aria-label="${e("bench.modes")}">
 ${modes}
 </div>
-<div class="bench" data-mode="${first.id}" data-orient="h">
+`}<div class="bench" data-mode="${first.id}" data-orient="h">
 ${column("power")}
 ${column("signer")}
 ${column("peer")}
