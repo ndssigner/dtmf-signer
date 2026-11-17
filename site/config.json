@@ -440,5 +440,13 @@
   "donate": {
     "bitcoin": "bc1qx5snc0wlc8cg9gwxhyx27y6pkru8rnngyq7uja",
     "lightning": "ndssigner@coinos.io"
+  },
+  "urtones": {
+    "spec": "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md",
+    "web": "https://ndssigner.github.io/ur-tones/"
+  },
+  "spec": {
+    "en": "SPEC.md",
+    "es": "docs/es/especificacion.md"
   }
 }

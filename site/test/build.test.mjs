@@ -34,7 +34,7 @@ test("home pages in each language", () => {
   const files = buildInto();
   assert.match(text(files, "en/index.html"), /<html lang="en"/);
   assert.match(text(files, "es/index.html"), /<html lang="es"/);
-  assert.match(text(files, "es/index.html"), /Inicio/);
+  assert.match(text(files, "es/index.html"), /Montajes/);
   assert.doesNotMatch(text(files, "es/index.html"), /not translated/);
 });
 test("an incomplete language builds with English and the notice", () => {
@@ -52,5 +52,29 @@ test("no page repeats an id", () => {
     if (!path.endsWith(".html")) continue;
     const ids = [...bytes.toString("utf8").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
     assert.deepEqual(ids.filter((id, i) => ids.indexOf(id) !== i), [], path);
+  }
+});
+
+const header = (files, path) => text(files, path).match(/<header[\s\S]*?<\/header>/)[0];
+const URTONES = { spec: "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md", web: "https://ndssigner.github.io/ur-tones/" };
+test("the header has builds, downloads, specification and the other language", () => {
+  const files = buildInto();
+  const en = header(files, "en/index.html"), es = header(files, "es/index.html");
+  assert.match(en, /<nav class="site">[\s\S]*href="\.\.\/en\/#builds">Builds<[\s\S]*href="\.\.\/en\/downloads\/">Downloads<[\s\S]*SPEC\.md[^>]*>Specification</);
+  assert.match(es, /href="\.\.\/es\/#builds">Montajes</);
+  assert.match(es, /href="\.\.\/es\/downloads\/">Descargas</);
+  assert.match(es, /blob\/main\/docs\/es\/especificacion\.md"[^>]*>Especificaci\u00f3n</);
+  assert.match(es, /href="\.\.\/en\/" hreflang="en"/);
+  assert.match(en, /href="\.\.\/es\/" hreflang="es"/);
+  assert.equal([...en.matchAll(/<a /g)].length, 5, "brand, three links, one language");
+});
+test("the footer links to the ur-tones spec and web tool", () => {
+  const files = buildInto();
+  for (const [path, label] of [["en/index.html", "Speaks ur-tones"], ["es/downloads/index.html", "Habla ur-tones"]]) {
+    const foot = text(files, path).match(/<footer[\s\S]*?<\/footer>/)[0];
+    assert.ok(foot.includes(label), path);
+    assert.ok(foot.includes(`href="${URTONES.spec}"`), path);
+    assert.ok(foot.includes(`href="${URTONES.web}"`), path);
+    assert.match(foot, /abc1234/);
   }
 });

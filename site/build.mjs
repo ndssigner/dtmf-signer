@@ -391,7 +391,7 @@ export function build({ siteDir, outDir, commit }) {
       console.error(`warning: no simulator for ${p.slug} (build/wasm/${simModule(p)} missing: run tools/build-wasm.sh)`);
   const files = new Map();
   // Downloads and donations are optional in config.json ("release", "donate").
-  const nav = [{ key: "nav.home", href: "" }];
+  const nav = [{ key: "nav.builds", href: "#builds" }];
   if (site.config.release) nav.push({ key: "nav.downloads", href: "downloads/" });
 
   files.set("index.html", Buffer.from(rootPage(site)));

@@ -40,8 +40,13 @@ function head(lang, title, root, wasm = false) {
 // wasm: the page runs WebAssembly (the simulator), and only that page may.
 export function layout({ site, lang, tr, root, title, body, path, nav, fallback, wasm = false }) {
   const repo = escapeHtml(site.config.repo);
+  // The specification lives in the repository, in the page's language when
+  // it has one (config.spec: language -> path, English as the fallback).
+  const specPath = site.config.spec?.[lang] ?? site.config.spec?.en;
   const links = nav.map(({ key, href }) =>
-    `<a href="${root}${lang}/${href}">${escapeHtml(tr(key))}</a>`).join("\n");
+    `<a href="${root}${lang}/${href}">${escapeHtml(tr(key))}</a>`);
+  if (specPath)
+    links.push(`<a href="${repo}/blob/main/${escapeHtml(specPath)}" rel="noopener noreferrer">${escapeHtml(tr("nav.spec"))}</a>`);
   const langs = site.config.languages.map(({ code }) => {
     const name = escapeHtml(t(site, code, "lang.name").text);
     return code === lang
@@ -49,6 +54,10 @@ export function layout({ site, lang, tr, root, title, body, path, nav, fallback,
       : `<a href="${root}${code}/${path}" hreflang="${code}" data-lang="${code}">${name}</a>`;
   }).join("\n");
   const footer = escapeHtml(tr("footer.built", { commit: site.commit }));
+  const ur = site.config.urtones;
+  const urLinks = ur
+    ? `<span class="urtones">${escapeHtml(tr("footer.urtones"))}: <a href="${escapeHtml(ur.spec)}" rel="noopener noreferrer">${escapeHtml(tr("footer.urtones_spec"))}</a> · <a href="${escapeHtml(ur.web)}" rel="noopener noreferrer">${escapeHtml(tr("footer.urtones_web"))}</a></span>`
+    : "";
   const repoLink = `<a href="${repo}" rel="noopener noreferrer">${escapeHtml(tr("nav.repo"))}</a>`;
   // Read last: tr() above may have used English.
   const notice = fallback || tr.fallback
@@ -56,11 +65,10 @@ export function layout({ site, lang, tr, root, title, body, path, nav, fallback,
     : "";
   return `${head(lang, title, root, wasm)}
 <body>
-<header>
+<header class="top">
 <a class="brand" href="${root}${lang}/">DTMF-Signer</a>
 <nav class="site">
-${links}
-${repoLink}
+${links.join("\n")}
 </nav>
 <nav class="langs">
 ${langs}
@@ -69,7 +77,9 @@ ${langs}
 ${notice}<main>
 ${body}
 </main>
-<footer><p>${footer}</p></footer>
+<footer><p>${footer}</p>
+${repoLink}
+${urLinks}</footer>
 </body>
 </html>
 `;

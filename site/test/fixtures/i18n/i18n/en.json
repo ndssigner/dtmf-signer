@@ -3,6 +3,11 @@
   "fallback.notice": "Part of this page is not translated yet.",
   "nav.home": "Home",
   "nav.downloads": "Downloads",
+  "nav.builds": "Builds",
+  "nav.spec": "Specification",
+  "footer.urtones": "Speaks ur-tones",
+  "footer.urtones_spec": "Protocol",
+  "footer.urtones_web": "Web tool",
   "nav.repo": "Repository",
   "footer.built": "Built from {commit}"
 }
