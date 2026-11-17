@@ -13,9 +13,28 @@ test("downloads page in each language with the latest release's files", () => {
     const html = text(files, `${lang}/downloads/index.html`);
     assert.ok(html.includes(`href="${REL}dtmf-signer-pico.uf2"`), lang);
     assert.ok(html.includes(`href="${REL}SHA256SUMS"`), lang);
-    assert.match(html, /href="\.\.\/cable-qr\/build\/#layout"/, lang);
     assert.match(html, /v0\.2\.0-alpha/, lang);
     assert.ok(html.includes('href="https://github.com/ndssigner/dtmf-signer/releases"'), lang);
+  }
+});
+test("the downloads page lists each build: firmware or not yet, packs with hash, files", () => {
+  const bytes = readFileSync(new URL("../../app/voice/packs/es.bin", import.meta.url));
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  for (const lang of ["en", "es"]) {
+    const html = text(files, `${lang}/downloads/index.html`);
+    const sec = (slug) => new RegExp(`<section class="dl-build" id="${slug}">([\\s\\S]*?)</section>`).exec(html)?.[1];
+    const a = sec("cable-qr"), c = sec("centralita");
+    assert.ok(a && c, lang);
+    assert.ok(a.includes(`${REL}dtmf-signer-pico.uf2`), lang);
+    assert.match(a, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
+    assert.ok(!c.includes("dtmf-signer-pico.uf2"), lang);
+    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/centralita\/status\/">/, lang);
+    const row = /<li class="pack">([\s\S]*?)<\/li>/.exec(c);
+    assert.equal(/<code class="sha">([0-9a-f]{64})<\/code>/.exec(row?.[1])?.[1], sha, lang);
+    assert.ok(row[1].includes(`${Math.round(bytes.length / 1024)} KiB`), lang);
+    assert.match(c, /make_uf2\.py --offset/, lang);
+    assert.match(c, lang === "es" ? /Compruébalo antes de instalarlo/ : /Check it before installing it/, lang);
+    assert.ok(!a.includes('class="pack"'), lang);
   }
 });
 test("the navigation links to downloads", () => {

@@ -41,6 +41,7 @@
   "downloads.firmware_none": "Firmware",
   "downloads.packs": "Paquetes de idioma",
   "downloads.verify": "Compruébalo antes de instalarlo: su SHA-256 debe ser este.",
+  "downloads.install": "Instala un paquete con tools/voice/make_uf2.py --offset (mira su cabecera).",
   "downloads.files": "Archivos para construirlo",
   "status.hardware": "Hardware",
   "status.firmware": "Firmware",

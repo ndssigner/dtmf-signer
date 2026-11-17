@@ -113,10 +113,7 @@ function buildPages(site, lang, p, page) {
   const rows = existsSync(bom) ? parseCsv(readFileSync(bom, "utf8")) : null;
   const status = parseStatus(readFileSync(join(repoRoot, p.hardware, "status.json"), "utf8"));
   const slug = escapeHtml(p.slug);
-  const files = (root) => (p.files ?? []).map((f) => {
-    const name = escapeHtml(basename(f));
-    return `<li><a href="${root}files/${slug}/${name}">${name}</a></li>`;
-  }).join("\n");
+  const files = (root) => buildFiles(p, root);
 
   for (const [tab, key] of TABS) {
     page(`${p.slug}/${tab}`, (tr, root) => {
@@ -171,10 +168,20 @@ ${tabs}
   }
 }
 
+// The links to a build's layout and parts files.
+const buildFiles = (p, root) => (p.files ?? []).map((f) => {
+  const name = escapeHtml(basename(f));
+  return `<li><a href="${root}files/${escapeHtml(p.slug)}/${name}">${name}</a></li>`;
+}).join("\n");
+
 // A build's downloads: its released firmware (or where it stands), its
 // language packs with their size and hash, and the files for building it.
-function downloadsTab(site, tr, p, status, root, files, notYet) {
+// On the downloads page the same block sits under the build's name, one
+// heading level lower (h = 3) and with ids prefixed by the build.
+function downloadsTab(site, tr, p, status, root, files, notYet, h = 2, pre = "") {
   const e = (k, params) => escapeHtml(tr(k, params));
+  // One release for now (site.config.release), so only one build can have it:
+  // a second released build will need its own release per build.
   const rel = site.config.release;
   let firmware = notYet;
   if (rel && released(status)) {
@@ -190,17 +197,18 @@ function downloadsTab(site, tr, p, status, root, files, notYet) {
     `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(t(site, k.lang, "lang.name").text)}, ${kib(k.size)})<br>
 <span class="sha-label">SHA-256</span> <code class="sha">${k.sha256}</code></li>`).join("\n");
   const packBlock = packs ? `
-<h2 id="packs">${e("downloads.packs")}</h2>
+<h${h} id="${pre}packs">${e("downloads.packs")}</h${h}>
 <ul class="packs">
 ${packs}
 </ul>
-<p class="verify"><span aria-hidden="true">🔎</span> ${e("downloads.verify")}</p>` : "";
+<p class="verify"><span aria-hidden="true">🔎</span> ${e("downloads.verify")}</p>
+<p class="install">${e("downloads.install")}</p>` : "";
   const fileBlock = files ? `
-<h2 id="files">${e("downloads.files")}</h2>
+<h${h} id="${pre}files">${e("downloads.files")}</h${h}>
 <ul>
 ${files}
 </ul>` : "";
-  return `<h2 id="firmware">${fwTitle}</h2>
+  return `<h${h} id="${pre}firmware">${fwTitle}</h${h}>
 ${firmware}${packBlock}${fileBlock}`;
 }
 
@@ -221,23 +229,18 @@ ${fig("donate-lightning.png", "Lightning", lightning)}
 
 function downloadsPage(site, lang, tr, root) {
   const { html, fallback } = content(site, lang, "downloads");
-  // A pinned tag, not /releases/latest: that one skips pre-releases.
-  const { tag, uf2, sums } = site.config.release;
-  const latest = `${site.config.repo}/releases/download/${tag}/`;
-  const layouts = site.config.profiles.filter((p) => p.image).map((p) =>
-    `<li><a href="../${p.slug}/build/#layout">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${p.id}</code></li>`).join("\n");
+  const repoRoot = join(site.dir, "..");
+  const builds = site.config.profiles.map((p) => {
+    const status = parseStatus(readFileSync(join(repoRoot, p.hardware, "status.json"), "utf8"));
+    const notYet = `<p class="not-yet">${escapeHtml(tr("build.not_yet"))} <a href="../${escapeHtml(p.slug)}/status/">${escapeHtml(tr("tab.status"))}</a></p>`;
+    return `<section class="dl-build" id="${escapeHtml(p.slug)}">
+<h2>${escapeHtml(tr(`profile.${p.slug}.title`))}</h2>
+${downloadsTab(site, tr, p, status, root, buildFiles(p, root), notYet, 3, `${escapeHtml(p.slug)}-`)}
+</section>`;
+  }).join("\n");
   const body = `<h1>${escapeHtml(tr("downloads.title"))}</h1>
-<h2 id="firmware">${escapeHtml(tr("downloads.firmware", { tag }))}</h2>
-<ul>
-<li>${ext(latest + uf2, uf2)}</li>
-<li>${ext(latest + sums, sums)}</li>
-<li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>
-</ul>
+${builds}
 ${html}
-<h2 id="layouts">${escapeHtml(tr("downloads.layouts"))}</h2>
-<ul>
-${layouts}
-</ul>
 ${donateBlock(site, tr, root)}`;
   return { title: `${tr("downloads.title")} · DTMF-Signer`, body, fallback };
 }

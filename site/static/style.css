@@ -344,3 +344,6 @@ body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width
   .dtmf .grid { grid-template-columns: 2.6rem repeat(4, 1fr); gap: .25rem; }
   .cta a, .acts a { white-space: normal; }
 }
+/* The general downloads page: one neutral section per build. */
+.dl-build { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .2rem 1rem 1rem; margin: 1rem 0; }
+.install { color: var(--muted); font-size: .9rem; word-break: break-word; }
