@@ -185,3 +185,47 @@ footer { color: var(--muted); font-size: .85rem; border-top: 1px solid var(--lin
   .link.active, .link.active:not(.type-power) { animation: none; stroke-dasharray: none; stroke-width: 4; }
   .port.emit::before, .port.emit::after, .yw-mic.capturing::before { animation: none; opacity: .8; }
 }
+
+/* The Centralita: a telephone line, a telephone, a wallet held to its handset. */
+.bench { --c-phone: #2aa198; }
+.port.type-phone { border-color: var(--c-phone); }
+.link.type-phone { stroke: color-mix(in srgb, var(--c-phone) 55%, var(--c-idle)); }
+.link.active.type-phone { stroke: var(--c-phone); }
+.port.active.type-phone { background: color-mix(in srgb, var(--c-phone) 25%, var(--bg)); }
+/* through the air: dotted, never a cable */
+.link.external { stroke-dasharray: 2 6; stroke-linecap: round; }
+.link.active.external { stroke: var(--c-audio); }
+.lg-phone .lg-line { border-color: #2aa198; }
+.lg-air .lg-line { border-color: #58a6ff; border-top-style: dotted; }
+/* Ports on a block's top or bottom edge (the handset and the wallet, one
+   above the other): upright text in either layout. */
+.bench .port.edge-top, .bench .port.edge-bottom { writing-mode: horizontal-tb; padding: .15rem .35rem; right: auto;
+  left: var(--at, 50%); transform: translate(-50%, 0); }
+.bench .port.edge-top { top: 0; bottom: auto; }
+.bench .port.edge-bottom { bottom: 0; top: auto; }
+[data-port$=".mic"], [data-port$=".speaker-near"] { --at: 30%; }
+[data-port$=".ear"], [data-port$=".mic-near"] { --at: 70%; }
+.bench[data-orient="h"] .col-peer .blk-phone { padding-bottom: 1.9rem; }
+.bench[data-orient="h"] .col-peer .blk-sim-wallet.air { padding-top: 1.9rem; }
+.col-peer .blk-phone, .col-peer .blk-sim-wallet.air { flex: none; }
+.col-peer:has(.blk-phone) { gap: 3rem; }
+.blk-phone { border-color: var(--c-phone); }
+.blk-voice-signer { border-color: #3fb950; }
+.vs-device { display: flex; flex-direction: column; align-items: center; gap: .3rem; background: #10261d;
+  padding: .8rem; border-radius: 8px; cursor: help; }
+.vs-device .blk-icon { color: #e8e6e0; }
+.ph-phone { display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+.ph-hook { padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--code); color: var(--fg); cursor: pointer; }
+.ph-hook[aria-pressed="true"] { background: var(--c-phone); color: #fff; border-color: var(--c-phone); }
+.ph-keypad { display: grid; grid-template-columns: repeat(3, 2.6rem); gap: .3rem; outline-offset: 3px; }
+.ph-keypad button { height: 2.6rem; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  border-radius: 8px; border: 1px solid #555; background: #e9e6dc; color: #222; cursor: pointer; font-size: 1rem;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.ph-keypad button small { font-size: .5rem; letter-spacing: .05em; min-height: .5rem; }
+.ph-keypad button.down, .ph-keypad button:active { background: #c9c5b8; transform: translateY(1px); border-color: var(--c-phone); }
+.ph-row { margin: 0; display: flex; gap: .8rem; align-items: center; }
+.ph-flash { width: 2.2rem; height: 1.8rem; border-radius: 6px; border: 1px solid #555; background: #e9e6dc; color: #222; cursor: pointer; font-weight: 700; }
+.ph-caption { margin: 0; min-height: 2.6em; max-width: 14rem; font-size: .8rem; color: var(--muted); text-align: center; }
+.sim-credits { list-style: none; padding: 0; margin: .4rem 0; font-size: .75rem; color: var(--muted); }
+.sim-modes[hidden] { display: none; }
+.col-signer .blk-voice-signer { flex: none; }

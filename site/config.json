@@ -202,6 +202,173 @@
           }
         ]
       }
+    },
+    {
+      "id": "PROFILE-PHONE",
+      "slug": "centralita",
+      "hardware": "hardware/phone",
+      "files": [],
+      "docs": {
+        "en": "docs/catalog.md#profile-phone--phone-exchange-centralita",
+        "es": "docs/es/catalogo.md#profile-phone--centralita-phone-exchange"
+      },
+      "simulator": {
+        "module": "dtmf-signer-voice.mjs",
+        "pin": "123456789012",
+        "packs": {
+          "es": "app/voice/packs/es.bin"
+        },
+        "networks": {
+          "mainnet": {
+            "psbt_vector": "one input with change",
+            "keys_vector": "BIP-39 test seed, BIP-84 account"
+          },
+          "testnet": {
+            "psbt_vector": "testnet account m/84'/1'/0'",
+            "keys_vector": "NDS-Signer test seed"
+          }
+        }
+      },
+      "bench": {
+        "modules": [
+          {
+            "id": "charger",
+            "kind": "charger",
+            "column": "power",
+            "title": "bench.charger",
+            "ports": [
+              {
+                "id": "usb",
+                "edge": "signer-side",
+                "type": "power",
+                "dir": "out",
+                "label": "USB 5V"
+              }
+            ]
+          },
+          {
+            "id": "signer",
+            "kind": "voice-signer",
+            "column": "signer",
+            "title": "bench.signer",
+            "capabilities": [
+              "OUT-PHONELINE",
+              "VERIFY-VOICE",
+              "TONES-SW",
+              "BTC-INPUT-AMOUNTS"
+            ],
+            "ports": [
+              {
+                "id": "5v",
+                "edge": "power-side",
+                "type": "power",
+                "dir": "in",
+                "label": "5V"
+              },
+              {
+                "id": "line",
+                "edge": "peer-side",
+                "type": "phone",
+                "dir": "both",
+                "label": "RJ11",
+                "capability": "IN-PHONELINE"
+              }
+            ],
+            "led": {
+              "pin": "GP25",
+              "board": "Raspberry Pi Pico"
+            }
+          },
+          {
+            "id": "phone",
+            "kind": "phone",
+            "column": "peer",
+            "title": "bench.phone",
+            "ports": [
+              {
+                "id": "line",
+                "edge": "signer-side",
+                "type": "phone",
+                "dir": "both",
+                "label": "RJ11"
+              },
+              {
+                "id": "mic",
+                "edge": "bottom",
+                "type": "audio",
+                "dir": "in",
+                "label": "🎙"
+              },
+              {
+                "id": "ear",
+                "edge": "bottom",
+                "type": "audio",
+                "dir": "out",
+                "label": "🔈"
+              }
+            ]
+          },
+          {
+            "id": "sim-wallet",
+            "kind": "sim-wallet",
+            "column": "peer",
+            "title": "bench.sim_wallet",
+            "air": true,
+            "ports": [
+              {
+                "id": "speaker-near",
+                "edge": "top",
+                "type": "audio",
+                "dir": "out",
+                "label": "🔊"
+              },
+              {
+                "id": "mic-near",
+                "edge": "top",
+                "type": "audio",
+                "dir": "in",
+                "label": "🎙"
+              }
+            ]
+          }
+        ],
+        "modes": [
+          {
+            "id": "sim-wallet",
+            "title": "bench.mode_sim_wallet",
+            "modules": [
+              "charger",
+              "signer",
+              "phone",
+              "sim-wallet"
+            ],
+            "links": [
+              {
+                "from": "charger.usb",
+                "to": "signer.5v",
+                "channel": "power"
+              },
+              {
+                "from": "signer.line",
+                "to": "phone.line",
+                "channel": "line"
+              },
+              {
+                "from": "sim-wallet.speaker-near",
+                "to": "phone.mic",
+                "channel": "air-in",
+                "external": true
+              },
+              {
+                "from": "phone.ear",
+                "to": "sim-wallet.mic-near",
+                "channel": "air-out",
+                "external": true
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "release": {

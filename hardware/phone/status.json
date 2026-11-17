@@ -1,0 +1,48 @@
+{
+  "hardware": [
+    {
+      "stage": "design",
+      "state": "done"
+    },
+    {
+      "stage": "simulation",
+      "state": "done"
+    },
+    {
+      "stage": "breadboard",
+      "state": "planned"
+    },
+    {
+      "stage": "perfboard",
+      "state": "planned"
+    },
+    {
+      "stage": "pcb",
+      "state": "planned"
+    }
+  ],
+  "firmware": [
+    {
+      "stage": "core",
+      "state": "done"
+    },
+    {
+      "stage": "port",
+      "state": "planned",
+      "note": "Raspberry Pi Pico"
+    },
+    {
+      "stage": "simulator",
+      "state": "done",
+      "note": "WebAssembly"
+    },
+    {
+      "stage": "release",
+      "state": "planned"
+    },
+    {
+      "stage": "review",
+      "state": "planned"
+    }
+  ]
+}

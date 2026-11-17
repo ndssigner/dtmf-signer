@@ -84,22 +84,34 @@ function draw(ctx, img, fb, contrast) {
   ctx.putImageData(img, 0, 0);
 }
 
-export async function start(doc, loadModule) {
-  const data = JSON.parse(doc.getElementById("sim-data").textContent);
-  // On a phone, before anything else: a computer or a tablet suits it better.
+// On a phone, before anything else: a computer or a tablet suits it better.
+export function mobileNote(doc) {
   const note = doc.querySelector?.(".sim-mobile");
   const view = doc.defaultView;
-  if (note && view) {
-    let closed = false;
-    const update = () => {
-      // The screen's width too: a page can be laid out wider than the phone.
-      const width = Math.min(view.innerWidth, view.screen?.width ?? Infinity);
-      note.hidden = closed || !isPhone({ width, coarse: view.matchMedia?.("(pointer: coarse)").matches ?? false });
-    };
-    note.querySelector(".sim-mobile-close")?.addEventListener("click", () => { closed = true; update(); });
-    view.addEventListener?.("resize", update);
-    update();
-  }
+  if (!note || !view) return;
+  let closed = false;
+  const update = () => {
+    // The screen's width too: a page can be laid out wider than the phone.
+    const width = Math.min(view.innerWidth, view.screen?.width ?? Infinity);
+    note.hidden = closed || !isPhone({ width, coarse: view.matchMedia?.("(pointer: coarse)").matches ?? false });
+  };
+  note.querySelector(".sim-mobile-close")?.addEventListener("click", () => { closed = true; update(); });
+  view.addEventListener?.("resize", update);
+  update();
+}
+
+// Tooltips: a tap opens one, a tap elsewhere closes it.
+export function tapTips(doc, root) {
+  doc.addEventListener("click", (e) => {
+    const t = e.target.closest?.("[data-tip]");
+    for (const o of root.querySelectorAll(".tip-open")) if (o !== t) o.classList.remove("tip-open");
+    if (t && e.pointerType === "touch") t.classList.toggle("tip-open");
+  });
+}
+
+export async function start(doc, loadModule) {
+  const data = JSON.parse(doc.getElementById("sim-data").textContent);
+  mobileNote(doc);
   const S = data.strings;
   const status = doc.querySelector(".sim-status");
   let module;
@@ -200,12 +212,7 @@ export async function start(doc, loadModule) {
     });
   });
 
-  // ---- tooltips: a tap opens one, a tap elsewhere closes it ----
-  doc.addEventListener("click", (e) => {
-    const t = e.target.closest?.("[data-tip]");
-    for (const o of root.querySelectorAll(".tip-open")) if (o !== t) o.classList.remove("tip-open");
-    if (t && e.pointerType === "touch") t.classList.toggle("tip-open");
-  });
+  tapTips(doc, root);
 
   // Buttons: held while the pointer is down on them.
   for (const b of root.querySelectorAll("[data-btn]")) {
@@ -338,5 +345,6 @@ export async function start(doc, loadModule) {
   requestAnimationFrame(frame);
 }
 
-if (typeof document !== "undefined" && document.getElementById("sim-data"))
+// The Centralita's page runs voice-ui.mjs instead (it borrows from here).
+if (typeof document !== "undefined" && document.getElementById("sim-data") && document.getElementById("sim")?.dataset.firmware !== "voice")
   start(document, () => import("./dtmf-signer.mjs").then((f) => f.default()));

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
@@ -185,4 +185,75 @@ test("side by side, the port labels stand upright in the blocks' side margins", 
   const css = readFileSync(new URL("../static/style.css", import.meta.url), "utf8");
   assert.match(css, /\.bench\[data-orient="h"\] \.port \{[^}]*writing-mode: vertical-rl/);
   assert.match(css, /\.bench\[data-orient="h"\] \.col-signer \.blk \{[^}]*padding-left: var\(--margin\)[^}]*padding-right: var\(--margin\)/);
+});
+
+// ---- the Centralita (the voice build) ----
+const VOICE_SKIP = existsSync(new URL("../../build/wasm/dtmf-signer-voice.mjs", import.meta.url)) || REQUIRED
+  ? false : "build/wasm/dtmf-signer-voice.mjs missing: run tools/build-wasm.sh";
+const voiceData = (lang) => JSON.parse(/<script type="application\/json" id="sim-data">([\s\S]*?)<\/script>/.exec(text(files, `${lang}/centralita/index.html`))[1]);
+
+test("/es/centralita/ has the phone keypad and handset, no screen, its profile", { skip: VOICE_SKIP }, () => {
+  const html = text(files, "es/centralita/index.html");
+  const keys = [...html.matchAll(/data-key="([0-9*#])"/g)].map((m) => m[1]);
+  assert.deepEqual(keys.sort(), [..."#*0123456789"].sort());
+  assert.match(html, /<button type="button" class="ph-hook"[^>]*aria-pressed="false"/);
+  assert.doesNotMatch(html, /<canvas/);
+  assert.doesNotMatch(html, /data-btn=/);
+  assert.match(html, /PROFILE-PHONE/);
+  assert.ok(html.includes(`content="${SIM_CSP}"`));
+  assert.match(html, /<script type="module" src="\.\.\/\.\.\/sim\/voice-ui\.mjs"><\/script>/);
+});
+test("the Centralita's bench passes the catalog", async () => {
+  const { checkBenchAgainstCatalog, validateBench } = await import("../lib/bench.mjs");
+  const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "centralita");
+  const catalog = readFileSync(new URL("../../docs/catalog.md", import.meta.url), "utf8");
+  assert.equal(p.id, "PROFILE-PHONE");
+  assert.deepEqual(validateBench(p.bench), []);
+  assert.deepEqual(checkBenchAgainstCatalog(p.bench, catalog, p.id), []);
+});
+test("the voice build is published with the Spanish pack; only the Spanish page installs it", { skip: VOICE_SKIP }, () => {
+  for (const f of ["sim/dtmf-signer-voice.mjs", "sim/voice-core.mjs", "sim/voice-ui.mjs", "sim/packs/es.bin", "sim/packs/es.mjs"])
+    assert.ok(files.has(f), f);
+  assert.ok(files.get("sim/packs/es.bin").equals(readFileSync(new URL("../../app/voice/packs/es.bin", import.meta.url))));
+  assert.equal(voiceData("es").pack, "es");
+  assert.equal(voiceData("en").pack, null);
+});
+test("the text alternative: what the signer says, in the languages it can speak, live", { skip: VOICE_SKIP }, () => {
+  const es = voiceData("es"), en = voiceData("en");
+  assert.equal(es.phrases.es.menu_empty, "Cargar semilla, 1.");
+  assert.equal(es.phrases.en.menu_empty, "Load seed, 1.");
+  assert.equal(en.phrases.es, undefined);
+  assert.equal(en.phrases.en.c_a, undefined, "letters come from the echo's own text");
+  assert.match(text(files, "es/centralita/index.html"), /<p class="ph-caption"[^>]*aria-live="polite"/);
+});
+test("the simulated wallet by the handset: a PIN of 12 or more, a listen button, no camera", { skip: VOICE_SKIP }, () => {
+  const html = text(files, "en/centralita/index.html");
+  assert.ok(voiceData("en").pin.length >= 12);
+  const w = /<section class="blk blk-sim-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  for (const c of ["wd-seed", "wd-keypad", "wd-psbt", "wd-listen", "wd-net", "wd-stop"]) assert.match(w, new RegExp(`class="${c}"`), c);
+  assert.doesNotMatch(w, /wd-scan/);
+  assert.match(html, /data-port="sim-wallet\.speaker-near"/);
+  assert.match(html, /data-port="sim-wallet\.mic-near"/);
+});
+test("the Centralita credits its voices, and shows the board's LED", { skip: VOICE_SKIP }, () => {
+  const es = text(files, "es/centralita/index.html"), en = text(files, "en/centralita/index.html");
+  const plain = (h) => h.replace(/<[^>]+>/g, "");
+  assert.ok(plain(es).includes("Voz española: Piper es_ES-sharvard-medium, corpus Sharvard (Universidad de Edimburgo), CC BY 3.0"));
+  assert.ok(plain(en).includes("Spanish voice: Piper es_ES-sharvard-medium, Sharvard corpus (University of Edinburgh), CC BY 3.0"));
+  for (const h of [es, en]) {
+    assert.ok(h.includes('href="https://datashare.ed.ac.uk/handle/10283/574"'));
+    assert.ok(h.includes('href="https://creativecommons.org/licenses/by/3.0/"'));
+    assert.ok(plain(h).includes("Piper en_US-ljspeech-medium, LJ Speech"));
+    assert.match(/<section class="blk blk-voice-signer[\s\S]*?<\/section>/.exec(h)[0], /class="sim-led"/);
+  }
+});
+test("the Centralita's status: designed, simulated; the breadboard and the port still to come", () => {
+  const s = JSON.parse(readFileSync(new URL("../../hardware/phone/status.json", import.meta.url), "utf8"));
+  const st = (part, stage) => s[part].find((x) => x.stage === stage).state;
+  assert.equal(st("hardware", "design"), "done");
+  assert.equal(st("hardware", "simulation"), "done");
+  assert.equal(st("hardware", "breadboard"), "planned");
+  assert.equal(st("firmware", "core"), "done");
+  assert.equal(st("firmware", "port"), "planned");
+  assert.equal(st("firmware", "simulator"), "done");
 });
