@@ -478,3 +478,13 @@ body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width
 .gallery p { margin: .3rem 0 0; color: var(--muted); }
 .gallery figure { margin: 0; }
 .gallery img { width: 100%; height: auto; border-radius: 6px; display: block; margin-bottom: .5rem; }
+
+/* Home: how it started, with the sister projects beside it (below it on narrow screens). */
+.origin-row { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; gap: 2rem; align-items: start; }
+.origin-row .prose { max-width: none; }
+.siblings { margin-top: 2rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .4rem 1rem .8rem; }
+.siblings h2 { font-size: 1rem; margin: .6rem 0 .4rem; }
+.siblings ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .7rem; }
+.siblings a { font-weight: 600; }
+.siblings span { color: var(--muted); font-size: .85rem; }
+@media (max-width: 720px) { .origin-row { grid-template-columns: 1fr; gap: 0; } }

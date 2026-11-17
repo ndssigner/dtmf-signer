@@ -261,5 +261,9 @@
   "gallery.watch": "Ver en {where}",
   "gallery.cable-qr.breadboard": "En la protoboard",
   "gallery.cable-qr.perfboard": "En placa perforada, con v0.2.0-alpha",
-  "gallery.cable-qr.perfboard_note": "Los mismos módulos soldados, la Pico y la pantalla en zócalos."
+  "gallery.cable-qr.perfboard_note": "Los mismos módulos soldados, la Pico y la pantalla en zócalos.",
+  "home.siblings": "Proyectos hermanos",
+  "sibling.nds-signer": "Firma PSBT en una Nintendo DSi con el código de SeedSigner.",
+  "sibling.ur-tones": "El protocolo abierto de tonos que habla este firmador.",
+  "sibling.seedcraft": "Una semilla guardada como una ristra de cosas: cuentas de colores en un hilo."
 }

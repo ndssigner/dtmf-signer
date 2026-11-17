@@ -261,5 +261,9 @@
   "gallery.watch": "Watch on {where}",
   "gallery.cable-qr.breadboard": "On the breadboard",
   "gallery.cable-qr.perfboard": "On a perfboard, with v0.2.0-alpha",
-  "gallery.cable-qr.perfboard_note": "The same modules soldered, the Pico and the screen on sockets."
+  "gallery.cable-qr.perfboard_note": "The same modules soldered, the Pico and the screen on sockets.",
+  "home.siblings": "Sister projects",
+  "sibling.nds-signer": "Signs PSBTs on a Nintendo DSi with SeedSigner's own code.",
+  "sibling.ur-tones": "The open tone protocol this signer speaks.",
+  "sibling.seedcraft": "A seed kept as a string of things: coloured beads on a thread."
 }

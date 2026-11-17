@@ -80,7 +80,19 @@ ${urLine}
 </section>
 <script type="module" src="../dtmf-keypad.mjs"></script>
 `;
-  return { title: "DTMF-Signer", body: `${hero}${builds}<div class="prose">\n${html}\n</div>\n${donateBlock(site, tr, "../")}`, fallback };
+  // How it started (the last section), with the sister projects beside it.
+  const cut = html.lastIndexOf("<h2");
+  const sib = site.config.siblings ?? [];
+  const aside = sib.length ? `<aside class="siblings" aria-labelledby="siblings">
+<h2 id="siblings">${e("home.siblings")}</h2>
+<ul>
+${sib.map((x) => `<li><a href="${escapeHtml(x.href)}" rel="noopener noreferrer">${escapeHtml(x.name)}</a><br><span>${e(`sibling.${x.id}`)}</span></li>`).join("\n")}
+</ul>
+</aside>` : "";
+  const prose = cut > 0 && aside
+    ? `<div class="prose">\n${html.slice(0, cut)}\n</div>\n<div class="origin-row">\n<div class="prose">\n${html.slice(cut)}\n</div>\n${aside}\n</div>`
+    : `<div class="prose">\n${html}\n</div>`;
+  return { title: "DTMF-Signer", body: `${hero}${builds}${prose}\n${donateBlock(site, tr, "../")}`, fallback };
 }
 
 // The tabs of a build, each its own page under <lang>/<slug>/: the

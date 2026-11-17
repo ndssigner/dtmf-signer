@@ -381,6 +381,11 @@
     "bitcoin": "bc1qx5snc0wlc8cg9gwxhyx27y6pkru8rnngyq7uja",
     "lightning": "ndssigner@coinos.io"
   },
+  "siblings": [
+    { "id": "nds-signer", "name": "NDS-Signer", "href": "https://github.com/ndssigner/nds-signer" },
+    { "id": "ur-tones", "name": "ur-tones", "href": "https://github.com/ndssigner/ur-tones" },
+    { "id": "seedcraft", "name": "SeedCraft", "href": "https://github.com/ndssigner/seedcraft" }
+  ],
   "urtones": {
     "spec": "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md",
     "web": "https://ndssigner.github.io/ur-tones/"

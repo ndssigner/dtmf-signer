@@ -100,3 +100,13 @@ test("the donate block and the origin story stay", () => {
 test("home links resolve", () => {
   assert.deepEqual(brokenLinks(files), []);
 });
+test("the home page names its sister projects beside how it started", () => {
+  for (const lang of ["en", "es"]) {
+    const html = text(buildInto(), `${lang}/index.html`);
+    const row = /<div class="origin-row">([\s\S]*?)<\/aside>/.exec(html);
+    assert.ok(row, lang);
+    assert.match(row[1], /Catch Catch/);
+    for (const r of ["nds-signer", "ur-tones", "seedcraft"])
+      assert.match(row[1], new RegExp(`<aside class="siblings"[\\s\\S]*href="https://github.com/ndssigner/${r}" rel="noopener noreferrer"`), `${lang}: ${r}`);
+  }
+});
