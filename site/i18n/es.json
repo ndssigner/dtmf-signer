@@ -255,5 +255,11 @@
   "first.voice.2": "Semilla: {one} y {two} (teclado) y {type}; o {one}, {one} (auricular) y {seed} en la wallet, y teclea el PIN que muestra. O tecléalo tú: {code}",
   "first.voice.3": "Firmar: {one} y {pay} en la wallet. Escucha la revisión, {hash} tras cada parte y, al final, {flash} (colgar un momento).",
   "first.voice.4": "En la wallet, {listen}; luego {hash} para oír la firma por el auricular.",
-  "first.show_code": "ver código"
+  "first.show_code": "ver código",
+  "tab.gallery": "Galería",
+  "gallery.none": "Aún no hay fotos ni vídeos de un montaje real.",
+  "gallery.watch": "Ver en {where}",
+  "gallery.cable-qr.breadboard": "En la protoboard",
+  "gallery.cable-qr.perfboard": "En placa perforada, con v0.2.0-alpha",
+  "gallery.cable-qr.perfboard_note": "Los mismos módulos soldados, la Pico y la pantalla en zócalos."
 }

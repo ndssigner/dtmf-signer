@@ -13,6 +13,7 @@ import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
 import { layout, rootPage, specHref, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
 import { parseStatus, renderStageDots, renderStatusSequence } from "./lib/status.mjs";
+import { galleryList, photoMetadata, photoHref } from "./lib/gallery.mjs";
 import { validateBench, checkBenchAgainstCatalog } from "./lib/bench.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -85,7 +86,7 @@ ${urLine}
 // The tabs of a build, each its own page under <lang>/<slug>/: the
 // simulator at the build's own address, the rest in language-neutral folders.
 export const TABS = [["", "tab.try"], ["what/", "tab.what"], ["parts/", "tab.parts"], ["build/", "tab.build"],
-  ["status/", "tab.status"], ["downloads/", "tab.downloads"]];
+  ["gallery/", "tab.gallery"], ["status/", "tab.status"], ["downloads/", "tab.downloads"]];
 
 // The SHA-256 of a file, as hex: the one hash the site shows for downloads.
 export const packHash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -148,6 +149,9 @@ ${files(root)}
 <ul>${readme}
 <li>${ext(blob(site, perLang(p.docs, lang)), tr("profile.catalog"))}</li>
 </ul>`;
+      } else if (tab === "gallery/") {
+        body = galleryList(p.gallery, tr, root, p.slug)
+          ?? `<p class="not-yet">${e("gallery.none")} <a href="${here}status/">${e("tab.status")}</a></p>`;
       } else if (tab === "status/") {
         body = renderStatusSequence(status, tr);
       } else {
@@ -548,6 +552,12 @@ export function build({ siteDir, outDir, commit }) {
   for (const p of site.config.profiles) {
     if (p.image) files.set(`img/${p.slug}/${basename(p.image)}`, readFileSync(join(repoRoot, p.image)));
     for (const f of p.files ?? []) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
+    for (const it of (p.gallery ?? []).filter((g) => g.kind === "photo")) {
+      const bytes = readFileSync(join(repoRoot, it.src));
+      const meta = photoMetadata(bytes);
+      if (meta) throw new Error(`${it.src}: remove its metadata (${meta}) before publishing it`);
+      files.set(photoHref(p.slug, it.src), bytes);
+    }
   }
   if (site.modules.size) {
     // Every file of static/sim/, so a new module cannot be left behind.

@@ -75,8 +75,8 @@ footer a:hover { color: var(--press-ink); }
 .build-head h1 { margin: 0; }
 .build-head .lede { margin: .15rem 0 0; color: var(--muted); }
 .profile-id { font-size: .75rem; }
-nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px solid var(--line); margin: 1rem 0 1.25rem; }
-.tabs a { padding: .5rem .8rem; border-bottom: 3px solid transparent; color: var(--muted); text-decoration: none; white-space: nowrap; }
+nav.tabs { flex-wrap: wrap; gap: .2rem; border-bottom: 1px solid var(--line); margin: 1rem 0 1.25rem; }
+.tabs a { padding: .5rem .7rem; border-bottom: 3px solid transparent; color: var(--muted); text-decoration: none; white-space: nowrap; }
 .tabs a:hover { color: var(--fg); }
 .tabs a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--press); font-weight: 600; }
 @media (max-width: 480px) {
@@ -462,3 +462,12 @@ body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width
 /* The general downloads page: one neutral section per build. */
 .dl-build { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .2rem 1rem 1rem; margin: 1rem 0; }
 .install { color: var(--muted); font-size: .9rem; word-break: break-word; }
+
+/* A build's gallery: cards for videos (links) and photos (served here). */
+.gallery { list-style: none; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.gallery > li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1rem; }
+.gallery li.video { display: flex; gap: .8rem; align-items: flex-start; }
+.gallery .g-icon { font-size: 1.6rem; line-height: 1; }
+.gallery p { margin: .3rem 0 0; color: var(--muted); }
+.gallery figure { margin: 0; }
+.gallery img { width: 100%; height: auto; border-radius: 6px; display: block; margin-bottom: .5rem; }

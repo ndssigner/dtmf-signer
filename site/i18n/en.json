@@ -255,5 +255,11 @@
   "first.voice.2": "Seed: {one} then {two} (keypad) and {type}; or {one}, {one} (earpiece) and {seed} in the wallet, then type the PIN it shows. Or type it yourself: {code}",
   "first.voice.3": "Sign: {one} and {pay} in the wallet. Listen to the review, {hash} after each part and, at the end, {flash} (a short hang-up).",
   "first.voice.4": "In the wallet, {listen}; then {hash} to hear the signature in the earpiece.",
-  "first.show_code": "show code"
+  "first.show_code": "show code",
+  "tab.gallery": "Gallery",
+  "gallery.none": "No photos or videos of a real build yet.",
+  "gallery.watch": "Watch on {where}",
+  "gallery.cable-qr.breadboard": "On the breadboard",
+  "gallery.cable-qr.perfboard": "On a perfboard, with v0.2.0-alpha",
+  "gallery.cable-qr.perfboard_note": "The same modules soldered, the Pico and the screen on sockets."
 }

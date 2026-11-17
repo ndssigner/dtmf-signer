@@ -6,7 +6,7 @@ import { buildInto, brokenLinks, text, SITE } from "./helpers.mjs";
 const files = buildInto();
 const BUILDS = ["cable-qr", "centralita"];
 // "" is the simulator's tab (▶ Try it), at the build's own address.
-const TABS = ["", "what/", "parts/", "build/", "status/", "downloads/"];
+const TABS = ["", "what/", "parts/", "build/", "gallery/", "status/", "downloads/"];
 const URTONES = { spec: "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md", web: "https://ndssigner.github.io/ur-tones/" };
 
 test("every tab page exists for both builds and languages", () => {
