@@ -88,6 +88,11 @@ export class VoiceSimulator {
     this.keypad.push(keyTone(k));
     this.keypad.push(new Int16Array(RATE * KEY_GAP_MS / 1000));
   }
+  // Keys typed one after the other at a person's pace (each pressKey: its
+  // tone, then the gap), as fingers on this keypad; on-hook, nothing.
+  dial(keys) { for (const k of keys) this.pressKey(k); }
+  // The rest of what was being dialled, dropped (a key sounding is cut short).
+  stopDialling() { this.keypad.clear(); }
   // What is played next to the handset microphone.
   queueMic(samples) { this.mic.push(samples); }
   clearMic() { this.mic.clear(); }

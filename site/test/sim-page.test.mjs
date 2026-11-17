@@ -235,6 +235,20 @@ test("the simulated wallet by the handset: a PIN of 12 or more, a listen button,
   assert.match(html, /data-port="sim-wallet\.speaker-near"/);
   assert.match(html, /data-port="sim-wallet\.mic-near"/);
 });
+test("the telephone has a Type code button: off until lifted, a short tip, in both languages", { skip: VOICE_SKIP }, () => {
+  for (const [lang, label] of [["en", "Type code"], ["es", "Teclear código"]]) {
+    const html = text(files, `${lang}/centralita/index.html`);
+    const phone = /<div class="ph-phone">[\s\S]*?<p class="ph-caption"/.exec(html)[0];
+    const b = /<button type="button" class="ph-type"[^>]*>[\s\S]*?<\/button>/.exec(phone)?.[0];
+    assert.ok(b, lang);
+    assert.match(b, /aria-pressed="false"/);
+    assert.match(b, / disabled/);
+    assert.match(b, /data-tip="[^"]{10,90}"/);
+    assert.ok(b.includes("⌨") && b.includes(label), b);
+  }
+  const ui = readFileSync(new URL("../static/sim/voice-ui.mjs", import.meta.url), "utf8");
+  assert.match(ui, /vs\.dial\(wallet\.keypadCode\(\)\)/, "the wallet's keypad code, through the keypad");
+});
 test("the Centralita credits its voices, and shows the board's LED", { skip: VOICE_SKIP }, () => {
   const es = text(files, "es/centralita/index.html"), en = text(files, "en/centralita/index.html");
   const plain = (h) => h.replace(/<[^>]+>/g, "");

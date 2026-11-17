@@ -143,3 +143,60 @@ test("the text alternative says what the signer says, never a PIN character", as
   for (const l of ["say pin-char", "say pin-char", "ear next", "chars 73c5da0a", "num 60000", "tones 0123", "tones 4567"]) t.push(l);
   assert.equal(t.end(), "• • 73c5da0a 60000 ♪");
 });
+
+// Which 16 ms blocks carry a key on the line (the line less the signer's own
+// output), for ms.
+function keyBlocks(vs, ms) {
+  const on = [];
+  for (let t = 0; t < ms; t += 16) {
+    vs.advance(16);
+    on.push(vs.lastIn.some((x, i) => Math.abs(x - vs.lastOut[i]) > 100));
+  }
+  return on;
+}
+
+test("Type code dials as a person's fingers: each key 100 ms, the next 300 ms after", { skip: SKIP }, async () => {
+  const vs = new VoiceSimulator(await load(), "en");
+  vs.dial("*12#");
+  assert.equal(vs.keysQueued, 0, "on-hook: nothing dialled");
+  vs.hook(true);
+  runQuiet(vs);
+  vs.dial("*12#");
+  const on = keyBlocks(vs, 1400);
+  const starts = [], lengths = [];
+  on.forEach((b, i) => {
+    if (b && !on[i - 1]) { starts.push(i * 16); lengths.push(0); }
+    if (b) lengths[lengths.length - 1] += 16;
+  });
+  assert.equal(starts.length, 4, on.map(Number).join(""));
+  for (let i = 1; i < 4; i++) assert.ok(Math.abs(starts[i] - starts[i - 1] - 300) <= 16, String(starts));
+  for (const l of lengths) assert.ok(l >= 96 && l <= 112, String(lengths));
+  assert.ok(vs.keys() >= 1, "the keypad's keys reached the signer");
+});
+
+test("Type code stops at a second click, and when the handset goes down", { skip: SKIP }, async () => {
+  const vs = new VoiceSimulator(await load(), "en");
+  vs.hook(true);
+  vs.dial("0123456789");
+  vs.advance(200);
+  vs.stopDialling();
+  assert.equal(vs.keysQueued, 0);
+  assert.ok(keyBlocks(vs, 400).every((b) => !b));
+  vs.dial("0123456789");
+  vs.hook(false);
+  assert.equal(vs.keysQueued, 0);
+});
+
+test("About speaks each pack's fingerprint: 16 hex characters of its SHA-256", { skip: SKIP }, async () => {
+  const { createHash } = await import("node:crypto");
+  const want = createHash("sha256").update(ES).digest("hex").slice(0, 16);
+  const vs = new VoiceSimulator(await load(), "es", new Uint8Array(ES));
+  vs.hook(true);
+  run(vs, 300);
+  const echo = [];
+  for (const k of ["1", "#", "9"]) { vs.pressKey(k); echo.push(...run(vs, 6000).echo); }
+  echo.push(...run(vs, 60000).echo);   // About spells the version, then each pack
+  const at = echo.indexOf("chars es");
+  assert.ok(at >= 0, echo.join("|"));
+  assert.ok(echo.slice(at).includes(`chars ${want}`), echo.slice(at).join("|"));
+});

@@ -169,6 +169,7 @@ export function blockBody(kind, tr, sim = {}, module = {}) {
 ${keys}
 </div>
 <p class="ph-row"><button type="button" class="ph-flash" aria-label="${e("phone.flash")}" ${tip(tr("phone.flash"), false)}>R</button>
+<button type="button" class="ph-type" aria-pressed="false" disabled ${tip(tr("phone.type_tip"), false)}><span aria-hidden="true">⌨</span> ${e("phone.type")}</button>
 <label ${tip(tr("phone.sound"), false)}><input type="checkbox" class="ph-sound" checked> <span aria-hidden="true">🔊</span><span class="visually-hidden">${e("phone.sound")}</span></label></p>
 <p class="ph-caption" aria-live="polite"></p>
 </div>`;

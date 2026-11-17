@@ -1,5 +1,6 @@
 // The Centralita's simulator on its page: the telephone (keypad, handset,
-// R key), its earpiece on the speakers of this computer, the simulated
+// R key, a Type code button that dials the wallet's keypad code as a
+// person's fingers would), its earpiece on the speakers of this computer, the simulated
 // wallet held to the handset, the bench's links and what is active, the
 // board's LED, and what the signer says as text. Everything it needs comes
 // from #sim-data (written by the site's build) and the page's markup; the
@@ -97,6 +98,8 @@ export async function start(doc, loadModule, loadPack) {
   const caption = root.querySelector(".ph-caption"), echoPre = root.querySelector(".echo");
   const hookBtn = root.querySelector(".ph-hook"), hookLabel = root.querySelector(".ph-hook-label");
   const sound = root.querySelector(".ph-sound"), fast = root.querySelector(".wd-fast");
+  const typeBtn = root.querySelector(".ph-type");
+  let typing = false;
   const wdStatus = root.querySelector(".wd-status"), wdCheck = root.querySelector(".wd-check"), wdWarn = root.querySelector(".wd-warn");
   const listenBtn = root.querySelector(".wd-listen");
   const ledEl = root.querySelector(".sim-led"), led = new LedFlash();
@@ -133,6 +136,12 @@ export async function start(doc, loadModule, loadPack) {
     hookBtn.setAttribute("aria-pressed", String(vs.offHook));
     hookLabel.textContent = S[vs.offHook ? "phone.hang" : "phone.lift"];
     root.querySelector(".blk-phone")?.classList.toggle("off-hook", vs.offHook);
+    if (typeBtn) typeBtn.disabled = !vs.offHook;
+    if (!vs.offHook) showTyping(false);   // the handset down cuts it short
+  }
+  function showTyping(on) {
+    typing = on;
+    typeBtn?.setAttribute("aria-pressed", String(on));
   }
   // The speakers of this computer: made in a click, so the browser lets it play.
   const ensureAudio = () => { if (!audio && globalThis.AudioContext) audio = new AudioContext(); };
@@ -157,6 +166,15 @@ export async function start(doc, loadModule, loadPack) {
     setTimeout(() => b?.classList.remove("down"), 120);
   }
   for (const [k, b] of keyEls) b.addEventListener("click", () => press(k));
+  // Type code: the wallet's keypad code (the public test seed) typed on this
+  // keypad, key by key at a person's pace; a second click stops it.
+  typeBtn?.addEventListener("click", () => {
+    if (!vs.offHook) return;
+    ensureAudio();
+    if (typing) { vs.stopDialling(); showTyping(false); return; }
+    vs.dial(wallet.keypadCode());
+    showTyping(true);
+  });
   root.querySelector(".blk-phone").addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey || !KEYS.includes(e.key) || e.key.length !== 1) return;
     e.preventDefault();
@@ -206,6 +224,7 @@ export async function start(doc, loadModule, loadPack) {
     last = now;
     const { echo: lines, earpiece, room } = vs.advance(dt);
     if (flashUntil !== null && vs.clock >= flashUntil) { flashUntil = null; vs.hook(true); showHook(); }
+    if (typing && vs.keysQueued === 0) showTyping(false);
     // The speakers: the earpiece, and the wallet playing aloud next to it.
     const mix = new Int16Array(earpiece.length);
     for (let i = 0; i < mix.length; i++) mix[i] = Math.max(-32768, Math.min(32767, earpiece[i] + room[i]));
