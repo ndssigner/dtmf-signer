@@ -14,6 +14,11 @@
     {
       "id": "PROFILE-CABLE-QR",
       "slug": "cable-qr",
+      "talks": [
+        "cable_in",
+        "qr_out",
+        "own_screen"
+      ],
       "hardware": "hardware/breadboard",
       "image": "docs/images/breadboard-layout.png",
       "files": [
@@ -206,6 +211,11 @@
     {
       "id": "PROFILE-PHONE",
       "slug": "centralita",
+      "talks": [
+        "tone_phone",
+        "voice",
+        "handset_tones"
+      ],
       "hardware": "hardware/phone",
       "files": [],
       "docs": {

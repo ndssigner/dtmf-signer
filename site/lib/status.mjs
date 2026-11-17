@@ -52,3 +52,14 @@ ${items}
 ${part("firmware")}
 <p class="stage-key">${key}</p>`;
 }
+
+// A part's stages as a row of dots, for the home page: the same states as
+// the sequence, each dot with its meaning as a tooltip and as hidden text
+// (colour is never the only signal).
+export function renderStageDots(status, part, tr) {
+  const items = status[part].map((s) => {
+    const label = escapeHtml(`${tr(`status.${part}.${s.stage}`)}: ${tr(`status.${s.state}`)}`);
+    return `<li class="${CLASS[s.state]}"><span class="dot" title="${label}" aria-hidden="true"></span><span class="visually-hidden">${label}</span></li>`;
+  }).join("\n");
+  return `<ol class="dots" aria-label="${escapeHtml(tr(`status.${part}`))}">\n${items}\n</ol>`;
+}

@@ -287,3 +287,60 @@ nav.tabs { flex-wrap: nowrap; gap: .2rem; overflow-x: auto; border-bottom: 1px s
 .sim-credits { list-style: none; padding: 0; margin: .4rem 0; font-size: .75rem; color: var(--muted); }
 .sim-modes[hidden] { display: none; }
 .col-signer .blk-voice-signer { flex: none; }
+
+/* The home page: a wider column, the headline beside a keypad to play. */
+body:has(.home) header, body:has(.home) main, body:has(.home) footer { max-width: 70rem; }
+.hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 2.5rem; align-items: center; padding: 1.5rem 0 2rem; }
+.hero h1 { margin: 0; font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1.1; }
+.hero .lede { color: var(--muted); max-width: 46ch; margin: 1rem 0 1.4rem; font-size: 1.1rem; }
+.cta { display: flex; gap: .7rem; flex-wrap: wrap; }
+.cta a, .acts a { padding: .6rem 1.1rem; border-radius: 12px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+.cta .main, .acts a.main { background: var(--press); color: var(--press-fg); }
+.cta .alt, .acts a.alt { border: 1px solid var(--line); color: var(--fg); background: var(--surface); }
+.urtones-line { color: var(--muted); font-size: .92rem; margin: 1rem 0 0; }
+.dtmf { background: var(--surface); border-radius: 20px; box-shadow: var(--tray); padding: 1.2rem 1.2rem 1rem; }
+.dtmf .grid { display: grid; grid-template-columns: 3.4rem repeat(4, 1fr); gap: .35rem; align-items: center; }
+.dtmf .hz { font: .74rem/1 var(--mono); color: var(--muted); text-align: center; transition: color .1s; }
+.dtmf .hz.row { text-align: right; padding-right: .3rem; }
+.dtmf .hz.on { color: var(--fg); font-weight: 700; }
+.dtmf button { aspect-ratio: 1.25; border-radius: 12px; border: 1px solid var(--line); background: var(--sunk);
+  color: var(--fg); font: 600 1.3rem/1 var(--round); cursor: pointer; }
+.dtmf button.dim { color: var(--muted); font-size: 1.1rem; }
+/* The neutral cross: the key's row and column, no colour of a cable. */
+.dtmf button.cross { background: var(--line); }
+.dtmf button.on { background: var(--fg); color: var(--surface); }
+.dtmf .wave { display: block; width: 100%; height: 54px; margin-top: .8rem; }
+.dtmf .wave polyline { fill: none; stroke: var(--muted); stroke-width: 1.5; opacity: .55; vector-effect: non-scaling-stroke; }
+.dtmf .wave .sum { stroke: var(--fg); stroke-width: 2.2; opacity: 1; }
+.dtmf .cap { font-size: .9rem; color: var(--muted); margin: .4rem 0 0; min-height: 2.6em; }
+/* The builds at a glance: a row each, a pictogram, what it is, two actions. */
+.builds { display: grid; gap: .8rem; margin-bottom: 2rem; }
+#builds { margin-top: 1rem; }
+.build { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; gap: .4rem 1.2rem; align-items: center;
+  background: var(--surface); border: 2px solid var(--module); border-radius: 16px; padding: 1rem 1.2rem; }
+.build > img { width: 6rem; height: auto; color: var(--module); }
+.build h3 { margin: 0; font-size: 1.3rem; }
+.build p { margin: .15rem 0 .5rem; color: var(--muted); }
+.build .talk { display: flex; gap: .4rem; flex-wrap: wrap; margin: 0 0 .6rem; }
+.chip { font-size: .85rem; border: 1px solid var(--line); border-radius: 999px; padding: .1rem .6rem; color: var(--fg); }
+.acts { display: flex; gap: .5rem; flex-wrap: wrap; }
+/* Hardware stages as dots; the state is also in the title and hidden text. */
+.dots { list-style: none; display: flex; gap: .45rem; padding: 0; margin: 0; }
+.dots .dot { margin: 0; }
+.prose h2 { margin-top: 2rem; }
+.prose ul { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4rem; }
+.prose li { padding-top: .6rem; border-top: 3px solid var(--line); color: var(--muted); }
+.prose li strong { display: block; color: var(--fg); font-family: var(--round); font-size: 1.1rem; }
+.prose p { max-width: 70ch; color: var(--muted); }
+@media (max-width: 820px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding-top: .5rem; }
+  .build { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .build > img { width: 4.5rem; }
+  .build .acts { grid-column: 1 / -1; }
+  .prose ul { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .dtmf { padding: .8rem; }
+  .dtmf .grid { grid-template-columns: 2.6rem repeat(4, 1fr); gap: .25rem; }
+  .cta a, .acts a { white-space: normal; }
+}

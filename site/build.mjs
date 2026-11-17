@@ -10,9 +10,9 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadSite, t } from "./lib/i18n.mjs";
 import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
-import { layout, rootPage, translator } from "./lib/page.mjs";
+import { layout, rootPage, specHref, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
-import { parseStatus, renderStatusSequence } from "./lib/status.mjs";
+import { parseStatus, renderStageDots, renderStatusSequence } from "./lib/status.mjs";
 import { validateBench, checkBenchAgainstCatalog } from "./lib/bench.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -34,13 +34,52 @@ const ext = (href, label) => `<a href="${href}" rel="noopener noreferrer">${esca
 // A per-language path from config ({ en, es, … }), English when missing.
 const perLang = (paths, lang) => paths[lang] ?? paths.en;
 
+// The home page: the headline and a keypad to play, the builds at a glance
+// (each a row with its two actions), then why, the origin and the donate block.
 function homePage(site, lang, tr) {
   const { html, fallback } = content(site, lang, "home");
-  const builds = site.config.profiles.map((p) =>
-    `<li><a href="${escapeHtml(p.slug)}/">${escapeHtml(tr(`profile.${p.slug}.title`))}</a> <code>${escapeHtml(p.id)}</code></li>`);
-  const list = builds.length
-    ? `\n<h2 id="builds">${escapeHtml(tr("home.builds"))}</h2>\n<ul class="builds">\n${builds.join("\n")}\n</ul>` : "";
-  return { title: "DTMF-Signer", body: html + list + "\n" + donateBlock(site, tr, "../"), fallback };
+  const e = (k, params) => escapeHtml(tr(k, params));
+  const spec = specHref(site, lang);
+  const ur = site.config.urtones;
+  const rows = site.config.profiles.map((p) => {
+    const status = parseStatus(readFileSync(join(site.dir, "..", p.hardware, "status.json"), "utf8"));
+    const slug = escapeHtml(p.slug);
+    const chips = (p.talks ?? []).map((k) => `<span class="chip">${e(`talk.${k}`)}</span>`).join("\n");
+    return `<article class="build">
+<img src="../img/builds/${slug}.svg" alt="">
+<div class="what">
+<h3>${e(`profile.${p.slug}.title`)}</h3>
+<p>${e(`profile.${p.slug}.lede`)}</p>
+<p class="talk">
+${chips}
+</p>
+${renderStageDots(status, "hardware", tr)}
+</div>
+<div class="acts">
+<a class="main" href="${slug}/"><span aria-hidden="true">▶</span> ${e("tab.try")}</a>
+<a class="alt" href="${slug}/parts/">${e("home.build_it")}</a>
+</div>
+</article>`;
+  });
+  const builds = rows.length
+    ? `<h2 id="builds">${e("home.builds")}</h2>\n<div class="builds">\n${rows.join("\n")}\n</div>\n` : "";
+  const specCta = spec ? `<a class="alt" href="${escapeHtml(spec)}" rel="noopener noreferrer">${e("home.cta_spec")}</a>` : "";
+  const urLine = ur ? `<p class="urtones-line">${e("home.urtones")} <a href="${escapeHtml(ur.spec)}" rel="noopener noreferrer">${e("footer.urtones_spec")}</a> · <a href="${escapeHtml(ur.web)}" rel="noopener noreferrer">${e("footer.urtones_web")}</a></p>` : "";
+  const hero = `<section class="hero home">
+<div>
+<h1>${e("home.title")}</h1>
+<p class="lede">${e("home.lede")}</p>
+<div class="cta">
+<a class="main" href="#builds"><span aria-hidden="true">▶</span> ${e("home.cta_try")}</a>
+${specCta}
+</div>
+${urLine}
+</div>
+<div class="dtmf" data-keypad data-hint="${e("home.keypad_hint")}" data-caption="${e("home.keypad_caption")}" role="group" aria-label="${e("home.keypad")}"></div>
+</section>
+<script type="module" src="../dtmf-keypad.mjs"></script>
+`;
+  return { title: "DTMF-Signer", body: `${hero}${builds}<div class="prose">\n${html}\n</div>\n${donateBlock(site, tr, "../")}`, fallback };
 }
 
 // The tabs of a build, each its own page under <lang>/<slug>/: the

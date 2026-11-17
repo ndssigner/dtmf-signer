@@ -38,15 +38,20 @@ function head(lang, title, root, wasm = false) {
 // path: this page's path inside the language folder ("" or "cable-qr/").
 // fallback: true if the page's own content came from English.
 // wasm: the page runs WebAssembly (the simulator), and only that page may.
+// The specification's address in the repository, in the page's language
+// when it has one (config.spec: language -> path, English as the fallback).
+export function specHref(site, lang) {
+  const specPath = site.config.spec?.[lang] ?? site.config.spec?.en;
+  return specPath ? `${site.config.repo}/blob/main/${specPath}` : null;
+}
+
 export function layout({ site, lang, tr, root, title, body, path, nav, fallback, wasm = false }) {
   const repo = escapeHtml(site.config.repo);
-  // The specification lives in the repository, in the page's language when
-  // it has one (config.spec: language -> path, English as the fallback).
-  const specPath = site.config.spec?.[lang] ?? site.config.spec?.en;
+  const spec = specHref(site, lang);
   const links = nav.map(({ key, href }) =>
     `<a href="${root}${lang}/${href}">${escapeHtml(tr(key))}</a>`);
-  if (specPath)
-    links.push(`<a href="${repo}/blob/main/${escapeHtml(specPath)}" rel="noopener noreferrer">${escapeHtml(tr("nav.spec"))}</a>`);
+  if (spec)
+    links.push(`<a href="${escapeHtml(spec)}" rel="noopener noreferrer">${escapeHtml(tr("nav.spec"))}</a>`);
   const langs = site.config.languages.map(({ code }) => {
     const name = escapeHtml(t(site, code, "lang.name").text);
     return code === lang

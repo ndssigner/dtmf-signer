@@ -201,5 +201,20 @@
   "yw.air_speakers": "Speakers of this computer ▸ microphone of your device",
   "yw.handset_note": "This computer stands in for the telephone's handset: keep the speakers low and your device close to the microphone.",
   "yw.listen": "Receive the signature: the ur-tones web tool",
-  "yw.listen_tip": "Set it listening near the speakers when the signer is about to give back the signature or the account"
+  "yw.listen_tip": "Set it listening near the speakers when the signer is about to give back the signature or the account",
+  "home.title": "Sign Bitcoin with telephone tones, on a device you build yourself",
+  "home.lede": "A signer that speaks DTMF, the beeps of a telephone keypad. A cheap microcontroller and a few parts from an electronics shop, or from the scrapyard, are enough.",
+  "home.cta_try": "Try a build",
+  "home.cta_spec": "Read the specification",
+  "home.urtones": "It speaks ur-tones, an open way to send data as sound:",
+  "home.keypad": "DTMF keypad",
+  "home.keypad_hint": "Press a key: each is two tones at once, one from each group.",
+  "home.keypad_caption": "«{key}» = {low} Hz + {high} Hz, at once.",
+  "talk.cable_in": "🎧 in by cable",
+  "talk.qr_out": "◫ out by QR",
+  "talk.own_screen": "🖥 own screen",
+  "talk.tone_phone": "☎ tone telephone",
+  "talk.voice": "🗣 voice",
+  "talk.handset_tones": "🔈 tones by the handset",
+  "home.build_it": "Build it"
 }

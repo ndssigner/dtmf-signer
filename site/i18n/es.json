@@ -201,5 +201,20 @@
   "yw.air_speakers": "Altavoces de este ordenador ▸ micrófono de tu dispositivo",
   "yw.handset_note": "Este ordenador hace de auricular del teléfono: altavoces bajos y tu dispositivo cerca del micrófono.",
   "yw.listen": "Recibir la firma: la web de ur-tones",
-  "yw.listen_tip": "Ponla a escuchar cerca de los altavoces cuando el firmador vaya a devolver la firma o la cuenta"
+  "yw.listen_tip": "Ponla a escuchar cerca de los altavoces cuando el firmador vaya a devolver la firma o la cuenta",
+  "home.title": "Firma Bitcoin con tonos de teléfono, en un aparato que construyes tú",
+  "home.lede": "Un firmador que habla en DTMF, los pitidos del teclado de un teléfono. Basta un microcontrolador barato y unas piezas de una tienda de electrónica, o rescatadas de la chatarra.",
+  "home.cta_try": "Probar un montaje",
+  "home.cta_spec": "Leer la especificación",
+  "home.urtones": "Habla ur-tones, una forma abierta de enviar datos como sonido:",
+  "home.keypad": "Teclado DTMF",
+  "home.keypad_hint": "Pulsa una tecla: cada una son dos tonos a la vez, uno de cada grupo.",
+  "home.keypad_caption": "«{key}» = {low} Hz + {high} Hz, a la vez.",
+  "talk.cable_in": "🎧 entra por cable",
+  "talk.qr_out": "◫ sale por QR",
+  "talk.own_screen": "🖥 pantalla propia",
+  "talk.tone_phone": "☎ teléfono de tonos",
+  "talk.voice": "🗣 voz",
+  "talk.handset_tones": "🔈 tonos por el auricular",
+  "home.build_it": "Construirlo"
 }
