@@ -458,3 +458,10 @@ test("the guide's code is what ⌨ Type code dials, on each network", { skip: VO
   const ui = readFileSync(new URL("../static/sim/voice-ui.mjs", import.meta.url), "utf8");
   assert.match(ui, /setNetwork\(net\) \{[\s\S]*?showKeypadCode\(/, "refreshed when the network changes");
 });
+test("your wallet's mic button says it turns this computer's mic on, in both builds and languages", { skip: SKIP }, () => {
+  for (const [lang, on] of [["es", "Activar micro"], ["en", "Turn on mic"]])
+    for (const slug of ["cable-qr", "centralita"]) {
+      const html = text(files, `${lang}/${slug}/index.html`);
+      assert.match(html, new RegExp(`class="mic-toggle"[^>]*>(<span[^>]*>🎙</span> ?)?${on}<`), `${lang}/${slug}`);
+    }
+});

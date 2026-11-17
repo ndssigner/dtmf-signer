@@ -78,3 +78,12 @@ test("the footer links to the ur-tones spec and web tool", () => {
     assert.match(foot, /abc1234/);
   }
 });
+test("the language switch is a dropdown that keeps the page", () => {
+  const files = buildInto();
+  const html = text(files, "es/cable-qr/parts/index.html");
+  const m = /<details class="langs">\s*<summary[^>]*>([\s\S]*?)<\/summary>\s*<ul>([\s\S]*?)<\/ul>\s*<\/details>/.exec(html);
+  assert.ok(m, "details.langs with a summary and a list");
+  assert.match(m[1], /Español/);
+  assert.match(m[2], /<a href="\.\.\/\.\.\/\.\.\/en\/cable-qr\/parts\/" hreflang="en" data-lang="en"[^>]*>English<\/a>/);
+  assert.match(m[2], /aria-current="true"[^>]*>Español/);
+});

@@ -36,9 +36,18 @@ header { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; align-items: center
 nav { display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; font-size: .95rem; }
 nav.site a { color: var(--muted); text-decoration: none; padding: .15rem 0; border-bottom: 2px solid transparent; }
 nav.site a:hover { color: var(--fg); border-bottom-color: var(--press); }
-nav.langs { gap: .25rem .5rem; font-size: .85rem; color: var(--muted); }
-nav.langs a, nav.langs span { padding: .1rem .55rem; border-radius: 999px; border: 1px solid var(--line); text-decoration: none; }
-nav.langs span[aria-current] { background: var(--surface); color: var(--fg); font-weight: 600; }
+details.langs { position: relative; font-size: .85rem; }
+details.langs summary { list-style: none; cursor: pointer; padding: .15rem .6rem; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--fg); background: var(--surface); white-space: nowrap; }
+details.langs summary::-webkit-details-marker { display: none; }
+details.langs summary::after { content: " ▾"; color: var(--muted); }
+details.langs[open] summary::after { content: " ▴"; }
+details.langs ul { position: absolute; right: 0; top: calc(100% + .3rem); z-index: 20; margin: 0; padding: .3rem;
+  list-style: none; min-width: 9rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / .12); }
+details.langs li a, details.langs li span { display: block; padding: .35rem .6rem; border-radius: 5px; text-decoration: none; color: var(--fg); }
+details.langs li a:hover { background: var(--sunk); }
+details.langs li span[aria-current] { font-weight: 600; color: var(--muted); }
 a { color: var(--press-ink); }
 .notice { background: var(--notice); padding: .6rem 16px; margin-top: 1rem; border-radius: 4px; }
 main { padding-top: 1rem; padding-bottom: 2rem; }

@@ -16,6 +16,14 @@ if (typeof document !== "undefined") {
     a.addEventListener("click", () => {
       try { localStorage.setItem("lang", a.dataset.lang); } catch { /* not remembered */ }
     });
+  // The language dropdown closes on a click outside it or on Escape.
+  const drop = document.querySelector("details.langs");
+  if (drop) {
+    document.addEventListener("click", (e) => { if (drop.open && !drop.contains(e.target)) drop.open = false; });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drop.open) { drop.open = false; drop.querySelector("summary").focus(); }
+    });
+  }
   const codes = (document.documentElement.dataset.langs || "").split(" ").filter(Boolean);
   if (codes.length) {
     let saved = null;

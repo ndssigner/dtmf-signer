@@ -9,6 +9,7 @@
   "footer.urtones_spec": "Protocol",
   "footer.urtones_web": "Web tool",
   "nav.repo": "Repository",
+  "nav.lang": "Language",
   "footer.built": "Built from {commit}",
   "home.title": "Sign Bitcoin with telephone tones, on a device you build yourself",
   "home.lede": "A signer that speaks DTMF, the beeps of a telephone keypad. A cheap microcontroller and a few parts from an electronics shop, or from the scrapyard, are enough.",

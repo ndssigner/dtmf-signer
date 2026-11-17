@@ -52,12 +52,20 @@ export function layout({ site, lang, tr, root, title, body, path, nav, fallback,
     `<a href="${root}${lang}/${href}">${escapeHtml(tr(key))}</a>`);
   if (spec)
     links.push(`<a href="${escapeHtml(spec)}" rel="noopener noreferrer">${escapeHtml(tr("nav.spec"))}</a>`);
-  const langs = site.config.languages.map(({ code }) => {
+  // The language switch: a dropdown (a <details>, no script needed) whose
+  // links keep the page the reader is on.
+  const current = escapeHtml(t(site, lang, "lang.name").text);
+  const langs = `<details class="langs">
+<summary aria-label="${escapeHtml(tr("nav.lang"))}: ${current}"><span aria-hidden="true">🌐</span> ${current}</summary>
+<ul>
+${site.config.languages.map(({ code }) => {
     const name = escapeHtml(t(site, code, "lang.name").text);
     return code === lang
-      ? `<span aria-current="true">${name}</span>`
-      : `<a href="${root}${code}/${path}" hreflang="${code}" data-lang="${code}">${name}</a>`;
-  }).join("\n");
+      ? `<li><span aria-current="true" lang="${code}">${name}</span></li>`
+      : `<li><a href="${root}${code}/${path}" hreflang="${code}" data-lang="${code}" lang="${code}">${name}</a></li>`;
+  }).join("\n")}
+</ul>
+</details>`;
   const footer = escapeHtml(tr("footer.built", { commit: site.commit }));
   const ur = site.config.urtones;
   const urLinks = ur
@@ -75,9 +83,7 @@ export function layout({ site, lang, tr, root, title, body, path, nav, fallback,
 <nav class="site">
 ${links.join("\n")}
 </nav>
-<nav class="langs">
 ${langs}
-</nav>
 </header>
 ${notice}<main>
 ${body}
