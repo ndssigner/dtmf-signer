@@ -184,7 +184,7 @@
   "bench.link.your-wallet.air-in": "Your device's speaker, heard by the microphone of this computer → the handset's microphone",
   "bench.link.your-wallet.air-out": "The earpiece, through the speakers of this computer → your device's microphone",
   "yw.air_speakers": "Speakers of this computer ▸ microphone of your device",
-  "yw.handset_note": "This computer stands in for the telephone's handset.",
+  "yw.handset_note": "This computer stands in for the telephone's handset: keep the speakers low and your device close to the microphone.",
   "yw.listen": "Receive the signature: the ur-tones web tool",
   "yw.listen_tip": "Set it listening near the speakers when the signer is about to give back the signature or the account"
 }

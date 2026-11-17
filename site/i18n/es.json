@@ -184,7 +184,7 @@
   "bench.link.your-wallet.air-in": "Altavoz de tu dispositivo, oído por el micrófono de este ordenador → micrófono del auricular",
   "bench.link.your-wallet.air-out": "El auricular, por los altavoces de este ordenador → micrófono de tu dispositivo",
   "yw.air_speakers": "Altavoces de este ordenador ▸ micrófono de tu dispositivo",
-  "yw.handset_note": "Este ordenador hace de auricular del teléfono.",
+  "yw.handset_note": "Este ordenador hace de auricular del teléfono: altavoces bajos y tu dispositivo cerca del micrófono.",
   "yw.listen": "Recibir la firma: la web de ur-tones",
   "yw.listen_tip": "Ponla a escuchar cerca de los altavoces cuando el firmador vaya a devolver la firma o la cuenta"
 }

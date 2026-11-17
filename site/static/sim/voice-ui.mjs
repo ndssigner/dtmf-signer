@@ -20,7 +20,8 @@ const SAID_MS = 600;           // this long quiet: what was said is over
 const KEYS = "0123456789*#";
 // Your wallet: the microphone of this computer never runs the handset this
 // far behind (what is older is dropped, as a real handset would not wait).
-export const MIC_BACKLOG_MS = 2000;
+export const MIC_BACKLOG_MS = 2000;   // (dropped whole: it never runs the line behind)
+const ECHO_MS = 1000;                  // the speakers' echo, after the signer stops
 
 // What the signer says, as text, from its public echo: "say <id>" in the
 // language it speaks (phrases[lang][id]; each language of the list in its
@@ -64,11 +65,13 @@ export class Transcript {
 // Simulated wallet: the air lights as it plays or listens. Your wallet: the
 // microphone of this computer is the handset's (lit with sound above the
 // threshold), its speakers the earpiece (lit while the signer speaks).
-export function voiceActivity({ mode = "sim-wallet", offHook, micQueued, keysQueued, speaking, walletListening, micOn = false, micDbfs = -100 }) {
+export function voiceActivity({ mode = "sim-wallet", offHook, micQueued, keysQueued, speaking, walletListening, micOn = false, micDbfs = -100, quietMs = Infinity }) {
   const on = new Set(["power"]);
   if (!offHook) return { on, status: "status.on_hook" };
   if (mode === "your-wallet") {
-    const hearing = micOn && micDbfs > MIC_ACTIVE_DBFS;
+    // The microphone hears the speakers too: while the signer speaks, and a
+    // moment after, what it hears is mostly that echo, not your device.
+    const hearing = micOn && micDbfs > MIC_ACTIVE_DBFS && !speaking && quietMs >= ECHO_MS;
     if (speaking || keysQueued > 0 || hearing) on.add("line");
     if (hearing) on.add("air-in");
     if (speaking) on.add("air-out");
@@ -158,6 +161,7 @@ export async function start(doc, loadModule, loadPack) {
     micBtn.disabled = micSwitch.starting;
     micBtn.textContent = micSwitch.on ? S["mic.stop"] : S["mic.listen"];
     micBtn.setAttribute("aria-pressed", String(micSwitch.on));
+    if (!micSwitch.on && micLevel) micLevel.value = -80;
   }
   micBtn?.addEventListener("click", () => {
     ensureAudio();
@@ -331,7 +335,7 @@ export async function start(doc, loadModule, loadPack) {
     if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }
     if (checkText !== lastCheck) { wdCheck.textContent = checkText; lastCheck = checkText; }
     const { on, status: st } = voiceActivity({ mode, offHook: vs.offHook, micQueued: vs.micQueued, keysQueued: vs.keysQueued,
-      speaking, walletListening: wallet.listening, micOn: micSwitch.on, micDbfs });
+      speaking, walletListening: wallet.listening, micOn: micSwitch.on, micDbfs, quietMs: vs.quietMs });
     const key = [...on].sort().join(" ");
     if (key !== lastActive) {
       lastActive = key;

@@ -245,3 +245,9 @@ test("your wallet: ⏩ (simulated wallet only) never mutes the speakers", async 
   assert.equal(speakersOn({ mode: "sim-wallet", sound: true, fast: true }), false);
   assert.equal(speakersOn({ mode: "your-wallet", sound: false, fast: false }), false);
 });
+test("your wallet: while the signer speaks (and 1 s after), the microphone hearing its echo does not light the air in", () => {
+  const base = { mode: "your-wallet", offHook: true, micQueued: 0, keysQueued: 0, walletListening: false, micOn: true, micDbfs: -30 };
+  assert.ok(!voiceActivity({ ...base, speaking: true, quietMs: 0 }).on.has("air-in"));
+  assert.ok(!voiceActivity({ ...base, speaking: false, quietMs: 500 }).on.has("air-in"));
+  assert.ok(voiceActivity({ ...base, speaking: false, quietMs: 1200 }).on.has("air-in"));
+});
