@@ -123,6 +123,10 @@
   "es": "Para firmar, cuelga un momento y vuelve a descolgar.",
   "en": "To sign, hang up for a moment, then pick up again."
  },
+ "wipe_hook": {
+  "es": "Para borrar, cuelga un momento y vuelve a descolgar.",
+  "en": "To wipe, hang up for a moment and pick up again."
+ },
  "signed_hold_near": {
   "es": "Firmado. Acerca el auricular a tu guálet; almohadilla para empezar.",
   "en": "Signed. Hold the handset to your wallet; hash to start."

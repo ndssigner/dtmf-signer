@@ -130,6 +130,26 @@ static void press(line_t *t, char k)
         step(t, buf + i * CHUNK);
 }
 
+/* A key at a pace: tone_ms of tone, gap_ms of silence. */
+static void press_paced(line_t *t, char k, uint32_t tone_ms, uint32_t gap_ms)
+{
+    static int16_t buf[16000];
+    char keys[2] = {k, 0};
+    size_t n = (size_t)(tone_ms + gap_ms) * 16;
+    ut_synth s;
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&s, keys, 16000, tone_ms, gap_ms, 0);
+    ut_synth_read(&s, buf, n);
+    for (size_t i = 0; i + CHUNK <= n; i += CHUNK)
+        step(t, buf + i);
+}
+
+/* A fast press (100 ms tone, 100 ms gap): the same key again, multi-tap. */
+static void press_fast(line_t *t, char k)
+{
+    press_paced(t, k, 100, 100);
+}
+
 static void hook(line_t *t, int off)
 {
     ds_voice_hook(&t->v, off, t->now);
@@ -472,8 +492,12 @@ static void type_mt(line_t *t, const char *text)
         char k = mt_key(*p, &n);
         if (k == prev)
             run_ms(t, 1600);
-        for (int i = 0; i < n; i++)
-            press(t, k);
+        for (int i = 0; i < n; i++) {
+            if (i + 1 < n)
+                press_fast(t, k); /* the same key again: fast */
+            else
+                press(t, k);
+        }
         prev = k;
     }
 }
@@ -1163,18 +1187,24 @@ static const uint8_t *hear_tones(line_t *t, const char **type, size_t *len)
 
 /* A wallet looping the PSBT's parts at a pace: cable (40/20/400 ms) or air
  * (80/80/600 ms, ur-tones SPEC). */
+static int16_t paced_audio[TONES_RATE * 150];
+
+/* A part's tones at tone/gap ms, then pause_ms of silence: its audio. */
+static size_t render_paced(const char *tones, uint32_t tone, uint32_t gap, uint32_t pause)
+{
+    ut_synth syn;
+    ut_synth_init(&syn, tones, TONES_RATE, tone, gap, 0);
+    size_t n = ut_synth_read(&syn, paced_audio, sizeof paced_audio / sizeof paced_audio[0]);
+    size_t p = (size_t)pause * 16;
+    CHECK(n + p < sizeof paced_audio / sizeof paced_audio[0]);
+    memset(paced_audio + n, 0, p * sizeof paced_audio[0]);
+    return n + p;
+}
+
 static void play_part_paced(line_t *t, const char *tones, int air)
 {
-    static int16_t a[TONES_RATE * 120];
-    ut_synth syn;
-    if (air)
-        ut_synth_init(&syn, tones, TONES_RATE, 80, 80, 600);
-    else
-        ut_synth_init(&syn, tones, TONES_RATE, 40, 20, 400);
-    size_t n = ut_synth_read(&syn, a, sizeof a / sizeof a[0]);
-    CHECK(n < sizeof a / sizeof a[0]);
-    play(t, a, n);
-    run_ms(t, air ? 600 : 400);
+    size_t n = air ? render_paced(tones, 80, 80, 600) : render_paced(tones, 40, 20, 400);
+    play(t, paced_audio, n);
 }
 
 /* The wallet keeps looping (at either pace) all through the review and the
@@ -1261,6 +1291,106 @@ static void test_gate_after_reception(void)
     press(&L, '#');
     run_quiet(&L);
     CHECK_EQ_INT(L.v.item, 1);
+}
+
+/* Multi-tap of the same key at three paces: every tap counts (2, A, B). */
+static void test_multitap_same_key_paces(void)
+{
+    static const uint32_t pace[3][2] = {{100, 100}, {80, 140}, {100, 150}};
+    air_seed_to_pin(&L, seed_6a, "ABC123DEF456");
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    for (int p = 0; p < 3; p++) {
+        for (int i = 0; i < 3; i++)
+            press_paced(&L, '2', pace[p][0], pace[p][1]);
+        CHECK(L.v.mt.has_pending && L.v.mt.pending == 'B'); /* 2, A, B */
+        run_ms(&L, 1600); /* committed */
+    }
+    CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 9);
+    CHECK_EQ_INT(L.v.mt.len, 3);
+    CHECK(L.v.mt.len == 3 && memcmp(L.v.mt.text, "BBB", 3) == 0);
+}
+
+/* 3 in the menu asks for a hook flash; no key wipes; * goes back. */
+static void test_wipe_needs_hook(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    press(&L, '3');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state wipe-confirm", mark));
+    CHECK(HAS(&L, "say wipe_hook", mark));
+    type_keys(&L, "1234567890");
+    press(&L, '3');
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say wiped", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    press(&L, '*');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state menu-ready", mark));
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    /* a flash in the menu is no wipe either */
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_READY);
+    /* 3, then a flash: wiped */
+    mark = L.log_len;
+    press(&L, '3');
+    run_quiet(&L);
+    on_hook(&L, 500);
+    run_quiet(&L);
+    long w = find_line(&L, "say wiped", mark);
+    CHECK(w >= 0 && HAS(&L, "state menu-empty", (size_t)w));
+    CHECK_EQ_INT(L.v.s.state, 0);
+    CHECK(all_zero(&L.v.s, sizeof L.v.s));
+}
+
+/* A wallet looping slowly (200 ms tones, 150 ms silences, 600 ms between
+ * parts: legal, and slow enough to look like typing) in the menu with a
+ * seed: whatever keys it presses, it never wipes. */
+static void test_slow_wallet_never_wipes(void)
+{
+    const psbt_vector *pv = vector("one input with change");
+    int32_t n = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)n, 100) >= 0);
+    to_ready(&L, 0);
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        play(&L, paced_audio, render_paced(part_tones, 200, 150, 600));
+    }
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say wiped", 0));
+    CHECK(L.v.s.state >= DS_S_READY);
+    CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
+    CHECK(strstr(L.log, "signed-psbt") == NULL);
+}
+
+/* The same slow wallet (1200 ms between parts) looping through a review:
+ * the confirmation is never reached unless every item was said in full,
+ * and nothing is signed. */
+static void test_slow_wallet_review_needs_every_item(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    CHECK(HAS(&L, "state review", 0));
+    size_t scan = L.log_len;
+    for (int i = 0; i < 2; i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        size_t n = render_paced(part_tones, 200, 150, 1200);
+        for (size_t at = 0; at < n; at += CHUNK) {
+            step(&L, paced_audio + at);
+            long c = find_line(&L, "state confirm", scan);
+            if (c >= 0) {
+                CHECK(L.v.items_heard >= L.v.s.r.n_out + 1);
+                scan = (size_t)c + 14;
+            }
+            if (L.log_len > scan + 4096)
+                scan = L.log_len - 4096 > scan ? L.log_len - 4096 : scan;
+        }
+    }
+    CHECK(strstr(L.log, "signed-psbt") == NULL);
+    CHECK(!HAS(&L, "say wiped", 0));
+    CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
 }
 
 /* Normal typing: a key 300 ms after a different one counts. */
@@ -1533,6 +1663,9 @@ static void test_amount_units(void)
     run_quiet(&L);
     press(&L, '3');
     run_quiet(&L);
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(HAS(&L, "say wiped", mark));
     CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_SATS);
     ds_voice_init(&L.v, 16000, NULL, 0);
     CHECK_EQ_INT(L.v.unit, DS_VOICE_UNIT_AUTO);
@@ -1803,4 +1936,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_looping_wallet_drives_nothing, test_hash_waits_for_the_item,
           test_warns_foreign_inputs, test_warns_input_without_witness,
           test_looping_wallet_cable_pace, test_looping_wallet_air_pace,
-          test_typing_pace_counts, test_gate_after_reception)
+          test_typing_pace_counts, test_gate_after_reception,
+          test_multitap_same_key_paces, test_wipe_needs_hook,
+          test_slow_wallet_never_wipes, test_slow_wallet_review_needs_every_item)

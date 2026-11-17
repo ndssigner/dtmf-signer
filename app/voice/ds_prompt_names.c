@@ -33,6 +33,7 @@ const char *const ds_prompt_name[DS_P_COUNT] = {
     "point",
     "bitcoin",
     "sign_hook",
+    "wipe_hook",
     "signed_hold_near",
     "again_hint",
     "account_hold_near",

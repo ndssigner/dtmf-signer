@@ -175,7 +175,12 @@ Crece con cada montaje que alguien haga y mida.
   la línea.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** el teclado y el micrófono no se distinguen, así que el
-  firmador solo se fía de las teclas mientras las está pidiendo. Un manos
+  firmador solo se fía de las teclas mientras las está pidiendo. Un
+  aparato que suene cerca del auricular (una wallet que repite sus datos a
+  un ritmo tan lento que parece tecleo) puede pulsar teclas: cancelar,
+  repetir, empezar una acción. No puede saltarse el resumen hablado, ni
+  firmar ni borrar: eso pide el gancho. Aleja la wallet del auricular fuera
+  de las transferencias de datos. Un manos
   libres dice las teclas en voz alta, y la memoria de rellamada puede
   guardar lo marcado (ver `IN-PHONEPAD`). Una fuente de línea mal hecha
   puede dañar el teléfono: limita la corriente y comprueba las cifras con

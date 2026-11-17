@@ -166,7 +166,11 @@ build someone makes and measures.
   telephone with a handset. The hook is read from the line voltage.
 - **Time:** `CPU-8` not measured · `CPU-32S` not measured · `CPU-32` not measured.
 - **Risks:** the keypad and the microphone cannot be told apart, so the
-  signer trusts the keys only while it is asking for them. A speakerphone
+  signer trusts the keys only while it is asking for them. A device playing
+  tones near the handset (a wallet looping its data, at a pace slow enough
+  to look like typing) can press keys: cancel, repeat, start an action. It
+  cannot skip the spoken summary, sign or wipe: those need the hook. Keep
+  the wallet away from the handset outside data transfers. A speakerphone
   says the keys aloud, and the redial memory may keep what was dialled
   (see `IN-PHONEPAD`). A line source that is wrong can hurt the
   telephone: limit the current, and check the figures against the

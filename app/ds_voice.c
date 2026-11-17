@@ -41,7 +41,8 @@ enum {
     ST_CONFIRM,    /* a hook flash signs */
     ST_HOLD_NEAR,  /* signed (or the account): # plays it */
     ST_TONES,      /* it plays as data tones; then 0 again, # the menu */
-    ST_SETTINGS    /* the unit of the amounts, About */
+    ST_SETTINGS,   /* the unit of the amounts, About */
+    ST_WIPE_CONFIRM /* a hook flash wipes; * or # back */
 };
 
 /* heavy work, run from a tick */
@@ -64,7 +65,8 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define ONSET_RUNS 2     /* a tone heard 20 ms has begun */
 #define DATA_ONSET_RUNS 25 /* a different tone begun within 250 ms: data */
 #define DATA_QUIET_RUNS 70 /* data is over after 700 ms without a tone */
-#define DATA_GAP_RUNS 12 /* ... with 120 ms or less of silence before it */
+#define DATA_GAP_RUNS 15 /* ... after 150 ms or less of silence (SPEC 1.1) */
+#define REPEAT_RUNS 150  /* the same key again within 1.5 s: multi-tap */
 #define GATE_QUIET_RUNS 100 /* after data: no key until 1000 ms without a tone */
 #define SENTENCE_GAP_MS 300u /* between the sentences of a prompt */
 #define ENTRY_GAP_MS 500u    /* between the entries of a list */
@@ -91,6 +93,7 @@ static const char *state_name(int st)
     case ST_HOLD_NEAR: return "hold-near";
     case ST_TONES: return "tones";
     case ST_SETTINGS: return "settings";
+    case ST_WIPE_CONFIRM: return "wipe-confirm";
     default: return "?";
     }
 }
@@ -113,6 +116,8 @@ static int resume_point(int st)
         return st;
     case ST_TONES:
         return ST_HOLD_NEAR;
+    case ST_WIPE_CONFIRM:
+        return ST_MENU_READY;
     case ST_PSBT_RX:
     case ST_REVIEW:
     case ST_CONFIRM:
@@ -549,6 +554,12 @@ static int say_step(ds_voice *v)
         }
         clip(v, DS_P_SIGN_HOOK);
         break;
+    case ST_WIPE_CONFIRM:
+        if (k > 0) {
+            return 0;
+        }
+        clip(v, DS_P_WIPE_HOOK);
+        break;
     case ST_HOLD_NEAR:
         if (k > 0) {
             return 0;
@@ -679,14 +690,16 @@ static void listen_afresh(ds_voice *v)
     v->gate_quiet = 0;
     v->pending = 0;
     v->gap_before = 0;
-    v->since_tone = 0;
+    v->repeat = 0;
 }
 
 /* A data reception ended (a seed, a PSBT) or the signer's own tones did:
  * the listener afresh, and no key at all, in any state, until the line has
- * had no tone for 1000 ms. A wallet looping its parts pauses 400 to 600 ms
- * between them, so it never opens the gate; a person waits longer than
- * that before pressing. */
+ * had no tone for 1000 ms. A wallet looping its parts pauses between them
+ * at least 300 ms (ur-tones SPEC 1.1; 400 by cable and 600 by air as
+ * recommended), so at those paces it keeps the gate shut; one pausing a
+ * second or more can open it. A person waits longer than that before
+ * pressing. */
 static void close_gate(ds_voice *v)
 {
     listen_afresh(v);
@@ -694,29 +707,30 @@ static void close_gate(ds_voice *v)
 }
 
 /* The one way a key is taken, in every state, once the gate is open (see
- * close_gate). A key must sound 70 ms; dropouts under 50 ms (the signer's
- * own voice on the line can cause them) neither end it nor make it a new
- * press. Length alone cannot tell a wallet's data tones from a person (at
- * air pace a data tone lasts 80 ms), so rhythm does: a tone that begins
- * 250 ms or less after the previous one began, is a different key, and
- * follows 120 ms or less of silence marks the line as carrying data (a
- * wallet plays a tone every 60 or 160 ms with 20 or 80 ms between, never
- * the same twice in a row; a person types slower), and no key counts until
- * 700 ms without a tone. The same key again (multi-tap) is never data. So
- * that the first tone of a burst is not taken either, a key is acted on
- * only 250 ms after it began, if no data was seen meanwhile. Called once
- * per 10 ms slice with the key heard now; returns the key to act on, or 0. */
+ * close_gate). Keys from the air cannot be fully told from a person typing:
+ * these rules keep a wallet's data tones out at the paces wallets use, and
+ * what is left (a device near the handset pressing keys) can cancel,
+ * repeat or start an action but never sign, wipe or skip the review, which
+ * need the hook or the whole review said.
+ *  - A key must sound 70 ms; dropouts under 50 ms (the signer's own voice
+ *    on the line can cause them) neither end it nor make it a new press.
+ *  - Rhythm: a tone that begins 250 ms or less after the previous one
+ *    began, is a different key, and follows 150 ms or less of silence (the
+ *    longest silence inside a frame, ur-tones SPEC 1.1) marks the line as
+ *    carrying data; no key counts until 700 ms without a tone. A key held
+ *    long enough waits until 250 ms after it began and is dropped if data
+ *    is seen meanwhile, so the first tone of a burst is not taken.
+ *  - The same key again within 1.5 s (multi-tap) is never data: each of
+ *    its onsets is a tap of its own, acted on at 70 ms (and a tap of it
+ *    still waiting is acted on at once).
+ * Called once per 10 ms slice with the key heard now; returns the key to
+ * act on, or 0. */
 static char held_key(ds_voice *v, char key)
 {
-    char c;
+    char out = 0;
 
     if (v->since_onset < UINT32_MAX) {
         v->since_onset++;
-    }
-    if (key != 0) {
-        v->since_tone = 0;
-    } else if (v->since_tone < UINT32_MAX) {
-        v->since_tone++;
     }
     if (v->data) {
         /* data tones heard: no key until the burst is over */
@@ -727,54 +741,58 @@ static char held_key(ds_voice *v, char key)
         }
         return 0;
     }
-    /* a key held long enough is acted on once 250 ms have passed since it
-     * began with no other tone begun meanwhile: then it is no data */
-    if (v->pending != 0 && v->since_onset > DATA_ONSET_RUNS) {
-        c = v->pending;
-        v->pending = 0;
-        return c;
-    }
     if (key == 0) {
         if (++v->run_gap >= KEY_GAP_RUNS) {
             v->run_key = 0;
             v->run_n = 0;
             v->held = 0;
         }
-        return 0;
-    }
-    if (key == v->run_key) {
-        v->run_n++;
     } else {
-        v->gap_before = v->run_gap; /* the silence before this tone */
-        v->run_key = key;
-        v->run_n = 1;
-    }
-    if (v->run_n == ONSET_RUNS) {
-        /* a new tone (heard 20 ms: not a blip at a key's edge): a
-         * different key from the last, begun 250 ms or less after it with
-         * the short silence of a sender between them, is data. The silence
-         * is measured too because the signer's own voice can hide the first
-         * slices of a person's key, making its start look later. */
-        if (v->onset_key != 0 && key != v->onset_key && v->since_onset <= DATA_ONSET_RUNS &&
-            v->gap_before <= DATA_GAP_RUNS) {
-            v->data = 1;
-            v->data_quiet = 0;
-            v->run_key = 0;
-            v->run_n = 0;
-            v->held = 0;
-            v->pending = 0;
-            v->onset_key = 0;
-            return 0;
+        if (key == v->run_key) {
+            v->run_n++;
+        } else {
+            v->gap_before = v->run_gap; /* the silence before this tone */
+            v->run_key = key;
+            v->run_n = 1;
         }
-        v->onset_key = key;
-        v->since_onset = 0;
+        v->run_gap = 0;
+        if (v->run_n == ONSET_RUNS) { /* a tone heard 20 ms has begun */
+            if (v->onset_key != 0 && key != v->onset_key) {
+                if (v->since_onset <= DATA_ONSET_RUNS && v->gap_before <= DATA_GAP_RUNS) {
+                    v->data = 1;
+                    v->data_quiet = 0;
+                    v->run_key = 0;
+                    v->run_n = 0;
+                    v->held = 0;
+                    v->pending = 0;
+                    v->onset_key = 0;
+                    return 0;
+                }
+                v->repeat = 0;
+            } else {
+                v->repeat = v->onset_key == key && v->since_onset <= REPEAT_RUNS;
+                if (v->repeat && v->pending != 0) {
+                    out = v->pending; /* the tap before: no data came */
+                    v->pending = 0;
+                }
+            }
+            v->onset_key = key;
+            v->since_onset = 0;
+        }
+        if (v->run_key != v->held && v->run_n >= KEY_RUNS) {
+            v->held = v->run_key;
+            if (v->repeat && out == 0) {
+                out = v->held;
+            } else {
+                v->pending = v->held;
+            }
+        }
     }
-    v->run_gap = 0;
-    if (v->run_key != v->held && v->run_n >= KEY_RUNS) {
-        v->held = v->run_key;
-        v->pending = v->held; /* acted on 250 ms after it began */
+    if (out == 0 && v->pending != 0 && v->since_onset > DATA_ONSET_RUNS) {
+        out = v->pending;
+        v->pending = 0;
     }
-    return 0;
+    return out;
 }
 
 /* What was typed or received to zero: the receiver (and the seed group it
@@ -1178,6 +1196,11 @@ static void leave_out(ds_voice *v)
 static void flash(ds_voice *v)
 {
     echo_line(v, "hook-flash");
+    if (v->state == ST_WIPE_CONFIRM && v->job == JOB_NONE &&
+        (int32_t)(v->down_at - v->confirm_at) >= 0) {
+        wipe(v);
+        return;
+    }
     if (v->state == ST_CONFIRM && v->job == JOB_NONE && v->s.state == DS_S_REVIEW &&
         (int32_t)(v->down_at - v->confirm_at) >= 0 && ds_session_confirm(&v->s) == DS_OK) {
         ask_job(v, JOB_SIGN);
@@ -1411,7 +1434,8 @@ static void on_key(ds_voice *v, char c)
         } else if (c == '2') {
             ask_job(v, JOB_ACCOUNT);
         } else if (c == '3') {
-            wipe(v);
+            v->confirm_at = v->now; /* a key never wipes: the hook does */
+            enter(v, ST_WIPE_CONFIRM);
         } else if (c == '9') {
             enter(v, ST_SETTINGS);
         } else if (c == '0') {
@@ -1459,6 +1483,14 @@ static void on_key(ds_voice *v, char c)
             repeat(v);
         } else if (c == '*') {
             sign_cancel(v);
+        }
+        break;
+    case ST_WIPE_CONFIRM:
+        /* keys never wipe: only a hook flash does */
+        if (c == '*' || c == '#') {
+            enter(v, ST_MENU_READY);
+        } else if (c == '0') {
+            repeat(v);
         }
         break;
     case ST_CONFIRM:

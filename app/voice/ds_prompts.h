@@ -37,6 +37,7 @@ enum ds_prompt {
     DS_P_POINT,
     DS_P_BITCOIN,
     DS_P_SIGN_HOOK,
+    DS_P_WIPE_HOOK,
     DS_P_SIGNED_HOLD_NEAR,
     DS_P_AGAIN_HINT,
     DS_P_ACCOUNT_HOLD_NEAR,

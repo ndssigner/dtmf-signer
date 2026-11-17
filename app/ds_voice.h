@@ -18,6 +18,8 @@
  *     Then the seed's fingerprint: # loads the wallet, * wipes. A failure
  *     says "error_generic".
  *   menu (with a seed): 1 sign, 2 account, 3 wipe, 9 settings, 0 repeat.
+ *   wipe (3): "to wipe, hang up for a moment": a hook flash wipes (keys
+ *     never do); * or # back to the menu.
  *   sign: "listening for the transaction", the "listen" sound, then the
  *     signer only listens (half-duplex) until the whole PSBT is heard. Then
  *     the review, one item at a time: each output ("you send" the amount
@@ -39,15 +41,20 @@
  *   Amounts: automatic says 1 bitcoin (100 000 000 sat) and more in bitcoin
  *   (the whole part, "point", each decimal digit, trailing zeros dropped,
  *   "bitcoin"), less in sats ("sats").
- *   Keys and a wallet's data tones on the same line, in every state: a key
- *   must sound 70 ms and is acted on 250 ms after it began; a tone that
- *   begins 250 ms or less after a different one began, after 120 ms or
- *   less of silence, marks the line as carrying data (a wallet plays a tone
- *   every 60 ms by cable, 160 ms by air), and no key counts until 700 ms
- *   without a tone (the same key again, multi-tap, is never data); and once
- *   a seed or a PSBT has been received, or the signer's own tones have
- *   played, no key counts until the line has had no tone for 1000 ms (a
- *   wallet looping its parts pauses 400 to 600 ms between them).
+ *   Keys and a wallet's data tones on the same line, in every state. Keys
+ *   from the air can never be fully told from typing, so what matters is
+ *   structural: the review must be said in full, and signing and the wipe
+ *   need the hook. The rules keep data tones out at the paces wallets use:
+ *   a key must sound 70 ms; a tone that begins 250 ms or less after a
+ *   different one began, after 150 ms or less of silence (the most a frame
+ *   holds), marks the line as carrying data, and no key counts until
+ *   700 ms without a tone; a key waits until 250 ms after it began and is
+ *   dropped if data shows meanwhile; the same key again within 1.5 s
+ *   (multi-tap) is never data, each tap its own. Once a seed or a PSBT has
+ *   been received, or the signer's own tones have played, no key counts
+ *   until the line has had no tone for 1000 ms (a wallet pauses at least
+ *   300 ms between frames). A device playing tones near the handset can
+ *   still press keys (cancel, repeat, start an action).
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
  *   character, the "next" sound when one is committed, "back" and the last
  *   one left after *; # ends it, * with nothing left cancels. A PIN key
@@ -153,7 +160,8 @@ typedef struct {
     int data;            /* data tones are sounding: no key until quiet */
     uint32_t data_quiet;
     char pending;        /* a key held, waiting 250 ms from its start (data?) */
-    uint32_t gap_before, since_tone; /* silence before the tone; since one */
+    uint32_t gap_before; /* the silence before the tone sounding */
+    int repeat;          /* it is the same key again (multi-tap) */
     int gate;            /* after data: no key until 1000 ms without a tone */
     uint32_t gate_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */
