@@ -79,7 +79,7 @@ COMMA_MS = 80      # silence after a comma, semicolon or colon
 STOP_MS = 160      # silence after a full stop, question or exclamation mark
 PEAK_DBFS = -3.0
 ENTRY = struct.Struct("<IIhBB")
-SLOT = 0x80000  # a pack must fit one slot of the voice flash region
+REGION_SIZE = 0x100000  # the voice flash region (1 MB) holds every pack but the built-in one
 
 
 # -- Pack ---------------------------------------------------------------
@@ -486,8 +486,8 @@ def main() -> int:
         pack = build_pack(a.lang, clips, lang_grammar(a.lang, phrases))
         secs = sum(len(c) for c in clips) / RATE
         print("%s: %d bytes, %.1f s of speech, %d phrases" % (a.lang, len(pack), secs, len(clips)))
-        if len(pack) > SLOT:
-            raise SystemExit("%s: the pack is larger than a flash slot (%d bytes)" % (a.lang, SLOT))
+        if len(pack) > REGION_SIZE:
+            raise SystemExit("%s: the pack is larger than the voice region (%d bytes)" % (a.lang, REGION_SIZE))
         if a.out_c:
             Path(a.out_c).write_text(pack_c_text(a.lang, pack, name), encoding="utf-8")
         if a.out_bin:

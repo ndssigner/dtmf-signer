@@ -222,9 +222,11 @@ static void test_scan_region(void)
         x = x * 1103515245u + 12345u;
         region[k] = (uint8_t)(x >> 24);
     }
-    memcpy(region + 0x80000, es_bin, ES_BIN_LEN);
-    memcpy(region + 0x1000, es_bin, ES_BIN_LEN);
-    region[0x1000 + ES_BIN_LEN / 2] ^= 0x40; /* the corrupt copy */
+    /* A corrupt copy at 0x1000, then es.bin on the next boundaries it does
+     * not reach into, then (back to back) a second valid pack. */
+    memcpy(region + 0x1000, es_bin, 0x3000);
+    region[0x1000 + 100] ^= 0x40; /* the corrupt copy */
+    memcpy(region + 0x4000, es_bin, ES_BIN_LEN);
 
     ds_pack en;
     ds_packs ps;
@@ -233,8 +235,19 @@ static void test_scan_region(void)
     CHECK_EQ_INT(ps.n, 2);
     CHECK_EQ_STR(ps.pack[0].lang, "en");
     CHECK_EQ_STR(ps.pack[1].lang, "es");
-    CHECK(ps.pack[1].data == region + 0x80000);
+    CHECK(ps.pack[1].data == region + 0x4000);
     CHECK(memcmp(ps.fp[1], es_bin_fp, 4) == 0);
+
+    /* Two valid packs back to back: the second starts on the next 4 KB
+     * boundary after the first's end, however large the first is. */
+    uint32_t second = 0x4000 + (ES_BIN_LEN + DS_PACK_ALIGN - 1) / DS_PACK_ALIGN * DS_PACK_ALIGN;
+    uint32_t mlen0 = build_mini(2);
+    CHECK(second + mlen0 <= sizeof region);
+    memcpy(region + second, mini, mlen0);
+    CHECK_EQ_INT(ds_packs_scan(&ps, &en, region, sizeof region), DS_OK);
+    CHECK_EQ_INT(ps.n, 3);
+    CHECK(ps.pack[1].data == region + 0x4000);
+    CHECK(ps.pack[2].data == region + second);
 
     /* No region: only the built-in pack. */
     CHECK_EQ_INT(ds_packs_scan(&ps, &en, NULL, 0), DS_OK);

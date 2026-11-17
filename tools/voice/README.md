@@ -27,11 +27,12 @@ The two voice models are downloaded once into `~/.cache/dtmf-signer/voices/`
 (or `$DTMF_VOICE_CACHE`) and checked against the SHA-256 in `voices.json`.
 Licences are in `app/voice/VOICES.md`.
 
-A pack must fit one 0x80000-byte slot of the region; the tool refuses a
-larger one. On the Pico, `make_uf2.py` wraps a pack for drag-and-drop:
+The voice region is 1 MB (flash offset 0x100000); packs sit back to back in it,
+each starting on a 4 KB boundary, and the tools refuse a pack larger than the
+region. On the Pico, `make_uf2.py` wraps a pack for drag-and-drop:
 
 ```sh
-python3 tools/voice/make_uf2.py app/voice/packs/es.bin --slot 0 es.uf2
+python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 ```
 
 Adding or changing a phrase: edit `phrases.json` (ASCII lowercase IDs; the

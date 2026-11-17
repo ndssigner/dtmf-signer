@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Wraps a voice pack in a UF2 file for the Pico's voice flash region.
 
-    python3 tools/voice/make_uf2.py app/voice/packs/es.bin --slot 0 es.uf2
+    python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 
-The region starts at flash offset 0x100000 and holds two slots of 0x80000
-bytes; slot N is written at 0x10100000 + N * 0x80000 (the XIP address the
-boot ROM expects). Dropping the file on the board in BOOTSEL mode writes the
+The region is 1 MB starting at flash offset 0x100000; packs sit back to back
+in it, each starting on a 4 KB boundary, and --offset is where this one starts
+(a multiple of 4096, relative to the region); it is written at
+0x10100000 + offset (the XIP address the boot ROM expects). The next pack
+goes at the next 4 KB boundary after this one's end. Dropping the file on the board in BOOTSEL mode writes the
 pack without touching the firmware; the firmware finds it at boot.
 
 UF2 blocks: 512 bytes, 256 bytes of payload each, the family ID flag set.
@@ -20,8 +22,8 @@ import sys
 from pathlib import Path
 
 REGION = 0x10100000
-SLOT_SIZE = 0x80000
-SLOTS = 2
+REGION_SIZE = 0x100000  # 1 MB
+ALIGN = 4096
 PAYLOAD = 256
 MAGIC0 = 0x0A324655
 MAGIC1 = 0x9E5D5157
@@ -30,12 +32,13 @@ FLAG_FAMILY = 0x00002000
 FAMILY = 0xE48BFF56  # the RP2040 family ID
 
 
-def to_uf2(pack: bytes, slot: int) -> bytes:
-    if not 0 <= slot < SLOTS:
-        raise ValueError("slot must be 0..%d" % (SLOTS - 1))
-    if len(pack) > SLOT_SIZE:
-        raise ValueError("the pack (%d bytes) is larger than a slot (%d)" % (len(pack), SLOT_SIZE))
-    base = REGION + slot * SLOT_SIZE
+def to_uf2(pack: bytes, offset: int) -> bytes:
+    if offset < 0 or offset % ALIGN:
+        raise ValueError("the offset must be a multiple of %d" % ALIGN)
+    if offset + len(pack) > REGION_SIZE:
+        raise ValueError("the pack (%d bytes) at offset 0x%x would cross the end of the "
+                         "1 MB region" % (len(pack), offset))
+    base = REGION + offset
     chunks = [pack[i:i + PAYLOAD] for i in range(0, len(pack), PAYLOAD)]
     out = bytearray()
     for n, chunk in enumerate(chunks):
@@ -49,11 +52,12 @@ def to_uf2(pack: bytes, slot: int) -> bytes:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("pack")
-    ap.add_argument("--slot", type=int, choices=range(SLOTS), required=True)
+    ap.add_argument("--offset", type=lambda v: int(v, 0), required=True,
+                    help="region-relative start, a multiple of 4096")
     ap.add_argument("out")
     a = ap.parse_args(argv)
     try:
-        uf2 = to_uf2(Path(a.pack).read_bytes(), a.slot)
+        uf2 = to_uf2(Path(a.pack).read_bytes(), a.offset)
     except ValueError as e:
         raise SystemExit(str(e))
     Path(a.out).write_bytes(uf2)

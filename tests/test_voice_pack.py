@@ -135,7 +135,7 @@ class PackTest(unittest.TestCase):
 class Uf2Test(unittest.TestCase):
     def test_uf2_blocks(self):
         pack = bytes(range(256)) * 3 + b"xyz"
-        uf2 = make_uf2.to_uf2(pack, 1)
+        uf2 = make_uf2.to_uf2(pack, 0x80000)
         self.assertEqual(len(uf2), 4 * 512)
         for n in range(4):
             blk = uf2[n * 512:(n + 1) * 512]
@@ -148,12 +148,19 @@ class Uf2Test(unittest.TestCase):
             self.assertEqual((size, no, total), (256, n, 4))
             self.assertEqual(blk[32:32 + 256], pack[256 * n:256 * (n + 1)].ljust(256, b"\0"))
         self.assertEqual(struct.unpack_from("<I", make_uf2.to_uf2(pack, 0), 12)[0], 0x10100000)
+        self.assertEqual(struct.unpack_from("<I", make_uf2.to_uf2(pack, 0x1000), 12)[0], 0x10101000)
 
-    def test_uf2_refuses_large_pack(self):
+    def test_uf2_fills_the_region_and_refuses_beyond(self):
+        make_uf2.to_uf2(bytes(0x100000), 0)           # a whole region
+        make_uf2.to_uf2(bytes(0x1000), 0xFF000)       # the last 4 KB
         with self.assertRaises(ValueError):
-            make_uf2.to_uf2(bytes(0x80001), 0)
+            make_uf2.to_uf2(bytes(0x100001), 0)
         with self.assertRaises(ValueError):
-            make_uf2.to_uf2(b"x", 2)
+            make_uf2.to_uf2(bytes(0x1001), 0xFF000)
+        with self.assertRaises(ValueError):
+            make_uf2.to_uf2(b"x", 0x100000)
+        with self.assertRaises(ValueError):
+            make_uf2.to_uf2(b"x", 0x1800)             # not 4 KB aligned
 
 
 class CommittedPackTest(unittest.TestCase):
@@ -164,7 +171,7 @@ class CommittedPackTest(unittest.TestCase):
         self.assertEqual(info["count"], len(make_pack.load_phrases()))
         self.assertEqual(info["total_len"], len(pack))
         self.assertTrue(info["crc_ok"])
-        self.assertLessEqual(len(pack), 0x80000)
+        self.assertLessEqual(len(pack), make_pack.REGION_SIZE)
         self.assertEqual(info["grammar"], make_pack.decode_grammar(make_pack.lang_grammar("es", make_pack.load_phrases())))
 
 
