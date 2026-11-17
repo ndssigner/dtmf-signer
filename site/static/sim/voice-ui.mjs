@@ -11,12 +11,16 @@ import { seedCheck, psbtCheck, fill } from "./checks.mjs";
 import { orientationFor, linkPath } from "./bench.mjs";
 import { LedFlash } from "./activity.mjs";
 import { anchor, mobileNote, tapTips } from "./ui.mjs";
+import { startMic, MicSwitch, MIC_ACTIVE_DBFS } from "./mic.mjs";
 
 const SVG = "http://www.w3.org/2000/svg";
 const ECHO_LINES = 200;
 const FLASH_MS = 500;          // the R key: a short hang-up, as a telephone's flash
 const SAID_MS = 600;           // this long quiet: what was said is over
 const KEYS = "0123456789*#";
+// Your wallet: the microphone of this computer never runs the handset this
+// far behind (what is older is dropped, as a real handset would not wait).
+export const MIC_BACKLOG_MS = 2000;
 
 // What the signer says, as text, from its public echo: "say <id>" in the
 // language it speaks (phrases[lang][id]; each language of the list in its
@@ -57,15 +61,45 @@ export class Transcript {
 }
 
 // What is active on the bench, and the one status line that says the most.
-export function voiceActivity({ offHook, micQueued, keysQueued, speaking, walletListening }) {
+// Simulated wallet: the air lights as it plays or listens. Your wallet: the
+// microphone of this computer is the handset's (lit with sound above the
+// threshold), its speakers the earpiece (lit while the signer speaks).
+export function voiceActivity({ mode = "sim-wallet", offHook, micQueued, keysQueued, speaking, walletListening, micOn = false, micDbfs = -100 }) {
   const on = new Set(["power"]);
   if (!offHook) return { on, status: "status.on_hook" };
+  if (mode === "your-wallet") {
+    const hearing = micOn && micDbfs > MIC_ACTIVE_DBFS;
+    if (speaking || keysQueued > 0 || hearing) on.add("line");
+    if (hearing) on.add("air-in");
+    if (speaking) on.add("air-out");
+    const status = micOn ? "status.mic" : keysQueued > 0 ? "status.keypad" : speaking ? "status.speaking" : "status.listening_line";
+    return { on, status };
+  }
   if (speaking || keysQueued > 0 || micQueued > 0) on.add("line");
   if (micQueued > 0) on.add("air-in");
   if (speaking && walletListening) on.add("air-out");
   const status = micQueued > 0 ? "status.air_in" : on.has("air-out") ? "status.air_out"
     : keysQueued > 0 ? "status.keypad" : speaking ? "status.speaking" : "status.listening_line";
   return { on, status };
+}
+
+// What the speakers of this computer play: the earpiece and, with the
+// simulated wallet, what it plays aloud next to the handset. With your
+// wallet the "room" is the microphone itself: played back, it would howl.
+export function speakerMix(mode, earpiece, room) {
+  const mix = new Int16Array(earpiece.length);
+  for (let i = 0; i < mix.length; i++) mix[i] = Math.max(-32768, Math.min(32767, earpiece[i] + (mode === "sim-wallet" ? room[i] : 0)));
+  return mix;
+}
+// ⏩ belongs to the simulated wallet: it never mutes your wallet's speakers.
+export const speakersOn = ({ mode, sound, fast }) => sound && !(mode === "sim-wallet" && fast);
+
+// Leaving a mode: the microphone stopped, nothing left at the handset's
+// microphone, the dialling cut; the signer keeps running (the same device).
+export function leaveVoiceMode({ vs, mic }) {
+  vs.clearMic();
+  vs.stopDialling();
+  mic?.stop();
 }
 
 // Four times faster only while the wallet plays or listens: the firmware's
@@ -106,7 +140,51 @@ export async function start(doc, loadModule, loadPack) {
   let ledOn = false, echo = [], paths = [], lastActive = "", lastStatus = "", lastLine = "", lastCheck = "", lastWarn = null;
   let walletNote = "", checkText = "", signerNet = null, flashUntil = null, said = false;
   let audio = null, nextStart = 0;
+  let mode = bench.dataset.mode;
   tapTips(doc, root);
+
+  // ---- your wallet: the microphone of this computer is the handset's ----
+  const micBtn = root.querySelector(".mic-toggle"), micLevel = root.querySelector(".mic-level");
+  let micDbfs = -100;
+  const micSwitch = new MicSwitch(() => startMic({
+    getUserMedia: navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices),
+    audioContext: globalThis.AudioContext ? new AudioContext() : null,
+    AudioWorkletNode: globalThis.AudioWorkletNode,
+    onSamples: (x) => { if (vs.micQueued > RATE * MIC_BACKLOG_MS / 1000) vs.clearMic(); vs.queueMic(x); },
+    onLevel: (db) => { micDbfs = db; if (micLevel) micLevel.value = Math.max(-80, db); },
+  }));
+  function micShown() {
+    if (!micBtn) return;
+    micBtn.disabled = micSwitch.starting;
+    micBtn.textContent = micSwitch.on ? S["mic.stop"] : S["mic.listen"];
+    micBtn.setAttribute("aria-pressed", String(micSwitch.on));
+  }
+  micBtn?.addEventListener("click", () => {
+    ensureAudio();
+    if (!micSwitch.on) micDbfs = -100;
+    const p = micSwitch.toggle();
+    micShown();
+    p.then(micShown, (err) => {
+      micShown();
+      micBtn.textContent = "⚠ " + S[err.message === "mic:denied" ? "mic.denied" : "mic.unsupported"];
+    });
+  });
+
+  // ---- the modes: the simulated wallet, or yours ----
+  function switchMode(next) {
+    if (next === mode) return;
+    leaveVoiceMode({ vs, mic: { stop: () => micSwitch.cancel() } });
+    showTyping(false);
+    if (wallet.listening) wallet.stopListening();
+    walletNote = ""; micDbfs = -100;
+    micShown();
+    mode = next;
+    bench.dataset.mode = mode;
+    for (const el of root.querySelectorAll("[data-modes]")) el.hidden = !el.dataset.modes.split(" ").includes(mode);
+    for (const b of root.querySelectorAll(".sim-modes [data-mode]")) b.setAttribute("aria-selected", String(b.dataset.mode === mode));
+    drawLinks();
+  }
+  for (const b of root.querySelectorAll(".sim-modes [data-mode]")) b.addEventListener("click", () => switchMode(b.dataset.mode));
 
   // ---- the bench: links drawn port to port (top and bottom ports meet
   // their pair vertically, whatever the layout) ----
@@ -115,7 +193,7 @@ export async function start(doc, loadModule, loadPack) {
     const box = bench.getBoundingClientRect();
     svg.replaceChildren();
     paths = [];
-    for (const l of Object.values(data.links).flat()) {
+    for (const l of data.links[mode] ?? []) {
       const a = root.querySelector(`[data-port="${l.from}"]`), b = root.querySelector(`[data-port="${l.to}"]`);
       if (!a || !b) continue;
       const stacked = [a, b].some((p) => p.classList.contains("edge-top") || p.classList.contains("edge-bottom"));
@@ -181,7 +259,7 @@ export async function start(doc, loadModule, loadPack) {
     if (!e.repeat) press(e.key);
   });
   function play(samples) {
-    if (!audio || !sound.checked || fast.checked) return;
+    if (!audio || !speakersOn({ mode, sound: sound.checked, fast: fast.checked })) return;
     const buf = audio.createBuffer(1, samples.length, RATE);
     const ch = buf.getChannelData(0);
     for (let i = 0; i < samples.length; i++) ch[i] = samples[i] / 32768;
@@ -220,17 +298,16 @@ export async function start(doc, loadModule, loadPack) {
   let last = performance.now();
   function frame(now) {
     const speaking = vs.quietMs < 200;
-    const dt = (now - last) * voiceSpeed({ micQueued: vs.micQueued, walletListening: wallet.listening }, fast.checked);
+    const sim = mode === "sim-wallet";
+    const dt = (now - last) * (sim ? voiceSpeed({ micQueued: vs.micQueued, walletListening: wallet.listening }, fast.checked) : 1);
     last = now;
     const { echo: lines, earpiece, room } = vs.advance(dt);
     if (flashUntil !== null && vs.clock >= flashUntil) { flashUntil = null; vs.hook(true); showHook(); }
     if (typing && vs.keysQueued === 0) showTyping(false);
     // The speakers: the earpiece, and the wallet playing aloud next to it.
-    const mix = new Int16Array(earpiece.length);
-    for (let i = 0; i < mix.length; i++) mix[i] = Math.max(-32768, Math.min(32767, earpiece[i] + room[i]));
-    play(mix);
-    // The wallet hears the earpiece, never the echo.
-    const heard = wallet.hear(earpiece);
+    play(speakerMix(mode, earpiece, room));
+    // The wallet hears the earpiece, never the echo (yours hears the speakers).
+    const heard = sim ? wallet.hear(earpiece) : null;
     if (heard === "ok" || heard === "other") {
       walletNote = S["wallet.got"]; checkText = wallet.last?.lines.join("\n") ?? ""; showListen();
     } else if (heard === "listening" && wallet.ear.parts) walletNote = fill(S["wallet.heard"], { parts: wallet.ear.parts });
@@ -253,8 +330,8 @@ export async function start(doc, loadModule, loadPack) {
     const warn = signerNet !== null && signerNet !== wallet.net;
     if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }
     if (checkText !== lastCheck) { wdCheck.textContent = checkText; lastCheck = checkText; }
-    const { on, status: st } = voiceActivity({ offHook: vs.offHook, micQueued: vs.micQueued, keysQueued: vs.keysQueued,
-      speaking, walletListening: wallet.listening });
+    const { on, status: st } = voiceActivity({ mode, offHook: vs.offHook, micQueued: vs.micQueued, keysQueued: vs.keysQueued,
+      speaking, walletListening: wallet.listening, micOn: micSwitch.on, micDbfs });
     const key = [...on].sort().join(" ");
     if (key !== lastActive) {
       lastActive = key;

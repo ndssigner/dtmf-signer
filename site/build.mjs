@@ -137,7 +137,8 @@ const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no
 const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.check_seed", "wallet.out", "wallet.change",
   "wallet.fee", "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "wallet.no_broadcast", "wallet.got", "wallet.keypad_code",
   "wallet.listening", "wallet.heard", "phone.lift", "phone.hang", "status.idle", "status.on_hook", "status.speaking",
-  "status.air_in", "status.air_out", "status.keypad", "status.listening_line", "say.pin_char", "say.tones"];
+  "status.air_in", "status.air_out", "status.keypad", "status.listening_line", "say.pin_char", "say.tones",
+  "status.mic", "mic.listen", "mic.stop", "mic.denied", "mic.unsupported"];
 const BUTTONS = [["left", "◀"], ["up", "▲"], ["ok", "●"], ["down", "▼"], ["right", "▶"]];
 // A telephone's keypad, with the letters multi-tap types.
 const KEYPAD = [["1", ""], ["2", "ABC"], ["3", "DEF"], ["4", "GHI"], ["5", "JKL"], ["6", "MNO"], ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"], ["*", ""], ["0", ""], ["#", ""]];
@@ -205,6 +206,7 @@ ${buttons}
 <label ${tip(tr("sim.speed"), false)}><input type="checkbox" class="wd-fast"> <span aria-hidden="true">⏩</span><span class="visually-hidden">${e("sim.speed")}</span></label></p>
 </div>`;
     case "your-wallet":
+      if (module.air) return airYourWallet(tr, sim);
       return `<div class="wd-screen yp">
 <p class="yw-cam"><span aria-hidden="true">📷</span> ${e("yw.camera")}</p>
 <p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
@@ -217,6 +219,21 @@ ${buttons}
     default:
       throw new Error(`no block for kind ${kind}`);
   }
+}
+
+// Your own wallet device next to a telephone's handset: this computer's
+// microphone and speakers stand in for the handset (the Centralita).
+function airYourWallet(tr, sim) {
+  const e = (k, params) => escapeHtml(tr(k, params));
+  return `<div class="wd-screen yp">
+<p class="yw-mic"><span aria-hidden="true">🎙</span> ${e("yw.mic")}</p>
+<p class="yw-ear"><span aria-hidden="true">🔊</span> ${e("yw.air_speakers")}</p>
+<button type="button" class="mic-toggle" aria-pressed="false">${e("mic.listen")}</button>
+<meter class="mic-level" min="-80" max="0" value="-80" aria-label="${e("mic.level")}"></meter>
+<p class="mic-note">${e("yw.handset_note")}</p>
+<p class="yw-tools"><a class="yw-urtones" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.tones_tip"), false)}><span aria-hidden="true">🎵</span> ${e("yw.tones")}</a>
+<a class="yw-listen" href="${escapeHtml(sim.tools?.urtones ?? "")}" rel="noopener noreferrer" ${tip(tr("yw.listen_tip"), false)}><span aria-hidden="true">👂</span> ${e("yw.listen")}</a></p>
+</div>`;
 }
 
 // The simulated wallet next to a telephone's handset: it plays by air and

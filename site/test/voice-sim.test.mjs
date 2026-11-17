@@ -200,3 +200,48 @@ test("About speaks each pack's fingerprint: 16 hex characters of its SHA-256", {
   assert.ok(at >= 0, echo.join("|"));
   assert.ok(echo.slice(at).includes(`chars ${want}`), echo.slice(at).join("|"));
 });
+
+// ---- Your wallet: this computer stands in for the handset ----
+import { voiceActivity, leaveVoiceMode, MIC_BACKLOG_MS } from "../static/sim/voice-ui.mjs";
+
+test("your wallet: the microphone lights the air in only when on and above the threshold", () => {
+  const base = { mode: "your-wallet", offHook: true, micQueued: 0, keysQueued: 0, speaking: false, walletListening: false, micOn: false, micDbfs: -100 };
+  assert.ok(!voiceActivity(base).on.has("air-in"));
+  assert.ok(!voiceActivity({ ...base, micOn: true, micDbfs: -70 }).on.has("air-in"));
+  const a = voiceActivity({ ...base, micOn: true, micDbfs: -30 });
+  assert.ok(a.on.has("air-in"));
+  assert.ok(a.on.has("line"));
+  assert.equal(voiceActivity({ ...base, micOn: true }).status, "status.mic");
+  assert.ok(voiceActivity({ ...base, speaking: true }).on.has("air-out"), "the speakers carry the earpiece to your device");
+});
+test("simulated wallet: unchanged — the air out lights only while the wallet listens", () => {
+  const base = { mode: "sim-wallet", offHook: true, micQueued: 0, keysQueued: 0, speaking: true, walletListening: false };
+  assert.ok(!voiceActivity(base).on.has("air-out"));
+  assert.ok(voiceActivity({ ...base, walletListening: true }).on.has("air-out"));
+});
+test("leaving a mode stops the microphone, empties the handset microphone and the dialling", () => {
+  let stopped = 0;
+  const vs = { cleared: 0, dialStop: 0, clearMic() { this.cleared++; }, stopDialling() { this.dialStop++; } };
+  leaveVoiceMode({ vs, mic: { stop() { stopped++; } } });
+  assert.equal(vs.cleared, 1);
+  assert.equal(vs.dialStop, 1);
+  assert.equal(stopped, 1);
+  leaveVoiceMode({ vs, mic: null });
+  assert.equal(vs.cleared, 2);
+});
+test("the microphone never runs the line far behind: the backlog cap is a few seconds", () => {
+  assert.ok(MIC_BACKLOG_MS >= 1000 && MIC_BACKLOG_MS <= 3000);
+});
+
+test("your wallet: the speakers carry the earpiece only (the microphone is never played back: it would howl)", async () => {
+  const { speakerMix } = await import("../static/sim/voice-ui.mjs");
+  const ear = Int16Array.from([100, -100]), room = Int16Array.from([50, 50]);
+  assert.deepEqual([...speakerMix("sim-wallet", ear, room)], [150, -50]);
+  assert.deepEqual([...speakerMix("your-wallet", ear, room)], [100, -100]);
+});
+test("your wallet: ⏩ (simulated wallet only) never mutes the speakers", async () => {
+  const { speakersOn } = await import("../static/sim/voice-ui.mjs");
+  assert.equal(speakersOn({ mode: "your-wallet", sound: true, fast: true }), true);
+  assert.equal(speakersOn({ mode: "sim-wallet", sound: true, fast: true }), false);
+  assert.equal(speakersOn({ mode: "your-wallet", sound: false, fast: false }), false);
+});

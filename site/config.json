@@ -227,6 +227,10 @@
             "psbt_vector": "testnet account m/84'/1'/0'",
             "keys_vector": "NDS-Signer test seed"
           }
+        },
+        "tools": {
+          "urtones": "https://ndssigner.github.io/ur-tones/",
+          "nunchuk": "https://nunchuk.io/"
         }
       },
       "bench": {
@@ -330,6 +334,29 @@
                 "label": "🎙"
               }
             ]
+          },
+          {
+            "id": "your-wallet",
+            "kind": "your-wallet",
+            "column": "peer",
+            "title": "bench.your_wallet",
+            "air": true,
+            "ports": [
+              {
+                "id": "speaker-near",
+                "edge": "top",
+                "type": "audio",
+                "dir": "out",
+                "label": "🔊"
+              },
+              {
+                "id": "mic-near",
+                "edge": "top",
+                "type": "audio",
+                "dir": "in",
+                "label": "🎙"
+              }
+            ]
           }
         ],
         "modes": [
@@ -362,6 +389,40 @@
               {
                 "from": "phone.ear",
                 "to": "sim-wallet.mic-near",
+                "channel": "air-out",
+                "external": true
+              }
+            ]
+          },
+          {
+            "id": "your-wallet",
+            "title": "bench.mode_your_wallet",
+            "modules": [
+              "charger",
+              "signer",
+              "phone",
+              "your-wallet"
+            ],
+            "links": [
+              {
+                "from": "charger.usb",
+                "to": "signer.5v",
+                "channel": "power"
+              },
+              {
+                "from": "signer.line",
+                "to": "phone.line",
+                "channel": "line"
+              },
+              {
+                "from": "your-wallet.speaker-near",
+                "to": "phone.mic",
+                "channel": "air-in",
+                "external": true
+              },
+              {
+                "from": "phone.ear",
+                "to": "your-wallet.mic-near",
                 "channel": "air-out",
                 "external": true
               }

@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { buildInto, brokenLinks, text, FIX } from "./helpers.mjs";
 import { HAVE_MODULE, REQUIRED, SKIP } from "./wasm-helpers.mjs";
 import { CSP } from "../lib/page.mjs";
+import { validateBench } from "../lib/bench.mjs";
 import { releaseOnBlur, releaseOnLeave, speedFor, start, isPhone, buttonsDown } from "../static/sim/ui.mjs";
 
 const files = buildInto();
@@ -270,4 +271,19 @@ test("the Centralita's status: designed, simulated; the breadboard and the port 
   assert.equal(st("firmware", "core"), "done");
   assert.equal(st("firmware", "port"), "planned");
   assert.equal(st("firmware", "simulator"), "done");
+});
+
+test("the Centralita offers the simulated wallet and your wallet, this computer as the handset", { skip: VOICE_SKIP }, () => {
+  const html = text(files, "es/centralita/index.html");
+  assert.match(html, /<div class="sim-modes" role="tablist"[^>]*>(?![^<]*hidden)/);
+  for (const m of ["sim-wallet", "your-wallet"]) assert.match(html, new RegExp(`data-mode="${m}"`));
+  const yw = /<section class="blk blk-your-wallet[\s\S]*?<\/section>/.exec(html)[0];
+  assert.match(yw, /class="mic-toggle"/);
+  assert.match(yw, /class="mic-level"/);
+  assert.ok(yw.includes("Micrófono de este ordenador"));
+  assert.ok(yw.includes("Altavoces de este ordenador"));
+  assert.match(yw, /<a class="yw-urtones" href="https:\/\/ndssigner\.github\.io\/ur-tones\/"/);
+  for (const p of ["your-wallet.speaker-near", "your-wallet.mic-near"]) assert.match(html, new RegExp(`data-port="${p.replace(".", "\\.")}"`));
+  const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "centralita");
+  assert.deepEqual(validateBench(p.bench), []);
 });

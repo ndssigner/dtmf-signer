@@ -177,5 +177,14 @@
   "voice.credit_en": "Voz inglesa: {voice}, {corpus}, {licence}",
   "voice.credit_es": "Voz española: {voice}, {corpus}, {licence}",
   "voice.sharvard": "corpus Sharvard (Universidad de Edimburgo)",
-  "voice.public_domain": "dominio público"
+  "voice.public_domain": "dominio público",
+  "bench.tip.your-wallet.speaker-near": "El altavoz de tu dispositivo, oído por el micrófono de este ordenador: hace de micrófono del auricular",
+  "bench.tip.your-wallet.mic-near": "El micrófono de tu dispositivo, escuchando los altavoces de este ordenador: hacen de auricular",
+  "bench.link.your-wallet.line": "RJ11 del firmador ⇄ el teléfono: su alimentación, sus teclas, la voz del firmador",
+  "bench.link.your-wallet.air-in": "Altavoz de tu dispositivo, oído por el micrófono de este ordenador → micrófono del auricular",
+  "bench.link.your-wallet.air-out": "El auricular, por los altavoces de este ordenador → micrófono de tu dispositivo",
+  "yw.air_speakers": "Altavoces de este ordenador ▸ micrófono de tu dispositivo",
+  "yw.handset_note": "Este ordenador hace de auricular del teléfono.",
+  "yw.listen": "Recibir la firma: la web de ur-tones",
+  "yw.listen_tip": "Ponla a escuchar cerca de los altavoces cuando el firmador vaya a devolver la firma o la cuenta"
 }

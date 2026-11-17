@@ -177,5 +177,14 @@
   "voice.credit_en": "English voice: {voice}, {corpus}, {licence}",
   "voice.credit_es": "Spanish voice: {voice}, {corpus}, {licence}",
   "voice.sharvard": "Sharvard corpus (University of Edinburgh)",
-  "voice.public_domain": "public domain"
+  "voice.public_domain": "public domain",
+  "bench.tip.your-wallet.speaker-near": "Your device's speaker, heard by the microphone of this computer: it stands in for the handset's microphone",
+  "bench.tip.your-wallet.mic-near": "Your device's microphone, listening to the speakers of this computer: they stand in for the earpiece",
+  "bench.link.your-wallet.line": "Signer's RJ11 ⇄ the telephone: its power, its keys, the signer's voice",
+  "bench.link.your-wallet.air-in": "Your device's speaker, heard by the microphone of this computer → the handset's microphone",
+  "bench.link.your-wallet.air-out": "The earpiece, through the speakers of this computer → your device's microphone",
+  "yw.air_speakers": "Speakers of this computer ▸ microphone of your device",
+  "yw.handset_note": "This computer stands in for the telephone's handset.",
+  "yw.listen": "Receive the signature: the ur-tones web tool",
+  "yw.listen_tip": "Set it listening near the speakers when the signer is about to give back the signature or the account"
 }
