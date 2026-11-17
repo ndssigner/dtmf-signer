@@ -3,17 +3,19 @@
  "source_revision": "e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c",
  "voices": {
   "es": {
-   "name": "es_ES-davefx-medium",
-   "dataset": "https://github.com/OHF-Voice/voice-datasets",
-   "license": "CC0",
+   "name": "es_ES-sharvard-medium",
+   "speaker": 0,
+   "eq": true,
+   "dataset": "https://datashare.ed.ac.uk/handle/10283/574",
+   "license": "CC BY 3.0",
    "files": {
-    "es_ES-davefx-medium.onnx": {
-     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx",
-     "sha256": "d2c9224e122321aac3c33343957fff4d0f465226cb74c66b0f520ca3f8c0dd07"
+    "es_ES-sharvard-medium.onnx": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx",
+     "sha256": "234dc4cf0fdb53ccb76b9b2c4d7ef1330364762674c1b78c1b62d8608c528a54"
     },
-    "es_ES-davefx-medium.onnx.json": {
-     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/davefx/medium/es_ES-davefx-medium.onnx.json",
-     "sha256": "531c4051502e1acbc10b42437f11679bfce9e3919e1796e51fabd73e01e7fd2e"
+    "es_ES-sharvard-medium.onnx.json": {
+     "url": "https://huggingface.co/rhasspy/piper-voices/resolve/e9ab671f2a0e50a701b34361136ba3e6a3a9eb0c/es/es_ES/sharvard/medium/es_ES-sharvard-medium.onnx.json",
+     "sha256": "1910940c6b480e0f7cbce5e0da45c8cbe2557ccbfd86a5d22cda141a3b65f521"
     }
    }
   },

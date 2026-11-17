@@ -23,7 +23,10 @@ python3 tools/voice/make_pack.py --header app/voice/ds_prompts.h
 python3 tools/voice/make_pack.py --adpcm-vector vectors/adpcm-v0.json
 ```
 
-The two voice models are downloaded once into `~/.cache/dtmf-signer/voices/`
+The Spanish voice is Piper `es_ES-sharvard-medium`, speaker 0 (Sharvard corpus,
+CC BY 3.0, credited in `app/voice/VOICES.md` and `THIRD_PARTY.md`); it is bassy,
+so its audio gets a high-pass and a gentle dip before the DTMF notch
+(`"eq"` in `voices.json`). The two voice models are downloaded once into `~/.cache/dtmf-signer/voices/`
 (or `$DTMF_VOICE_CACHE`) and checked against the SHA-256 in `voices.json`.
 Licences are in `app/voice/VOICES.md`.
 

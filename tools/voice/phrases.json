@@ -16,11 +16,11 @@
   "en": "Sign, 1. Account, 2. Wipe, 3."
  },
  "network_now_main": {
-  "es": "Red: méinnet. Para cambiar, 2.",
+  "es": "La red es méinnet. Para cambiar, 2.",
   "en": "Network: mainnet. To change, 2."
  },
  "network_now_test": {
-  "es": "Red: téstnet. Para cambiar, 2.",
+  "es": "La red es téstnet. Para cambiar, 2.",
   "en": "Network: testnet. To change, 2."
  },
  "about": {
@@ -124,7 +124,7 @@
   "en": "Your telephone may remember the last number you dialled."
  },
  "error_network": {
-  "es": "Red equivocada.",
+  "es": "Rred equivocada.",
   "en": "Wrong network."
  },
  "error_psbt": {
