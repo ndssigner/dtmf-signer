@@ -38,5 +38,7 @@ el gancho (`dvw_hook`), el reloj (`dvw_advance`), las muestras de entrada y
 salida a 16 kHz (`dvw_in_buf` y `dvw_in`, `dvw_out_buf` y `dvw_out`) y la
 región de paquetes (`dvw_region_buf`, `dvw_region_len`: 1 MB donde la página
 copia los paquetes de idioma antes de `dvw_init`; el inglés va dentro).
-`dvw_take_echo` y `dvw_echo`, `dvw_keys` y `dvw_version` son como arriba. Su
-memoria es fija, de 8 MB. Mira `voice.c`.
+`dvw_take_echo` y `dvw_echo`, `dvw_keys` y `dvw_version` son como arriba.
+`dvw_speex_selftest` es solo para los tests: decodifica
+`vectors/speex-v0.json` y devuelve 1 si el PCM es el del host. Su memoria es
+fija, de 8 MB. Mira `voice.c`.

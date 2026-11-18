@@ -11,6 +11,7 @@ hardware designs CERN-OHL-S v2 ([LICENSE-HARDWARE](LICENSE-HARDWARE)).
 | [libsecp256k1](https://github.com/bitcoin-core/secp256k1) (`third_party/secp256k1`) | Elliptic curve keys and ECDSA signatures (RFC 6979 nonces) | MIT |
 | [ur-tones](https://github.com/ndssigner/ur-tones) (`third_party/ur-tones`) | Tones: detection, frames, Reed-Solomon, the seed PIN, multi-part URs, xpubs as URs | MIT; its UR fountain codes are ported from Foundation Devices' ur2 (BSD-2-Clause-Patent), and its bytewords list is Blockchain Commons' |
 | [QR Code generator](https://github.com/nayuki/QR-Code-generator) (`third_party/qrcodegen`) | QR codes on the screen | MIT |
+| [Speex](https://gitlab.xiph.org/xiph/speex) 1.2.1 (`third_party/speex`: the narrowband sources of libspeex, unchanged, built in fixed point; `port/` and `CMakeLists.txt` there are DTMF-Signer's own) | Decodes the spoken prompts; `tools/voice/spxtool.c` encodes them with the same code | BSD-3-Clause (Xiph.Org Foundation and others, `third_party/speex/COPYING`) |
 | [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) | Hardware access, linked into the Pico firmware; `ports/pico/pico_sdk_import.cmake` is copied from it | BSD-3-Clause |
 | [TinyUSB](https://github.com/hathach/tinyusb) (in the Pico SDK) | The USB serial echo, linked into the Pico firmware | MIT |
 | Arm GNU toolchain runtime (newlib, libgcc) | C runtime, linked into the Pico firmware | newlib: BSD-style licences; libgcc: GPL with the GCC Runtime Library Exception |

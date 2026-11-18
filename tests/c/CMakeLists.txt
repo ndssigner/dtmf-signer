@@ -110,6 +110,22 @@ target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H} ${DS_VOICE_TEST_PACK
 target_include_directories(test_voice_pack PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_voice_pack PRIVATE dtmf_app ds_voice_packs)
 
+# The Speex decoder against the shared vector (generated into the build
+# directory, like the others; the simulator's wasm checks the same hash).
+set(DS_SPEEX_VECTOR_H ${CMAKE_CURRENT_BINARY_DIR}/speex_vector.h)
+add_custom_command(
+  OUTPUT ${DS_SPEEX_VECTOR_H}
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/speex_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/speex-v0.json ${DS_SPEEX_VECTOR_H}
+  DEPENDS ${PROJECT_SOURCE_DIR}/tools/speex_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/speex-v0.json
+  COMMENT "Generating speex_vector.h"
+  VERBATIM)
+ds_add_test(test_speex)
+target_sources(test_speex PRIVATE ${DS_SPEEX_VECTOR_H})
+target_include_directories(test_speex PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(test_speex PRIVATE dtmf_app)
+
 # What the signer says: the queue, the earcons and the talk-off check of every
 # clip of the built-in and the Spanish pack.
 ds_add_test(test_say)

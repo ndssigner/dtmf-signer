@@ -36,5 +36,6 @@ options. JavaScript only moves what a telephone line would carry: the hook
 (`dvw_in_buf` and `dvw_in`, `dvw_out_buf` and `dvw_out`) and the pack region
 (`dvw_region_buf`, `dvw_region_len`: 1 MB where the page copies the language
 packs before `dvw_init`; English is built in). `dvw_take_echo` and
-`dvw_echo`, `dvw_keys` and `dvw_version` are as above. Its memory is fixed
-at 8 MB. See `voice.c`.
+`dvw_echo`, `dvw_keys` and `dvw_version` are as above. `dvw_speex_selftest`
+is for the tests only: it decodes `vectors/speex-v0.json` and returns 1 when
+the PCM is the host's. Its memory is fixed at 8 MB. See `voice.c`.

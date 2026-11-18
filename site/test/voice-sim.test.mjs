@@ -43,6 +43,13 @@ test("a telephone key is its pair for 100 ms, each at -10 dBFS", () => {
   assert.throws(() => keyTone("X", RATE));
 });
 
+test("speex vector decodes to the same PCM in wasm", { skip: SKIP }, async () => {
+  // The firmware's decoder, in the simulator, against vectors/speex-v0.json:
+  // the same SHA-256 that tests/c/test_speex.c checks on the host.
+  const m = await load();
+  assert.equal(m._dvw_speex_selftest(), 1);
+});
+
 test("keypad press reaches the signer", { skip: SKIP }, async () => {
   const vs = new VoiceSimulator(await load(), "en");
   vs.hook(true);

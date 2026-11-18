@@ -79,6 +79,8 @@ add_library(ur_tones STATIC ${DS_ROOT}/third_party/ur-tones/c/ur_tones.c)
 target_include_directories(ur_tones PUBLIC ${DS_ROOT}/third_party/ur-tones/c)
 add_library(qrcodegen STATIC ${DS_ROOT}/third_party/qrcodegen/c/qrcodegen.c)
 target_include_directories(qrcodegen PUBLIC ${DS_ROOT}/third_party/qrcodegen/c)
+# libspeex (narrowband, fixed point): the voice prompts' decoder.
+add_subdirectory(${DS_ROOT}/third_party/speex speex)
 
 # Warning flags apply to our own targets only. arm-none-eabi-gcc also checks
 # that snprintf cannot truncate (-Wformat-truncation) for the screen lines in

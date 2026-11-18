@@ -20,17 +20,30 @@ target_link_options(dtmf-signer-wasm PRIVATE
   -sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAP16,UTF8ToString
   -sEXPORTED_FUNCTIONS=${DSW_EXPORTS_CSV})
 
+# The Speex vector, for the dvw_speex_selftest hook (as for the host test).
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(DVW_SPEEX_VECTOR_H ${CMAKE_CURRENT_BINARY_DIR}/speex_vector.h)
+add_custom_command(
+  OUTPUT ${DVW_SPEEX_VECTOR_H}
+  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/speex_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/speex-v0.json ${DVW_SPEEX_VECTOR_H}
+  DEPENDS ${PROJECT_SOURCE_DIR}/tools/speex_vector_to_c.py
+          ${PROJECT_SOURCE_DIR}/vectors/speex-v0.json
+  COMMENT "Generating speex_vector.h"
+  VERBATIM)
+
 # The voice firmware (the Centralita telephone exchange) as a second module,
 # dtmf-signer-voice.mjs: JavaScript only moves the line samples, the hook and
 # the pack region. Memory cannot grow, so it is sized here: the English pack
 # (~700 KB of data), the 1 MB pack region, ds_voice (~80 KB), the buffers and
 # the stack, with room to spare.
-add_executable(dtmf-signer-voice-wasm voice.c)
+add_executable(dtmf-signer-voice-wasm voice.c ${DVW_SPEEX_VECTOR_H})
+target_include_directories(dtmf-signer-voice-wasm PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(dtmf-signer-voice-wasm PRIVATE dtmf_app dtmf_core ds_voice_packs ds_warnings)
 set_target_properties(dtmf-signer-voice-wasm PROPERTIES OUTPUT_NAME dtmf-signer-voice SUFFIX .mjs)
 set(DVW_EXPORTS
   _dvw_region_buf _dvw_region_len _dvw_init _dvw_hook _dvw_advance _dvw_in_buf _dvw_in
-  _dvw_out_buf _dvw_out _dvw_take_echo _dvw_echo _dvw_keys _dvw_version)
+  _dvw_out_buf _dvw_out _dvw_take_echo _dvw_echo _dvw_keys _dvw_version _dvw_speex_selftest)
 list(JOIN DVW_EXPORTS "," DVW_EXPORTS_CSV)
 target_link_options(dtmf-signer-voice-wasm PRIVATE
   -O2

@@ -27,6 +27,9 @@ target_include_directories(ur_tones PUBLIC third_party/ur-tones/c)
 add_library(qrcodegen STATIC third_party/qrcodegen/c/qrcodegen.c)
 target_include_directories(qrcodegen PUBLIC third_party/qrcodegen/c)
 
+# libspeex: narrowband, fixed point, its own target (third_party/speex).
+add_subdirectory(third_party/speex)
+
 # Warning flags apply to our own targets only.
 add_library(ds_warnings INTERFACE)
 target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror)
@@ -41,6 +44,10 @@ if(EMSCRIPTEN)
   add_subdirectory(ports/wasm)
 else()
   enable_testing()
+  # Encodes and decodes Speex for tools/voice with the firmware's own code
+  # (the voice packs, vectors/speex-v0.json).
+  add_executable(spxtool tools/voice/spxtool.c)
+  target_link_libraries(spxtool PRIVATE dtmf_app speex_nb ds_warnings)
   add_subdirectory(ports/host)
   add_subdirectory(tests/c)
 endif()

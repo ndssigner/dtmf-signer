@@ -11,8 +11,12 @@
 #include <stdint.h>
 
 #include "ds_about.h"
+#include "ds_bitcoin.h"
+#include "ds_core.h"
 #include "ds_pack.h"
+#include "ds_speex.h"
 #include "ds_voice.h"
+#include "speex_vector.h"
 
 #define DVW_RATE DS_VOICE_RATE      /* 16 kHz, as on the line */
 #define DVW_BUF_SAMPLES 8192u       /* 512 ms of line, in either direction */
@@ -86,3 +90,41 @@ EMSCRIPTEN_KEEPALIVE const char *dvw_echo(void) { return echo; }
 EMSCRIPTEN_KEEPALIVE uint32_t dvw_keys(void) { return ds_voice_keys(&voice); }
 
 EMSCRIPTEN_KEEPALIVE const char *dvw_version(void) { return DS_VERSION; }
+
+/* A test hook, not part of the phone: decodes the shared Speex vector
+ * (vectors/speex-v0.json) and returns 1 when the PCM's SHA-256 is the one
+ * the host test checks, so the simulator plays what the firmware plays. */
+EMSCRIPTEN_KEEPALIVE int dvw_speex_selftest(void)
+{
+    static ds_speex d;
+    static const char hex[] = "0123456789abcdef";
+    int16_t pcm[DS_SPEEX_FRAME];
+    uint8_t le[2 * DS_SPEEX_FRAME];
+    uint8_t digest[32];
+    ds_sha256_ctx h;
+
+    if (ds_speex_init(&d) != DS_OK) {
+        return 0;
+    }
+    ds_sha256_init(&h);
+    for (uint32_t f = 0; f < SPEEX_VECTOR_FRAMES; f++) {
+        uint16_t at = speex_vector_offsets[f];
+        uint8_t n = (uint8_t)(speex_vector_offsets[f + 1] - at);
+        if (ds_speex_frame(&d, speex_vector_bytes + at, n, pcm) != DS_OK) {
+            return 0;
+        }
+        for (uint32_t i = 0; i < DS_SPEEX_FRAME; i++) {
+            le[2 * i] = (uint8_t)((uint16_t)pcm[i] & 0xffu);
+            le[2 * i + 1] = (uint8_t)((uint16_t)pcm[i] >> 8);
+        }
+        ds_sha256_update(&h, le, sizeof le);
+    }
+    ds_sha256_final(&h, digest);
+    for (uint32_t i = 0; i < 32; i++) {
+        if (SPEEX_VECTOR_PCM_SHA256[2 * i] != hex[digest[i] >> 4] ||
+            SPEEX_VECTOR_PCM_SHA256[2 * i + 1] != hex[digest[i] & 15]) {
+            return 0;
+        }
+    }
+    return 1;
+}
