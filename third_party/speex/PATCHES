@@ -1,0 +1,12 @@
+Local changes to libspeex 1.2.1 in this directory
+=================================================
+
+Every other file under include/ and libspeex/ is upstream 1.2.1, unchanged.
+port/ and CMakeLists.txt are DTMF-Signer's own.
+
+1. libspeex/nb_celp.c, nb_encode, open-loop pitch: the perceptual weighting
+   gammas are passed as QCONST16(0.9,15) and QCONST16(0.55,15). Upstream
+   passes the literals 0.9 and 0.55 to an spx_word16_t, which in a
+   FIXED_POINT build become 0, so the pitch search ran on unweighted speech
+   (the path is taken at quality 2). Encoder only; floating-point builds and
+   the decoder are unaffected.
