@@ -368,7 +368,7 @@ static int review_step(ds_voice *v, int k)
         }
         unsigned_inputs(r, &foreign, &no_witness);
         if (foreign > 0) {
-            bad |= ds_say_earcon(&v->say, DS_EAR_WARN) < 0;
+            bad |= ds_say_earcon(&v->say, DS_EAR_NOTICE) < 0;
             bad |= ds_say_clip(&v->say, DS_P_WARN_INPUTS_UNSIGNED) < 0;
             bad |= ds_say_number(&v->say, foreign) < 0;
         }
@@ -376,7 +376,7 @@ static int review_step(ds_voice *v, int k)
             if (foreign > 0) {
                 bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
             }
-            bad |= ds_say_earcon(&v->say, DS_EAR_WARN) < 0;
+            bad |= ds_say_earcon(&v->say, DS_EAR_NOTICE) < 0;
             bad |= ds_say_clip(&v->say, DS_P_WARN_INPUT_NO_WITNESS) < 0;
         }
         return bad ? STEP_FAIL : 1;
@@ -504,7 +504,7 @@ static int say_step(ds_voice *v)
             clip(v, DS_P_AIR_WARNING);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
         }
-        ds_say_earcon(&v->say, DS_EAR_LISTEN);
+        ds_say_earcon(&v->say, DS_EAR_RECEIVE);
         break;
     case ST_PIN:
         if (k > 0) {
@@ -561,7 +561,7 @@ static int say_step(ds_voice *v)
         }
         clip(v, DS_P_PSBT_LISTENING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ds_say_earcon(&v->say, DS_EAR_LISTEN);
+        ds_say_earcon(&v->say, DS_EAR_RECEIVE);
         break;
     case ST_REVIEW:
         switch (review_step(v, k)) {
@@ -1003,7 +1003,7 @@ static void load_seed(ds_voice *v)
 static void ask_job(ds_voice *v, int job)
 {
     hush(v);
-    ds_say_earcon(&v->say, DS_EAR_NEXT);
+    ds_say_earcon(&v->say, DS_EAR_OPTION);
     echo_said(v);
     v->job = job;
     v->job_seen = 0;
@@ -1299,14 +1299,14 @@ static void pin_said(ds_voice *v, int r)
         break;
     case DS_MT_COMMIT:
         hush(v);
-        ds_say_earcon(&v->say, DS_EAR_NEXT);
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
         if (m->has_pending) {
             ds_say_secret_char(&v->say, m->pending);
         }
         break;
     case DS_MT_BACK:
         hush(v);
-        ds_say_earcon(&v->say, DS_EAR_BACK);
+        ds_say_earcon(&v->say, DS_EAR_CLOSE);
         if (m->len > 0) {
             ds_say_secret_char(&v->say, m->text[m->len - 1]);
         }

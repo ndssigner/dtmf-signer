@@ -588,7 +588,7 @@ static void test_air_seed_with_long_pin(void)
     CHECK(HAS(&L, "state seed-how", 0));
     CHECK(HAS(&L, "say seed_how", 0));
     long w = find_line(&L, "say air_warning", 0);
-    CHECK(w >= 0 && HAS(&L, "ear listen", (size_t)w));
+    CHECK(w >= 0 && HAS(&L, "ear receive", (size_t)w));
     long p = find_line(&L, "state pin", 0);
     CHECK(p > w);
     CHECK(p >= 0 && HAS(&L, "say pin_ask", (size_t)p));
@@ -599,7 +599,7 @@ static void test_air_seed_with_long_pin(void)
     run_ms(&L, 500); /* the work runs from a tick, then ear ok, then the prompt */
     /* one per press (A twice, B three times, ...), one NEXT per character */
     CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 24);
-    CHECK_EQ_INT(count_lines(&L, "ear next", mark), 13); /* and one for # */
+    CHECK_EQ_INT(count_lines(&L, "ear option", mark), 13); /* and one for # */
     long f = find_line(&L, "fingerprint 8b218e81", mark);
     CHECK(f >= 0);
     CHECK(f >= 0 && HAS(&L, "state fingerprint", mark));
@@ -708,7 +708,7 @@ static void test_pin_chars_never_in_echo(void)
     press(&L, '*'); /* drops it: back */
     type_pin(&L, pin);
     run_ms(&L, 100);
-    CHECK(HAS(&L, "ear back", mark));
+    CHECK(HAS(&L, "ear close", mark));
     CHECK(HAS(&L, "fingerprint 8b218e81", mark));
     CHECK(log_free_of(&L, pin, 0));
     /* while the PIN is typed, nothing but these lines */
@@ -717,8 +717,8 @@ static void test_pin_chars_never_in_echo(void)
     for (const char *p = L.log + mark; end > 0 && p < L.log + end;) {
         const char *e = strchr(p, '\n');
         int ok = (e - p == 12 && memcmp(p, "say pin-char", 12) == 0) ||
-                 (e - p == 8 && memcmp(p, "ear next", 8) == 0) ||
-                 (e - p == 8 && memcmp(p, "ear back", 8) == 0) ||
+                 (e - p == 10 && memcmp(p, "ear option", 10) == 0) ||
+                 (e - p == 9 && memcmp(p, "ear close", 9) == 0) ||
                  (e - p == 6 && memcmp(p, "ear ok", 6) == 0);
         if (!ok)
             printf("unexpected while typing the PIN: %.*s\n", (int)(e - p), p);
@@ -763,7 +763,7 @@ static void test_hang_up_mid_pin_wipes(void)
     press(&L, '1'); /* the seed must be played again */
     run_quiet(&L);
     CHECK(HAS(&L, "state seed-air", mark));
-    CHECK(HAS(&L, "ear listen", mark));
+    CHECK(HAS(&L, "ear receive", mark));
     play_tones(&L, seed_tones);
     run_ms(&L, 500);
     CHECK(HAS(&L, "state pin", mark));
@@ -921,7 +921,7 @@ static void test_air_warning_once(void)
     press(&L, '1');
     run_quiet(&L);
     CHECK_EQ_INT(count_lines(&L, "state seed-air", 0), 3);
-    CHECK_EQ_INT(count_lines(&L, "ear listen", 0), 3);
+    CHECK_EQ_INT(count_lines(&L, "ear receive", 0), 3);
     CHECK_EQ_INT(count_lines(&L, "say air_warning", 0), 1);
 }
 
@@ -1110,7 +1110,7 @@ static void send_psbt_bytes(line_t *t, const uint8_t *psbt, size_t psbt_len)
     run_quiet(t);
     CHECK(HAS(t, "state psbt-listen", mark));
     CHECK(HAS(t, "say psbt_listening", mark));
-    CHECK(HAS(t, "ear listen", mark));
+    CHECK(HAS(t, "ear receive", mark));
     for (uint32_t i = 0; i < 4 * psbt_enc.seq_len && !HAS(t, "state review", mark) && !HAS(t, "ear fail", mark);
          i++) {
         CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
@@ -1561,7 +1561,7 @@ static void test_warns_foreign_inputs(void)
         press(&L, '#');
         run_quiet(&L);
     }
-    static const char *const want[] = {"ear warn", "say warn_inputs_unsigned", "num 1", NULL};
+    static const char *const want[] = {"ear notice", "say warn_inputs_unsigned", "num 1", NULL};
     CHECK(lines_in_a_row(&L, mark, want));
     CHECK(!HAS(&L, "say warn_input_no_witness", mark));
     CHECK(!HAS(&L, "state confirm", mark));
@@ -1600,7 +1600,7 @@ static void test_warns_input_without_witness(void)
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
     CHECK_EQ_INT(L.v.s.r.in[0].no_witness, 1);
     review_to_confirm(&L);
-    static const char *const want[] = {"ear warn", "say warn_input_no_witness", NULL};
+    static const char *const want[] = {"ear notice", "say warn_input_no_witness", NULL};
     CHECK(lines_in_a_row(&L, mark, want));
     CHECK(!HAS(&L, "say warn_inputs_unsigned", mark));
     long w = find_line(&L, "say warn_input_no_witness", mark);
@@ -2420,6 +2420,90 @@ static void test_no_prompt_decodes_to_a_dtmf_key(void)
     }
 }
 
+/* ---- the melodic motifs ---- */
+
+static const unsigned dtmf_hz[8] = {697, 770, 852, 941, 1209, 1336, 1477, 1633};
+
+static void test_motifs_stay_clear_of_dtmf(void)
+{
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+        const uint16_t *hz, *ms;
+        uint8_t n;
+        CHECK_EQ_INT(ds_say_motif(e, &hz, &ms, &n), DS_OK);
+        CHECK(n >= 1);
+        for (uint8_t i = 0; i < n; i++) {
+            CHECK(hz[i] >= 300 && hz[i] <= 2500);
+            for (int k = 0; k < 8; k++) {
+                double d = (double)hz[i] - (double)dtmf_hz[k];
+                if ((d < 0 ? -d : d) <= 0.015 * (double)dtmf_hz[k]) {
+                    printf("motif %d note %u Hz is within 1.5%% of %u\n", e, hz[i], dtmf_hz[k]);
+                    ds_failures++;
+                }
+            }
+        }
+    }
+    {
+        const uint16_t *hz, *ms;
+        uint8_t n;
+        CHECK_EQ_INT(ds_say_motif(0, &hz, &ms, &n), DS_ERR_ARG);
+        CHECK_EQ_INT(ds_say_motif(DS_EAR_CLOSE + 1, &hz, &ms, &n), DS_ERR_ARG);
+    }
+}
+
+static void test_motif_lengths(void)
+{
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+        const uint16_t *hz, *ms;
+        uint8_t n;
+        unsigned total = 0;
+        CHECK_EQ_INT(ds_say_motif(e, &hz, &ms, &n), DS_OK);
+        for (uint8_t i = 0; i < n; i++)
+            total += ms[i];
+        if (e == DS_EAR_OPTION) {
+            CHECK(total >= 10 && total <= 150);
+        } else {
+            CHECK(total >= 300 && total <= 800);
+        }
+    }
+}
+
+static void test_no_motif_decodes_to_a_dtmf_key(void)
+{
+    static ds_pack p;
+    static ds_say s;
+    static int16_t buf[16000 * 2];
+    CHECK_EQ_INT(ds_pack_open(&p, ds_pack_en, ds_pack_en_len), DS_OK);
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+        ds_say_init(&s, &p);
+        CHECK_EQ_INT(ds_say_earcon(&s, e), DS_OK);
+        size_t n = 0;
+        while (ds_say_busy(&s) && n < sizeof buf / sizeof buf[0])
+            n += ds_say_read(&s, buf + n, CHUNK);
+        CHECK(!ds_say_busy(&s));
+        if (keys_in(buf, n)) {
+            printf("motif %d decodes to a DTMF key\n", e);
+            ds_failures++;
+        }
+    }
+}
+
+static void test_motifs_are_distinct(void)
+{
+    for (int a = DS_EAR_NOTICE; a <= DS_EAR_CLOSE; a++) {
+        for (int b = a + 1; b <= DS_EAR_CLOSE; b++) {
+            const uint16_t *ha, *hb, *ma, *mb;
+            uint8_t na, nb;
+            ds_say_motif(a, &ha, &ma, &na);
+            ds_say_motif(b, &hb, &mb, &nb);
+            int same = na == nb && memcmp(ha, hb, na * sizeof ha[0]) == 0;
+            if (same) {
+                printf("motifs %d and %d have the same notes\n", a, b);
+                ds_failures++;
+            }
+        }
+    }
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
@@ -2446,4 +2530,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_review_fails_closed, test_review_names_keys, test_keypad_path_warns,
           test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
           test_pack_frame_length_out_of_range_is_rejected,
-          test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key)
+          test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,
+          test_motifs_stay_clear_of_dtmf, test_motif_lengths,
+          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct)

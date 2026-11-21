@@ -1,5 +1,5 @@
 /* What the signer says on the telephone line: a queue of phrases, numbers,
- * spelled characters, earcons and data tones, read out as 16 kHz samples. */
+ * spelled characters, motifs and data tones, read out as 16 kHz samples. */
 #ifndef DS_SAY_H
 #define DS_SAY_H
 
@@ -10,7 +10,17 @@
 #include "ds_speex.h"
 #include "ur_tones.h"
 
-enum { DS_EAR_OK = 1, DS_EAR_FAIL, DS_EAR_WARN, DS_EAR_LISTEN, DS_EAR_NEXT, DS_EAR_BACK };
+/* The spoken UI's melodic motifs, each a few single notes. */
+enum {
+    DS_EAR_NOTICE = 1, /* a warning */
+    DS_EAR_TURN,       /* it is the user's turn */
+    DS_EAR_OPTION,     /* a choice was taken */
+    DS_EAR_RECEIVE,    /* listening to the air */
+    DS_EAR_SEND,       /* sending on the air */
+    DS_EAR_OK,
+    DS_EAR_FAIL,
+    DS_EAR_CLOSE       /* going back, closing */
+};
 
 #define DS_SAY_RATE 16000u
 #define DS_SAY_QUEUE 64u      /* items waiting (a character is one item) */
@@ -21,7 +31,7 @@ enum { DS_EAR_OK = 1, DS_EAR_FAIL, DS_EAR_WARN, DS_EAR_LISTEN, DS_EAR_NEXT, DS_E
 
 typedef struct {
     uint8_t kind;
-    uint16_t v;   /* clip id, earcon, or pause in ms */
+    uint16_t v;   /* clip id, motif, or pause in ms */
     uint16_t gap; /* silence after a clip, in ms */
     const char *keys;
 } ds_say_item;
@@ -44,7 +54,7 @@ typedef struct {
     int16_t blk[DS_SPEEX_FRAME];
     uint8_t blen, bpos, phase;
     int16_t s0;
-    /* an earcon */
+    /* a motif */
     uint8_t ear, seg;
     uint32_t seg_pos, seg_len;
     int32_t y1, y2, coef, amp;
@@ -63,6 +73,9 @@ void ds_say_clear(ds_say *s);
  * queued) or DS_ERR_ARG. */
 int32_t ds_say_clip(ds_say *s, uint16_t id);
 int32_t ds_say_earcon(ds_say *s, int e);
+/* A motif's notes (n of them: frequencies in Hz, 0 a rest, and lengths in
+ * ms), for the tests: DS_OK or DS_ERR_ARG. */
+int32_t ds_say_motif(int e, const uint16_t **hz, const uint16_t **ms, uint8_t *n);
 int32_t ds_say_pause(ds_say *s, uint16_t ms);
 /* n as the current pack's grammar says it, clips back to back. */
 int32_t ds_say_number(ds_say *s, uint64_t n);

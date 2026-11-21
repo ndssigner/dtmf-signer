@@ -15,42 +15,57 @@ enum { M_IDLE = 0, M_CLIP, M_SILENCE, M_EAR, M_TONES };
 #define AMP_LISTEN 4125            /* 12 dB below that */
 #define NUMBER_CLIPS 40u
 
-/* The sines of the earcons by the recurrence y[n] = c y[n-1] - y[n-2], c = 2 cos w
+/* The sines of the motifs by the recurrence y[n] = c y[n-1] - y[n-2], c = 2 cos w
  * (Q30), started from sin w (Q30); 16 kHz. Values from round(x * 2^30). */
 typedef struct {
+    uint16_t hz;
     int32_t coef, sin;
 } ds_say_osc;
 
-enum { F_NONE, F_392, F_494, F_523, F_587, F_2000, F_2400 };
 static const ds_say_osc osc[] = {
-    {0, 0},
-    {2122089480, 164637675},  /* 392 Hz */
-    {2107201640, 206994727},  /* 494 Hz */
-    {2102350474, 218979739},  /* 523 Hz */
-    {2090680565, 245326717},  /* 587 Hz */
-    {1518500250, 759250125},  /* 2000 Hz */
-    {1262259218, 868675383},  /* 2400 Hz */
+    {330, 2129476719, 138757812},
+    {392, 2122089480, 164637675},
+    {440, 2115506169, 184607466},
+    {494, 2107201640, 206994727},
+    {523, 2102350474, 218979739},
+    {587, 2090680565, 245326717},
+    {659, 2075973886, 274781024},
+    {740, 2057445885, 307653396},
+    {880, 2020526066, 363717072},
+    {988, 1987866817, 406223934},
+    {1760, 1654664589, 684428797},
 };
 
-typedef struct {
-    uint8_t osc;
-    uint16_t ms;
-} ds_say_seg;
-
+/* The motifs: single notes, one frequency at a time, hz 0 a rest. Every note
+ * must be in osc[]. */
 #define EAR_SEGS 3
 static const struct {
-    ds_say_seg seg[EAR_SEGS];
+    uint8_t n;
+    uint16_t hz[EAR_SEGS], ms[EAR_SEGS];
     int32_t amp;
     const char *name;
-} ear_def[] = {
-    {{{0, 0}}, 0, ""},
-    {{{F_494, 120}, {F_587, 120}}, AMP_FULL, "ok"},        /* DS_EAR_OK */
-    {{{F_587, 120}, {F_392, 120}}, AMP_FULL, "fail"},      /* DS_EAR_FAIL */
-    {{{F_523, 120}, {F_NONE, 80}, {F_523, 120}}, AMP_FULL, "warn"},
-    {{{F_392, 150}}, AMP_LISTEN, "listen"},
-    {{{F_2400, 40}}, AMP_FULL, "next"},
-    {{{F_2000, 40}}, AMP_FULL, "back"},
+} motif_def[] = {
+    {0, {0}, {0}, 0, ""},
+    {2, {440, 659}, {150, 200}, AMP_FULL, "notice"},               /* DS_EAR_NOTICE: 2 rising */
+    {1, {1760}, {300}, AMP_FULL, "turn"},                          /* DS_EAR_TURN: 1 high */
+    {1, {988}, {100}, AMP_FULL, "option"},                         /* DS_EAR_OPTION: 1 mid, short */
+    {3, {659, 523, 440}, {110, 110, 110}, AMP_LISTEN, "receive"},  /* DS_EAR_RECEIVE: 3 falling, soft */
+    {3, {392, 494, 587}, {110, 110, 110}, AMP_FULL, "send"},       /* DS_EAR_SEND: 3 rising */
+    {3, {587, 740, 880}, {120, 120, 220}, AMP_FULL, "ok"},         /* DS_EAR_OK: major arpeggio up */
+    {2, {392, 330}, {150, 300}, AMP_FULL, "fail"},                 /* DS_EAR_FAIL: 2 falling, minor third */
+    {2, {587, 392}, {130, 220}, AMP_FULL, "close"},                /* DS_EAR_CLOSE: 2 falling, fifth */
 };
+
+int32_t ds_say_motif(int e, const uint16_t **hz, const uint16_t **ms, uint8_t *n)
+{
+    if (e < DS_EAR_NOTICE || e > DS_EAR_CLOSE || hz == NULL || ms == NULL || n == NULL) {
+        return DS_ERR_ARG;
+    }
+    *hz = motif_def[e].hz;
+    *ms = motif_def[e].ms;
+    *n = motif_def[e].n;
+    return DS_OK;
+}
 
 /* ---- the log ---- */
 
@@ -161,14 +176,14 @@ int32_t ds_say_clip(ds_say *s, uint16_t id)
 
 int32_t ds_say_earcon(ds_say *s, int e)
 {
-    if (e < DS_EAR_OK || e > DS_EAR_BACK) {
+    if (e < DS_EAR_NOTICE || e > DS_EAR_CLOSE) {
         return DS_ERR_ARG;
     }
     if (!room(s, 1)) {
         return DS_ERR_SPACE;
     }
     push(s, K_EAR, (uint16_t)e, 0, NULL);
-    log_text(s, "ear", ear_def[e].name, DS_SAY_TOKEN_MAX);
+    log_text(s, "ear", motif_def[e].name, DS_SAY_TOKEN_MAX);
     return DS_OK;
 }
 
@@ -323,13 +338,19 @@ static void start_silence(ds_say *s, uint32_t ms)
 
 static void start_segment(ds_say *s)
 {
-    const ds_say_seg *g = &ear_def[s->ear].seg[s->seg];
+    uint16_t hz = motif_def[s->ear].hz[s->seg];
+    const ds_say_osc *o = NULL;
 
+    for (size_t i = 0; hz != 0 && i < sizeof osc / sizeof osc[0]; i++) {
+        if (osc[i].hz == hz) {
+            o = &osc[i];
+        }
+    }
     s->seg_pos = 0;
-    s->seg_len = (uint32_t)g->ms * SAMPLES_PER_MS;
-    s->coef = osc[g->osc].coef;
+    s->seg_len = (uint32_t)motif_def[s->ear].ms[s->seg] * SAMPLES_PER_MS;
+    s->coef = o != NULL ? o->coef : 0;
     s->y1 = 0;
-    s->y2 = -(int32_t)(((int64_t)s->amp * 65536 * osc[g->osc].sin) >> 30);
+    s->y2 = o != NULL ? -(int32_t)(((int64_t)s->amp * 65536 * o->sin) >> 30) : 0;
 }
 
 /* Takes the next item off the queue and starts it; 0 when there is none. */
@@ -365,7 +386,7 @@ static int start_next(ds_say *s)
         case K_EAR:
             s->ear = (uint8_t)it.v;
             s->seg = 0;
-            s->amp = ear_def[s->ear].amp;
+            s->amp = motif_def[s->ear].amp;
             start_segment(s);
             s->mode = M_EAR;
             break;
@@ -403,13 +424,12 @@ static int16_t clip_sample(ds_say *s)
     return out;
 }
 
-/* One sample of the earcon, with the 5 ms ramps at both ends of each tone. */
+/* One sample of the motif, with the 5 ms ramps at both ends of each tone. */
 static int16_t ear_sample(ds_say *s)
 {
-    const ds_say_seg *g = &ear_def[s->ear].seg[s->seg];
     int32_t v = 0;
 
-    if (g->osc != F_NONE) {
+    if (motif_def[s->ear].hz[s->seg] != 0) {
         int64_t y = (((int64_t)s->coef * s->y1 + (1 << 29)) >> 30) - s->y2;
         uint32_t i = s->seg_pos, left = s->seg_len - 1u - s->seg_pos;
         uint32_t r = i < left ? i : left;
@@ -423,7 +443,7 @@ static int16_t ear_sample(ds_say *s)
     s->seg_pos++;
     if (s->seg_pos == s->seg_len) {
         s->seg++;
-        if (s->seg == EAR_SEGS || ear_def[s->ear].seg[s->seg].ms == 0) {
+        if (s->seg == motif_def[s->ear].n) {
             s->mode = M_IDLE;
         } else {
             start_segment(s);

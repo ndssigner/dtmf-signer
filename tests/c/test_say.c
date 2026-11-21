@@ -122,8 +122,9 @@ static void test_log_tokens(void)
 static void test_earcon_lengths_and_level(void)
 {
     static const struct { int e; size_t ms; } want[] = {
-        {DS_EAR_OK, 240}, {DS_EAR_FAIL, 240}, {DS_EAR_WARN, 320},
-        {DS_EAR_LISTEN, 150}, {DS_EAR_NEXT, 40}, {DS_EAR_BACK, 40}};
+        {DS_EAR_NOTICE, 350}, {DS_EAR_TURN, 300}, {DS_EAR_OPTION, 100},
+        {DS_EAR_RECEIVE, 330}, {DS_EAR_SEND, 330}, {DS_EAR_OK, 460},
+        {DS_EAR_FAIL, 450}, {DS_EAR_CLOSE, 350}};
     for (size_t i = 0; i < sizeof want / sizeof want[0]; i++) {
         ds_say s;
         static int16_t buf[8000];
@@ -138,7 +139,7 @@ static void test_earcon_lengths_and_level(void)
             n++;
         }
         CHECK_EQ_INT(n, want[i].ms * 16);
-        if (want[i].e == DS_EAR_LISTEN) {
+        if (want[i].e == DS_EAR_RECEIVE) {
             CHECK(peak > 3500 && peak <= 4200);
         } else {
             CHECK(peak > 15500 && peak <= 16500);
@@ -169,7 +170,7 @@ static void test_queue_full(void)
     CHECK_EQ_INT(ds_say_pause(&s, 10), DS_OK);
 }
 
-/* ---- talk-off: no earcon is a key to the detector ---- */
+/* ---- talk-off: no motif is a key to the detector ---- */
 
 static int keys_heard(const int16_t *x, size_t n)
 {
@@ -208,9 +209,9 @@ static int played_is_a_key(const ds_pack *p, unsigned id, int ear)
 
 static void test_no_earcon_is_a_key(void)
 {
-    for (int e = DS_EAR_OK; e <= DS_EAR_BACK; e++) {
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
         if (played_is_a_key(&en, (unsigned)e, e)) {
-            printf("earcon %d is heard as a key\n", e);
+            printf("motif %d is heard as a key\n", e);
             ds_failures++;
         }
     }

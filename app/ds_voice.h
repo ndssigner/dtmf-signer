@@ -93,8 +93,8 @@
  * digit picks the language until the power is cut.
  *
  * The echo (ds_voice_take_echo) is public data only, one line per take:
- * "state <name>", what is said ("say <id>", "num N", "chars X", "ear ok",
- * "tones K"; a secret character only as "say pin-char"), "lang xx",
+ * "state <name>", what is said ("say <id>", "num N", "chars X", "ear <motif>" (notice, turn,
+ * option, receive, send, ok, fail, close), "tones K"; a secret character only as "say pin-char"), "lang xx",
  * "hook-flash", "fingerprint xxxxxxxx", the account's descriptor,
  * "echo-dropped N", and the signed PSBT as ds_app gives it:
  *   signed-psbt-begin <id> <bytes>
