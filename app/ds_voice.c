@@ -393,7 +393,8 @@ static uint32_t review_items(const ds_voice *v)
     return v->s.r.n_out + 1 + (f + nw > 0 ? 1 : 0);
 }
 
-/* Step k of the review's current item: an output ("you send" the amount
+/* Step k of the review's current item (a long datum is its own step, queued
+ * on an empty queue: the say queue is DS_SAY_QUEUE items): an output ("you send" the amount
  * "to the address starting with" its 5 first characters "and ending with"
  * its 5 last, or after 5 "to the address in full, in groups of four"; change:
  * "change" and the amount), the fee ("high fee" when warned), or
@@ -453,19 +454,25 @@ static int review_step(ds_voice *v, int k)
         }
         return bad ? STEP_FAIL : 1;
     }
-    if (k > 1 || r->out[v->item].kind == DS_OUT_CHANGE) {
+    if (k > (v->whole ? 2 : 1) || r->out[v->item].kind == DS_OUT_CHANGE) {
         return 0;
     }
     n = out_address(v, v->item, addr, sizeof addr);
+    if (v->whole && n > 0 && k == 2) {
+        /* the address alone on the empty queue: with its lead-in a 62
+         * character address (P2TR) would not fit the say queue */
+        bad |= ds_say_chars_grouped(&v->say, addr) < 0;
+        ds_wipe(addr, sizeof addr);
+        return bad ? STEP_FAIL : 1;
+    }
     if (n == 0) { /* no address: "to" "script" and its length */
         bad |= ds_say_clip(&v->say, DS_P_TO) < 0;
         bad |= data_mark(v) < 0;
         bad |= ds_say_chars(&v->say, "script") < 0;
         bad |= ds_say_number(&v->say, r->out[v->item].full_len) < 0;
-    } else if (v->whole) {
+    } else if (v->whole) { /* k == 1: the lead-in; the address is step 2 */
         bad |= ds_say_clip(&v->say, DS_P_ADDRESS_FULL_GROUPS) < 0;
         bad |= data_mark(v) < 0;
-        bad |= ds_say_chars_grouped(&v->say, addr) < 0;
     } else {
         memcpy(end, addr, ADDR_ENDS);
         end[ADDR_ENDS] = '\0';

@@ -1696,6 +1696,35 @@ static void test_five_reads_whole_address(void)
     CHECK(strstr(L.log + mark, "chars ") == NULL);
 }
 
+/* The longest address there is (P2TR, 62 characters, main and test) is
+ * said whole, with its lead-in and `ear data` right before the first
+ * character: the lead-in is queued apart so the address fits the queue. */
+static void whole_p2tr(int testnet, const char *vec, const char *addr)
+{
+    char chars[96];
+    to_ready(&L, testnet);
+    send_psbt(&L, vector(vec));
+    run_quiet(&L);
+    CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
+    size_t mark = L.log_len;
+    press(&L, '5');
+    run_quiet(&L);
+    snprintf(chars, sizeof chars, "chars %s", addr);
+    CHECK(strlen(addr) == 62);
+    const char *const whole[] = {"say address_full_groups", "ear data", chars, NULL};
+    CHECK(lines_in_a_row(&L, mark, whole));
+    CHECK(!HAS(&L, "say error_generic", mark));
+    CHECK(!HAS(&L, "ear fail", mark));
+}
+
+static void test_whole_address_p2tr(void)
+{
+    whole_p2tr(0, "outputs to P2TR, P2SH and OP_RETURN",
+               "bc1pv7fc2z39g8vyxq95z4xhzvzgj3hhmgdk6qeq0997rvg7e28rc5qsgny8xu");
+    whole_p2tr(1, "testnet output to P2TR",
+               "tb1pv7fc2z39g8vyxq95z4xhzvzgj3hhmgdk6qeq0997rvg7e28rc5qslmjgun");
+}
+
 static void test_amount_units(void)
 {
     to_ready(&L, 0);
@@ -2966,7 +2995,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_air_listens_only_when_quiet, test_pin_keys_forgotten,
           test_air_warning_once, test_heavy_work_in_tick,
           test_frame_tones_not_pin_keys, test_reboot_wipes_everything,
-          test_review_speaks_outputs, test_five_reads_whole_address,
+          test_review_speaks_outputs, test_five_reads_whole_address, test_whole_address_p2tr,
           test_amount_units, test_hook_flash_signs, test_hook_timing_boundaries,
           test_key_does_not_confirm, test_hang_up_during_reception_back_to_menu,
           test_wrong_network_rejected, test_account_tones_decode,

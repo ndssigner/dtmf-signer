@@ -152,7 +152,7 @@ class HostSignTest(unittest.TestCase):
     def test_host_sign_vectors(self):
         sign = [v for v in VECTORS if v["expect"] == "sign"]
         reject = [v for v in VECTORS if v["expect"] == "reject"]
-        self.assertEqual((len(sign), len(reject)), (13, 10))
+        self.assertEqual((len(sign), len(reject)), (14, 10))
         for v in sign:
             with self.subTest(v["name"]):
                 f = self.path("in.psbt", v["psbt"])

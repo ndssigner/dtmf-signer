@@ -329,6 +329,7 @@ def generate():
     A = Wallet(ABANDON)
     N = Wallet(ur_tones_entropy())
     T = Wallet(ur_tones_entropy(), testnet=True)
+    AT = Wallet(ABANDON, testnet=True)
     P = Wallet(ABANDON, passphrase="test passphrase")
     vs = []
 
@@ -355,6 +356,9 @@ def generate():
         [In("o1", 200_000, 0, 4)],
         [out_ext(50_000, "p2tr"), out_ext(40_000, "p2sh"), out_ext(0, "op_return"),
          out_own(A, 1, 4, 109_000)]))
+    vs.append(sign_vector("testnet output to P2TR", AT,
+        [In("t2", 120_000, 0, 4)],
+        [out_ext(70_000, "p2tr"), out_own(AT, 1, 3, 49_000)]))
     vs.append(sign_vector("receive-address output counts as own", A,
         [In("r1", 100_000, 0, 6)],
         [out_ext(40_000, "p2wpkh"), out_own(A, 0, 9, 30_000), out_own(A, 1, 5, 29_000)]))

@@ -23,7 +23,7 @@ PIN and multi-part URs are ur-tones.
   tones and simulated buttons: `tests/c/test_app.c`); the Python tests run
   the computer build (`ports/host`) against the vectors.
 - **Vectors** (`vectors/`): keys from the BIP-39/BIP-32 test seeds, and PSBTs
-  (`psbt-v0.json`: 13 to sign, 10 to reject) generated with embit, an
+  (`psbt-v0.json`: 14 to sign, 10 to reject) generated with embit, an
   independent implementation: `tools/gen_psbt_vectors.py --check`
   regenerates them and compares.
 - **Pico firmware:** `cmake -S ports/pico -B build-pico -DPICO_SDK_PATH=…`

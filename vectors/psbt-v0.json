@@ -215,6 +215,34 @@
    ]
   },
   {
+   "name": "testnet output to P2TR",
+   "entropy": "00000000000000000000000000000000",
+   "passphrase": "",
+   "testnet": true,
+   "psbt": "cHNidP8BAH0CAAAAAc+oWatnfU6lLxSSLbRpxgjyLmTY9er80EyYtxaR+RwMAAAAAAD9////AnARAQAAAAAAIlEgZ5OFCiVB2EMAtBVNcTBIlG99obbQMgeUvhsR7KjjxQFovwAAAAAAABYAFGio/d44pNUyX6L5sc3HFnN8wIU3AAAAAAABAR/A1AEAAAAAABYAFNe8X0fue7xdIWsJKKSoupA720BPIgYDu12yEhktW0KMXbcmq6IUJtCmO3pFOwEE8jmDJrykP8IYc8XaClQAAIABAACAAAAAgAAAAAAEAAAAAAAiAgNHEi/lTPGI8fdc+OHUwcTCNBKMWhp85tSUihVzIjLM7xhzxdoKVAAAgAEAAIAAAACAAQAAAAMAAAAA",
+   "expect": "sign",
+   "fee": 1000,
+   "fee_warning": false,
+   "outputs": [
+    {
+     "amount": 70000,
+     "address": "tb1pv7fc2z39g8vyxq95z4xhzvzgj3hhmgdk6qeq0997rvg7e28rc5qslmjgun",
+     "kind": "external"
+    },
+    {
+     "amount": 49000,
+     "address": "tb1qdz50mh3c5n2nyhazlxcum3ckwd7vppfhn27xp0",
+     "kind": "change"
+    }
+   ],
+   "signatures": [
+    {
+     "pubkey": "03bb5db212192d5b428c5db726aba21426d0a63b7a453b0104f2398326bca43fc2",
+     "sig": "304402200be61f743b4d4db809eb087c4fc4b94835872bc2aab1b44f5b2b7bb67b64a7c002207e6e35dab02c431624c9dfcbb8f5bc142ff85a1f8855dab7b201a482111fd19d01"
+    }
+   ]
+  },
+  {
    "name": "receive-address output counts as own",
    "entropy": "00000000000000000000000000000000",
    "passphrase": "",
