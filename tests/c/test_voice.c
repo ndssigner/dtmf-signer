@@ -392,14 +392,14 @@ static void test_own_voice_is_not_a_key(void)
     CHECK_EQ_INT(ds_voice_keys(&L.v), 0);
     CHECK_EQ_INT(count_lines(&L, "state lang", 0), 1);
     CHECK(!HAS(&L, "state greet", 0));
-    CHECK(count_lines(&L, "say lang_press", 0) >= 6); /* repeated, so it spoke */
+    CHECK_EQ_INT(count_lines(&L, "say lang_press", 0), 4); /* the list, then the help */
     to_menu(&L);
     size_t mark = L.log_len;
     uint32_t k = ds_voice_keys(&L.v);
     run_ms(&L, 30000);
     CHECK_EQ_INT(ds_voice_keys(&L.v), k);
     CHECK(strstr(L.log + mark, "state ") == NULL);
-    CHECK(count_lines(&L, "say menu_empty", mark) >= 2);
+    CHECK_EQ_INT(count_lines(&L, "say menu_empty_long", mark), 1); /* the help spoke */
 }
 
 static void test_hang_up_keeps_session(void)
@@ -2133,8 +2133,8 @@ static void test_review_fails_closed(void)
     CHECK(strstr(L.log + mark, "signed-psbt") == NULL);
 }
 
-/* The review names its keys after its first item, once, and as the hint
- * after DS_VOICE_REPEAT_MS of silence. */
+/* The review names its keys after its first item, once, and as the help
+ * (their longer version) after DS_VOICE_HELP_MS of silence, once per item. */
 static void test_review_names_keys(void)
 {
     to_ready(&L, 0);
@@ -2149,14 +2149,202 @@ static void test_review_names_keys(void)
     CHECK(HAS(&L, "say change", mark));
     CHECK_EQ_INT(count_lines(&L, "say review_keys", mark), 1);
     size_t m2 = L.log_len;
-    run_ms(&L, DS_VOICE_REPEAT_MS + 500);
+    run_ms(&L, DS_VOICE_HELP_MS + 500);
     run_quiet(&L);
-    CHECK_EQ_INT(count_lines(&L, "say review_keys", m2), 1);
+    CHECK_EQ_INT(count_lines(&L, "say review_keys_long", m2), 1);
     CHECK(!HAS(&L, "say change", m2)); /* the hint, not the item again */
     CHECK_EQ_INT(L.v.item, 1);
+    size_t m3 = L.log_len;
+    run_ms(&L, 3 * DS_VOICE_HELP_MS);
+    CHECK(L.log_len == m3); /* once */
     press(&L, '0');
     run_quiet(&L);
     CHECK(HAS(&L, "say change", m2));
+}
+
+/* ---- the help that grows longer by itself ---- */
+
+/* Until the line `want` is in the log at or after from, at most ms. */
+static int run_until_line(line_t *t, const char *want, size_t from, uint32_t ms)
+{
+    for (uint32_t i = 0; i < ms / 10 && !HAS(t, want, from); i++)
+        step(t, NULL);
+    return HAS(t, want, from);
+}
+
+/* After the short prompt ends, nothing for 7.9 s; at 8.0 s the longer
+ * version, once; then a minute of silence. */
+static void test_help_once_after_8s(void)
+{
+    to_menu(&L);
+    CHECK(!ds_voice_speaking(&L.v));
+    size_t mark = L.log_len;
+    run_ms(&L, DS_VOICE_HELP_MS - 100);
+    CHECK(strstr(L.log + mark, "say ") == NULL);
+    CHECK(!ds_voice_speaking(&L.v));
+    run_ms(&L, 100);
+    CHECK(HAS(&L, "say menu_empty_long", mark));
+    CHECK(!HAS(&L, "say menu_empty", mark)); /* in place of the short one */
+    CHECK(HAS(&L, "say about", mark));       /* the rest of the prompt too */
+    CHECK(strstr(L.log + mark, "state ") == NULL);
+    run_quiet(&L);
+    mark = L.log_len;
+    run_ms(&L, 60000);
+    CHECK(L.log_len == mark); /* nothing said, nothing at all */
+    CHECK(!ds_voice_speaking(&L.v));
+}
+
+/* 0 says what was last heard: the short version before the help, the
+ * longer one after it. */
+static void test_zero_repeats_last_heard(void)
+{
+    to_menu(&L);
+    size_t mark = L.log_len;
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say menu_empty", mark));
+    CHECK(!HAS(&L, "say menu_empty_long", mark));
+    /* the 0 restarted the wait: the help comes 8 s after it */
+    mark = L.log_len;
+    CHECK(run_until_line(&L, "say menu_empty_long", mark, DS_VOICE_HELP_MS + 200));
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say menu_empty_long", mark));
+    CHECK(!HAS(&L, "say menu_empty", mark));
+    /* the help was given in this state: no second one */
+    mark = L.log_len;
+    run_ms(&L, 2 * DS_VOICE_HELP_MS);
+    CHECK(L.log_len == mark);
+    /* a new state, a new request: short again, its own help */
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say seed_how", mark));
+    CHECK(!HAS(&L, "say seed_how_long", mark));
+    CHECK(run_until_line(&L, "say seed_how_long", mark, DS_VOICE_HELP_MS + 200));
+}
+
+/* A state without a longer version says its prompt once more as the help. */
+static void test_help_without_long_says_short(void)
+{
+    to_seed_how(&L);
+    press(&L, '2'); /* the keypad: "*", the digits, "#" */
+    run_quiet(&L);
+    press(&L, '*');
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    /* an input: no help (keys there are data) */
+    run_ms(&L, DS_VOICE_HELP_MS + 500);
+    CHECK(strstr(L.log + mark, "say ") == NULL);
+    /* About has no longer version: its prompt again, once */
+    to_menu(&L);
+    press(&L, '9');
+    run_quiet(&L);
+    mark = L.log_len;
+    run_ms(&L, DS_VOICE_HELP_MS + 200);
+    CHECK(L.log_len > mark); /* begun */
+    run_quiet(&L);
+    CHECK(HAS(&L, "chars en", mark)); /* the whole of it, again */
+    mark = L.log_len;
+    run_ms(&L, 30000);
+    CHECK(L.log_len == mark);
+}
+
+/* A key, step by step (100 ms tone, 200 ms gap): the output length when it
+ * was taken (counted), or 0 if it never was. */
+static size_t press_taken_at(line_t *t, char k)
+{
+    static int16_t buf[4800];
+    char keys[2] = {k, 0};
+    size_t at = 0;
+    uint32_t n = ds_voice_keys(&t->v);
+    ut_synth s;
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&s, keys, 16000, 100, 200, 0);
+    ut_synth_read(&s, buf, 4800);
+    for (int i = 0; i < 30; i++) {
+        step(t, buf + i * CHUNK);
+        if (at == 0 && ds_voice_keys(&t->v) != n)
+            at = t->out_len;
+    }
+    return at;
+}
+
+/* A key the state acts on, pressed during a motif or the longer version,
+ * stops it at once (in the 10 ms it is taken) and acts. */
+static void test_key_cuts_motif_and_long(void)
+{
+    static int16_t clipbuf[16000 * 10];
+    ds_pack en;
+    CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
+    size_t lseed = render_clip(&en, DS_P_SEED_HOW, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+    size_t lwipe = render_clip(&en, DS_P_WIPE_HOOK, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+    size_t llong = render_clip(&en, DS_P_MENU_EMPTY_LONG, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+
+    /* the longer version, cut by 1 */
+    to_menu(&L);
+    size_t mark = L.log_len;
+    CHECK(run_until_line(&L, "say menu_empty_long", mark, DS_VOICE_HELP_MS + 200));
+    size_t from = L.out_len;
+    run_ms(&L, 300);
+    mark = L.log_len;
+    size_t at = press_taken_at(&L, '1');
+    CHECK(at > 0);
+    CHECK(at - from < llong); /* taken while it was still being said */
+    CHECK(HAS(&L, "state seed-how", mark));
+    run_quiet(&L);
+    size_t rest = L.out_len - at;
+    CHECK(rest <= lseed + CHUNK); /* only the new prompt: nothing of the longer one */
+    CHECK(!HAS(&L, "say network_now_main", mark));
+
+    /* the "ok" motif after the seed is loaded, cut by * (ask to wipe) */
+    const uint16_t *hz, *ms;
+    uint8_t n;
+    uint32_t motif = 0;
+    CHECK_EQ_INT(ds_say_motif(DS_EAR_OK, &hz, &ms, &n), DS_OK);
+    for (uint8_t i = 0; i < n; i++)
+        motif += ms[i];
+    CHECK(tones_seed_keypad(zero16, 16, NULL, seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(&L);
+    press(&L, '2');
+    run_ms(&L, 500);
+    type_keys(&L, seed_tones);
+    run_ms(&L, 300);
+    run_quiet(&L);
+    mark = L.log_len;
+    press_paced(&L, '#', 100, 0); /* no PIN */
+    CHECK(run_until_line(&L, "ear ok", mark, 1000));
+    from = L.out_len;
+    run_ms(&L, 50); /* the listener starts afresh with the seed loaded */
+    at = press_taken_at(&L, '*');
+    CHECK(at > 0);
+    CHECK(at - from < (size_t)motif * 16); /* taken during the motif */
+    CHECK(HAS(&L, "state wipe-confirm", mark));
+    run_quiet(&L);
+    rest = L.out_len - at;
+    CHECK(rest <= lwipe + CHUNK); /* the motif stopped, the fingerprint never came */
+    CHECK(!HAS(&L, "say fingerprint_is", mark));
+}
+
+/* While a seed or a PSBT is being received, no help: the reception has its
+ * own waits. */
+static void test_no_help_while_receiving(void)
+{
+    to_seed_how(&L);
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state seed-air", 0));
+    size_t mark = L.log_len;
+    run_ms(&L, DS_VOICE_HELP_MS + 2000);
+    CHECK(L.log_len == mark);
+    to_ready(&L, 0);
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state psbt-listen", 0));
+    mark = L.log_len;
+    run_ms(&L, DS_VOICE_HELP_MS + 2000);
+    CHECK(L.log_len == mark);
 }
 
 /* By the keypad: the speakerphone warning the first time (once per
@@ -2528,6 +2716,9 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_slow_wallet_never_wipes_resume_or_fingerprint,
           test_hook_seen_at_its_edges_only, test_flash_during_prompt_ignored,
           test_review_fails_closed, test_review_names_keys, test_keypad_path_warns,
+          test_help_once_after_8s, test_zero_repeats_last_heard,
+          test_help_without_long_says_short, test_key_cuts_motif_and_long,
+          test_no_help_while_receiving,
           test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
           test_pack_frame_length_out_of_range_is_rejected,
           test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,

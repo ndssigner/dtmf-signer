@@ -181,12 +181,21 @@ enum ds_prompt {
     DS_P_N_THOUSAND,
     DS_P_N_MILLION,
     DS_P_N_BILLION,
+    DS_P_MENU_EMPTY_LONG,
+    DS_P_MENU_READY_LONG,
+    DS_P_SEED_HOW_LONG,
+    DS_P_REVIEW_KEYS_LONG,
     DS_P_COUNT
 };
 
 /* Each prompt's id as in phrases.json (lowercase), for the log of what the
  * device says; defined in the generated ds_prompt_names.c. */
 extern const char *const ds_prompt_name[DS_P_COUNT];
+
+/* Each prompt's longer version ("long" in phrases.json, the clip
+ * DS_P_<ID>_LONG), or 0xFFFF (DS_PACK_NONE) when it has none; also in
+ * ds_prompt_names.c. */
+extern const uint16_t ds_prompt_long[DS_P_COUNT];
 
 /* The built-in English pack ("DSV3", see tools/voice/make_pack.py);
  * other languages are separate packs in the voice flash region. */

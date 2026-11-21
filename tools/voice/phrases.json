@@ -9,11 +9,19 @@
  },
  "menu_empty": {
   "es": "Cargar semilla, 1.",
-  "en": "Load seed, 1."
+  "en": "Load seed, 1.",
+  "long": {
+   "es": "Para cargar la semilla con la que firmar, 1. Para repetir, 0.",
+   "en": "To load the seed you sign with, 1. To repeat, 0."
+  }
  },
  "menu_ready": {
   "es": "Firmar, 1. Cuenta, 2. Borrar, 3. Ajustes, 9.",
-  "en": "Sign, 1. Account, 2. Wipe, 3. Settings, 9."
+  "en": "Sign, 1. Account, 2. Wipe, 3. Settings, 9.",
+  "long": {
+   "es": "Para firmar una transacción, 1. Para enviar la cuenta a tu guálet, 2. Para borrar la semilla, 3. Ajustes, 9. Para repetir, 0.",
+   "en": "To sign a transaction, 1. To send the account to your wallet, 2. To wipe the seed, 3. Settings, 9. To repeat, 0."
+  }
  },
  "network_now_main": {
   "es": "La red es méinnet. Para cambiar, 2.",
@@ -29,7 +37,11 @@
  },
  "seed_how": {
   "es": "Por el auricular, 1. Por el teclado, 2.",
-  "en": "By the handset, 1. By the keypad, 2."
+  "en": "By the handset, 1. By the keypad, 2.",
+  "long": {
+   "es": "Si tu guálet suena, por el auricular, 1. Si la tecleas, por el teclado, 2. Para volver, asterisco. Para repetir, 0.",
+   "en": "If your wallet plays it, by the handset, 1. If you type it, by the keypad, 2. To go back, star. To repeat, 0."
+  }
  },
  "air_warning": {
   "es": "Acerca el auricular a tu guálet; el sonido lleva tu semilla.",
@@ -109,7 +121,11 @@
  },
  "review_keys": {
   "es": "Almohadilla, siguiente. Cinco, dirección entera. Asterisco, cancelar.",
-  "en": "Hash, next. Five, whole address. Star, cancel."
+  "en": "Hash, next. Five, whole address. Star, cancel.",
+  "long": {
+   "es": "Almohadilla, lo siguiente. Cinco, la dirección entera. Cero, repetir. Asterisco, cancelar sin firmar.",
+   "en": "Hash, the next item. Five, the whole address. Zero, again. Star, cancel without signing."
+  }
  },
  "sats": {
   "es": "sats.",

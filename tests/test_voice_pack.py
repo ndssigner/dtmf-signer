@@ -179,16 +179,38 @@ class EncodeTest(unittest.TestCase):
 
 class HeaderTest(unittest.TestCase):
     def test_committed_header_matches_phrases(self):
-        phrases = json.loads((ROOT / "tools" / "voice" / "phrases.json").read_text())
+        raw = json.loads((ROOT / "tools" / "voice" / "phrases.json").read_text())
+        phrases = make_pack.load_phrases()
         text = (ROOT / "app" / "voice" / "ds_prompts.h").read_text()
         names = re.findall(r"^\s*(DS_P_[A-Z0-9_]+),?\s*$", text, re.M)
         self.assertEqual(names[-1], "DS_P_COUNT")
         self.assertEqual(names[:-1], ["DS_P_" + k.upper() for k in phrases])
-        for k, v in phrases.items():
+        for k, v in raw.items():
             self.assertRegex(k, r"^[a-z0-9_]+$")
+            self.assertIn(set(v), ({"es", "en"}, {"es", "en", "long"}))
+            if "long" in v:
+                self.assertEqual(set(v["long"]), {"es", "en"})
+        for v in phrases.values():
             self.assertEqual(set(v), {"es", "en"})
         self.assertNotIn("ds_pack_es", text)
         self.assertIn("ds_pack_en_len", text)
+        self.assertIn("ds_prompt_long", text)
+
+    def test_long_versions_follow_the_phrases(self):
+        raw = json.loads((ROOT / "tools" / "voice" / "phrases.json").read_text())
+        phrases = make_pack.load_phrases()
+        keys = list(phrases)
+        self.assertEqual(keys[:len(raw)], list(raw))
+        self.assertEqual(keys[len(raw):], [k + "_long" for k, v in raw.items() if "long" in v])
+        for k, v in raw.items():
+            if "long" in v:
+                self.assertEqual(phrases[k + "_long"], v["long"])
+        longs = make_pack.long_ids(phrases)
+        for i, k in enumerate(keys):
+            want = keys.index(k + "_long") if k + "_long" in phrases else make_pack.NONE
+            self.assertEqual(longs[i], want)
+        names_c = (ROOT / "app" / "voice" / "ds_prompt_names.c").read_text()
+        self.assertEqual(names_c, make_pack.names_c_text(phrases))
 
 
 try:

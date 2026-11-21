@@ -23,7 +23,7 @@ python3 -m venv ~/.cache/dtmf-signer/venv        # any location outside the repo
 V=~/.cache/dtmf-signer/venv/bin/python
 $V tools/voice/make_pack.py --lang en --out-c app/voice/pack_en.c
 $V tools/voice/make_pack.py --lang es --out-bin app/voice/packs/es.bin
-python3 tools/voice/make_pack.py --header app/voice/ds_prompts.h
+python3 tools/voice/make_pack.py --header app/voice/ds_prompts.h --names app/voice/ds_prompt_names.c
 ```
 
 The Spanish voice is Piper `es_ES-sharvard-medium`, speaker 0 (Sharvard corpus,
@@ -43,8 +43,11 @@ python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 
 Adding or changing a phrase: edit `phrases.json` (ASCII lowercase IDs; the
 C names are `DS_P_` plus the ID in capitals) and regenerate the header and
-every pack (a pack with another phrase count is ignored by the firmware). A
-word a language lacks has an empty string and is never used there.
+every pack (a pack with another phrase count is ignored by the firmware).
+A phrase may have a longer version, `"long": {"es": …, "en": …}`, said once
+as the help when nothing is pressed for 8 s; it becomes the clip
+`<id>_long` (`DS_P_<ID>_LONG`). A word a language lacks has an empty
+string and is never used there.
 
 `python3 -m unittest discover -s tests` checks the pack layout and grammar,
 the UF2 wrapper, the committed Spanish pack and that the committed header

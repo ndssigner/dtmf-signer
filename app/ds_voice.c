@@ -4,9 +4,10 @@
  * once the previous one has been played, so a step may change the voice
  * (ds_say picks the pack when an item starts playing) and a long prompt
  * (About) never has to fit the say queue at once. Entering a state, a
- * repeat (0, or DS_VOICE_REPEAT_MS of silence) and a resume all restart the
- * steps from 0. A step may also wait (STEP_WAIT): the tones of the next part
- * are made in ds_voice_tick, and the step is queued once they are ready.
+ * repeat (0, or the help after DS_VOICE_HELP_MS of silence) and a resume all
+ * restart the steps from 0. A step may also wait (STEP_WAIT): the tones of
+ * the next part are made in ds_voice_tick, and the step is queued once they
+ * are ready.
  *
  * Heavy work never runs in ds_voice_line_in: taking a frame heard
  * (ds_rx_poll: Reed-Solomon, fountain codes), the review, the signing and
@@ -141,9 +142,9 @@ static int input(int st)
            st == ST_PSBT_RX;
 }
 
-/* The states whose prompt is said again after DS_VOICE_REPEAT_MS of silence
- * (not the tones: 0 plays them again when asked). */
-static int repeats(int st)
+/* The states that give the help after DS_VOICE_HELP_MS of silence (not the
+ * tones: 0 plays them again when asked). */
+static int helps(int st)
 {
     return st != ST_IDLE && st != ST_TONES && !input(st);
 }
@@ -261,6 +262,36 @@ static const ds_pack *voice(const ds_voice *v)
 static void clip(ds_voice *v, uint16_t id)
 {
     ds_say_clip(&v->say, id);
+}
+
+/* The longer version of phrase id, or DS_PACK_NONE if it has none. */
+static uint16_t long_of(uint16_t id)
+{
+    return id < DS_P_COUNT ? ds_prompt_long[id] : DS_PACK_NONE;
+}
+
+/* Phrase id, in its longer version if it has one in the voice it is queued
+ * in (a language may leave it empty). */
+static void long_clip(ds_voice *v, uint16_t id)
+{
+    const uint8_t *frames;
+    uint32_t bytes = 0;
+    uint16_t l = long_of(id);
+    if (l != DS_PACK_NONE && v->say.pack != NULL &&
+        ds_pack_clip(v->say.pack, l, &frames, &bytes) == DS_OK && bytes > 0) {
+        id = l;
+    }
+    clip(v, id);
+}
+
+/* A phrase of the state's prompt: the longer version once the help was given. */
+static void ask(ds_voice *v, uint16_t id)
+{
+    if (v->longer) {
+        long_clip(v, id);
+    } else {
+        clip(v, id);
+    }
 }
 
 /* A pack's fingerprint (DS_PACK_FP bytes) as hex. */
@@ -445,27 +476,27 @@ static int say_step(ds_voice *v)
             return 0;
         }
         ds_say_set_pack(&v->say, &v->packs.pack[k]);
-        clip(v, DS_P_LANG_PRESS);
-        clip(v, (uint16_t)(DS_P_C_1 + k));
+        ask(v, DS_P_LANG_PRESS);
+        ask(v, (uint16_t)(DS_P_C_1 + k));
         ds_say_pause(&v->say, ENTRY_GAP_MS);
         break;
     case ST_GREET:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_GREETING);
+        ask(v, DS_P_GREETING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, DS_P_FLASHED);
+        ask(v, DS_P_FLASHED);
         break;
     case ST_MENU_EMPTY:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_MENU_EMPTY);
+        ask(v, DS_P_MENU_EMPTY);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, v->testnet ? DS_P_NETWORK_NOW_TEST : DS_P_NETWORK_NOW_MAIN);
+        ask(v, v->testnet ? DS_P_NETWORK_NOW_TEST : DS_P_NETWORK_NOW_MAIN);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, DS_P_ABOUT);
+        ask(v, DS_P_ABOUT);
         break;
     case ST_ABOUT:
         /* the firmware's version, then each pack: its language, its fingerprint */
@@ -485,13 +516,13 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_RESUME_ASK);
+        ask(v, DS_P_RESUME_ASK);
         break;
     case ST_SEED_HOW:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_SEED_HOW);
+        ask(v, DS_P_SEED_HOW);
         break;
     case ST_SEED_AIR:
         /* the warning, then "listening": nothing more is said until the
@@ -501,7 +532,7 @@ static int say_step(ds_voice *v)
         }
         if (!v->air_warned) { /* once per power-up */
             v->air_warned = 1;
-            clip(v, DS_P_AIR_WARNING);
+            ask(v, DS_P_AIR_WARNING);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
         }
         ds_say_earcon(&v->say, DS_EAR_RECEIVE);
@@ -510,9 +541,9 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_PIN_ASK);
+        ask(v, DS_P_PIN_ASK);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, DS_P_PIN_WARNING);
+        ask(v, DS_P_PIN_WARNING);
         break;
     case ST_KEYPAD:
         if (k > 0) {
@@ -520,16 +551,16 @@ static int say_step(ds_voice *v)
         }
         if (!v->keypad_warned) { /* once per power-up: the keys and the PIN */
             v->keypad_warned = 1;
-            clip(v, DS_P_PIN_WARNING);
+            ask(v, DS_P_PIN_WARNING);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
         }
-        clip(v, DS_P_KEYPAD_ASK);
+        ask(v, DS_P_KEYPAD_ASK);
         break;
     case ST_KEYPAD_PIN:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_KEYPAD_PIN_ASK);
+        ask(v, DS_P_KEYPAD_PIN_ASK);
         break;
     case ST_FINGERPRINT:
         if (k == 1 && !v->redial_said) {
@@ -543,23 +574,23 @@ static int say_step(ds_voice *v)
             return 0;
         }
         snprintf(fp, sizeof fp, "%08x", (unsigned)v->seed_fp);
-        clip(v, DS_P_FINGERPRINT_IS);
+        ask(v, DS_P_FINGERPRINT_IS);
         ds_say_chars_grouped(&v->say, fp);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, DS_P_IF_CORRECT_HASH);
+        ask(v, DS_P_IF_CORRECT_HASH);
         break;
     case ST_MENU_READY:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_MENU_READY);
+        ask(v, DS_P_MENU_READY);
         break;
     case ST_PSBT_RX:
         /* then nothing is said until the PSBT has been heard (half-duplex) */
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_PSBT_LISTENING);
+        ask(v, DS_P_PSBT_LISTENING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ds_say_earcon(&v->say, DS_EAR_RECEIVE);
         break;
@@ -581,19 +612,19 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_SIGN_HOOK);
+        ask(v, DS_P_SIGN_HOOK);
         break;
     case ST_WIPE_CONFIRM:
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_WIPE_HOOK);
+        ask(v, DS_P_WIPE_HOOK);
         break;
     case ST_HOLD_NEAR:
         if (k > 0) {
             return 0;
         }
-        clip(v, v->out_kind == OUT_SIGNED ? DS_P_SIGNED_HOLD_NEAR : DS_P_ACCOUNT_HOLD_NEAR);
+        ask(v, v->out_kind == OUT_SIGNED ? DS_P_SIGNED_HOLD_NEAR : DS_P_ACCOUNT_HOLD_NEAR);
         break;
     case ST_TONES:
         /* each part as it is made (in a tick), a silence after it; then the
@@ -608,7 +639,7 @@ static int say_step(ds_voice *v)
         } else if (!v->out_heard) {
             close_gate(v); /* nothing heard during the tones counts */
             v->out_heard = 1;
-            clip(v, DS_P_AGAIN_HINT);
+            ask(v, DS_P_AGAIN_HINT);
         } else {
             return 0;
         }
@@ -617,9 +648,9 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
-        clip(v, DS_P_SETTINGS_MENU);
+        ask(v, DS_P_SETTINGS_MENU);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        clip(v, v->unit == DS_VOICE_UNIT_BTC    ? DS_P_UNIT_BTC
+        ask(v, v->unit == DS_VOICE_UNIT_BTC    ? DS_P_UNIT_BTC
                 : v->unit == DS_VOICE_UNIT_SATS ? DS_P_UNIT_SATS
                                                 : DS_P_UNIT_AUTO);
         break;
@@ -676,11 +707,20 @@ static void hush(ds_voice *v)
     v->step = STEPS_DONE;
 }
 
+/* A new request (a state, a review item): its prompt short, its own help. */
+static void new_request(ds_voice *v)
+{
+    v->helped = 0;
+    v->longer = 0;
+    v->quiet_at = v->now;
+}
+
 /* Moves to st and says its prompt once what is queued has been said. */
 static void go(ds_voice *v, int st)
 {
     char l[40];
     v->state = st;
+    new_request(v);
     snprintf(l, sizeof l, "state %s", state_name(st));
     echo_line(v, l);
     v->step = 0;
@@ -700,6 +740,21 @@ static void repeat(ds_voice *v)
     hush(v);
     v->step = 0;
     pump(v);
+}
+
+/* The prompt once more, with its longer versions (the review: its keys,
+ * longer); given once per request. */
+static void help(ds_voice *v)
+{
+    v->helped = 1;
+    if (v->state == ST_REVIEW) {
+        hush(v);
+        long_clip(v, DS_P_REVIEW_KEYS);
+        echo_said(v);
+    } else {
+        v->longer = 1;
+        repeat(v);
+    }
 }
 
 /* ---- the secrets of an input ---- */
@@ -1541,6 +1596,7 @@ static void on_key(ds_voice *v, char c)
                 v->item++;
                 v->whole = 0;
                 v->item_heard = 0;
+                new_request(v);
                 repeat(v);
             } else if (v->items_heard >= review_items(v)) {
                 v->prompt_heard = 0;
@@ -1632,6 +1688,7 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
         }
     } else if ((key = held_key(v, key)) != 0) {
         v->keys++;
+        v->quiet_at = v->now; /* any key: the wait for the help starts again */
         on_key(v, key);
     }
     ds_wipe(k, sizeof k);
@@ -1705,6 +1762,7 @@ static void debounce(ds_voice *v, uint32_t now)
         return;
     }
     v->hook = v->hook_raw;
+    v->quiet_at = now; /* the wait for the help starts again */
     if (!v->hook) {
         v->down_at = v->raw_at;
         return;
@@ -1761,17 +1819,11 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
         (v->state == ST_PIN || v->state == ST_KEYPAD_PIN)) {
         pin_said(v, ds_multitap_tick(&v->mt, now_ms)); /* a pause commits */
     }
-    if (!repeats(v->state) || !v->hook || ds_voice_speaking(v)) {
+    /* the help: counted from the end of what was said, once per request */
+    if (!helps(v->state) || !v->hook || v->helped || ds_voice_speaking(v)) {
         v->quiet_at = now_ms;
-    } else if (now_ms - v->quiet_at >= DS_VOICE_REPEAT_MS) {
-        v->quiet_at = now_ms;
-        if (v->state == ST_REVIEW) {
-            hush(v); /* the review's hint: its keys (0 says the item again) */
-            clip(v, DS_P_REVIEW_KEYS);
-            echo_said(v);
-        } else {
-            repeat(v);
-        }
+    } else if (now_ms - v->quiet_at >= DS_VOICE_HELP_MS) {
+        help(v);
     }
     if (v->job != JOB_NONE) {
         v->job_seen = 1; /* runs at the next tick */

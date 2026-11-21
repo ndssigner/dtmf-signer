@@ -32,7 +32,8 @@
  *     an input of ours without its amount attached). # next (once the item
  *     has been said in full), 0 repeat, 5 the whole address in groups of 4,
  *     * cancel; these keys are named after the first item (once per review)
- *     and are the hint after DS_VOICE_REPEAT_MS of silence. An item that
+ *     and, in their longer version, are the help (below), once per item;
+ *     0 there says the item again. An item that
  *     cannot be queued whole is not said: "error_generic", and it is not
  *     heard. After the last item, # asks for the confirmation: a hook flash
  *     (a short hang-up) signs; keys never do. Then "signed, hold the handset to your wallet": # plays
@@ -71,8 +72,15 @@
  * Keys are heard while the signer speaks (barge-in): a key the state acts on
  * stops what is being said and acts; any other key is ignored and the
  * prompt goes on. The prompts are notched so they never read as keys.
- * After DS_VOICE_REPEAT_MS of silence with no key the current prompt is
- * said again.
+ *
+ * Help: once a prompt has been said, DS_VOICE_HELP_MS with nothing said,
+ * no key and no hook change (each starts the wait again) bring it once
+ * more, with each phrase that has a longer version ("<id>_long" in the
+ * echo) said in that one; then silence, however long it lasts. 0 says the
+ * prompt as last heard: the longer version once the help was given, the
+ * short one before. A new state (a review item too) is a new request: short
+ * again, and one help of its own. No help in the inputs (a reception, a PIN,
+ * the keypad: keys there are data) nor while the tones play.
  *
  * The hook is debounced (DS_VOICE_DEBOUNCE_MS). An on-hook of
  * DS_VOICE_FLASH_MIN_MS up to DS_VOICE_HANGUP_MS (both included) is a hook
@@ -125,7 +133,7 @@
 #define DS_VOICE_DEBOUNCE_MS 50u
 #define DS_VOICE_FLASH_MIN_MS 200u  /* a shorter on-hook is ignored */
 #define DS_VOICE_HANGUP_MS 1500u    /* longer than this, a hang-up */
-#define DS_VOICE_REPEAT_MS 6000u    /* silence before a prompt is said again */
+#define DS_VOICE_HELP_MS 8000u      /* silence after a prompt before the help */
 #define DS_VOICE_ECHO_BUF 1024
 #define DS_VOICE_ECHO_MAX 256       /* the cap ds_voice_take_echo needs */
 #define DS_VOICE_ECHO_CHUNK 48      /* signed PSBT bytes per echo line */
@@ -155,7 +163,9 @@ typedef struct {
     int hook_raw, hook;  /* the last level given; the debounced one (1: off-hook) */
     uint32_t raw_at;     /* when hook_raw last changed */
     uint32_t down_at;    /* when the debounced on-hook began */
-    uint32_t now, quiet_at; /* the clock; the last time something was said */
+    uint32_t now, quiet_at; /* the clock; when the wait for the help began */
+    int helped;          /* the help was given for this request */
+    int longer;          /* the prompt is said with its longer versions */
     uint32_t keys;       /* keys heard (a count only) */
     /* loading the seed (secrets: wiped on a hang-up, a wipe, a failure) */
     ds_rx rx;            /* the seed's tones: by the handset or typed */
@@ -225,7 +235,7 @@ void ds_voice_line_in(ds_voice *v, const int16_t *x, size_t n);
 size_t ds_voice_line_out(ds_voice *v, int16_t *out, size_t n);
 
 /* The clock (milliseconds, free-running, wrapping): the hook's timing and
- * the repeat of prompts. */
+ * the help. */
 void ds_voice_tick(ds_voice *v, uint32_t now_ms);
 
 /* The next echo line (NUL-terminated): returns its length, 0 when there is
