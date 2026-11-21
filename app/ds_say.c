@@ -33,6 +33,8 @@ static const ds_say_osc osc[] = {
     {740, 2057445885, 307653396},
     {880, 2020526066, 363717072},
     {988, 1987866817, 406223934},
+    {1175, 1922901001, 478052759},
+    {1568, 1753075192, 620163968},
     {1760, 1654664589, 684428797},
 };
 
@@ -54,11 +56,12 @@ static const struct {
     {3, {587, 740, 880}, {120, 120, 220}, AMP_FULL, "ok"},         /* DS_EAR_OK: major arpeggio up */
     {2, {392, 330}, {150, 300}, AMP_FULL, "fail"},                 /* DS_EAR_FAIL: 2 falling, minor third */
     {2, {587, 392}, {130, 220}, AMP_FULL, "close"},                /* DS_EAR_CLOSE: 2 falling, fifth */
+    {2, {1175, 1568}, {70, 90}, AMP_FULL, "data"},                 /* DS_EAR_DATA: 2 high, quick, rising */
 };
 
 int32_t ds_say_motif(int e, const uint16_t **hz, const uint16_t **ms, uint8_t *n)
 {
-    if (e < DS_EAR_NOTICE || e > DS_EAR_CLOSE || hz == NULL || ms == NULL || n == NULL) {
+    if (e < DS_EAR_NOTICE || e > DS_EAR_LAST || hz == NULL || ms == NULL || n == NULL) {
         return DS_ERR_ARG;
     }
     *hz = motif_def[e].hz;
@@ -176,7 +179,7 @@ int32_t ds_say_clip(ds_say *s, uint16_t id)
 
 int32_t ds_say_earcon(ds_say *s, int e)
 {
-    if (e < DS_EAR_NOTICE || e > DS_EAR_CLOSE) {
+    if (e < DS_EAR_NOTICE || e > DS_EAR_LAST) {
         return DS_ERR_ARG;
     }
     if (!room(s, 1)) {

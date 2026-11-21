@@ -112,7 +112,7 @@
  *
  * The echo (ds_voice_take_echo) is public data only, one line per take:
  * "state <name>", what is said ("say <id>", "num N", "chars X", "ear <motif>" (notice, turn,
- * option, receive, send, ok, fail, close), "tones K"; a secret character only as "say pin-char"), "lang xx",
+ * option, receive, send, ok, fail, close; data right before each dictated datum), "tones K"; a secret character only as "say pin-char"), "lang xx",
  * "hook-flash", "fingerprint xxxxxxxx", the account's descriptor,
  * "echo-dropped N", and the signed PSBT as ds_app gives it:
  *   signed-psbt-begin <id> <bytes>
@@ -263,9 +263,10 @@ int ds_voice_speaking(const ds_voice *v);
  * public for tests). Returns DS_OK or DS_ERR_SPACE. */
 int32_t ds_voice_say_amount(ds_voice *v, uint64_t sat);
 
-/* Queues lead (a phrase id: receive_about, send_about) and a duration of ms:
- * under 120 s in seconds rounded to 5 (5 at least), from 120 s in whole
- * minutes (public for tests). Returns DS_OK or DS_ERR_SPACE. */
+/* For tests only (the flow says its durations itself): queues lead (a
+ * phrase id: receive_about, send_about) and a duration of ms, under 120 s
+ * in seconds rounded to 5 (5 at least), from 120 s in whole minutes.
+ * Returns DS_OK or DS_ERR_SPACE. */
 int32_t ds_voice_say_duration(ds_voice *v, uint16_t lead, uint32_t ms);
 
 #endif

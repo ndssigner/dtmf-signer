@@ -7,8 +7,8 @@
   "es": "Elige una opción.",
   "en": "Choose an option.",
   "long": {
-   "es": "Elige una opción y pulsa su tecla; el cero las repite.",
-   "en": "Choose an option and press its key; zero says them again."
+   "es": "Elige una opción y pulsa su tecla. Cero, repetir.",
+   "en": "Choose an option and press its key. Zero, repeat."
   }
  },
  "opt_load_seed": {
@@ -144,7 +144,7 @@
   "en": "It takes about"
  },
  "send_about": {
-  "es": "Envío los tonos: unos",
+  "es": "Voy a enviar los tonos: unos",
   "en": "Sending the tones: about"
  },
  "seconds": {
@@ -156,8 +156,8 @@
   "en": "minutes."
  },
  "if_cut_reset": {
-  "es": "Si algo se corta, cuelga, descuelga y sigue las instrucciones.",
-  "en": "If anything cuts out, hang up, pick up again and follow the instructions."
+  "es": "Si algo se corta, cuelga unos segundos, descuelga y sigue las instrucciones.",
+  "en": "If anything cuts out, hang up for a few seconds, pick up again and follow the instructions."
  },
  "pin_ask": {
   "es": "Semilla recibida. Teclea su pin y almohadilla.",
@@ -199,8 +199,8 @@
   "es": "Si coincide, almohadilla. Si no, asterisco.",
   "en": "If it matches, hash. If not, star.",
   "long": {
-   "es": "Si coincide, almohadilla, y la semilla queda lista para firmar. Si no, asterisco, para borrarla. El cero la repite.",
-   "en": "If it matches, hash, and the seed is ready to sign with. If not, star, to wipe it. Zero says it again."
+   "es": "Si coincide, almohadilla, y la semilla queda lista para firmar. Si no, asterisco, para descartarla; se confirma colgando un momento. El cero la repite.",
+   "en": "If it matches, hash, and the seed is ready to sign with. If not, star, to discard it; you confirm by hanging up for a moment. Zero says it again."
   }
  },
  "psbt_listening": {
@@ -212,8 +212,12 @@
   "en": "It usually takes a few minutes."
  },
  "review_start": {
-  "es": "Transacción recibida. Óyela entera antes de firmar.",
-  "en": "Transaction received. Hear all of it before signing."
+  "es": "Transacción recibida.",
+  "en": "Transaction received."
+ },
+ "review_hear_all": {
+  "es": "Óyela entera antes de firmar.",
+  "en": "Hear all of it before signing."
  },
  "sending": {
   "es": "Envías",

@@ -215,6 +215,8 @@ static void to_menu(line_t *t)
     run_quiet(t);
 }
 
+static int lines_in_a_row(const line_t *t, size_t from, const char *const *want);
+
 static void test_one_language_no_list(void)
 {
     power_up(&L, NULL, 0);
@@ -303,6 +305,15 @@ static void test_about_says_fingerprints(void)
         snprintf(want + 6 + 2 * i, 3, "%02x", es_bin_fp[i]);
     long es_at = find_line(&L, "chars es", mark);
     CHECK(HAS(&L, "chars en", mark));
+    /* each datum after the data motif: the version, each language, each fingerprint */
+    {
+        static const char *const ver[] = {"say about_is", "ear data", NULL};
+        static const char *const lang[] = {"say about_voice", "ear data", "chars es", "ear data", NULL};
+        CHECK(lines_in_a_row(&L, mark, ver));
+        CHECK(lines_in_a_row(&L, mark, lang));
+        const char *const fpw[] = {"ear data", want, NULL};
+        CHECK(lines_in_a_row(&L, mark, fpw));
+    }
     CHECK(es_at >= 0 && HAS(&L, want, (size_t)es_at));
     /* # back to the menu */
     mark = L.log_len;
@@ -321,8 +332,6 @@ static void test_hash_in_menu_does_nothing(void)
     CHECK_EQ_INT(ds_voice_keys(&L.v), 1);
     CHECK(L.log_len == mark);
 }
-
-static int lines_in_a_row(const line_t *t, size_t from, const char *const *want);
 
 static void test_two_toggles_network(void)
 {
@@ -611,6 +620,8 @@ static void test_air_seed_with_long_pin(void)
     CHECK(HAS(&L, "ear ok", mark));
     long fi = find_line(&L, "say fingerprint_is", mark);
     CHECK(fi >= 0 && HAS(&L, "chars 8b218e81", (size_t)fi));
+    static const char *const fpd[] = {"say fingerprint_is", "ear data", "chars 8b218e81", NULL};
+    CHECK(lines_in_a_row(&L, mark, fpd));
     CHECK(fi >= 0 && HAS(&L, "say if_correct_hash", (size_t)fi));
     CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
     CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
@@ -1626,19 +1637,19 @@ static void test_review_speaks_outputs(void)
     CHECK(HAS(&L, "ear ok", mark));
     CHECK(HAS(&L, "state review", mark));
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
-    static const char *const out1[] = {"say sending", "num 60000", "say sats",
-                                       "say address_starts", "chars bc1qk",
-                                       "say address_ends", "chars pe9ug", NULL};
+    static const char *const out1[] = {"say sending", "ear data", "num 60000", "say sats",
+                                       "say address_starts", "ear data", "chars bc1qk",
+                                       "say address_ends", "ear data", "chars pe9ug", NULL};
     CHECK(lines_in_a_row(&L, mark, out1));
     CHECK(!HAS(&L, "say change", mark));
     press(&L, '#');
     run_quiet(&L);
-    static const char *const out2[] = {"say change", "num 39000", "say sats", NULL};
+    static const char *const out2[] = {"say change", "ear data", "num 39000", "say sats", NULL};
     CHECK(lines_in_a_row(&L, mark, out2));
     CHECK(!HAS(&L, "say fee", mark));
     press(&L, '#');
     run_quiet(&L);
-    static const char *const fee[] = {"say fee", "num 1000", "say sats", NULL};
+    static const char *const fee[] = {"say fee", "ear data", "num 1000", "say sats", NULL};
     CHECK(lines_in_a_row(&L, mark, fee));
     CHECK(!HAS(&L, "say fee_high", mark));
     CHECK(!HAS(&L, "say sign_hook", mark));
@@ -2500,8 +2511,9 @@ static void test_network_said_when_it_matters(void)
     send_psbt(&L, vector("one input with change"));
     run_quiet(&L);
     static const char *const rv[] = {"ear ok", "say review_start", "say net_main_say",
-                                     "state review", "say sending", NULL};
-    CHECK(lines_in_order(&L, mark, rv));
+                                     "say review_hear_all", "state review", NULL};
+    CHECK(lines_in_a_row(&L, mark, rv));
+    CHECK(HAS(&L, "say sending", mark));
     press(&L, '*');
     run_quiet(&L);
     /* the account */
@@ -2526,14 +2538,14 @@ static void test_address_parts_named(void)
     size_t mark = L.log_len;
     send_psbt(&L, vector("one input with change"));
     run_quiet(&L);
-    static const char *const ends[] = {"say sending", "num 60000", "say sats",
-                                       "say address_starts", "chars bc1qk",
-                                       "say address_ends", "chars pe9ug", NULL};
+    static const char *const ends[] = {"say sending", "ear data", "num 60000", "say sats",
+                                       "say address_starts", "ear data", "chars bc1qk",
+                                       "say address_ends", "ear data", "chars pe9ug", NULL};
     CHECK(lines_in_a_row(&L, mark, ends));
     mark = L.log_len;
     press(&L, '5');
     run_quiet(&L);
-    static const char *const whole[] = {"say sats", "say address_full_groups",
+    static const char *const whole[] = {"say sats", "say address_full_groups", "ear data",
                                         "chars bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug", NULL};
     CHECK(lines_in_a_row(&L, mark, whole));
     CHECK(!HAS(&L, "say address_starts", mark));
@@ -2631,8 +2643,11 @@ static void test_exchanges_announce_duration_and_reset(void)
     CHECK(first > 0);
     long end = find_line(&L, "ear ok", first); /* the review begins: the reception is over */
     CHECK(end > 0);
-    for (const char *q = L.log + first; end > 0 && q < L.log + end; q = strchr(q, '\n') + 1)
+    for (const char *q = L.log + first; end > 0 && q != NULL && q < L.log + end;) {
         CHECK(strncmp(q, "say ", 4) != 0 && strncmp(q, "num ", 4) != 0 && strncmp(q, "ear ", 4) != 0);
+        q = strchr(q, '\n');
+        q = q != NULL ? q + 1 : NULL;
+    }
     CHECK(HAS(&L, "state review", first));
 }
 
@@ -2860,7 +2875,7 @@ static const unsigned dtmf_hz[8] = {697, 770, 852, 941, 1209, 1336, 1477, 1633};
 
 static void test_motifs_stay_clear_of_dtmf(void)
 {
-    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_LAST; e++) {
         const uint16_t *hz, *ms;
         uint8_t n;
         CHECK_EQ_INT(ds_say_motif(e, &hz, &ms, &n), DS_OK);
@@ -2880,13 +2895,13 @@ static void test_motifs_stay_clear_of_dtmf(void)
         const uint16_t *hz, *ms;
         uint8_t n;
         CHECK_EQ_INT(ds_say_motif(0, &hz, &ms, &n), DS_ERR_ARG);
-        CHECK_EQ_INT(ds_say_motif(DS_EAR_CLOSE + 1, &hz, &ms, &n), DS_ERR_ARG);
+        CHECK_EQ_INT(ds_say_motif(DS_EAR_LAST + 1, &hz, &ms, &n), DS_ERR_ARG);
     }
 }
 
 static void test_motif_lengths(void)
 {
-    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_LAST; e++) {
         const uint16_t *hz, *ms;
         uint8_t n;
         unsigned total = 0;
@@ -2895,6 +2910,8 @@ static void test_motif_lengths(void)
             total += ms[i];
         if (e == DS_EAR_OPTION) {
             CHECK(total >= 10 && total <= 150);
+        } else if (e == DS_EAR_DATA) {
+            CHECK(total >= 10 && total <= 200);
         } else {
             CHECK(total >= 300 && total <= 800);
         }
@@ -2907,7 +2924,7 @@ static void test_no_motif_decodes_to_a_dtmf_key(void)
     static ds_say s;
     static int16_t buf[16000 * 2];
     CHECK_EQ_INT(ds_pack_open(&p, ds_pack_en, ds_pack_en_len), DS_OK);
-    for (int e = DS_EAR_NOTICE; e <= DS_EAR_CLOSE; e++) {
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_LAST; e++) {
         ds_say_init(&s, &p);
         CHECK_EQ_INT(ds_say_earcon(&s, e), DS_OK);
         size_t n = 0;
@@ -2923,8 +2940,8 @@ static void test_no_motif_decodes_to_a_dtmf_key(void)
 
 static void test_motifs_are_distinct(void)
 {
-    for (int a = DS_EAR_NOTICE; a <= DS_EAR_CLOSE; a++) {
-        for (int b = a + 1; b <= DS_EAR_CLOSE; b++) {
+    for (int a = DS_EAR_NOTICE; a <= DS_EAR_LAST; a++) {
+        for (int b = a + 1; b <= DS_EAR_LAST; b++) {
             const uint16_t *ha, *hb, *ma, *mb;
             uint8_t na, nb;
             ds_say_motif(a, &ha, &ma, &na);

@@ -19,7 +19,9 @@ enum {
     DS_EAR_SEND,       /* sending on the air */
     DS_EAR_OK,
     DS_EAR_FAIL,
-    DS_EAR_CLOSE       /* going back, closing */
+    DS_EAR_CLOSE,      /* going back, closing */
+    DS_EAR_DATA,       /* a dictated datum follows (an address, an amount...) */
+    DS_EAR_LAST = DS_EAR_DATA
 };
 
 #define DS_SAY_RATE 16000u

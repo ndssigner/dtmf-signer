@@ -72,6 +72,7 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define SENTENCE_GAP_MS 300u /* between the sentences of a prompt */
 #define ENTRY_GAP_MS 500u    /* between the entries of a list */
 #define OPTION_GAP_MS 150u   /* after each option of a menu */
+#define DATA_GAP_MS 250u     /* after the data motif, before the datum */
 /* A seed by the handset: one crypto-seed frame at air pace (80 ms tone,
  * 80 ms gap, 600 ms pauses: SPEC 1.1) is 120 tones for 16 bytes, 156 for 32,
  * that is 20 to 26 s. */
@@ -307,6 +308,15 @@ static void hex_fp(const uint8_t b[DS_PACK_FP], char out[2 * DS_PACK_FP + 1])
     }
 }
 
+/* The data motif and a short pause: a dictated datum (an address, an
+ * amount, a fingerprint, a version...) follows, where the written text
+ * would have a colon. Its own mark, so the datum's start is heard. */
+static int32_t data_mark(ds_voice *v)
+{
+    int32_t r = ds_say_earcon(&v->say, DS_EAR_DATA);
+    return r < 0 ? r : ds_say_pause(&v->say, DATA_GAP_MS);
+}
+
 /* An amount as the setting says (design 5.7): automatic says 1 bitcoin and
  * more in bitcoin, less in sats. In bitcoin: the whole part as a number,
  * "point" and each decimal digit (trailing zeros dropped; none: no point),
@@ -423,6 +433,7 @@ static int review_step(ds_voice *v, int k)
             return 0;
         }
         bad |= ds_say_clip(&v->say, DS_P_FEE) < 0;
+        bad |= data_mark(v) < 0;
         bad |= say_amount(v, r->fee) < 0;
         if (r->fee_warning) {
             bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
@@ -433,9 +444,11 @@ static int review_step(ds_voice *v, int k)
     if (k == 0) {
         if (r->out[v->item].kind == DS_OUT_CHANGE) {
             bad |= ds_say_clip(&v->say, DS_P_CHANGE) < 0;
+            bad |= data_mark(v) < 0;
             bad |= say_amount(v, r->out[v->item].amount) < 0;
         } else {
             bad |= ds_say_clip(&v->say, DS_P_SENDING) < 0;
+            bad |= data_mark(v) < 0;
             bad |= say_amount(v, r->out[v->item].amount) < 0;
         }
         return bad ? STEP_FAIL : 1;
@@ -446,18 +459,22 @@ static int review_step(ds_voice *v, int k)
     n = out_address(v, v->item, addr, sizeof addr);
     if (n == 0) { /* no address: "to" "script" and its length */
         bad |= ds_say_clip(&v->say, DS_P_TO) < 0;
+        bad |= data_mark(v) < 0;
         bad |= ds_say_chars(&v->say, "script") < 0;
         bad |= ds_say_number(&v->say, r->out[v->item].full_len) < 0;
     } else if (v->whole) {
         bad |= ds_say_clip(&v->say, DS_P_ADDRESS_FULL_GROUPS) < 0;
+        bad |= data_mark(v) < 0;
         bad |= ds_say_chars_grouped(&v->say, addr) < 0;
     } else {
         memcpy(end, addr, ADDR_ENDS);
         end[ADDR_ENDS] = '\0';
         bad |= ds_say_clip(&v->say, DS_P_ADDRESS_STARTS) < 0;
+        bad |= data_mark(v) < 0;
         bad |= ds_say_chars(&v->say, end) < 0;
         bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
         bad |= ds_say_clip(&v->say, DS_P_ADDRESS_ENDS) < 0;
+        bad |= data_mark(v) < 0;
         bad |= ds_say_chars(&v->say, addr + n - ADDR_ENDS) < 0;
     }
     ds_wipe(addr, sizeof addr);
@@ -587,12 +604,15 @@ static int say_step(ds_voice *v)
         if (k == 0) {
             ds_say_earcon(&v->say, DS_EAR_NOTICE);
             ask(v, DS_P_ABOUT_IS);
+            data_mark(v);
             ds_say_chars(&v->say, DS_VERSION);
         } else if (k <= v->packs.n) {
             ask(v, DS_P_ABOUT_VOICE);
+            data_mark(v);
             ds_say_chars(&v->say, v->packs.pack[k - 1].lang);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
             hex_fp(v->packs.fp[k - 1], fp);
+            data_mark(v);
             ds_say_chars_grouped(&v->say, fp);
         } else if (k == v->packs.n + 1) {
             ds_say_earcon(&v->say, DS_EAR_OPTION);
@@ -670,6 +690,7 @@ static int say_step(ds_voice *v)
         }
         snprintf(fp, sizeof fp, "%08x", (unsigned)v->seed_fp);
         ask(v, DS_P_FINGERPRINT_IS);
+        data_mark(v);
         ds_say_chars_grouped(&v->say, fp);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ask(v, DS_P_IF_CORRECT_HASH);
@@ -1317,6 +1338,7 @@ static void review(ds_voice *v)
     ds_say_earcon(&v->say, DS_EAR_OK);
     clip(v, DS_P_REVIEW_START);
     clip(v, net_phrase(v));
+    clip(v, DS_P_REVIEW_HEAR_ALL);
     ds_say_pause(&v->say, SENTENCE_GAP_MS);
     echo_said(v);
     go(v, ST_REVIEW);
