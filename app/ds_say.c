@@ -120,10 +120,10 @@ void ds_say_clear(ds_say *s)
     s->mode = M_IDLE;
     s->silence = 0;
     s->gap_after = 0;
-    s->adpcm = NULL;
-    s->nib_total = 0;
-    s->nib_pos = 0;
-    ds_wipe(&s->st, sizeof s->st);
+    s->frames = NULL;
+    s->clip_bytes = 0;
+    s->clip_pos = 0;
+    ds_wipe(&s->dec, sizeof s->dec);
     ds_wipe(s->blk, sizeof s->blk);
     s->blen = 0;
     s->bpos = 0;
@@ -299,14 +299,16 @@ int ds_say_busy(const ds_say *s)
 static int clip_next(ds_say *s, int16_t *v)
 {
     if (s->bpos == s->blen) {
-        uint32_t left = s->nib_total - s->nib_pos;
-        uint32_t k = left < 32u ? left : 32u;
-        if (k == 0) {
+        uint8_t len;
+        if (s->clip_pos >= s->clip_bytes) {
             return 0;
         }
-        ds_adpcm_decode(&s->st, s->adpcm + s->nib_pos / 2u, k, s->blk);
-        s->nib_pos += k;
-        s->blen = (uint8_t)k;
+        /* ds_pack_open checked that the frames tile the clip; a frame the
+         * decoder refuses plays as silence */
+        len = s->frames[s->clip_pos];
+        (void)ds_speex_frame(&s->dec, s->frames + s->clip_pos + 1u, len, s->blk);
+        s->clip_pos += 1u + len;
+        s->blen = DS_SPEEX_FRAME;
         s->bpos = 0;
     }
     *v = s->blk[s->bpos++];
@@ -342,17 +344,15 @@ static int start_next(ds_say *s)
             start_silence(s, it.v);
             break;
         case K_CLIP: {
-            const uint8_t *adpcm;
+            const uint8_t *frames;
             uint32_t bytes;
-            ds_adpcm st;
-            if (s->pack == NULL || ds_pack_clip(s->pack, it.v, &adpcm, &bytes, &st) != DS_OK ||
-                bytes == 0) {
+            if (s->pack == NULL || ds_pack_clip(s->pack, it.v, &frames, &bytes) != DS_OK ||
+                bytes == 0 || ds_speex_init(&s->dec) != DS_OK) {
                 continue;
             }
-            s->adpcm = adpcm;
-            s->nib_total = bytes * 2u;
-            s->nib_pos = 0;
-            s->st = st;
+            s->frames = frames;
+            s->clip_bytes = bytes;
+            s->clip_pos = 0;
             s->blen = s->bpos = 0;
             s->phase = 0;
             s->gap_after = it.gap;

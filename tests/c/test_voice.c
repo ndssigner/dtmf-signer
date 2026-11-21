@@ -8,9 +8,11 @@
 
 #include "ds_base64.h"
 #include "ds_core.h"
+#include "ds_crc32.h"
 #include "ds_pack.h"
 #include "ds_prompts.h"
 #include "ds_say.h"
+#include "ds_speex.h"
 #include "ds_voice.h"
 #include "psbt_vectors.h"
 #include "test.h"
@@ -745,9 +747,9 @@ static void test_hang_up_mid_pin_wipes(void)
     CHECK(memcmp(&L.v.l, &fresh, sizeof fresh) == 0);
     /* what the voice was saying (a PIN character's clip) is gone too */
     CHECK(all_zero(L.v.say.q, sizeof L.v.say.q));
-    CHECK(L.v.say.adpcm == NULL);
+    CHECK(L.v.say.frames == NULL);
     CHECK(all_zero(L.v.say.blk, sizeof L.v.say.blk));
-    CHECK(all_zero(&L.v.say.st, sizeof L.v.say.st));
+    CHECK(all_zero(&L.v.say.dec, sizeof L.v.say.dec));
     CHECK_EQ_INT(L.v.say.s0, 0);
     hook(&L, 1);
     run_ms(&L, 100);
@@ -1730,6 +1732,10 @@ static void test_amount_units(void)
     press(&L, '#');
     run_ms(&L, 100);
     CHECK(HAS(&L, "state settings", mark));
+    /* after the settings are said: a key in the middle of a prompt is the
+     * barge-in tests' matter, and where it lands in the speech decides
+     * whether it is heard (test_key_during_prompt_barges_in) */
+    run_quiet(&L);
     press(&L, '*');
     run_ms(&L, 100);
     CHECK(find_line(&L, "state menu-ready", mark) > find_line(&L, "state about", mark));
@@ -2220,6 +2226,200 @@ static void test_keypad_path_warns(void)
     CHECK(HAS(&L, "state fingerprint", mark));
 }
 
+/* ---- the packs (DSV3, Speex) ---- */
+
+#define PACK_HDR 22u
+#define PACK_ENTRY 8u /* u32 offset, u32 bytes */
+
+static uint32_t rd32le(const uint8_t *b)
+{
+    return (uint32_t)b[0] | (uint32_t)b[1] << 8 | (uint32_t)b[2] << 16 | (uint32_t)b[3] << 24;
+}
+
+static void wr32le(uint8_t *b, uint32_t v)
+{
+    for (int k = 0; k < 4; k++)
+        b[k] = (uint8_t)(v >> (8 * k));
+}
+
+/* A copy of es.bin to break one byte at a time, its CRC made right again so
+ * that only the rule under test can reject it. */
+static uint8_t edited[ES_BIN_LEN];
+
+static void reseal(uint8_t *pack)
+{
+    uint32_t total = rd32le(pack + 10);
+    wr32le(pack + 14, 0);
+    wr32le(pack + 14, ds_crc32(0, pack, total));
+}
+
+/* The first clip of es.bin with more than one frame: its offset and bytes. */
+static uint16_t a_long_clip(uint32_t *offset, uint32_t *bytes)
+{
+    for (uint16_t id = 0; id < DS_P_COUNT; id++) {
+        const uint8_t *e = es_bin + PACK_HDR + PACK_ENTRY * id;
+        *offset = rd32le(e);
+        *bytes = rd32le(e + 4);
+        if (*bytes > 2u * (1u + es_bin[*offset]))
+            return id;
+    }
+    return DS_P_COUNT;
+}
+
+static void test_pack_v3_opens_and_says_a_clip(void)
+{
+    static ds_pack es;
+    static ds_say s;
+    static int16_t buf[16000 * 20];
+    CHECK_EQ_INT(ds_pack_open(&es, es_bin, ES_BIN_LEN), DS_OK);
+    CHECK(memcmp(es_bin, "DSV3es", 6) == 0);
+    ds_say_init(&s, &es);
+    CHECK_EQ_INT(ds_say_clip(&s, DS_P_GREETING), DS_OK);
+    size_t n = 0;
+    while (ds_say_busy(&s) && n < sizeof buf / sizeof buf[0])
+        n += ds_say_read(&s, buf + n, 160);
+    CHECK(!ds_say_busy(&s));
+    size_t loud = 0;
+    int peak = 0;
+    for (size_t i = 0; i < n; i++) {
+        int v = buf[i] < 0 ? -buf[i] : buf[i];
+        loud += v > 500;
+        peak = v > peak ? v : peak;
+    }
+    CHECK(n > 16000); /* the greeting lasts more than a second */
+    CHECK(loud > n / 10);
+    CHECK(peak > 8000);
+}
+
+static void test_pack_v2_is_rejected(void)
+{
+    ds_pack p;
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    edited[3] = '2';
+    edited[6] = 2; /* format 2, as the ADPCM packs were */
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    edited[6] = 2; /* the magic alone is not enough */
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+}
+
+static void test_pack_frame_length_out_of_range_is_rejected(void)
+{
+    ds_pack p;
+    uint32_t offset, bytes;
+    CHECK(a_long_clip(&offset, &bytes) < DS_P_COUNT);
+    uint32_t second = offset + 1u + es_bin[offset];
+    static const uint8_t bad[] = {0, DS_SPEEX_MAX_BYTES + 1, 0xff};
+    for (size_t k = 0; k < sizeof bad; k++) {
+        memcpy(edited, es_bin, ES_BIN_LEN);
+        edited[second] = bad[k];
+        reseal(edited);
+        CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+    }
+    /* The same pack, resealed but unchanged, opens. */
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_OK);
+}
+
+static void test_pack_clip_past_end_is_rejected(void)
+{
+    ds_pack p;
+    uint32_t offset, bytes;
+    uint16_t id = a_long_clip(&offset, &bytes);
+    CHECK(id < DS_P_COUNT);
+
+    /* The clip's last frame says one byte more than the clip has. */
+    uint32_t last = offset;
+    while (last + 1u + es_bin[last] < offset + bytes)
+        last += 1u + es_bin[last];
+    CHECK_EQ_INT(last + 1u + es_bin[last], offset + bytes);
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    edited[last]++;
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+
+    /* The clip's byte count reaches past the end of the pack. */
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    wr32le(edited + PACK_HDR + PACK_ENTRY * id + 4, ES_BIN_LEN - offset + 1u);
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+
+    /* The clip cut one byte short: its last frame now overruns it. */
+    memcpy(edited, es_bin, ES_BIN_LEN);
+    wr32le(edited + PACK_HDR + PACK_ENTRY * id + 4, bytes - 1u);
+    reseal(edited);
+    CHECK_EQ_INT(ds_pack_open(&p, edited, ES_BIN_LEN), DS_ERR_ARG);
+}
+
+/* The keys the firmware's detector hears in x (16 kHz), fed as ds_voice
+ * feeds it, 10 ms at a time. After each slice ds_voice reads the live key
+ * (key_now) and takes a tone heard twice in a row (20 ms, no 50 ms gap) as
+ * begun (held_key: ONSET_RUNS, KEY_GAP_RUNS); a key counts later, at 70 ms.
+ * A begun tone already matters: a real key starting within 250 ms of it is
+ * taken for data and dropped. So no prompt may begin a tone at all. The
+ * listener's own live view and groups must stay empty too. */
+static int keys_in(const int16_t *x, size_t n)
+{
+    static ut_listener l;
+    char lv[UT_LIVE + 1], g[UT_GROUP + 1];
+    char run_key = 0, key = 0;
+    unsigned run_n = 0, run_gap = 0;
+    int heard = 0;
+    ut_listener_init(&l, 16000);
+    for (size_t i = 0; i < n; i += CHUNK) {
+        ut_listener_push(&l, x + i, n - i < CHUNK ? n - i : CHUNK);
+        char k = l.keys.live_key;
+        if (k == 0) {
+            if (++run_gap >= 5) {
+                run_key = 0;
+                run_n = 0;
+            }
+            continue;
+        }
+        run_n = k == run_key ? run_n + 1 : 1;
+        run_key = k;
+        run_gap = 0;
+        if (run_n >= 2 && key == 0) {
+            key = k;
+            heard++;
+        }
+    }
+    ut_listener_flush(&l);
+    lv[0] = g[0] = 0;
+    heard += ut_listener_live(&l, lv, sizeof lv) > 0;
+    heard += ut_listener_group(&l, g, sizeof g) > 0;
+    if (heard)
+        printf("  key '%c', live '%s', group '%s'\n", key ? key : ' ', lv, g);
+    return heard;
+}
+
+static void test_no_prompt_decodes_to_a_dtmf_key(void)
+{
+    static ds_pack packs[2];
+    static ds_say s;
+    static int16_t buf[16000 * 40];
+    CHECK_EQ_INT(ds_pack_open(&packs[0], ds_pack_en, ds_pack_en_len), DS_OK);
+    CHECK_EQ_INT(ds_pack_open(&packs[1], es_bin, ES_BIN_LEN), DS_OK);
+    for (int k = 0; k < 2; k++) {
+        for (uint16_t id = 0; id < DS_P_COUNT; id++) {
+            ds_say_init(&s, &packs[k]);
+            ds_say_clip(&s, id);
+            size_t n = 0;
+            while (ds_say_busy(&s) && n < sizeof buf / sizeof buf[0])
+                n += ds_say_read(&s, buf + n, CHUNK);
+            CHECK(!ds_say_busy(&s));
+            if (keys_in(buf, n)) {
+                printf("clip %s (%s) decodes to a DTMF key\n", ds_prompt_name[id],
+                       packs[k].lang);
+                ds_failures++;
+            }
+        }
+    }
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
@@ -2243,4 +2443,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_slow_wallet_never_wipes, test_slow_wallet_review_needs_every_item,
           test_slow_wallet_never_wipes_resume_or_fingerprint,
           test_hook_seen_at_its_edges_only, test_flash_during_prompt_ignored,
-          test_review_fails_closed, test_review_names_keys, test_keypad_path_warns)
+          test_review_fails_closed, test_review_names_keys, test_keypad_path_warns,
+          test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
+          test_pack_frame_length_out_of_range_is_rejected,
+          test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key)

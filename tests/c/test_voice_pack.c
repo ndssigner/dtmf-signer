@@ -1,47 +1,15 @@
-/* The ADPCM decoder against the shared vector; the pack reader, the number
- * grammar and the region scan against the real packs and a data-only
- * Japanese one (both generated into the build directory). */
+/* The pack reader, the number grammar and the region scan against the real
+ * packs and a data-only Japanese one (both generated into the build
+ * directory). */
 #include <stdint.h>
 #include <string.h>
 
-#include "adpcm_vector.h"
-#include "ds_adpcm.h"
 #include "ds_core.h"
 #include "ds_crc32.h"
 #include "ds_pack.h"
 #include "ds_prompts.h"
 #include "test.h"
 #include "voice_test_packs.h"
-
-static void test_adpcm_vector(void)
-{
-    int16_t out[sizeof adpcm_vector_decoded / sizeof adpcm_vector_decoded[0]];
-    size_t n = sizeof out / sizeof out[0];
-    ds_adpcm st = {ADPCM_VECTOR_PRED, ADPCM_VECTOR_INDEX};
-
-    CHECK_EQ_INT(sizeof adpcm_vector_bytes * 2, n);
-    ds_adpcm_decode(&st, adpcm_vector_bytes, n, out);
-    CHECK(memcmp(out, adpcm_vector_decoded, sizeof out) == 0);
-    CHECK_EQ_INT(st.pred, out[n - 1]);
-
-    /* An odd count stops after the low nibble of the last byte. */
-    int16_t odd[3] = {0x7777, 0x7777, 0x7777};
-    st.pred = ADPCM_VECTOR_PRED;
-    st.index = ADPCM_VECTOR_INDEX;
-    ds_adpcm_decode(&st, adpcm_vector_bytes, 3, odd);
-    CHECK(memcmp(odd, adpcm_vector_decoded, sizeof odd) == 0);
-}
-
-static void test_adpcm_clamps_index(void)
-{
-    /* An index past the table (an untrusted start state) decodes as 88. */
-    int16_t a[8], b[8];
-    ds_adpcm s1 = {0, 200}, s2 = {0, 88};
-    ds_adpcm_decode(&s1, adpcm_vector_bytes, 8, a);
-    ds_adpcm_decode(&s2, adpcm_vector_bytes, 8, b);
-    CHECK(memcmp(a, b, sizeof a) == 0);
-    CHECK(s1.index <= 88);
-}
 
 static void check_pack(const uint8_t *data, uint32_t len, const char *lang)
 {
@@ -51,20 +19,17 @@ static void check_pack(const uint8_t *data, uint32_t len, const char *lang)
     CHECK_EQ_INT(p.len, len);
     CHECK_EQ_STR(p.lang, lang);
     for (uint16_t id = 0; id < p.count; id++) {
-        const uint8_t *adpcm;
+        const uint8_t *frames;
         uint32_t bytes;
-        ds_adpcm start;
-        CHECK_EQ_INT(ds_pack_clip(&p, id, &adpcm, &bytes, &start), DS_OK);
-        CHECK(adpcm >= data && adpcm + bytes <= data + len);
-        CHECK(start.index <= 88);
+        CHECK_EQ_INT(ds_pack_clip(&p, id, &frames, &bytes), DS_OK);
+        CHECK(frames >= data && frames + bytes <= data + len);
     }
-    const uint8_t *adpcm;
+    const uint8_t *frames;
     uint32_t bytes;
-    ds_adpcm start;
-    CHECK_EQ_INT(ds_pack_clip(&p, p.count, &adpcm, &bytes, &start), DS_ERR_ARG);
+    CHECK_EQ_INT(ds_pack_clip(&p, p.count, &frames, &bytes), DS_ERR_ARG);
 }
 
-static void test_pack_v2_open(void)
+static void test_pack_v3_open(void)
 {
     check_pack(ds_pack_en, ds_pack_en_len, "en");
     check_pack(es_bin, ES_BIN_LEN, "es");
@@ -76,7 +41,7 @@ static void test_pack_v2_open(void)
 /* -- A minimal pack, edited to break one rule at a time ------------------ */
 
 #define HDR 22u
-#define TABLE (HDR + 12u * DS_P_COUNT) /* where the grammar starts */
+#define TABLE (HDR + 8u * DS_P_COUNT) /* where the grammar starts */
 
 static uint8_t mini[4096];
 
@@ -105,13 +70,13 @@ static void seal(uint32_t len)
     wr32(mini + 14, ds_crc32(0, mini, len));
 }
 
-/* DS_P_COUNT empty clips but the first (4 bytes), small[0] = clip 0, the
+/* DS_P_COUNT empty clips but the first (one frame of 3 bytes), small[0] = clip 0, the
  * given scales (values 10^k, largest first) and no irregulars. */
 static uint32_t build_mini(unsigned nscales)
 {
     memset(mini, 0, sizeof mini);
-    memcpy(mini, "DSV2es", 6);
-    wr16(mini + 6, 2);
+    memcpy(mini, "DSV3es", 6);
+    wr16(mini + 6, 3);
     wr16(mini + 8, DS_P_COUNT);
     uint8_t *g = mini + TABLE;
     for (int k = 0; k < 100; k++)
@@ -129,8 +94,9 @@ static uint32_t build_mini(unsigned nscales)
     }
     uint32_t data = TABLE + 201 + 18 * nscales + 2; /* nirr = 0 */
     for (uint32_t id = 0; id < DS_P_COUNT; id++)
-        wr32(mini + HDR + 12 * id, data);
-    wr32(mini + HDR + 4, 4); /* clip 0: 4 bytes */
+        wr32(mini + HDR + 8 * id, data);
+    wr32(mini + HDR + 4, 4); /* clip 0: 4 bytes, a frame of 3 */
+    mini[data] = 3;
     uint32_t total = data + 4;
     wr32(mini + 10, total);
     wr32(mini + 18, TABLE);
@@ -169,10 +135,11 @@ static void test_pack_rejects(void)
 
     BREAK(mini[0] = 'X', t_);                     /* magic */
     BREAK(mini[4] = 'E', t_);                     /* language must be lowercase */
-    BREAK(wr16(mini + 6, 1), t_);                 /* format */
+    BREAK(wr16(mini + 6, 2), t_);                 /* format */
     BREAK(wr16(mini + 8, DS_P_COUNT - 1), t_);    /* another firmware's prompt list */
     BREAK(wr32(mini + 18, TABLE - 1), t_);        /* grammar inside the table */
-    BREAK(mini[HDR + 10] = 89, t_);               /* start index out of range */
+    BREAK(mini[t_ - 4] = 0, t_);                  /* a frame of no bytes */
+    BREAK(mini[t_ - 4] = 4, t_);                  /* a frame past its clip */
     BREAK(wr16(mini + TABLE + 2, DS_P_COUNT), t_); /* small[1] not a clip */
     BREAK(wr64(mini + TABLE + 201 + 18, 1000), t_); /* scales not decreasing */
     BREAK(wr64(mini + TABLE + 201 + 18, 5), t_);  /* a scale below 10 */
@@ -200,7 +167,7 @@ static void test_pack_rejects(void)
         nirr[2 + 10] = 4;
         len += 16;
         for (uint32_t id = 0; id < DS_P_COUNT; id++)
-            wr32(mini + HDR + 12 * id, len - 4);
+            wr32(mini + HDR + 8 * id, len - 4);
         wr32(mini + 10, len);
         seal(len);
         CHECK_EQ_INT(ds_pack_open(&p, mini, len), DS_ERR_ARG);
@@ -343,5 +310,5 @@ static void test_numbers_ja_grouping(void)
     CHECK_EQ_INT(ds_pack_number(&p, 0, out, 4), DS_ERR_ARG);
 }
 
-TEST_MAIN(test_adpcm_vector, test_adpcm_clamps_index, test_pack_v2_open, test_pack_rejects,
+TEST_MAIN(test_pack_v3_open, test_pack_rejects,
           test_scan_region, test_numbers_es, test_numbers_en, test_numbers_ja_grouping)

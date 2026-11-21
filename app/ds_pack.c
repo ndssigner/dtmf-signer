@@ -3,10 +3,12 @@
 #include "ds_bitcoin.h"
 #include "ds_core.h"
 #include "ds_crc32.h"
+#include "ds_speex.h"
 #include "voice/ds_prompts.h"
 
-#define HEADER 22u /* "DSV2", lang, u16 format, u16 count, u32 total, u32 crc, u32 grammar */
-#define ENTRY 12u  /* u32 offset, u32 bytes, i16 pred, u8 index, u8 pad */
+#define HEADER 22u /* "DSV3", lang, u16 format, u16 count, u32 total, u32 crc, u32 grammar */
+#define ENTRY 8u   /* u32 offset, u32 bytes */
+#define FORMAT 3u
 #define CRC_AT 14u
 #define SMALL_BYTES 200u /* u16 small[100] */
 #define SCALE 18u        /* u64 value, u16 singular, u16 plural, u8 say_one, u8 pad[5] */
@@ -82,10 +84,24 @@ static int32_t open_grammar(ds_pack *q, uint32_t off, uint32_t total)
     return DS_OK;
 }
 
+/* The clip f[0..bytes) is whole frames: each length in range, the last
+ * ending exactly at the clip's end (the decoder never reads past it). */
+static int frames_ok(const uint8_t *f, uint32_t bytes)
+{
+    uint32_t pos = 0;
+    while (pos < bytes) {
+        uint32_t n = f[pos];
+        if (n == 0 || n > DS_SPEEX_MAX_BYTES || n > bytes - pos - 1u)
+            return 0;
+        pos += 1u + n;
+    }
+    return 1;
+}
+
 int32_t ds_pack_open(ds_pack *p, const uint8_t *data, uint32_t len)
 {
     if (!p || !data || len < HEADER || data[0] != 'D' || data[1] != 'S' || data[2] != 'V' ||
-        data[3] != '2')
+        data[3] != '3')
         return DS_ERR_ARG;
     for (int k = 4; k < 6; k++)
         if (data[k] < 'a' || data[k] > 'z')
@@ -94,7 +110,7 @@ int32_t ds_pack_open(ds_pack *p, const uint8_t *data, uint32_t len)
     uint32_t total = rd32(data + 10), crc = rd32(data + CRC_AT), goff = rd32(data + 18);
     /* A pack with another prompt list was made for another firmware: its
      * clip numbers would say the wrong things. */
-    if (format != 2 || count != DS_P_COUNT || total < HEADER || total > len)
+    if (format != FORMAT || count != DS_P_COUNT || total < HEADER || total > len)
         return DS_ERR_ARG;
     /* count is at most 65535, so the table size cannot overflow 32 bits. */
     if ((uint32_t)count * ENTRY > total - HEADER || goff < HEADER + (uint32_t)count * ENTRY ||
@@ -113,7 +129,7 @@ int32_t ds_pack_open(ds_pack *p, const uint8_t *data, uint32_t len)
         const uint8_t *e = entry(&q, id);
         uint32_t offset = rd32(e), bytes = rd32(e + 4);
         /* Compared as total - offset so that offset + bytes cannot wrap. */
-        if (offset > total || bytes > total - offset || e[10] > 88)
+        if (offset > total || bytes > total - offset || !frames_ok(data + offset, bytes))
             return DS_ERR_ARG;
     }
     if (open_grammar(&q, goff, total) != DS_OK)
@@ -122,16 +138,14 @@ int32_t ds_pack_open(ds_pack *p, const uint8_t *data, uint32_t len)
     return DS_OK;
 }
 
-int32_t ds_pack_clip(const ds_pack *p, uint16_t id, const uint8_t **adpcm,
-                     uint32_t *bytes, ds_adpcm *start)
+int32_t ds_pack_clip(const ds_pack *p, uint16_t id, const uint8_t **frames,
+                     uint32_t *bytes)
 {
     if (id >= p->count)
         return DS_ERR_ARG;
     const uint8_t *e = entry(p, id);
-    *adpcm = p->data + rd32(e);
+    *frames = p->data + rd32(e);
     *bytes = rd32(e + 4);
-    start->pred = (int16_t)rd16(e + 8);
-    start->index = e[10];
     return DS_OK;
 }
 
@@ -245,7 +259,7 @@ int32_t ds_packs_scan(ds_packs *ps, const ds_pack *builtin, const uint8_t *regio
     while (ps->n < DS_PACKS_MAX && len - off >= HEADER) {
         if (ds_pack_open(&ps->pack[ps->n], region + off, len - off) == DS_OK) {
             fingerprint(&ps->pack[ps->n], ps->fp[ps->n]);
-            /* Skip the pack's own bytes: its audio could hold "DSV2" too. */
+            /* Skip the pack's own bytes: its audio could hold "DSV3" too. */
             uint32_t used = ps->pack[ps->n].len;
             ps->n++;
             if (used > len - off - 1)

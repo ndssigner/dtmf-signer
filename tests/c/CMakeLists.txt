@@ -79,20 +79,10 @@ target_sources(test_review PRIVATE ${DS_PSBT_VECTORS_H})
 target_include_directories(test_review PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_review PRIVATE dtmf_app)
 
-# The voice prompts: the ADPCM decoder (against the shared vector, generated
-# into the build directory like the PSBT one) and the pack reader (against the
-# built-in English pack, which lives in its own library so the other builds
-# skip it, the committed Spanish pack and a data-only Japanese one, both
-# turned into a header in the build directory).
-set(DS_ADPCM_VECTOR_H ${CMAKE_CURRENT_BINARY_DIR}/adpcm_vector.h)
-add_custom_command(
-  OUTPUT ${DS_ADPCM_VECTOR_H}
-  COMMAND Python3::Interpreter ${PROJECT_SOURCE_DIR}/tools/adpcm_vector_to_c.py
-          ${PROJECT_SOURCE_DIR}/vectors/adpcm-v0.json ${DS_ADPCM_VECTOR_H}
-  DEPENDS ${PROJECT_SOURCE_DIR}/tools/adpcm_vector_to_c.py
-          ${PROJECT_SOURCE_DIR}/vectors/adpcm-v0.json
-  COMMENT "Generating adpcm_vector.h"
-  VERBATIM)
+# The voice prompts: the pack reader (against the built-in English pack, which
+# lives in its own library so the other builds skip it, the committed Spanish
+# pack and a data-only Japanese one, both turned into a header in the build
+# directory like the PSBT vectors).
 set(DS_VOICE_TEST_PACKS_H ${CMAKE_CURRENT_BINARY_DIR}/voice_test_packs.h)
 add_custom_command(
   OUTPUT ${DS_VOICE_TEST_PACKS_H}
@@ -100,13 +90,12 @@ add_custom_command(
           ${PROJECT_SOURCE_DIR}/app/voice/packs/es.bin ${DS_VOICE_TEST_PACKS_H}
   DEPENDS ${PROJECT_SOURCE_DIR}/tools/voice_test_packs_to_c.py
           ${PROJECT_SOURCE_DIR}/tools/voice/make_pack.py
-          ${PROJECT_SOURCE_DIR}/tools/voice/adpcm.py
           ${PROJECT_SOURCE_DIR}/tools/voice/phrases.json
           ${PROJECT_SOURCE_DIR}/app/voice/packs/es.bin
   COMMENT "Generating voice_test_packs.h"
   VERBATIM)
 ds_add_test(test_voice_pack)
-target_sources(test_voice_pack PRIVATE ${DS_ADPCM_VECTOR_H} ${DS_VOICE_TEST_PACKS_H})
+target_sources(test_voice_pack PRIVATE ${DS_VOICE_TEST_PACKS_H})
 target_include_directories(test_voice_pack PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_voice_pack PRIVATE dtmf_app ds_voice_packs)
 
@@ -126,8 +115,8 @@ target_sources(test_speex PRIVATE ${DS_SPEEX_VECTOR_H})
 target_include_directories(test_speex PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_speex PRIVATE dtmf_app)
 
-# What the signer says: the queue, the earcons and the talk-off check of every
-# clip of the built-in and the Spanish pack.
+# What the signer says: the queue and the earcons (the talk-off check of every
+# clip is in test_voice, with the packs' own tests).
 ds_add_test(test_say)
 target_sources(test_say PRIVATE ${DS_VOICE_TEST_PACKS_H})
 target_include_directories(test_say PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
@@ -138,7 +127,9 @@ ds_add_test(test_multitap)
 target_link_libraries(test_multitap PRIVATE dtmf_app)
 
 # The exchange: hook, menus and barge-in, with telephone keys and the
-# signer's own voice mixed on the line (the built-in and the Spanish pack).
+# signer's own voice mixed on the line (the built-in and the Spanish pack);
+# the DSV3 packs, broken one byte at a time, and the talk-off check of every
+# clip through the detector the exchange uses.
 ds_add_test(test_voice)
 target_sources(test_voice PRIVATE ${DS_VOICE_TEST_PACKS_H} ${DS_PSBT_VECTORS_H})
 target_include_directories(test_voice PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

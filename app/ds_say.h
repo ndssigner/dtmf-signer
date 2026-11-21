@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "ds_adpcm.h"
 #include "ds_pack.h"
+#include "ds_speex.h"
 #include "ur_tones.h"
 
 enum { DS_EAR_OK = 1, DS_EAR_FAIL, DS_EAR_WARN, DS_EAR_LISTEN, DS_EAR_NEXT, DS_EAR_BACK };
@@ -36,11 +36,12 @@ typedef struct {
     uint8_t mode;
     uint32_t silence;     /* samples of silence left (a pause or a gap after a clip) */
     uint16_t gap_after;   /* clip: silence to follow, in ms */
-    /* a clip: ADPCM in blocks, 8 kHz up to 16 kHz by linear interpolation */
-    const uint8_t *adpcm;
-    uint32_t nib_total, nib_pos;
-    ds_adpcm st;
-    int16_t blk[32];
+    /* a clip: Speex a frame at a time, 8 kHz up to 16 kHz by linear
+     * interpolation; the decoder starts afresh with each clip */
+    const uint8_t *frames;
+    uint32_t clip_bytes, clip_pos;
+    ds_speex dec;
+    int16_t blk[DS_SPEEX_FRAME];
     uint8_t blen, bpos, phase;
     int16_t s0;
     /* an earcon */

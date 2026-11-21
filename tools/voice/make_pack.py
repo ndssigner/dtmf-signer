@@ -4,7 +4,6 @@
     python3 tools/voice/make_pack.py --lang en --out-c app/voice/pack_en.c
     python3 tools/voice/make_pack.py --lang es --out-bin app/voice/packs/es.bin
     python3 tools/voice/make_pack.py --header app/voice/ds_prompts.h --names app/voice/ds_prompt_names.c
-    python3 tools/voice/make_pack.py --adpcm-vector vectors/adpcm-v0.json
 
 English is compiled into the firmware (a C array); every other language is a
 separate pack written to the voice flash region (tools/voice/make_uf2.py).
@@ -17,17 +16,21 @@ and the parts are joined with real silence (150 ms after a comma, 300 ms after
 a full stop, on top of the part's own tail). The trim is gentle so soft endings
 (a final vowel, f, s) survive: below -55 dBFS, 20 ms kept before and 110 ms
 after. Then the peak is normalised to
--3 dBFS and the clip encoded as IMA ADPCM. The pack layout ("DSV2",
+-3 dBFS and the clip encoded as Speex narrowband (8000 Hz, fixed point,
+quality 2, 5.95 kbit/s) by spxtool, built from tools/voice/spxtool.c with
+the firmware's own libspeex (see spxtool_path). The pack layout ("DSV3",
 little-endian):
 
-    "DSV2" | lang (2 ASCII) | u16 format = 2 | u16 count | u32 total_len
+    "DSV3" | lang (2 ASCII) | u16 format = 3 | u16 count | u32 total_len
     | u32 crc32 (IEEE, over the whole pack with this field as 0) | u32 grammar_off
-    count x { u32 offset, u32 bytes, i16 pred, u8 index, u8 pad }
+    count x { u32 offset, u32 bytes }
     grammar | data
 
-`offset` counts from the start of the pack. Clips are IMA ADPCM, low nibble
-first, 8000 Hz; `pred` and `index` are the decoder state at the clip's start.
-An empty phrase has `bytes` 0. `count` must equal the firmware's prompt count.
+`offset` counts from the start of the pack. A clip is its Speex frames back
+to back, each a length byte (1..62) and then that many bytes; a frame is
+20 ms (160 samples), the last one completed with silence, and the frames end
+exactly at `offset + bytes`. The decoder starts afresh at each clip. An empty
+phrase has `bytes` 0. `count` must equal the firmware's prompt count.
 
 The grammar block (from tools/voice/grammar.json) tells the firmware how to
 say a number with the pack's clips:
@@ -63,10 +66,8 @@ import wave
 import zlib
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import adpcm  # noqa: E402
-
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent.parent
 RATE = 8000
 THRESHOLD_DBFS = -55.0
 PAD_MS = 20        # kept before the first sample above the threshold
@@ -74,14 +75,15 @@ TAIL_MS = 110      # kept after the last one (soft vowels, f, s fade out)
 COMMA_MS = 150     # silence after a comma, semicolon or colon
 STOP_MS = 300      # silence after a full stop, question or exclamation mark
 PEAK_DBFS = -3.0
-ENTRY = struct.Struct("<IIhBB")
+ENTRY = struct.Struct("<II")
+MAX_FRAME = 62     # the largest narrowband Speex frame, in bytes
 REGION_SIZE = 0x100000  # the voice flash region (1 MB) holds every pack but the built-in one
 
 
 # -- Pack ---------------------------------------------------------------
 
-MAGIC = b"DSV2"
-FORMAT = 2
+MAGIC = b"DSV3"
+FORMAT = 3
 HEADER = struct.Struct("<4s2sHHIII")
 NONE = 0xFFFF
 MAX_SCALES = 8
@@ -179,20 +181,30 @@ def say_number(g: dict, n: int) -> list[int]:
     return say(n, False, 0)
 
 
+def split_frames(blob: bytes) -> list[bytes]:
+    """A clip's frames (without their length bytes); ValueError unless the
+    blob is whole frames of 1..MAX_FRAME bytes, as ds_pack_open requires."""
+    frames, pos = [], 0
+    while pos < len(blob):
+        n = blob[pos]
+        if not 1 <= n <= MAX_FRAME or pos + 1 + n > len(blob):
+            raise ValueError("bad frame at byte %d" % pos)
+        frames.append(blob[pos + 1:pos + 1 + n])
+        pos += 1 + n
+    return frames
+
+
 def build_pack(lang: str, clips, grammar: bytes) -> bytes:
-    """clips: one int16 sample list per phrase, in phrases.json order."""
+    """clips: one encoded clip (bytes, see encode_clip) per phrase, in
+    phrases.json order; b"" for an empty phrase."""
     assert len(lang) == 2 and lang.isascii() and lang.islower()
     grammar_off = HEADER.size + len(clips) * ENTRY.size
     head = grammar_off + len(grammar)
     table, data = bytearray(), bytearray()
-    for pcm in clips:
-        pcm = list(pcm)
-        if pcm:
-            pred, index = pcm[0], 0
-            blob = adpcm.encode(pcm, pred, index)
-        else:
-            pred, index, blob = 0, 0, b""
-        table += ENTRY.pack(head + len(data), len(blob), pred, index, 0)
+    for blob in clips:
+        blob = bytes(blob)
+        split_frames(blob)
+        table += ENTRY.pack(head + len(data), len(blob))
         data += blob
     total = head + len(data)
     pack = bytearray(HEADER.pack(MAGIC, lang.encode("ascii"), FORMAT, len(clips), total, 0, grammar_off))
@@ -209,11 +221,14 @@ def pack_crc(pack: bytes) -> int:
 def parse_pack(pack: bytes) -> dict:
     magic, lang, fmt, count, total, crc, goff = HEADER.unpack_from(pack, 0)
     if magic != MAGIC or fmt != FORMAT:
-        raise ValueError("not a DSV2 pack")
+        raise ValueError("not a DSV3 pack")
     entries = []
     for i in range(count):
-        offset, nbytes, pred, index, pad = ENTRY.unpack_from(pack, HEADER.size + i * ENTRY.size)
-        entries.append({"offset": offset, "bytes": nbytes, "pred": pred, "index": index, "pad": pad})
+        offset, nbytes = ENTRY.unpack_from(pack, HEADER.size + i * ENTRY.size)
+        if offset + nbytes > total:
+            raise ValueError("clip %d past the end" % i)
+        entries.append({"offset": offset, "bytes": nbytes,
+                        "frames": len(split_frames(pack[offset:offset + nbytes]))})
     return {"lang": lang.decode("ascii"), "format": fmt, "count": count, "total_len": total,
             "crc32": crc, "crc_ok": crc == pack_crc(pack[:total]), "grammar_off": goff,
             "entries": entries, "grammar": decode_grammar(pack, goff)}
@@ -250,7 +265,7 @@ def header_text(phrases: dict) -> str:
         " * device says; defined in the generated ds_prompt_names.c. */",
         "extern const char *const ds_prompt_name[DS_P_COUNT];",
         "",
-        "/* The built-in English pack (\"DSV2\", see tools/voice/make_pack.py);",
+        "/* The built-in English pack (\"DSV3\", see tools/voice/make_pack.py);",
         " * other languages are separate packs in the voice flash region. */",
         "extern const uint8_t ds_pack_en[];",
         "extern const uint32_t ds_pack_en_len;",
@@ -277,7 +292,7 @@ def pack_c_text(lang: str, pack: bytes, voice_name: str) -> str:
     return (
         "/* Generated by tools/voice/make_pack.py (do not edit).\n"
         " * Voice: %s (Piper), prompts from tools/voice/phrases.json;\n"
-        " * licences in app/voice/VOICES.md. IMA ADPCM, 8000 Hz. */\n"
+        " * licences in app/voice/VOICES.md. Speex narrowband, 8000 Hz. */\n"
         "#include \"ds_prompts.h\"\n\n"
         "const uint8_t ds_pack_%s[] = {\n%s\n};\n\n"
         "const uint32_t ds_pack_%s_len = %d;\n"
@@ -354,9 +369,13 @@ def resample(x, rate_in: int, rate_out: int = RATE):
 
 # The DTMF high group. A key is a low-group and a high-group tone together, so
 # a clip with no energy at the four high-group frequencies can never sound
-# like a key to a detector (speech otherwise does now and then).
+# like a key to a detector (speech otherwise does now and then). The notches
+# are wide enough (Q 2.5) that Speex at 5.95 kbit/s, which models the spectrum
+# coarsely, does not put a tone back there: at Q 4 a clip ("unit_sats", en)
+# came out of the codec with a 20 ms '4', enough for the signer to take a key
+# pressed right after it for data.
 DTMF_HIGH = (1209.0, 1336.0, 1477.0, 1633.0)
-NOTCH_Q = 4.0
+NOTCH_Q = 2.5
 
 
 def _notch(x, f0: float, q: float):
@@ -469,17 +488,50 @@ def render_text(model, text: str, wav: Path, speaker=None, eq=False):
     return np.concatenate(out) if out else np.zeros(0)
 
 
-def render_clips(lang: str, phrases: dict):
+def spxtool_path() -> Path:
+    """Builds spxtool (CMake target, host compiler, Release) in
+    build/voice-tools and returns its path; the same command every time, so
+    the encoding is the firmware's own fixed-point libspeex, never a system
+    speexenc."""
+    out = ROOT / "build" / "voice-tools"
+    subprocess.run(["cmake", "-S", str(ROOT), "-B", str(out), "-DCMAKE_BUILD_TYPE=Release"],
+                   check=True, capture_output=True)
+    subprocess.run(["cmake", "--build", str(out), "--target", "spxtool"],
+                   check=True, capture_output=True)
+    return out / "spxtool"
+
+
+def encode_clip(pcm, spxtool: Path, tmp: Path) -> bytes:
+    """int16 samples at 8 kHz -> the clip's Speex frames (spxtool encode)."""
+    if not len(pcm):
+        return b""
+    wav, spx = tmp / "c.wav", tmp / "c.spx"
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(struct.pack("<%dh" % len(pcm), *pcm))
+    subprocess.run([str(spxtool), "encode", str(wav), str(spx)], check=True)
+    blob = spx.read_bytes()
+    split_frames(blob)
+    return blob
+
+
+def render_clips(lang: str, phrases: dict, spxtool: Path):
+    """The encoded clips and the voice's name; also the seconds of speech."""
     model, voice = fetch_voice(lang)
-    clips = []
+    clips, samples = [], 0
     with tempfile.TemporaryDirectory() as tmp:
-        wav = Path(tmp) / "p.wav"
+        tmp = Path(tmp)
+        wav = tmp / "p.wav"
         for key, text in ((k, v[lang]) for k, v in phrases.items()):
             if not text:
-                clips.append([])
+                clips.append(b"")
                 continue
-            clips.append(condition(render_text(model, text, wav, voice.get("speaker"), voice.get("eq", False))))
-    return clips, voice["name"]
+            pcm = condition(render_text(model, text, wav, voice.get("speaker"), voice.get("eq", False)))
+            samples += len(pcm)
+            clips.append(encode_clip(pcm, spxtool, tmp))
+    return clips, voice["name"], samples / RATE
 
 
 def main() -> int:
@@ -489,21 +541,19 @@ def main() -> int:
     ap.add_argument("--out-bin", help="write the raw pack (with --lang)")
     ap.add_argument("--header", help="write ds_prompts.h")
     ap.add_argument("--names", help="write ds_prompt_names.c")
-    ap.add_argument("--adpcm-vector", help="write vectors/adpcm-v0.json")
+    ap.add_argument("--spxtool", help="the spxtool to encode with (default: build it, see spxtool_path)")
     a = ap.parse_args()
     phrases = load_phrases()
     if a.header:
         Path(a.header).write_text(header_text(phrases), encoding="utf-8")
     if a.names:
         Path(a.names).write_text(names_c_text(phrases), encoding="utf-8")
-    if a.adpcm_vector:
-        Path(a.adpcm_vector).write_text(json.dumps(adpcm.sample_vector(), indent=1) + "\n")
     if a.out_c or a.out_bin:
         if not a.lang:
             ap.error("--out-c/--out-bin need --lang")
-        clips, name = render_clips(a.lang, phrases)
+        spxtool = Path(a.spxtool) if a.spxtool else spxtool_path()
+        clips, name, secs = render_clips(a.lang, phrases, spxtool)
         pack = build_pack(a.lang, clips, lang_grammar(a.lang, phrases))
-        secs = sum(len(c) for c in clips) / RATE
         print("%s: %d bytes, %.1f s of speech, %d phrases" % (a.lang, len(pack), secs, len(clips)))
         if len(pack) > REGION_SIZE:
             raise SystemExit("%s: the pack is larger than the voice region (%d bytes)" % (a.lang, REGION_SIZE))

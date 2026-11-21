@@ -6,7 +6,6 @@ add_library(dtmf_app STATIC
   ds_about.c
   ds_btn.c
   ds_base64.c
-  ds_adpcm.c
   ds_speex.c
   ds_crc32.c
   ds_pack.c

@@ -14,7 +14,8 @@ SHA-256 are pinned in `tools/voice/voices.json`.
 Spanish voice: Piper es_ES-sharvard-medium (speaker 0), trained on the Sharvard corpus (Aubanel et al., University of Edinburgh DataShare, https://datashare.ed.ac.uk/handle/10283/574), CC BY 3.0 — http://creativecommons.org/licenses/by/3.0/
 
 The Spanish audio is equalised after synthesis (200 Hz high-pass, a gentle dip
-around 400 Hz) and resampled; see `tools/voice/make_pack.py`.
+around 400 Hz) and resampled; every pack is then encoded as Speex narrowband
+(8 kHz); see `tools/voice/make_pack.py`.
 
 The generated audio is distributed with the project under its licence. Never
 the voice of anyone in this project.

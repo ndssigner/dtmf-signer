@@ -1,4 +1,4 @@
-/* Reader for the voice packs ("DSV2", the layout is in tools/voice/make_pack.py):
+/* Reader for the voice packs ("DSV3", the layout is in tools/voice/make_pack.py):
  * the clips, the number grammar each pack carries, and the flash region
  * where packs other than the built-in English one are found. */
 #ifndef DS_PACK_H
@@ -6,8 +6,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
-#include "ds_adpcm.h"
 
 #define DS_PACK_MAX_SCALES 8
 #define DS_PACK_MAX_IRREGULARS 255
@@ -29,16 +27,18 @@ typedef struct {
 
 /* Checks a pack at the start of data[0..len) (its total_len may be shorter
  * than len): magic, format, a prompt count equal to DS_P_COUNT, the CRC-32,
- * every clip inside the pack, the grammar's bounds and clip numbers. A pack
+ * every clip inside the pack and made of whole frames (each length
+ * 1..DS_SPEEX_MAX_BYTES), the grammar's bounds and clip numbers. A pack
  * comes from a flash region the user writes, so nothing in it is trusted;
  * after this, ds_pack_clip and ds_pack_number need no further checks.
  * DS_OK, or DS_ERR_ARG when the pack is malformed or for another firmware. */
 int32_t ds_pack_open(ds_pack *p, const uint8_t *data, uint32_t len);
 
-/* Where clip `id` lives: its ADPCM bytes, their count and the decoder state
- * at its start. DS_ERR_ARG when `id` is out of range. */
-int32_t ds_pack_clip(const ds_pack *p, uint16_t id, const uint8_t **adpcm,
-                     uint32_t *bytes, ds_adpcm *start);
+/* Where clip `id` lives: its Speex frames back to back (each a length byte,
+ * then that many bytes) and their total bytes (0 for an empty clip).
+ * DS_ERR_ARG when `id` is out of range. */
+int32_t ds_pack_clip(const ds_pack *p, uint16_t id, const uint8_t **frames,
+                     uint32_t *bytes);
 
 /* The clips that say `n` in the pack's language, into out[0..cap). Returns
  * their count, DS_ERR_SPACE when cap is too small, or DS_ERR_ARG when the

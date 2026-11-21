@@ -1,5 +1,5 @@
 /* What the signer says: number composition, sample counts, the log, and that
- * no clip or earcon sounds like a DTMF key to the detector. */
+ * no earcon sounds like a DTMF key to the detector (the clips: test_voice). */
 #include <stdint.h>
 #include <string.h>
 
@@ -7,6 +7,7 @@
 #include "ds_pack.h"
 #include "ds_prompts.h"
 #include "ds_say.h"
+#include "ds_speex.h"
 #include "test.h"
 #include "voice_test_packs.h"
 
@@ -57,22 +58,25 @@ static void test_say_number(void)
 static void test_read_lengths(void)
 {
     ds_say s;
-    const uint8_t *adpcm;
-    uint32_t bytes;
-    ds_adpcm st;
+    const uint8_t *frames;
+    uint32_t bytes, nframes = 0;
     int16_t buf[64];
     ds_say_init(&s, &en);
-    CHECK_EQ_INT(ds_pack_clip(&en, DS_P_C_5, &adpcm, &bytes, &st), DS_OK);
+    CHECK_EQ_INT(ds_pack_clip(&en, DS_P_C_5, &frames, &bytes), DS_OK);
+    for (uint32_t pos = 0; pos < bytes; pos += 1u + frames[pos])
+        nframes++;
+    CHECK(nframes > 0);
+    size_t want = (size_t)nframes * DS_SPEEX_FRAME * 2;
     ds_say_clip(&s, DS_P_C_5);
     CHECK(ds_say_busy(&s));
     size_t total = 0;
-    while (total < (size_t)bytes * 4) {
+    while (total < want) {
         CHECK(ds_say_busy(&s));
         ds_say_read(&s, buf, 1);
         total++;
     }
-    /* Samples of the clip: 2 per nibble pair of the 8 kHz source, that is 4 per byte. */
-    CHECK_EQ_INT(total, (size_t)bytes * 4);
+    /* Samples of the clip: 160 per frame at 8 kHz, each doubled to 16 kHz. */
+    CHECK_EQ_INT(total, want);
     CHECK_EQ_INT(ds_say_busy(&s), 0);
     memset(buf, 0x55, sizeof buf);
     CHECK_EQ_INT(ds_say_read(&s, buf, 64), 64);
@@ -165,7 +169,7 @@ static void test_queue_full(void)
     CHECK_EQ_INT(ds_say_pause(&s, 10), DS_OK);
 }
 
-/* ---- talk-off: no clip, no earcon, is a key to the detector ---- */
+/* ---- talk-off: no earcon is a key to the detector ---- */
 
 static int keys_heard(const int16_t *x, size_t n)
 {
@@ -212,22 +216,6 @@ static void test_no_earcon_is_a_key(void)
     }
 }
 
-static void test_no_prompt_is_a_key(void)
-{
-    ds_pack es;
-    CHECK_EQ_INT(ds_pack_open(&es, es_bin, ES_BIN_LEN), DS_OK);
-    for (unsigned id = 0; id < DS_P_COUNT; id++) {
-        if (played_is_a_key(&en, id, 0)) {
-            printf("clip %u (en) is heard as a key\n", id);
-            ds_failures++;
-        }
-        if (played_is_a_key(&es, id, 0)) {
-            printf("clip %u (es) is heard as a key\n", id);
-            ds_failures++;
-        }
-    }
-}
-
 int main(void)
 {
     CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
@@ -239,7 +227,6 @@ int main(void)
     test_tones_play();
     test_queue_full();
     test_no_earcon_is_a_key();
-    test_no_prompt_is_a_key();
     if (ds_failures)
         printf("%d check(s) failed\n", ds_failures);
     return ds_failures != 0;

@@ -7,7 +7,7 @@ The build runs this (a CMake custom command) and keeps the header in the
 build directory. It holds:
 - the committed Spanish pack and the first 8 bytes of its SHA-256 (the
   fingerprint the firmware computes on its own, checked against Python's);
-- a Japanese pack that is data only: silent clips, numbered locally, with a
+- a Japanese pack that is data only: empty clips, numbered locally, with a
   grammar that groups by 10 000, to show a new language needs no new code.
 """
 
@@ -38,7 +38,7 @@ def ja_pack(count: int) -> bytes:
                         (3000, "sanzen"), (8000, "hassen")):
         irr += [(value, JA[name], 1), (value, JA[name], 2)]
     grammar = make_pack.encode_grammar({"small": small, "scales": scales, "irregulars": irr})
-    clips = [[0] * 16 if 1 <= i < 20 else [] for i in range(count)]
+    clips = [b""] * count
     return make_pack.build_pack("ja", clips, grammar)
 
 

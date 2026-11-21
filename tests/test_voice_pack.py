@@ -1,5 +1,5 @@
-"""Voice pack tooling: IMA ADPCM, the DSV2 pack layout and grammar, UF2, the
-committed header and Spanish pack.
+"""Voice pack tooling: the DSV3 pack layout and grammar, UF2, the committed
+header and Spanish pack, and (when the host build has it) spxtool.
 
 Pure Python; needs neither Piper nor numpy.
 """
@@ -16,33 +16,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools" / "voice"))
 
-import adpcm  # noqa: E402
 import make_pack  # noqa: E402
 import make_uf2  # noqa: E402
-
-
-def _vector():
-    return json.loads((ROOT / "vectors" / "adpcm-v0.json").read_text())
-
-
-class AdpcmTest(unittest.TestCase):
-    def test_adpcm_matches_vector(self):
-        v = _vector()
-        data = adpcm.encode(v["pcm"], v["pred"], v["index"])
-        self.assertEqual(data.hex(), v["adpcm_hex"])
-        self.assertEqual(adpcm.decode(data, v["pred"], v["index"]), v["decoded"])
-
-    def test_vector_is_the_fixed_input(self):
-        self.assertEqual(_vector()["pcm"], adpcm.sample_pcm())
-
-    def test_roundtrip_error_small(self):
-        # The step size adapts up from index 0; the first 20 samples are the
-        # warm-up (a clip starts with 30 ms of silence), so they are skipped.
-        pcm = adpcm.sample_pcm()[20:]
-        out = adpcm.decode(adpcm.encode(adpcm.sample_pcm()))[20:]
-        err = math.sqrt(sum((a - b) ** 2 for a, b in zip(pcm, out)) / len(pcm))
-        rms = math.sqrt(sum(a * a for a in pcm) / len(pcm))
-        self.assertLess(err / rms, 0.06)
 
 
 def _phrase_ids():
@@ -55,36 +30,41 @@ def _grammar(lang):
 
 
 class PackTest(unittest.TestCase):
-    def test_pack_v2_layout(self):
+    def test_pack_v3_layout(self):
         clips = [
-            [int(3000 * math.sin(i / 5)) for i in range(160)],
-            [],
-            [int(2000 * math.sin(i / 3)) for i in range(81)],
+            bytes([15]) + bytes(range(15)) + bytes([15]) + bytes(range(1, 16)),
+            b"",
+            bytes([3, 1, 2, 3]),
         ]
         grammar = make_pack.encode_grammar(_grammar("es"))
         pack = make_pack.build_pack("es", clips, grammar)
         magic, lang, fmt, count, total, crc, goff = struct.unpack_from("<4s2sHHIII", pack, 0)
-        self.assertEqual((magic, lang, fmt, count), (b"DSV2", b"es", 2, 3))
+        self.assertEqual((magic, lang, fmt, count), (b"DSV3", b"es", 3, 3))
         self.assertEqual(total, len(pack))
         self.assertEqual(crc, zlib.crc32(pack[:14] + bytes(4) + pack[18:]))
-        self.assertEqual(goff, 22 + 12 * count)
+        self.assertEqual(goff, 22 + 8 * count)
         self.assertEqual(pack[goff:goff + len(grammar)], grammar)
         info = make_pack.parse_pack(pack)
         self.assertTrue(info["crc_ok"])
         end = goff + len(grammar)
         for e, clip in zip(info["entries"], clips):
             self.assertEqual(e["offset"], end)
-            self.assertEqual(e["bytes"], (len(clip) + 1) // 2)
-            self.assertEqual(e["pad"], 0)
+            self.assertEqual(e["bytes"], len(clip))
+            self.assertEqual(pack[e["offset"]:e["offset"] + e["bytes"]], clip)
             end += e["bytes"]
         self.assertEqual(end, len(pack))
-        e = info["entries"][0]
-        out = adpcm.decode(pack[e["offset"]:e["offset"] + e["bytes"]], e["pred"], e["index"])
-        self.assertEqual(len(out), 160)
+        self.assertEqual([e["frames"] for e in info["entries"]], [2, 0, 1])
         # A flipped bit anywhere is caught.
         bad = bytearray(pack)
         bad[-1] ^= 1
         self.assertFalse(make_pack.parse_pack(bytes(bad))["crc_ok"])
+
+    def test_clips_must_be_whole_frames(self):
+        grammar = make_pack.encode_grammar(_grammar("es"))
+        for blob in (bytes([0]), bytes([63]) + bytes(63), bytes([4, 1, 2, 3])):
+            with self.assertRaises(ValueError):
+                make_pack.build_pack("es", [blob], grammar)
+        self.assertEqual(make_pack.split_frames(bytes([2, 7, 8, 1, 9])), [b"\x07\x08", b"\x09"])
 
     def test_grammar_encoding(self):
         g = _grammar("es")
@@ -173,6 +153,28 @@ class CommittedPackTest(unittest.TestCase):
         self.assertTrue(info["crc_ok"])
         self.assertLessEqual(len(pack), make_pack.REGION_SIZE)
         self.assertEqual(info["grammar"], make_pack.decode_grammar(make_pack.lang_grammar("es", make_pack.load_phrases())))
+        # Speex at 5.95 kbit/s: 15-byte frames (and their length bytes).
+        sizes = {pack[e["offset"]] for e in info["entries"] if e["bytes"]}
+        self.assertEqual(sizes, {15})
+        self.assertLess(len(pack), 250 * 1024)
+
+
+SPXTOOL = ROOT / "build" / "spxtool"
+
+
+@unittest.skipUnless(SPXTOOL.exists(), "needs the host build's spxtool (cmake --build build)")
+class EncodeTest(unittest.TestCase):
+    def test_encode_clip_is_whole_frames_and_deterministic(self):
+        import tempfile
+        pcm = [int(8000 * math.sin(i * 2 * math.pi * 440 / 8000)) for i in range(4000)]
+        with tempfile.TemporaryDirectory() as tmp:
+            a = make_pack.encode_clip(pcm, SPXTOOL, Path(tmp))
+            b = make_pack.encode_clip(pcm, SPXTOOL, Path(tmp))
+        self.assertEqual(a, b)
+        frames = make_pack.split_frames(a)
+        self.assertEqual(len(frames), 25)  # 4000 samples, 160 a frame
+        self.assertEqual({len(f) for f in frames}, {15})
+        self.assertEqual(make_pack.encode_clip([], SPXTOOL, Path(".")), b"")
 
 
 class HeaderTest(unittest.TestCase):

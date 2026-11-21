@@ -188,7 +188,7 @@ enum ds_prompt {
  * device says; defined in the generated ds_prompt_names.c. */
 extern const char *const ds_prompt_name[DS_P_COUNT];
 
-/* The built-in English pack ("DSV2", see tools/voice/make_pack.py);
+/* The built-in English pack ("DSV3", see tools/voice/make_pack.py);
  * other languages are separate packs in the voice flash region. */
 extern const uint8_t ds_pack_en[];
 extern const uint32_t ds_pack_en_len;
