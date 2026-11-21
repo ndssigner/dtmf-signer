@@ -55,9 +55,10 @@ test("keypad press reaches the signer", { skip: SKIP }, async () => {
   vs.hook(true);
   const greet = runQuiet(vs);
   assert.ok(greet.includes("say greeting"), greet.join("|"));
-  vs.pressKey("#");
+  assert.ok(greet.includes("state menu-empty"), greet.join("|"));   // the menu follows the name
+  vs.pressKey("1");
   const { echo } = run(vs, 1500);
-  assert.ok(echo.includes("state menu-empty"), echo.join("|"));
+  assert.ok(echo.includes("state seed-how"), echo.join("|"));
   assert.ok(vs.keys() > 0, "the LED counts the key");
 });
 
@@ -202,7 +203,7 @@ test("About speaks each pack's fingerprint: 16 hex characters of its SHA-256", {
   vs.hook(true);
   run(vs, 300);
   const echo = [];
-  for (const k of ["1", "#", "9"]) { vs.pressKey(k); echo.push(...run(vs, 6000).echo); }
+  for (const k of ["1", "9"]) { vs.pressKey(k); echo.push(...run(vs, 6000).echo); }
   echo.push(...run(vs, 60000).echo);   // About spells the version, then each pack
   const at = echo.indexOf("chars es");
   assert.ok(at >= 0, echo.join("|"));

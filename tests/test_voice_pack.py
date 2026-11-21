@@ -156,7 +156,9 @@ class CommittedPackTest(unittest.TestCase):
         # Speex at 5.95 kbit/s: 15-byte frames (and their length bytes).
         sizes = {pack[e["offset"]] for e in info["entries"] if e["bytes"]}
         self.assertEqual(sizes, {15})
-        self.assertLess(len(pack), 250 * 1024)
+        # The script with its longer versions: room for at least two languages
+        # in the 1 MB region.
+        self.assertLess(len(pack), 600 * 1024)
 
 
 SPXTOOL = ROOT / "build" / "spxtool"

@@ -26,7 +26,6 @@
 enum {
     ST_IDLE = 0,   /* on-hook */
     ST_LANG,       /* the language list (more than one pack) */
-    ST_GREET,      /* greeting; # to the menu */
     ST_MENU_EMPTY, /* the menu without a seed */
     ST_ABOUT,
     ST_RESUME_ASK, /* off-hook after a hang-up: # resumes, * asks to wipe (hook) */
@@ -72,13 +71,22 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define GATE_QUIET_RUNS 100 /* after data: no key until 1000 ms without a tone */
 #define SENTENCE_GAP_MS 300u /* between the sentences of a prompt */
 #define ENTRY_GAP_MS 500u    /* between the entries of a list */
+#define OPTION_GAP_MS 150u   /* after each option of a menu */
+/* A seed by the handset: one crypto-seed frame at air pace (80 ms tone,
+ * 80 ms gap, 600 ms pauses: SPEC 1.1) is 120 tones for 16 bytes, 156 for 32,
+ * that is 20 to 26 s. */
+#define SEED_AIR_S 25u
+#define AIR_TONE_MS (UT_AIR_TONE_MS + UT_AIR_GAP_MS)
+#define AIR_PAUSE_MS 600u
+/* The tones of a multi-part UR's part carrying a fragment of f bytes, about
+ * (2 per byte, plus its header, the type and Reed-Solomon's parity). */
+#define PART_TONES(f) (2u * (f) + 120u)
 
 static const char *state_name(int st)
 {
     switch (st) {
     case ST_IDLE: return "idle";
     case ST_LANG: return "lang";
-    case ST_GREET: return "greet";
     case ST_MENU_EMPTY: return "menu-empty";
     case ST_ABOUT: return "about";
     case ST_RESUME_ASK: return "resume-ask";
@@ -379,8 +387,9 @@ static uint32_t review_items(const ds_voice *v)
 }
 
 /* Step k of the review's current item: an output ("you send" the amount
- * "to" the address, by its 5 first and 5 last characters or whole after 5;
- * change: "change" and the amount), the fee ("high fee" when warned), or
+ * "to the address starting with" its 5 first characters "and ending with"
+ * its 5 last, or after 5 "to the address in full, in groups of four"; change:
+ * "change" and the amount), the fee ("high fee" when warned), or
  * the inputs that will not be signed (the warn sound, then how many are not
  * ours; and that one of ours has no amount attached). 1 when queued, 0 when
  * the item is over, STEP_FAIL when any part of it could not be queued (it
@@ -431,7 +440,6 @@ static int review_step(ds_voice *v, int k)
         } else {
             bad |= ds_say_clip(&v->say, DS_P_SENDING) < 0;
             bad |= say_amount(v, r->out[v->item].amount) < 0;
-            bad |= ds_say_clip(&v->say, DS_P_TO) < 0;
         }
         return bad ? STEP_FAIL : 1;
     }
@@ -439,16 +447,20 @@ static int review_step(ds_voice *v, int k)
         return 0;
     }
     n = out_address(v, v->item, addr, sizeof addr);
-    if (n == 0) { /* no address: "script" and its length */
+    if (n == 0) { /* no address: "to" "script" and its length */
+        bad |= ds_say_clip(&v->say, DS_P_TO) < 0;
         bad |= ds_say_chars(&v->say, "script") < 0;
         bad |= ds_say_number(&v->say, r->out[v->item].full_len) < 0;
     } else if (v->whole) {
+        bad |= ds_say_clip(&v->say, DS_P_ADDRESS_FULL_GROUPS) < 0;
         bad |= ds_say_chars_grouped(&v->say, addr) < 0;
     } else {
         memcpy(end, addr, ADDR_ENDS);
         end[ADDR_ENDS] = '\0';
+        bad |= ds_say_clip(&v->say, DS_P_ADDRESS_STARTS) < 0;
         bad |= ds_say_chars(&v->say, end) < 0;
         bad |= ds_say_pause(&v->say, SENTENCE_GAP_MS) < 0;
+        bad |= ds_say_clip(&v->say, DS_P_ADDRESS_ENDS) < 0;
         bad |= ds_say_chars(&v->say, addr + n - ADDR_ENDS) < 0;
     }
     ds_wipe(addr, sizeof addr);
@@ -463,10 +475,84 @@ static void close_gate(ds_voice *v);
 static void hush(ds_voice *v);
 static void redial_once(ds_voice *v);
 
+/* The network, as it is said when it matters (the seed loaded, a review
+ * begun, the account sent; never in a menu). */
+static uint16_t net_phrase(const ds_voice *v)
+{
+    return v->testnet ? DS_P_NET_TEST_SAY : DS_P_NET_MAIN_SAY;
+}
+
+/* A duration, in seconds rounded to 5 (5 at least). */
+static uint32_t round5_s(uint32_t ms)
+{
+    uint32_t s = (ms + 2500u) / 5000u * 5u;
+    return s < 5u ? 5u : s;
+}
+
+/* "about N seconds" after the phrase that leads it (receive_about,
+ * send_about). */
+static void say_about(ds_voice *v, uint16_t lead, uint32_t seconds)
+{
+    clip(v, lead);
+    ds_say_number(&v->say, seconds);
+    clip(v, DS_P_SECONDS);
+}
+
+/* A menu's head, the first step of its prompt: the notice motif, its title
+ * (DS_PACK_NONE: none) and what else says where you are, "choose an option". */
+static void menu_head(ds_voice *v, uint16_t title, uint16_t now)
+{
+    ds_say_earcon(&v->say, DS_EAR_NOTICE);
+    if (title != DS_PACK_NONE) {
+        ask(v, title);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+    }
+    if (now != DS_PACK_NONE) {
+        ask(v, now);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+    }
+    ask(v, DS_P_CHOOSE_OPTION);
+}
+
+/* Step k of a menu (head as menu_head says): k 0 the head, then each of its
+ * n options as "number, action" after the option motif; 0 when over. */
+static int menu_step(ds_voice *v, int k, uint16_t title, uint16_t now, const uint16_t *opt, int n)
+{
+    if (k == 0) {
+        menu_head(v, title, now);
+    } else if (k <= n) {
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        ask(v, opt[k - 1]);
+        ds_say_pause(&v->say, OPTION_GAP_MS);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
+/* What goes out, as tones, takes this long: each part at cable pace (its
+ * tones, two pauses) and the silence after it. All parts are about as long
+ * as the first, made already. */
+static uint32_t out_ms(const ds_voice *v)
+{
+    uint32_t part = (uint32_t)strlen(v->tones[0]) * (UT_CABLE_TONE_MS + UT_CABLE_GAP_MS) +
+                    2u * DS_SAY_TONES_PAUSE_MS + FRAME_GAP_MS;
+    return v->out_total * part;
+}
+
 static int say_step(ds_voice *v)
 {
     int k = v->step;
     char fp[2 * DS_PACK_FP + 1];
+    static const uint16_t empty_main[] = {DS_P_OPT_LOAD_SEED, DS_P_OPT_NET_TEST, DS_P_OPT_ABOUT};
+    static const uint16_t empty_test[] = {DS_P_OPT_LOAD_SEED, DS_P_OPT_NET_MAIN, DS_P_OPT_ABOUT};
+    static const uint16_t ready[] = {DS_P_OPT_SIGN, DS_P_OPT_ACCOUNT, DS_P_OPT_WIPE,
+                                     DS_P_OPT_SETTINGS};
+    static const uint16_t seed_how[] = {DS_P_OPT_BY_HANDSET, DS_P_OPT_BY_KEYPAD, DS_P_OPT_BACK};
+    static const uint16_t resume[] = {DS_P_OPT_RESUME, DS_P_OPT_START_OVER};
+    static const uint16_t settings[] = {DS_P_OPT_UNIT_AUTO, DS_P_OPT_UNIT_BTC, DS_P_OPT_UNIT_SATS,
+                                        DS_P_OPT_ABOUT, DS_P_OPT_BACK};
+#define MENU(title, now, o) menu_step(v, k, (title), (now), (o), (int)(sizeof(o) / sizeof((o)[0])))
 
     switch (v->state) {
     case ST_LANG:
@@ -480,61 +566,61 @@ static int say_step(ds_voice *v)
         ask(v, (uint16_t)(DS_P_C_1 + k));
         ds_say_pause(&v->say, ENTRY_GAP_MS);
         break;
-    case ST_GREET:
-        if (k > 0) {
-            return 0;
-        }
-        ask(v, DS_P_GREETING);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, DS_P_FLASHED);
-        break;
     case ST_MENU_EMPTY:
-        if (k > 0) {
+        if (!(v->testnet ? MENU(DS_PACK_NONE, DS_PACK_NONE, empty_test)
+                         : MENU(DS_PACK_NONE, DS_PACK_NONE, empty_main))) {
             return 0;
         }
-        ask(v, DS_P_MENU_EMPTY);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, v->testnet ? DS_P_NETWORK_NOW_TEST : DS_P_NETWORK_NOW_MAIN);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, DS_P_ABOUT);
         break;
     case ST_ABOUT:
-        /* the firmware's version, then each pack: its language, its fingerprint */
+        /* the firmware's version, then each pack: its language, its
+         * fingerprint; then the way back */
         if (k == 0) {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            ask(v, DS_P_ABOUT_IS);
             ds_say_chars(&v->say, DS_VERSION);
         } else if (k <= v->packs.n) {
+            ask(v, DS_P_ABOUT_VOICE);
             ds_say_chars(&v->say, v->packs.pack[k - 1].lang);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
             hex_fp(v->packs.fp[k - 1], fp);
             ds_say_chars_grouped(&v->say, fp);
+        } else if (k == v->packs.n + 1) {
+            ds_say_earcon(&v->say, DS_EAR_OPTION);
+            ask(v, DS_P_OPT_BACK);
         } else {
             return 0;
         }
         ds_say_pause(&v->say, ENTRY_GAP_MS);
         break;
     case ST_RESUME_ASK:
-        if (k > 0) {
+        if (!MENU(DS_P_RESUME_ASK, DS_PACK_NONE, resume)) {
             return 0;
         }
-        ask(v, DS_P_RESUME_ASK);
         break;
     case ST_SEED_HOW:
-        if (k > 0) {
+        if (!MENU(DS_P_SEED_HOW, DS_PACK_NONE, seed_how)) {
             return 0;
         }
-        ask(v, DS_P_SEED_HOW);
         break;
     case ST_SEED_AIR:
-        /* the warning, then "listening": nothing more is said until the
+        /* where, the warning (once per power-up), how long, what to do if
+         * it cuts, then the "receive" motif: nothing more is said until the
          * seed has been heard (half-duplex) */
         if (k > 0) {
             return 0;
         }
-        if (!v->air_warned) { /* once per power-up */
+        ask(v, DS_P_SEED_LISTENING);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        if (!v->air_warned) {
             v->air_warned = 1;
             ask(v, DS_P_AIR_WARNING);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
         }
+        say_about(v, DS_P_RECEIVE_ABOUT, SEED_AIR_S);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ask(v, DS_P_IF_CUT_RESET);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ds_say_earcon(&v->say, DS_EAR_RECEIVE);
         break;
     case ST_PIN:
@@ -580,17 +666,19 @@ static int say_step(ds_voice *v)
         ask(v, DS_P_IF_CORRECT_HASH);
         break;
     case ST_MENU_READY:
-        if (k > 0) {
+        if (!MENU(DS_PACK_NONE, DS_PACK_NONE, ready)) {
             return 0;
         }
-        ask(v, DS_P_MENU_READY);
         break;
     case ST_PSBT_RX:
-        /* then nothing is said until the PSBT has been heard (half-duplex) */
+        /* then nothing is said until the first part brings the total
+         * (half-duplex) */
         if (k > 0) {
             return 0;
         }
         ask(v, DS_P_PSBT_LISTENING);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ask(v, DS_P_IF_CUT_RESET);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ds_say_earcon(&v->say, DS_EAR_RECEIVE);
         break;
@@ -621,15 +709,37 @@ static int say_step(ds_voice *v)
         ask(v, DS_P_WIPE_HOOK);
         break;
     case ST_HOLD_NEAR:
+        /* what is ready (the account: on which network), then what to do */
         if (k > 0) {
             return 0;
         }
-        ask(v, v->out_kind == OUT_SIGNED ? DS_P_SIGNED_HOLD_NEAR : DS_P_ACCOUNT_HOLD_NEAR);
+        if (v->out_kind == OUT_SIGNED) {
+            ask(v, DS_P_SIGNED);
+        } else {
+            ask(v, DS_P_ACCOUNT_READY);
+            ask(v, net_phrase(v));
+        }
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ask(v, DS_P_HOLD_NEAR);
         break;
     case ST_TONES:
-        /* each part as it is made (in a tick), a silence after it; then the
-         * hint, and keys are heard again */
-        if (v->out_sent < v->out_total) {
+        /* how long it takes, once the first part is made (and the first
+         * time, what to do if it cuts), the "send" motif; then each part as
+         * it is made (in a tick), a silence after it; then the hint, and
+         * keys are heard again */
+        if (k == 0) {
+            if (v->out_made == 0 && v->out_total > 0) {
+                return STEP_WAIT;
+            }
+            say_about(v, DS_P_SEND_ABOUT, round5_s(out_ms(v)));
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            if (!v->out_reset_said) {
+                v->out_reset_said = 1;
+                ask(v, DS_P_IF_CUT_RESET);
+                ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            }
+            ds_say_earcon(&v->say, DS_EAR_SEND);
+        } else if (v->out_sent < v->out_total) {
             if (v->out_made <= v->out_sent) {
                 return STEP_WAIT;
             }
@@ -645,18 +755,18 @@ static int say_step(ds_voice *v)
         }
         break;
     case ST_SETTINGS:
-        if (k > 0) {
+        if (!MENU(DS_P_SETTINGS,
+                  v->unit == DS_VOICE_UNIT_BTC    ? DS_P_UNIT_BTC
+                  : v->unit == DS_VOICE_UNIT_SATS ? DS_P_UNIT_SATS
+                                                  : DS_P_UNIT_AUTO,
+                  settings)) {
             return 0;
         }
-        ask(v, DS_P_SETTINGS_MENU);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, v->unit == DS_VOICE_UNIT_BTC    ? DS_P_UNIT_BTC
-                : v->unit == DS_VOICE_UNIT_SATS ? DS_P_UNIT_SATS
-                                                : DS_P_UNIT_AUTO);
         break;
     default:
         return 0;
     }
+#undef MENU
     echo_said(v);
     v->step++;
     return 1;
@@ -905,6 +1015,7 @@ static void drop_input(ds_voice *v)
     listen_afresh(v);
     v->job = JOB_NONE;
     v->job_seen = 0;
+    v->rx_told = 0;
 }
 
 /* What goes out (the signed PSBT, the account) to zero, with its parts and
@@ -921,6 +1032,7 @@ static void clear_out(ds_voice *v)
     v->out_kind = OUT_NONE;
     v->out_total = v->out_made = v->out_sent = 0;
     v->out_heard = 0;
+    v->out_reset_said = 0;
 }
 
 /* The review ends: cancelled (nothing signed) unless it was signed; the
@@ -950,6 +1062,7 @@ static void wipe(ds_voice *v)
     v->testnet = 0;
     v->resume_to = ST_IDLE;
     hush(v);
+    ds_say_earcon(&v->say, DS_EAR_CLOSE);
     clip(v, DS_P_WIPED);
     echo_said(v);
     go(v, ST_MENU_EMPTY);
@@ -986,15 +1099,16 @@ static void ask_pin(ds_voice *v, int st)
     enter(v, st);
 }
 
-/* Loading failed or was refused: nothing stays; the question again. */
-static void seed_failed(ds_voice *v)
+/* Loading failed (phrase: why) or was refused: nothing stays; the question
+ * again. */
+static void seed_failed(ds_voice *v, uint16_t phrase)
 {
     drop_input(v);
     ds_session_wipe(&v->s);
     v->seed_fp = 0;
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_FAIL);
-    clip(v, DS_P_ERROR_GENERIC);
+    clip(v, phrase);
     ds_say_pause(&v->say, SENTENCE_GAP_MS);
     redial_once(v); /* a PIN, or a seed by the keypad, was typed */
     echo_said(v);
@@ -1018,14 +1132,14 @@ static void load_seed(ds_voice *v)
     listen_afresh(v);
     if (ds_policy_accepts(encrypted ? DS_DATA_SEED_ENCRYPTED : DS_DATA_SEED_PLAIN,
                           channel, pin_len) < 0) {
-        seed_failed(v); /* refused before it is even decrypted */
+        seed_failed(v, DS_P_SEED_REFUSED); /* refused before it is even decrypted */
         return;
     }
     n = ds_rx_seed(&v->rx, encrypted ? v->mt.text : NULL, entropy);
     drop_input(v);
     if (n < 0) {
         ds_wipe(entropy, sizeof entropy);
-        seed_failed(v);
+        seed_failed(v, DS_P_SEED_FAILED);
         return;
     }
     ds_session_init(&v->s, v->testnet);
@@ -1037,11 +1151,14 @@ static void load_seed(ds_voice *v)
     }
     ds_wipe(entropy, sizeof entropy);
     if (r != DS_OK) {
-        seed_failed(v);
+        seed_failed(v, DS_P_SEED_FAILED);
         return;
     }
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_OK);
+    clip(v, DS_P_SEED_LOADED);
+    clip(v, net_phrase(v));
+    ds_say_pause(&v->say, SENTENCE_GAP_MS);
     echo_said(v);
     v->state = ST_FINGERPRINT;
     echo_line(v, "state fingerprint");
@@ -1187,6 +1304,9 @@ static void review(ds_voice *v)
     v->keys_said = 0;
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_OK);
+    clip(v, DS_P_REVIEW_START);
+    clip(v, net_phrase(v));
+    ds_say_pause(&v->say, SENTENCE_GAP_MS);
     echo_said(v);
     go(v, ST_REVIEW);
 }
@@ -1409,8 +1529,21 @@ static void poll_rx(ds_voice *v)
     }
 }
 
+/* How long the rest of the PSBT takes, once its first part has told how
+ * many fragments it has and how big: the parts still missing, one more for
+ * the one played while this is said, each at air pace. */
+static void say_psbt_left(ds_voice *v)
+{
+    uint32_t have = v->rx.d.nknown, need = v->rx.d.seq_len;
+    uint32_t parts = (need > have ? need - have : 0) + 1;
+    uint32_t part = PART_TONES(v->rx.d.fragment) * AIR_TONE_MS + AIR_PAUSE_MS;
+    say_about(v, DS_P_RECEIVE_ABOUT, round5_s(parts * part));
+    echo_said(v);
+}
+
 /* The PSBT's parts (from a tick): complete, it is reviewed; anything else is
- * dropped and listening goes on. */
+ * dropped and listening goes on. The first part says how long the rest
+ * takes. */
 static void poll_psbt(ds_voice *v)
 {
     int32_t r;
@@ -1418,6 +1551,10 @@ static void poll_psbt(ds_voice *v)
         if (r == DS_RX_DONE) {
             review(v);
             return;
+        }
+        if (r == DS_RX_PART && !v->rx_told) {
+            v->rx_told = 1;
+            say_psbt_left(v);
         }
     }
 }
@@ -1443,6 +1580,16 @@ static int rx_in(ds_voice *v, const int16_t *x, size_t n)
     return got > 0;
 }
 
+/* The greeting: the name, then the menu at once. */
+static void greet(ds_voice *v)
+{
+    hush(v);
+    clip(v, DS_P_GREETING);
+    ds_say_pause(&v->say, SENTENCE_GAP_MS);
+    echo_said(v);
+    go(v, ST_MENU_EMPTY);
+}
+
 /* ---- keys ---- */
 
 /* A key asked to wipe (menu 3, "start over" after a hang-up, a seed's
@@ -1460,7 +1607,8 @@ static void sign_cancel(ds_voice *v)
 {
     clear_review(v);
     hush(v);
-    clip(v, DS_P_CANCELLED);
+    ds_say_earcon(&v->say, DS_EAR_FAIL);
+    clip(v, DS_P_PSBT_CANCELLED);
     echo_said(v);
     go(v, ST_MENU_READY);
 }
@@ -1480,14 +1628,7 @@ static void on_key(ds_voice *v, char c)
             v->lang_chosen = 1;
             snprintf(l, sizeof l, "lang %s", voice(v)->lang);
             echo_line(v, l);
-            enter(v, ST_GREET);
-        } else if (c == '0') {
-            repeat(v);
-        }
-        break;
-    case ST_GREET:
-        if (c == '#') {
-            enter(v, ST_MENU_EMPTY);
+            greet(v);
         } else if (c == '0') {
             repeat(v);
         }
@@ -1498,7 +1639,7 @@ static void on_key(ds_voice *v, char c)
         } else if (c == '2') {
             v->testnet = !v->testnet;
             hush(v);
-            clip(v, v->testnet ? DS_P_NETWORK_NOW_TEST : DS_P_NETWORK_NOW_MAIN);
+            clip(v, net_phrase(v));
             echo_said(v);
         } else if (c == '9') {
             v->about_back = ST_MENU_EMPTY;
@@ -1732,7 +1873,7 @@ static void answer(ds_voice *v)
     } else if (v->packs.n > 1 && !v->lang_chosen) {
         enter(v, ST_LANG);
     } else {
-        enter(v, ST_GREET);
+        greet(v);
     }
 }
 

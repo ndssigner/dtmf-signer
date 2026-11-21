@@ -41,9 +41,7 @@ test("a keypad seed, a PSBT by the handset, a hook flash: the earpiece carries t
 
   vs.hook(true);
   until("say greeting", 0, 3000);
-  quiet();
-  type("#");
-  until("state menu-empty", 0, 2000);
+  until("state menu-empty", 0, 2000);          // the menu follows the name
   quiet();
   type("1");                                   // load seed
   until("state seed-how", 0, 2000);

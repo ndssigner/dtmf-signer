@@ -391,7 +391,8 @@ static int start_next(ds_say *s)
             s->mode = M_EAR;
             break;
         case K_TONES:
-            ut_synth_init(&s->synth, it.keys, DS_SAY_RATE, UT_CABLE_TONE_MS, UT_CABLE_GAP_MS, 400);
+            ut_synth_init(&s->synth, it.keys, DS_SAY_RATE, UT_CABLE_TONE_MS, UT_CABLE_GAP_MS,
+                          DS_SAY_TONES_PAUSE_MS);
             s->mode = M_TONES;
             break;
         default:

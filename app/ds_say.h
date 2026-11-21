@@ -28,6 +28,7 @@ enum {
 #define DS_SAY_TOKEN_MAX 80u  /* longest token with its NUL; cap for ds_say_take_log */
 #define DS_SAY_CHAR_GAP_MS 120u
 #define DS_SAY_GROUP_GAP_MS 400u
+#define DS_SAY_TONES_PAUSE_MS 400u /* before and after each run of data tones */
 
 typedef struct {
     uint8_t kind;

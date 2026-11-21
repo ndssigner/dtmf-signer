@@ -4,12 +4,19 @@
  * keys and microphone, and the signer's own voice: they share one node) and
  * takes back what the signer says into it, at 16 kHz.
  *
- *   on-hook (idle) --off-hook--> [language list] --> greeting --#--> menu
- *   menu (no seed): 1 load seed, 2 network (says the new one), 9 about,
- *   0 repeat.
+ *   on-hook (idle) --off-hook--> [language list] --> greeting, then menu
+ *   Each prompt says where you are, then what you can do. A menu: the
+ *   notice motif, its title if any, "choose an option", then each option
+ *   as "number, action" after the option motif. The network is said when it
+ *   matters (the seed loaded, a review begun, the account sent), never in a
+ *   menu. Before each exchange of tones: how long it takes (in 5 s steps)
+ *   and, once, "if anything cuts out, hang up, pick up again and follow the
+ *   instructions"; the receive or send motif right before the tones.
+ *   menu (no seed): 1 load seed, 2 the other network (says the new one),
+ *   9 about, 0 repeat.
  *   load seed: by the handset 1, by the keypad 2 (* back).
- *     handset: the air warning (once per power-up), the "listen" sound,
- *       then the signer only
+ *     handset: where, the air warning (once per power-up), about 25 s, the
+ *       "receive" motif, then the signer only
  *       listens (half-duplex) until a crypto-seed frame is heard; then its
  *       PIN by narrated multi-tap. By air the policy wants a PIN of 12
  *       characters or more (DS_AIR); otherwise it fails and asks again.
@@ -18,16 +25,19 @@
  *       alone if not. Typed when asked, it counts as a cable.
  *     Then the seed's fingerprint and, once per call, the redial note (a
  *     PIN or a seed was typed): # loads the wallet, * asks to wipe. A
- *     failure says "error_generic" (and the redial note likewise).
+ *     failure says why ("seed_refused": the air policy; "seed_failed") and
+ *     the redial note likewise.
  *   menu (with a seed): 1 sign, 2 account, 3 wipe, 9 settings, 0 repeat.
  *   wipe (3 here, * after "resume_ask", * at a seed's fingerprint): "to
  *     wipe, hang up for a moment": a hook flash wipes (keys never do); * or
  *     # back to where it was asked.
- *   sign: "listening for the transaction", the "listen" sound, then the
- *     signer only listens (half-duplex) until the whole PSBT is heard. Then
+ *   sign: "waiting for the transaction", the "receive" motif, then the
+ *     signer only listens (half-duplex) until the whole PSBT is heard; the
+ *     first part heard brings the total, and how long the rest takes is
+ *     said (a part is missed meanwhile, and counted). Then
  *     the review, one item at a time: each output ("you send" the amount
- *     "to" the address's first and last 5 characters; change: "change" and
- *     the amount), then the fee ("high fee" when the core warns), then,
+ *     "to the address starting with" its first 5 characters "and ending
+ *     with" its last 5; change: "change" and the amount), then the fee ("high fee" when the core warns), then,
  *     when some input will not be signed, a warning (how many are not ours;
  *     an input of ours without its amount attached). # next (once the item
  *     has been said in full), 0 repeat, 5 the whole address in groups of 4,
@@ -186,6 +196,7 @@ typedef struct {
     int air_warned;      /* the air warning was said (once per power-up) */
     int keypad_warned;   /* the keypad's speakerphone warning (likewise) */
     int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
+    int rx_told;         /* the PSBT: how long the rest takes was said */
     ds_multitap mt;      /* the PIN */
     ds_session s;        /* zero until a seed is loaded */
     uint32_t seed_fp;    /* the loaded seed's fingerprint (public) */
@@ -208,6 +219,7 @@ typedef struct {
     char tones[2][UT_MAX_FRAME + 1]; /* the part playing, the next one */
     uint32_t out_total, out_made, out_sent; /* parts: to send, made, queued */
     int out_heard;       /* the tones are over: keys are heard again */
+    int out_reset_said;  /* "if it cuts, hang up" was said for what goes out */
     int redial_said;     /* the redial note was said in this call */
     uint32_t sig_id;     /* signed PSBTs so far, for the echo */
     int sig_phase;       /* the signed PSBT's echo: where it is */

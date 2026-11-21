@@ -206,14 +206,12 @@ static size_t render_clip(const ds_pack *p, uint16_t id, int16_t *out, size_t ca
     return n;
 }
 
-/* Off-hook with one language, through the greeting to the menu. */
+/* Off-hook with one language: the greeting, then the menu. */
 static void to_menu(line_t *t)
 {
     power_up(t, NULL, 0);
     hook(t, 1);
     run_ms(t, 100);
-    run_quiet(t);
-    press(t, '#');
     run_quiet(t);
 }
 
@@ -226,7 +224,7 @@ static void test_one_language_no_list(void)
     run_quiet(&L);
     CHECK(!HAS(&L, "say lang_press", 0));
     CHECK(!HAS(&L, "state lang", 0));
-    CHECK(HAS(&L, "state greet", 0));
+    CHECK(HAS(&L, "state menu-empty", 0));
 }
 
 static void test_greets_on_off_hook(void)
@@ -238,7 +236,7 @@ static void test_greets_on_off_hook(void)
     run_ms(&L, 100);
     long g = find_line(&L, "say greeting", 0);
     CHECK(g >= 0);
-    CHECK(g >= 0 && HAS(&L, "say flashed", (size_t)g));
+    CHECK(g >= 0 && HAS(&L, "state menu-empty", (size_t)g));
     run_quiet(&L);
     CHECK_EQ_INT(ds_voice_keys(&L.v), 0);
 }
@@ -280,10 +278,9 @@ static void test_languages_listed_and_chosen(void)
     CHECK(chosen_at + w <= L.out_len &&
           memcmp(L.out + chosen_at, want, w * sizeof want[0]) == 0);
     CHECK(L.v.say.pack == &L.v.packs.pack[1]);
-    /* and it stays Spanish after # */
-    press(&L, '#');
-    run_quiet(&L);
+    /* and the menu, in Spanish */
     CHECK(HAS(&L, "state menu-empty", mark));
+    CHECK(HAS(&L, "say choose_option", mark));
     CHECK(L.v.say.pack == &L.v.packs.pack[1]);
 }
 
@@ -296,8 +293,6 @@ static void test_about_says_fingerprints(void)
     press(&L, '1'); /* English, barging into the list */
     run_quiet(&L);
     CHECK(HAS(&L, "lang en", 0));
-    press(&L, '#');
-    run_quiet(&L);
     size_t mark = L.log_len;
     press(&L, '9');
     run_quiet(&L);
@@ -316,22 +311,15 @@ static void test_about_says_fingerprints(void)
     CHECK(HAS(&L, "state menu-empty", mark));
 }
 
-static void test_hash_opens_menu(void)
+/* A key the menu has no option for (#) is heard and does nothing. */
+static void test_hash_in_menu_does_nothing(void)
 {
-    power_up(&L, NULL, 0);
-    hook(&L, 1);
-    run_ms(&L, 100);
-    run_quiet(&L);
+    to_menu(&L);
     size_t mark = L.log_len;
     press(&L, '#');
-    long st = find_line(&L, "state menu-empty", mark);
-    CHECK(st >= 0);
-    long m = find_line(&L, "say menu_empty", mark);
-    CHECK(m > st);
-    long n = find_line(&L, "say network_now_main", mark);
-    CHECK(n > m);
-    CHECK(find_line(&L, "say about", mark) > n);
+    run_quiet(&L);
     CHECK_EQ_INT(ds_voice_keys(&L.v), 1);
+    CHECK(L.log_len == mark);
 }
 
 static void test_two_toggles_network(void)
@@ -340,13 +328,15 @@ static void test_two_toggles_network(void)
     size_t mark = L.log_len;
     press(&L, '2');
     run_quiet(&L);
-    CHECK(HAS(&L, "say network_now_test", mark));
-    CHECK(!HAS(&L, "say menu_empty", mark));
+    CHECK(HAS(&L, "say net_test_say", mark));
+    CHECK(!HAS(&L, "say choose_option", mark));
+    CHECK(L.v.testnet);
     mark = L.log_len;
     press(&L, '2');
     run_quiet(&L);
-    CHECK(HAS(&L, "say network_now_main", mark));
-    CHECK(!HAS(&L, "say network_now_test", mark));
+    CHECK(HAS(&L, "say net_main_say", mark));
+    CHECK(!HAS(&L, "say net_test_say", mark));
+    CHECK(!L.v.testnet);
 }
 
 static void test_zero_repeats(void)
@@ -355,8 +345,8 @@ static void test_zero_repeats(void)
     size_t mark = L.log_len;
     press(&L, '0');
     run_quiet(&L);
-    CHECK(HAS(&L, "say menu_empty", mark));
-    CHECK(HAS(&L, "say about", mark));
+    CHECK(HAS(&L, "say choose_option", mark));
+    CHECK(HAS(&L, "say opt_about", mark));
     CHECK(!HAS(&L, "state menu-empty", mark)); /* the same state */
 }
 
@@ -365,23 +355,23 @@ static void test_key_during_prompt_barges_in(void)
     static int16_t net[16000 * 10];
     ds_pack en;
     CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
-    size_t lnet = render_clip(&en, DS_P_NETWORK_NOW_TEST, net, sizeof net / sizeof net[0]);
+    size_t lnet = render_clip(&en, DS_P_NET_TEST_SAY, net, sizeof net / sizeof net[0]);
     power_up(&L, NULL, 0);
     hook(&L, 1);
-    run_ms(&L, 100);
-    run_quiet(&L);
-    press(&L, '#');
+    for (int i = 0; i < 500 && !HAS(&L, "say choose_option", 0); i++)
+        step(&L, NULL);
+    CHECK(HAS(&L, "say choose_option", 0));
     run_ms(&L, 300); /* the menu prompt is still playing */
     CHECK(ds_voice_speaking(&L.v));
     size_t mark = L.log_len;
     press(&L, '2');
-    CHECK(HAS(&L, "say network_now_test", mark));
+    CHECK(HAS(&L, "say net_test_say", mark));
     size_t at = L.out_len;
     run_quiet(&L);
     size_t rest = L.out_len - at;
     /* only the network sentence (begun during the key) is left, not the menu */
     CHECK(rest <= lnet && rest + 16000 / 2 >= lnet);
-    CHECK(!HAS(&L, "say about", mark));
+    CHECK(!HAS(&L, "say opt_about", mark));
 }
 
 static void test_own_voice_is_not_a_key(void)
@@ -391,7 +381,7 @@ static void test_own_voice_is_not_a_key(void)
     run_ms(&L, 30000);
     CHECK_EQ_INT(ds_voice_keys(&L.v), 0);
     CHECK_EQ_INT(count_lines(&L, "state lang", 0), 1);
-    CHECK(!HAS(&L, "state greet", 0));
+    CHECK(!HAS(&L, "say greeting", 0));
     CHECK_EQ_INT(count_lines(&L, "say lang_press", 0), 4); /* the list, then the help */
     to_menu(&L);
     size_t mark = L.log_len;
@@ -399,7 +389,7 @@ static void test_own_voice_is_not_a_key(void)
     run_ms(&L, 30000);
     CHECK_EQ_INT(ds_voice_keys(&L.v), k);
     CHECK(strstr(L.log + mark, "state ") == NULL);
-    CHECK_EQ_INT(count_lines(&L, "say menu_empty_long", mark), 1); /* the help spoke */
+    CHECK_EQ_INT(count_lines(&L, "say choose_option_long", mark), 1); /* the help spoke */
 }
 
 static void test_hang_up_keeps_session(void)
@@ -430,8 +420,8 @@ static void test_hang_up_keeps_session(void)
     press(&L, '#');
     run_quiet(&L);
     CHECK(HAS(&L, "state menu-empty", mark));
-    CHECK(HAS(&L, "say menu_empty", mark));
-    CHECK(HAS(&L, "say network_now_test", mark)); /* still testnet */
+    CHECK(HAS(&L, "say choose_option", mark));
+    CHECK(HAS(&L, "say opt_net_main", mark)); /* still testnet */
     /* again, and * wipes */
     hook(&L, 0);
     run_ms(&L, 2000);
@@ -454,7 +444,7 @@ static void test_hang_up_keeps_session(void)
     long w = find_line(&L, "say wiped", mark);
     CHECK(w >= 0);
     CHECK(find_line(&L, "state menu-empty", mark) > w);
-    CHECK(HAS(&L, "say network_now_main", mark)); /* wiped: back to mainnet */
+    CHECK(HAS(&L, "say opt_net_test", (size_t)(w < 0 ? 0 : w))); /* wiped: back to mainnet */
     /* power-off zeroes everything: no resume */
     power_up(&L, NULL, 0);
     hook(&L, 1);
@@ -597,6 +587,7 @@ static void test_air_seed_with_long_pin(void)
     size_t mark = L.log_len;
     type_pin(&L, "ABC123DEF456");
     run_ms(&L, 500); /* the work runs from a tick, then ear ok, then the prompt */
+    run_quiet(&L);
     /* one per press (A twice, B three times, ...), one NEXT per character */
     CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 24);
     CHECK_EQ_INT(count_lines(&L, "ear option", mark), 13); /* and one for # */
@@ -615,7 +606,7 @@ static void test_air_seed_with_long_pin(void)
     press(&L, '#');
     run_quiet(&L);
     CHECK(HAS(&L, "state menu-ready", mark));
-    CHECK(HAS(&L, "say menu_ready", mark));
+    CHECK(HAS(&L, "say opt_sign", mark));
     CHECK_EQ_INT(L.v.s.state, DS_S_READY);
     snprintf(fp, sizeof fp, "%08x", (unsigned)L.v.s.w.wallet_fp);
     CHECK_EQ_STR(fp, "8b218e81");
@@ -628,7 +619,7 @@ static void test_air_seed_short_pin_refused(void)
     size_t mark = L.log_len;
     type_pin(&L, "1234");
     run_quiet(&L);
-    long e = find_line(&L, "say error_generic", mark);
+    long e = find_line(&L, "say seed_refused", mark); /* by air: 12 characters or more */
     CHECK(e >= 0);
     CHECK(e >= 0 && HAS(&L, "state seed-how", (size_t)e));
     CHECK(!HAS(&L, "state fingerprint", mark));
@@ -657,6 +648,7 @@ static void keypad_seed(line_t *t, const char *pin)
     else
         press(t, '#');
     run_ms(t, 500);
+    run_quiet(t);
 }
 
 static void test_keypad_seed_no_pin(void)
@@ -719,7 +711,9 @@ static void test_pin_chars_never_in_echo(void)
         int ok = (e - p == 12 && memcmp(p, "say pin-char", 12) == 0) ||
                  (e - p == 10 && memcmp(p, "ear option", 10) == 0) ||
                  (e - p == 9 && memcmp(p, "ear close", 9) == 0) ||
-                 (e - p == 6 && memcmp(p, "ear ok", 6) == 0);
+                 (e - p == 6 && memcmp(p, "ear ok", 6) == 0) ||
+                 (e - p == 15 && memcmp(p, "say seed_loaded", 15) == 0) ||
+                 (e - p == 16 && memcmp(p, "say net_main_say", 16) == 0);
         if (!ok)
             printf("unexpected while typing the PIN: %.*s\n", (int)(e - p), p);
         CHECK(ok);
@@ -1270,7 +1264,7 @@ static void looping_wallet_at(int air)
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
     CHECK_EQ_INT(ds_voice_keys(&L.v), k);
     CHECK(L.v.psbt != NULL);
-    CHECK(!HAS(&L, "say cancelled", 0));
+    CHECK(!HAS(&L, "say psbt_cancelled", 0));
     CHECK(!HAS(&L, "say wiped", 0));
     CHECK_EQ_INT(L.v.s.w.wallet_fp, 0x73c5da0au);
     /* a second of quiet, then a person's # */
@@ -1503,7 +1497,7 @@ static void test_looping_wallet_drives_nothing(void)
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
     CHECK_EQ_INT(ds_voice_keys(&L.v), k);
     CHECK(L.v.psbt != NULL);
-    CHECK(!HAS(&L, "say cancelled", 0));
+    CHECK(!HAS(&L, "say psbt_cancelled", 0));
     CHECK(!HAS(&L, "say wiped", 0));
     char fp[9];
     snprintf(fp, sizeof fp, "%08x", (unsigned)L.v.s.w.wallet_fp);
@@ -1524,7 +1518,7 @@ static void test_hash_waits_for_the_item(void)
     to_ready(&L, 0);
     size_t mark = L.log_len;
     send_psbt(&L, vector("one input with change"));
-    CHECK(run_until(&L, "say sending", mark, 5000));
+    CHECK(run_until(&L, "say sending", mark, 15000));
     run_ms(&L, 300);
     CHECK(ds_voice_speaking(&L.v));
     press(&L, '#');
@@ -1618,8 +1612,9 @@ static void test_review_speaks_outputs(void)
     CHECK(HAS(&L, "ear ok", mark));
     CHECK(HAS(&L, "state review", mark));
     CHECK_EQ_INT(L.v.s.state, DS_S_REVIEW);
-    static const char *const out1[] = {"say sending", "num 60000", "say sats", "say to",
-                                       "chars bc1qk", "chars pe9ug", NULL};
+    static const char *const out1[] = {"say sending", "num 60000", "say sats",
+                                       "say address_starts", "chars bc1qk",
+                                       "say address_ends", "chars pe9ug", NULL};
     CHECK(lines_in_a_row(&L, mark, out1));
     CHECK(!HAS(&L, "say change", mark));
     press(&L, '#');
@@ -1701,7 +1696,7 @@ static void test_amount_units(void)
     press(&L, '9');
     run_quiet(&L);
     CHECK(HAS(&L, "state settings", mark));
-    CHECK(HAS(&L, "say settings_menu", mark));
+    CHECK(HAS(&L, "say settings", mark));
     CHECK(HAS(&L, "say unit_auto", mark));
     mark = L.log_len;
     press(&L, '2');
@@ -1765,7 +1760,8 @@ static void test_hook_flash_signs(void)
     CHECK(HAS(&L, "hook-flash", mark));
     CHECK(HAS(&L, "ear ok", mark));
     CHECK(HAS(&L, "state hold-near", mark));
-    CHECK(HAS(&L, "say signed_hold_near", mark));
+    CHECK(HAS(&L, "say signed", mark));
+    CHECK(HAS(&L, "say hold_near", mark));
     CHECK_EQ_INT(L.v.s.state, DS_S_READY); /* signing consumed the confirmation */
     CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
     int32_t n = echo_signed(&L, mark, signed_psbt, sizeof signed_psbt);
@@ -1977,7 +1973,7 @@ static void test_account_tones_decode(void)
     CHECK(HAS(&L, desc, mark)); /* the descriptor, whole, in the echo */
     CHECK(strncmp(desc, "wpkh([73c5da0a/84", 17) == 0);
     CHECK(HAS(&L, "state hold-near", mark));
-    CHECK(HAS(&L, "say account_hold_near", mark));
+    CHECK(HAS(&L, "say account_ready", mark));
     const char *type = NULL;
     size_t len = 0;
     const uint8_t *msg = hear_tones(&L, &type, &len);
@@ -1997,7 +1993,7 @@ static void test_account_tones_decode(void)
     press(&L, '#');
     run_quiet(&L);
     CHECK(HAS(&L, "state hold-near", m2));
-    CHECK(HAS(&L, "say account_hold_near", m2));
+    CHECK(HAS(&L, "say account_ready", m2));
     /* the redial note once per call: this call has not had it */
     msg = hear_tones(&L, &type, &len);
     CHECK(msg != NULL);
@@ -2183,9 +2179,11 @@ static void test_help_once_after_8s(void)
     CHECK(strstr(L.log + mark, "say ") == NULL);
     CHECK(!ds_voice_speaking(&L.v));
     run_ms(&L, 100);
-    CHECK(HAS(&L, "say menu_empty_long", mark));
-    CHECK(!HAS(&L, "say menu_empty", mark)); /* in place of the short one */
-    CHECK(HAS(&L, "say about", mark));       /* the rest of the prompt too */
+    CHECK(HAS(&L, "say choose_option_long", mark));
+    CHECK(!HAS(&L, "say choose_option", mark)); /* in place of the short one */
+    run_quiet(&L);
+    CHECK(HAS(&L, "say opt_about_long", mark)); /* the rest of the prompt too */
+    CHECK(HAS(&L, "say opt_net_test_long", mark));
     CHECK(strstr(L.log + mark, "state ") == NULL);
     run_quiet(&L);
     mark = L.log_len;
@@ -2202,17 +2200,17 @@ static void test_zero_repeats_last_heard(void)
     size_t mark = L.log_len;
     press(&L, '0');
     run_quiet(&L);
-    CHECK(HAS(&L, "say menu_empty", mark));
-    CHECK(!HAS(&L, "say menu_empty_long", mark));
+    CHECK(HAS(&L, "say choose_option", mark));
+    CHECK(!HAS(&L, "say choose_option_long", mark));
     /* the 0 restarted the wait: the help comes 8 s after it */
     mark = L.log_len;
-    CHECK(run_until_line(&L, "say menu_empty_long", mark, DS_VOICE_HELP_MS + 200));
+    CHECK(run_until_line(&L, "say choose_option_long", mark, DS_VOICE_HELP_MS + 200));
     run_quiet(&L);
     mark = L.log_len;
     press(&L, '0');
     run_quiet(&L);
-    CHECK(HAS(&L, "say menu_empty_long", mark));
-    CHECK(!HAS(&L, "say menu_empty", mark));
+    CHECK(HAS(&L, "say choose_option_long", mark));
+    CHECK(!HAS(&L, "say choose_option", mark));
     /* the help was given in this state: no second one */
     mark = L.log_len;
     run_ms(&L, 2 * DS_VOICE_HELP_MS);
@@ -2278,29 +2276,39 @@ static void test_key_cuts_motif_and_long(void)
     static int16_t clipbuf[16000 * 10];
     ds_pack en;
     CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
-    size_t lseed = render_clip(&en, DS_P_SEED_HOW, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
     size_t lwipe = render_clip(&en, DS_P_WIPE_HOOK, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
-    size_t llong = render_clip(&en, DS_P_MENU_EMPTY_LONG, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+    size_t llong = render_clip(&en, DS_P_CHOOSE_OPTION_LONG, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+    const uint16_t *hz, *ms;
+    uint8_t n;
+    uint32_t notice = 0;
+    CHECK_EQ_INT(ds_say_motif(DS_EAR_NOTICE, &hz, &ms, &n), DS_OK);
+    for (uint8_t i = 0; i < n; i++)
+        notice += ms[i];
+
+    /* how long the seed's question is, said alone */
+    to_menu(&L);
+    size_t at = press_taken_at(&L, '1');
+    CHECK(at > 0);
+    run_quiet(&L);
+    size_t lseed = L.out_len - at;
 
     /* the longer version, cut by 1 */
     to_menu(&L);
     size_t mark = L.log_len;
-    CHECK(run_until_line(&L, "say menu_empty_long", mark, DS_VOICE_HELP_MS + 200));
+    CHECK(run_until_line(&L, "say choose_option_long", mark, DS_VOICE_HELP_MS + 200));
     size_t from = L.out_len;
     run_ms(&L, 300);
     mark = L.log_len;
-    size_t at = press_taken_at(&L, '1');
+    at = press_taken_at(&L, '1');
     CHECK(at > 0);
-    CHECK(at - from < llong); /* taken while it was still being said */
+    CHECK(at - from < (size_t)notice * 16 + llong); /* taken while it was still being said */
     CHECK(HAS(&L, "state seed-how", mark));
     run_quiet(&L);
     size_t rest = L.out_len - at;
     CHECK(rest <= lseed + CHUNK); /* only the new prompt: nothing of the longer one */
-    CHECK(!HAS(&L, "say network_now_main", mark));
+    CHECK(!HAS(&L, "say opt_load_seed_long", mark));
 
     /* the "ok" motif after the seed is loaded, cut by * (ask to wipe) */
-    const uint16_t *hz, *ms;
-    uint8_t n;
     uint32_t motif = 0;
     CHECK_EQ_INT(ds_say_motif(DS_EAR_OK, &hz, &ms, &n), DS_OK);
     for (uint8_t i = 0; i < n; i++)
@@ -2412,6 +2420,180 @@ static void test_keypad_path_warns(void)
     CHECK_EQ_INT(count_lines(&L, "say redial_note", call), 1);
     CHECK(!HAS(&L, "say pin_warning", call));
     CHECK(HAS(&L, "state fingerprint", mark));
+}
+
+/* ---- the script: where you are, then what you can do ---- */
+
+/* Off-hook: the name, then the menu at once (no question, no # to go on). */
+static void test_boot_has_no_flashed_question(void)
+{
+    power_up(&L, NULL, 0);
+    hook(&L, 1);
+    run_ms(&L, 100);
+    run_quiet(&L);
+    CHECK(!HAS(&L, "say flashed", 0));
+    static const char *const boot[] = {"say greeting", "state menu-empty", "ear notice",
+                                       "say choose_option", NULL};
+    CHECK(lines_in_order(&L, 0, boot));
+    CHECK_EQ_INT(ds_voice_keys(&L.v), 0); /* no key was needed */
+}
+
+/* A menu: the notice motif, "choose an option", then each option after the
+ * option motif, as "number, action". */
+static void test_menu_says_choose_then_options_with_motif(void)
+{
+    to_menu(&L);
+    static const char *const empty[] = {"state menu-empty", "ear notice", "say choose_option",
+                                        "ear option", "say opt_load_seed",
+                                        "ear option", "say opt_net_test",
+                                        "ear option", "say opt_about", NULL};
+    CHECK(lines_in_a_row(&L, 0, empty));
+    to_ready(&L, 0);
+    static const char *const ready[] = {"state menu-ready", "ear notice", "say choose_option",
+                                        "ear option", "say opt_sign",
+                                        "ear option", "say opt_account",
+                                        "ear option", "say opt_wipe",
+                                        "ear option", "say opt_settings", NULL};
+    CHECK(lines_in_a_row(&L, 0, ready));
+    /* on testnet, the option is the way back */
+    to_menu(&L);
+    size_t mark = L.log_len;
+    press(&L, '2');
+    run_quiet(&L);
+    press(&L, '0');
+    run_quiet(&L);
+    CHECK(HAS(&L, "say opt_net_main", mark));
+}
+
+/* The network is said when it matters: the seed loaded, the review begun,
+ * the account sent; never in a menu. */
+static void test_network_said_when_it_matters(void)
+{
+    to_menu(&L);
+    CHECK(!HAS(&L, "say net_main_say", 0));
+    CHECK(!HAS(&L, "say net_test_say", 0));
+    /* the seed, on testnet */
+    to_ready(&L, 1);
+    static const char *const loaded[] = {"ear ok", "say seed_loaded", "say net_test_say",
+                                         "state fingerprint", NULL};
+    CHECK(lines_in_order(&L, 0, loaded));
+    long m = find_line(&L, "state menu-ready", 0);
+    CHECK(m >= 0 && !HAS(&L, "say net_test_say", (size_t)m));
+    CHECK(!HAS(&L, "say net_main_say", 0));
+    /* the review, on mainnet */
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    static const char *const rv[] = {"ear ok", "say review_start", "say net_main_say",
+                                     "state review", "say sending", NULL};
+    CHECK(lines_in_order(&L, mark, rv));
+    press(&L, '*');
+    run_quiet(&L);
+    /* the account */
+    mark = L.log_len;
+    press(&L, '2');
+    run_quiet(&L);
+    static const char *const acc[] = {"state hold-near", "say account_ready", "say net_main_say",
+                                      "say hold_near", NULL};
+    CHECK(lines_in_order(&L, mark, acc));
+    /* the menu never says it */
+    mark = L.log_len;
+    press(&L, '*');
+    run_quiet(&L);
+    CHECK(HAS(&L, "state menu-ready", mark));
+    CHECK(!HAS(&L, "say net_main_say", mark));
+}
+
+/* An address said by its ends is named as such; whole (5), in groups. */
+static void test_address_parts_named(void)
+{
+    to_ready(&L, 0);
+    size_t mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    run_quiet(&L);
+    static const char *const ends[] = {"say sending", "num 60000", "say sats",
+                                       "say address_starts", "chars bc1qk",
+                                       "say address_ends", "chars pe9ug", NULL};
+    CHECK(lines_in_a_row(&L, mark, ends));
+    mark = L.log_len;
+    press(&L, '5');
+    run_quiet(&L);
+    static const char *const whole[] = {"say sats", "say address_full_groups",
+                                        "chars bc1qkd33yck74lg0kaq4tdcmu3hk4yruhjayxpe9ug", NULL};
+    CHECK(lines_in_a_row(&L, mark, whole));
+    CHECK(!HAS(&L, "say address_starts", mark));
+}
+
+/* The number on the line right after `after` (from `from`), or -1. */
+static long num_after(const line_t *t, const char *after, size_t from)
+{
+    long at = find_line(t, after, from);
+    if (at < 0)
+        return -1;
+    const char *p = t->log + at + strlen(after) + 1;
+    long n = -1;
+    if (sscanf(p, "num %ld", &n) != 1)
+        return -1;
+    return n;
+}
+
+/* Before each exchange of tones: how long it takes (in 5 s steps) and, once,
+ * that a cut is mended by hanging up; the motif right before the tones. */
+static void test_exchanges_announce_duration_and_reset(void)
+{
+    /* the seed by the handset: its fixed estimate */
+    to_seed_how(&L);
+    size_t mark = L.log_len;
+    press(&L, '1');
+    run_quiet(&L);
+    static const char *const seed[] = {"state seed-air", "say seed_listening", "say receive_about",
+                                       "say seconds", "say if_cut_reset", "ear receive", NULL};
+    CHECK(lines_in_order(&L, mark, seed));
+    long s = num_after(&L, "say receive_about", mark);
+    CHECK(s >= 5 && s % 5 == 0);
+
+    /* the account, sent: its estimate is what it takes */
+    to_ready(&L, 0);
+    press(&L, '2');
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '#');
+    CHECK(run_until_line(&L, "ear send", mark, 20000));
+    static const char *const send[] = {"state tones", "say send_about", "say seconds",
+                                       "say if_cut_reset", "ear send", NULL};
+    CHECK(lines_in_order(&L, mark, send));
+    long n = num_after(&L, "say send_about", mark);
+    CHECK(n >= 5 && n % 5 == 0);
+    /* from the first part queued (the words and the motif said) */
+    for (int i = 0; i < 3000 && strstr(L.log + mark, "\ntones ") == NULL; i++)
+        step(&L, NULL);
+    uint32_t t0 = L.now;
+    CHECK(run_until_line(&L, "say again_hint", mark, 600000));
+    long took = (long)(L.now - t0);
+    long tones = find_line(&L, "ear send", mark);
+    CHECK(tones >= 0 && strstr(L.log + mark, "\ntones ") > L.log + tones);
+    if (n * 1000 - took > 5000 || took - n * 1000 > 5000)
+        printf("said %ld s, took %ld ms\n", n, took);
+    CHECK(n * 1000 - took <= 5000 && took - n * 1000 <= 5000);
+    /* 0 sends it again: the estimate again, the reset note not */
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '0');
+    CHECK(run_until_line(&L, "ear send", mark, 20000));
+    CHECK(HAS(&L, "say send_about", mark));
+    CHECK(!HAS(&L, "say if_cut_reset", mark));
+
+    /* the PSBT: the reset note before, its estimate once a part brings the total */
+    to_ready(&L, 0);
+    mark = L.log_len;
+    send_psbt(&L, vector("one input with change"));
+    static const char *const psbt[] = {"state psbt-listen", "say psbt_listening",
+                                       "say if_cut_reset", "ear receive", "say receive_about",
+                                       "say seconds", "state review", NULL};
+    CHECK(lines_in_order(&L, mark, psbt));
+    long p = num_after(&L, "say receive_about", mark);
+    CHECK(p >= 5 && p % 5 == 0);
 }
 
 /* ---- the packs (DSV3, Speex) ---- */
@@ -2694,7 +2876,7 @@ static void test_motifs_are_distinct(void)
 
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
-          test_hash_opens_menu, test_two_toggles_network, test_zero_repeats,
+          test_hash_in_menu_does_nothing, test_two_toggles_network, test_zero_repeats,
           test_key_during_prompt_barges_in, test_own_voice_is_not_a_key,
           test_hang_up_keeps_session, test_air_seed_with_long_pin,
           test_air_seed_short_pin_refused, test_keypad_seed_no_pin,
@@ -2718,7 +2900,9 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_review_fails_closed, test_review_names_keys, test_keypad_path_warns,
           test_help_once_after_8s, test_zero_repeats_last_heard,
           test_help_without_long_says_short, test_key_cuts_motif_and_long,
-          test_no_help_while_receiving,
+          test_no_help_while_receiving, test_boot_has_no_flashed_question,
+          test_menu_says_choose_then_options_with_motif, test_network_said_when_it_matters,
+          test_address_parts_named, test_exchanges_announce_duration_and_reset,
           test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
           test_pack_frame_length_out_of_range_is_rejected,
           test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,

@@ -221,8 +221,8 @@ test("the voice build is published with the Spanish pack; only the Spanish page 
 });
 test("the text alternative: what the signer says, in the languages it can speak, live", { skip: VOICE_SKIP }, () => {
   const es = voiceData("es"), en = voiceData("en");
-  assert.equal(es.phrases.es.menu_empty, "Cargar semilla, 1.");
-  assert.equal(es.phrases.en.menu_empty, "Load seed, 1.");
+  assert.equal(es.phrases.es.choose_option, "Elige una opción.");
+  assert.equal(es.phrases.en.choose_option, "Choose an option.");
   assert.equal(en.phrases.es, undefined);
   assert.equal(en.phrases.en.c_a, undefined, "letters come from the echo's own text");
 });
