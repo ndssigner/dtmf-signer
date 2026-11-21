@@ -21,15 +21,15 @@
  },
  "opt_net_test": {
   "es": "2, pasar a la red de pruebas, téstnet.",
-  "en": "2, switch to the test network, testnet.",
+  "en": "2, switch to the test network, test net.",
   "long": {
    "es": "2, pasar a la red de pruebas, téstnet, para probar sin dinero de verdad.",
-   "en": "2, switch to the test network, testnet, to try things out without real money."
+   "en": "2, switch to the test network, test net, to try things out without real money."
   }
  },
  "opt_net_main": {
   "es": "2, volver a la red principal, méinnet.",
-  "en": "2, back to the main network, mainnet."
+  "en": "2, back to the main network, main net."
  },
  "opt_about": {
   "es": "9, acerca de.",
@@ -77,11 +77,11 @@
  },
  "net_main_say": {
   "es": "En la red principal, méinnet.",
-  "en": "On the main network, mainnet."
+  "en": "On the main network, main net."
  },
  "net_test_say": {
   "es": "En la red de pruebas, téstnet.",
-  "en": "On the test network, testnet."
+  "en": "On the test network, test net."
  },
  "about_is": {
   "es": "Acerca de. Versión:",
