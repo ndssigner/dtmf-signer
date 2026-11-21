@@ -322,19 +322,24 @@ static void test_hash_in_menu_does_nothing(void)
     CHECK(L.log_len == mark);
 }
 
+static int lines_in_a_row(const line_t *t, size_t from, const char *const *want);
+
 static void test_two_toggles_network(void)
 {
     to_menu(&L);
     size_t mark = L.log_len;
     press(&L, '2');
     run_quiet(&L);
-    CHECK(HAS(&L, "say net_test_say", mark));
+    /* the new network, then the option as it now is */
+    static const char *const to_test[] = {"say net_test_say", "ear option", "say opt_net_main", NULL};
+    CHECK(lines_in_a_row(&L, mark, to_test));
     CHECK(!HAS(&L, "say choose_option", mark));
     CHECK(L.v.testnet);
     mark = L.log_len;
     press(&L, '2');
     run_quiet(&L);
-    CHECK(HAS(&L, "say net_main_say", mark));
+    static const char *const to_main[] = {"say net_main_say", "ear option", "say opt_net_test", NULL};
+    CHECK(lines_in_a_row(&L, mark, to_main));
     CHECK(!HAS(&L, "say net_test_say", mark));
     CHECK(!L.v.testnet);
 }
@@ -356,6 +361,15 @@ static void test_key_during_prompt_barges_in(void)
     ds_pack en;
     CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
     size_t lnet = render_clip(&en, DS_P_NET_TEST_SAY, net, sizeof net / sizeof net[0]);
+    size_t lopt = render_clip(&en, DS_P_OPT_NET_MAIN, net, sizeof net / sizeof net[0]);
+    const uint16_t *hz, *ms;
+    uint8_t n;
+    uint32_t motif = 0;
+    CHECK_EQ_INT(ds_say_motif(DS_EAR_OPTION, &hz, &ms, &n), DS_OK);
+    for (uint8_t i = 0; i < n; i++)
+        motif += ms[i];
+    /* what answers the key: the new network, a pause, the option as it is now */
+    size_t answer = lnet + (300 + motif) * 16 + lopt;
     power_up(&L, NULL, 0);
     hook(&L, 1);
     for (int i = 0; i < 500 && !HAS(&L, "say choose_option", 0); i++)
@@ -369,8 +383,8 @@ static void test_key_during_prompt_barges_in(void)
     size_t at = L.out_len;
     run_quiet(&L);
     size_t rest = L.out_len - at;
-    /* only the network sentence (begun during the key) is left, not the menu */
-    CHECK(rest <= lnet && rest + 16000 / 2 >= lnet);
+    /* only the answer (begun during the key) is left, not the menu */
+    CHECK(rest <= answer && rest + 16000 / 2 >= answer);
     CHECK(!HAS(&L, "say opt_about", mark));
 }
 
@@ -2584,16 +2598,66 @@ static void test_exchanges_announce_duration_and_reset(void)
     CHECK(HAS(&L, "say send_about", mark));
     CHECK(!HAS(&L, "say if_cut_reset", mark));
 
-    /* the PSBT: the reset note before, its estimate once a part brings the total */
+    /* the PSBT: a rough estimate and the reset note before listening; then
+     * nothing is said until it is all heard (half-duplex: words would cost
+     * parts) */
     to_ready(&L, 0);
+    CHECK(tones_seed_keypad(zero16, 16, NULL, seed_tones, sizeof seed_tones) > 0);
+    const psbt_vector *pv = vector("one input with change");
+    int32_t cn = ut_psbt_to_cbor(pv->psbt, pv->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(cn > 0);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)cn, 100) >= 0);
+    CHECK(psbt_enc.seq_len > 1);
     mark = L.log_len;
-    send_psbt(&L, vector("one input with change"));
-    static const char *const psbt[] = {"state psbt-listen", "say psbt_listening",
-                                       "say if_cut_reset", "ear receive", "say receive_about",
-                                       "say seconds", "state review", NULL};
-    CHECK(lines_in_order(&L, mark, psbt));
-    long p = num_after(&L, "say receive_about", mark);
-    CHECK(p >= 5 && p % 5 == 0);
+    press(&L, '1');
+    run_quiet(&L);
+    static const char *const psbt[] = {"state psbt-listen", "say psbt_listening", "say psbt_about",
+                                       "say if_cut_reset", "ear receive", NULL};
+    CHECK(lines_in_a_row(&L, mark, psbt));
+    size_t first = 0;
+    for (uint32_t i = 0; i < 4 * psbt_enc.seq_len && !HAS(&L, "state review", mark); i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        size_t n = tones_render(part_tones, seed_audio, sizeof seed_audio / sizeof seed_audio[0]);
+        for (size_t j = 0; j < n; j += CHUNK) {
+            static int16_t c[CHUNK];
+            memset(c, 0, sizeof c);
+            memcpy(c, seed_audio + j, (n - j < CHUNK ? n - j : CHUNK) * sizeof c[0]);
+            step(&L, c);
+            if (first == 0 && L.v.rx.keys > 0) /* the first part is being heard */
+                first = L.log_len;
+        }
+        run_ms(&L, 400);
+    }
+    CHECK(first > 0);
+    long end = find_line(&L, "ear ok", first); /* the review begins: the reception is over */
+    CHECK(end > 0);
+    for (const char *q = L.log + first; end > 0 && q < L.log + end; q = strchr(q, '\n') + 1)
+        CHECK(strncmp(q, "say ", 4) != 0 && strncmp(q, "num ", 4) != 0 && strncmp(q, "ear ", 4) != 0);
+    CHECK(HAS(&L, "state review", first));
+}
+
+/* A duration: under 120 s in seconds rounded to 5, from 120 s in whole
+ * minutes (rounded to the nearest). */
+static void test_durations_in_seconds_or_minutes(void)
+{
+    static const struct {
+        uint32_t ms;
+        const char *num, *unit;
+    } c[] = {{1000, "num 5", "say seconds"},     {61000, "num 60", "say seconds"},
+             {117000, "num 115", "say seconds"}, {118000, "num 2", "say minutes"},
+             {150000, "num 3", "say minutes"},   {170000, "num 3", "say minutes"},
+             {200000, "num 3", "say minutes"},   {600000, "num 10", "say minutes"}};
+    to_menu(&L);
+    for (size_t i = 0; i < sizeof c / sizeof c[0]; i++) {
+        size_t mark = L.log_len;
+        CHECK_EQ_INT(ds_voice_say_duration(&L.v, DS_P_SEND_ABOUT, c[i].ms), DS_OK);
+        take_echo(&L);
+        const char *const want[] = {"say send_about", c[i].num, c[i].unit, NULL};
+        if (!lines_in_a_row(&L, mark, want))
+            printf("duration %u ms: %s", (unsigned)c[i].ms, L.log + mark);
+        CHECK(lines_in_a_row(&L, mark, want));
+        run_quiet(&L);
+    }
 }
 
 /* ---- the packs (DSV3, Speex) ---- */
@@ -2903,6 +2967,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_no_help_while_receiving, test_boot_has_no_flashed_question,
           test_menu_says_choose_then_options_with_motif, test_network_said_when_it_matters,
           test_address_parts_named, test_exchanges_announce_duration_and_reset,
+          test_durations_in_seconds_or_minutes,
           test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
           test_pack_frame_length_out_of_range_is_rejected,
           test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,

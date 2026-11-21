@@ -76,11 +76,8 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
  * 80 ms gap, 600 ms pauses: SPEC 1.1) is 120 tones for 16 bytes, 156 for 32,
  * that is 20 to 26 s. */
 #define SEED_AIR_S 25u
-#define AIR_TONE_MS (UT_AIR_TONE_MS + UT_AIR_GAP_MS)
-#define AIR_PAUSE_MS 600u
-/* The tones of a multi-part UR's part carrying a fragment of f bytes, about
- * (2 per byte, plus its header, the type and Reed-Solomon's parity). */
-#define PART_TONES(f) (2u * (f) + 120u)
+#define SEED_AIR_MS (SEED_AIR_S * 1000u)
+#define MINUTES_FROM_MS 120000u /* durations from 2 minutes are said in minutes */
 
 static const char *state_name(int st)
 {
@@ -482,20 +479,32 @@ static uint16_t net_phrase(const ds_voice *v)
     return v->testnet ? DS_P_NET_TEST_SAY : DS_P_NET_MAIN_SAY;
 }
 
-/* A duration, in seconds rounded to 5 (5 at least). */
-static uint32_t round5_s(uint32_t ms)
+/* "about N seconds" (rounded to 5, 5 at least) or, from 2 minutes, "about
+ * N minutes" (rounded to the nearest), after the phrase that leads it
+ * (receive_about, send_about). */
+static int32_t say_about(ds_voice *v, uint16_t lead, uint32_t ms)
 {
     uint32_t s = (ms + 2500u) / 5000u * 5u;
-    return s < 5u ? 5u : s;
+    int32_t r;
+    if (s < 5u) {
+        s = 5u;
+    }
+    r = ds_say_clip(&v->say, lead);
+    if (r >= 0 && s * 1000u >= MINUTES_FROM_MS) {
+        r = ds_say_number(&v->say, (ms + 30000u) / 60000u);
+        return r < 0 ? r : ds_say_clip(&v->say, DS_P_MINUTES);
+    }
+    if (r >= 0) {
+        r = ds_say_number(&v->say, s);
+    }
+    return r < 0 ? r : ds_say_clip(&v->say, DS_P_SECONDS);
 }
 
-/* "about N seconds" after the phrase that leads it (receive_about,
- * send_about). */
-static void say_about(ds_voice *v, uint16_t lead, uint32_t seconds)
+int32_t ds_voice_say_duration(ds_voice *v, uint16_t lead, uint32_t ms)
 {
-    clip(v, lead);
-    ds_say_number(&v->say, seconds);
-    clip(v, DS_P_SECONDS);
+    int32_t r = say_about(v, lead, ms);
+    echo_said(v);
+    return r < 0 ? DS_ERR_SPACE : DS_OK;
 }
 
 /* A menu's head, the first step of its prompt: the notice motif, its title
@@ -617,7 +626,7 @@ static int say_step(ds_voice *v)
             ask(v, DS_P_AIR_WARNING);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
         }
-        say_about(v, DS_P_RECEIVE_ABOUT, SEED_AIR_S);
+        say_about(v, DS_P_RECEIVE_ABOUT, SEED_AIR_MS);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ask(v, DS_P_IF_CUT_RESET);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
@@ -671,12 +680,15 @@ static int say_step(ds_voice *v)
         }
         break;
     case ST_PSBT_RX:
-        /* then nothing is said until the first part brings the total
-         * (half-duplex) */
+        /* where, a rough estimate (by air a PSBT takes minutes), what to do
+         * if it cuts, the "receive" motif; then nothing is said until the
+         * PSBT has been heard (half-duplex: words would cost parts) */
         if (k > 0) {
             return 0;
         }
         ask(v, DS_P_PSBT_LISTENING);
+        ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        ask(v, DS_P_PSBT_ABOUT);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ask(v, DS_P_IF_CUT_RESET);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
@@ -731,7 +743,7 @@ static int say_step(ds_voice *v)
             if (v->out_made == 0 && v->out_total > 0) {
                 return STEP_WAIT;
             }
-            say_about(v, DS_P_SEND_ABOUT, round5_s(out_ms(v)));
+            say_about(v, DS_P_SEND_ABOUT, out_ms(v));
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
             if (!v->out_reset_said) {
                 v->out_reset_said = 1;
@@ -1015,7 +1027,6 @@ static void drop_input(ds_voice *v)
     listen_afresh(v);
     v->job = JOB_NONE;
     v->job_seen = 0;
-    v->rx_told = 0;
 }
 
 /* What goes out (the signed PSBT, the account) to zero, with its parts and
@@ -1529,21 +1540,8 @@ static void poll_rx(ds_voice *v)
     }
 }
 
-/* How long the rest of the PSBT takes, once its first part has told how
- * many fragments it has and how big: the parts still missing, one more for
- * the one played while this is said, each at air pace. */
-static void say_psbt_left(ds_voice *v)
-{
-    uint32_t have = v->rx.d.nknown, need = v->rx.d.seq_len;
-    uint32_t parts = (need > have ? need - have : 0) + 1;
-    uint32_t part = PART_TONES(v->rx.d.fragment) * AIR_TONE_MS + AIR_PAUSE_MS;
-    say_about(v, DS_P_RECEIVE_ABOUT, round5_s(parts * part));
-    echo_said(v);
-}
-
 /* The PSBT's parts (from a tick): complete, it is reviewed; anything else is
- * dropped and listening goes on. The first part says how long the rest
- * takes. */
+ * dropped and listening goes on. */
 static void poll_psbt(ds_voice *v)
 {
     int32_t r;
@@ -1551,10 +1549,6 @@ static void poll_psbt(ds_voice *v)
         if (r == DS_RX_DONE) {
             review(v);
             return;
-        }
-        if (r == DS_RX_PART && !v->rx_told) {
-            v->rx_told = 1;
-            say_psbt_left(v);
         }
     }
 }
@@ -1637,9 +1631,13 @@ static void on_key(ds_voice *v, char c)
         if (c == '1') {
             enter(v, ST_SEED_HOW);
         } else if (c == '2') {
+            /* the new network, then the menu's option as it now is */
             v->testnet = !v->testnet;
             hush(v);
             clip(v, net_phrase(v));
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            ds_say_earcon(&v->say, DS_EAR_OPTION);
+            clip(v, v->testnet ? DS_P_OPT_NET_MAIN : DS_P_OPT_NET_TEST);
             echo_said(v);
         } else if (c == '9') {
             v->about_back = ST_MENU_EMPTY;

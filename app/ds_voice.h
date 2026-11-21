@@ -9,11 +9,12 @@
  *   notice motif, its title if any, "choose an option", then each option
  *   as "number, action" after the option motif. The network is said when it
  *   matters (the seed loaded, a review begun, the account sent), never in a
- *   menu. Before each exchange of tones: how long it takes (in 5 s steps)
+ *   menu. Before each exchange of tones: how long it takes (in 5 s steps,
+ *   from 2 minutes in minutes; a PSBT by air: "a few minutes")
  *   and, once, "if anything cuts out, hang up, pick up again and follow the
  *   instructions"; the receive or send motif right before the tones.
- *   menu (no seed): 1 load seed, 2 the other network (says the new one),
- *   9 about, 0 repeat.
+ *   menu (no seed): 1 load seed, 2 the other network (says the new one,
+ *   then the option as it now is), 9 about, 0 repeat.
  *   load seed: by the handset 1, by the keypad 2 (* back).
  *     handset: where, the air warning (once per power-up), about 25 s, the
  *       "receive" motif, then the signer only
@@ -31,10 +32,9 @@
  *   wipe (3 here, * after "resume_ask", * at a seed's fingerprint): "to
  *     wipe, hang up for a moment": a hook flash wipes (keys never do); * or
  *     # back to where it was asked.
- *   sign: "waiting for the transaction", the "receive" motif, then the
- *     signer only listens (half-duplex) until the whole PSBT is heard; the
- *     first part heard brings the total, and how long the rest takes is
- *     said (a part is missed meanwhile, and counted). Then
+ *   sign: "waiting for the transaction", "it usually takes a few minutes",
+ *     the "receive" motif, then the signer only listens (half-duplex),
+ *     saying nothing, until the whole PSBT is heard. Then
  *     the review, one item at a time: each output ("you send" the amount
  *     "to the address starting with" its first 5 characters "and ending
  *     with" its last 5; change: "change" and the amount), then the fee ("high fee" when the core warns), then,
@@ -196,7 +196,6 @@ typedef struct {
     int air_warned;      /* the air warning was said (once per power-up) */
     int keypad_warned;   /* the keypad's speakerphone warning (likewise) */
     int job, job_seen;   /* heavy work asked for, run from ds_voice_tick */
-    int rx_told;         /* the PSBT: how long the rest takes was said */
     ds_multitap mt;      /* the PIN */
     ds_session s;        /* zero until a seed is loaded */
     uint32_t seed_fp;    /* the loaded seed's fingerprint (public) */
@@ -263,5 +262,10 @@ int ds_voice_speaking(const ds_voice *v);
 /* Queues an amount of sat as the unit setting says it (the review uses it;
  * public for tests). Returns DS_OK or DS_ERR_SPACE. */
 int32_t ds_voice_say_amount(ds_voice *v, uint64_t sat);
+
+/* Queues lead (a phrase id: receive_about, send_about) and a duration of ms:
+ * under 120 s in seconds rounded to 5 (5 at least), from 120 s in whole
+ * minutes (public for tests). Returns DS_OK or DS_ERR_SPACE. */
+int32_t ds_voice_say_duration(ds_voice *v, uint16_t lead, uint32_t ms);
 
 #endif

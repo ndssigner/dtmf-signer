@@ -151,6 +151,10 @@
   "es": "segundos.",
   "en": "seconds."
  },
+ "minutes": {
+  "es": "minutos.",
+  "en": "minutes."
+ },
  "if_cut_reset": {
   "es": "Si algo se corta, cuelga, descuelga y sigue las instrucciones.",
   "en": "If anything cuts out, hang up, pick up again and follow the instructions."
@@ -202,6 +206,10 @@
  "psbt_listening": {
   "es": "Esperando la transacción por el auricular: ponla a sonar en tu guálet.",
   "en": "Waiting for the transaction through the handset: play it on your wallet."
+ },
+ "psbt_about": {
+  "es": "Suele tardar unos minutos.",
+  "en": "It usually takes a few minutes."
  },
  "review_start": {
   "es": "Transacción recibida. Óyela entera antes de firmar.",
