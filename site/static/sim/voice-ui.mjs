@@ -19,6 +19,7 @@ const SVG = "http://www.w3.org/2000/svg";
 const ECHO_LINES = 200;
 const FLASH_MS = 500;          // the R key: a short hang-up, as a telephone's flash
 const SAID_MS = 600;           // this long quiet: what was said is over
+const NOTE = "♪";              // a motif of the earpiece, as text
 const KEYS = "0123456789*#";
 // Your wallet: the microphone of this computer never runs the handset this
 // far behind (what is older is dropped, as a real handset would not wait).
@@ -27,8 +28,9 @@ const ECHO_MS = 1000;                  // the speakers' echo, after the signer s
 
 // What the signer says, as text, from its public echo: "say <id>" in the
 // language it speaks (phrases[lang][id]; each language of the list in its
-// own), numbers and characters as they are, a PIN character as a dot
-// (never the character), its tones as one mark. S: the page's texts.
+// own; "say <id>_long" is the longer help's text), numbers and characters
+// as they are, a PIN character as a dot (never the character), its tones
+// and its motifs ("ear <name>") as one mark. S: the page's texts.
 export class Transcript {
   constructor(phrases, S, langs = Object.keys(phrases)) {
     Object.assign(this, { phrases, S, langs });
@@ -46,6 +48,7 @@ export class Transcript {
     }
     if (head === "lang") { this.lang = rest; return null; }
     if (head === "num" || head === "chars") this.words.push(rest);
+    else if (head === "ear") this.words.push(NOTE);   // a motif: a note, never decoded
     else if (head === "tones") { if (this.words.at(-1) !== this.S["say.tones"]) this.words.push(this.S["say.tones"]); }
     else if (head === "say") {
       if (rest === "pin-char") this.words.push(this.S["say.pin_char"]);
@@ -64,8 +67,8 @@ export class Transcript {
 }
 
 // Whether the earpiece is playing data tones (not words): what the signer
-// says next decides it, from its public echo ("tones K", or words: "say",
-// "num", "chars", "ear"); anything else leaves it as it was.
+// says next decides it, from its public echo ("tones K", or words and motifs:
+// "say", "num", "chars", "ear"); anything else leaves it as it was.
 export function tonesAfter(prev, line) {
   const head = line.split(" ", 1)[0];
   if (head === "tones") return true;
@@ -223,7 +226,11 @@ export async function start(doc, loadModule, loadPack) {
     bubble.style.setProperty("--tail", `${tail}px`);
   }
   function say(t) {
-    if (!saidEl || saidEl.textContent === t) return;
+    if (!saidEl) return;
+    // A motif alone joins what was just said instead of wiping it.
+    const note = NOTE, cur = saidEl.textContent;
+    if (t === note && cur && !cur.endsWith(note)) t = `${cur} ${note}`;
+    if (cur === t) return;
     saidEl.textContent = t;
     placeShown();
   }

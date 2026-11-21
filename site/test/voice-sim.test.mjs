@@ -142,7 +142,7 @@ test("the text alternative says what the signer says, never a PIN character", as
   const { Transcript } = await import("../static/sim/voice-ui.mjs");
   const phrases = { en: { lang_press: "For English, press", greeting: "D T M F signer.", pin_ask: "Type your PIN, then hash." },
     es: { lang_press: "Para español, pulsa", greeting: "de te eme efe sáiner." } };
-  const t = new Transcript(phrases, { "say.pin_char": "•", "say.tones": "♪" }, ["en", "es"]);
+  const t = new Transcript(phrases, { "say.pin_char": "•", "say.tones": "♪ tones" }, ["en", "es"]);
   for (const l of ["state lang", "say lang_press", "say c_1", "say lang_press", "say c_2"]) t.push(l);
   assert.equal(t.push("lang es"), null);
   for (const l of ["say lang_press", "say c_1", "say lang_press", "say c_2"]) t.push(l);   // the list again, unasked
@@ -150,7 +150,26 @@ test("the text alternative says what the signer says, never a PIN character", as
   t.push("say greeting");
   assert.equal(t.end(), "de te eme efe sáiner.");
   for (const l of ["say pin-char", "say pin-char", "ear next", "chars 73c5da0a", "num 60000", "tones 0123", "tones 4567"]) t.push(l);
-  assert.equal(t.end(), "• • 73c5da0a 60000 ♪");
+  assert.equal(t.end(), "• • ♪ 73c5da0a 60000 ♪ tones");
+});
+
+test("the bubble shows a motif as a note, and the longer help as its text", async () => {
+  const { Transcript } = await import("../static/sim/voice-ui.mjs");
+  const S = { "say.pin_char": "•", "say.tones": "♪ tones" };
+  const t = new Transcript({ en: { choose_option: "Choose an option.", choose_option_long: "Choose an option and press its key." } }, S, ["en"]);
+  t.push("ear send");
+  assert.equal(t.end(), "♪");
+  for (const l of ["ear option", "say choose_option"]) t.push(l);
+  assert.equal(t.end(), "♪ Choose an option.");
+  t.push("say choose_option_long");
+  assert.equal(t.end(), "Choose an option and press its key.");
+});
+test("a motif lights the voice cable, not the tones", () => {
+  let t = true;
+  t = tonesAfter(t, "ear receive");
+  assert.equal(t, false);
+  const a = VA({ speaking: true, tonesOut: t });
+  assert.ok(a.on.has("voice") && !a.on.has("tones"));
 });
 
 // Which 16 ms blocks carry a key on the line (the line less the signer's own

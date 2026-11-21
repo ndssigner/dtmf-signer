@@ -223,6 +223,8 @@ test("the text alternative: what the signer says, in the languages it can speak,
   const es = voiceData("es"), en = voiceData("en");
   assert.equal(es.phrases.es.choose_option, "Elige una opción.");
   assert.equal(es.phrases.en.choose_option, "Choose an option.");
+  assert.match(es.phrases.es.choose_option_long, /pulsa su tecla/);
+  assert.match(es.phrases.en.choose_option_long, /press its key/);
   assert.equal(en.phrases.es, undefined);
   assert.equal(en.phrases.en.c_a, undefined, "letters come from the echo's own text");
 });

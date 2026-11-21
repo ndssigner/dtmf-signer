@@ -424,7 +424,11 @@ export function voicePhrases(langs) {
   const out = {};
   for (const l of langs) {
     out[l] = {};
-    for (const [id, t] of Object.entries(all)) if (!/^[cn]_/.test(id) && t[l]) out[l][id] = t[l];
+    for (const [id, t] of Object.entries(all)) {
+      if (/^[cn]_/.test(id)) continue;
+      if (t[l]) out[l][id] = t[l];
+      if (t.long?.[l]) out[l][`${id}_long`] = t.long[l];   // "say <id>_long": the longer help
+    }
   }
   return out;
 }
