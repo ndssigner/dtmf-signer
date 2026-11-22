@@ -144,6 +144,16 @@
 #define DS_VOICE_FLASH_MIN_MS 200u  /* a shorter on-hook is ignored */
 #define DS_VOICE_HANGUP_MS 1500u    /* longer than this, a hang-up */
 #define DS_VOICE_HELP_MS 8000u      /* silence after a prompt before the help */
+/* How long after ds_voice_line_out gives a sample it can still come back
+ * on ds_voice_line_in: the port's output buffering plus its echo path. A
+ * key heard over speech counts only from what is heard once that much and
+ * the detector's 25 ms window have passed since the speech was muted. The
+ * default is one 10 ms block (this test bench, the simulator); a port
+ * with a deeper DMA ring (the Pico's) defines its own, e.g.
+ * -DDS_VOICE_OUT_DELAY_MS=40 for four 10 ms buffers. */
+#ifndef DS_VOICE_OUT_DELAY_MS
+#define DS_VOICE_OUT_DELAY_MS 10u
+#endif
 #define DS_VOICE_ECHO_BUF 1024
 #define DS_VOICE_ECHO_MAX 256       /* the cap ds_voice_take_echo needs */
 #define DS_VOICE_ECHO_CHUNK 48      /* signed PSBT bytes per echo line */
@@ -191,16 +201,13 @@ typedef struct {
     char pending;        /* a key held, waiting 250 ms from its start (data?) */
     uint32_t gap_before; /* the silence before the tone sounding */
     int repeat;          /* it is the same key again (multi-tap) */
-    /* barge-in: a tone begun during speech hushes it, then is heard clean;
+    /* barge-in: a tone begun during speech hushes it;
      * what was being said is kept aside until the tone is judged: it goes
      * on if the tone was no key (or a key that does not stop it) */
     int muted, muted_step;
     ds_say muted_say;    /* may hold a PIN's characters: wiped when done */
-    uint32_t settle;     /* slices still unheard after the hush (its speech) */
-    uint32_t settle_heard; /* of them, slices with a tone */
-    int hushed;          /* the next onset is the tone that hushed it */
-    uint32_t hush_age, hush_gap; /* since_onset and gap_before at the hush */
-    uint32_t credit, run_credit; /* slices it sounded through the hush */
+    uint32_t settle;     /* slices the speech may still be heard after a mute */
+    uint32_t clean_n;    /* detections of the tone sounding heard after it */
     int gate;            /* after data: no key until 1000 ms without a tone */
     uint32_t gate_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */

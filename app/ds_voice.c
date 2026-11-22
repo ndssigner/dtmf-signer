@@ -64,7 +64,10 @@ enum { SIG_NONE = 0, SIG_BEGIN, SIG_CHUNKS, SIG_END };
 #define KEY_RUNS 7       /* a key counts once it has lasted 70 ms */
 #define KEY_GAP_RUNS 5   /* a key is over after 50 ms without it */
 #define ONSET_RUNS 2     /* a tone heard 20 ms has begun */
-#define SETTLE_RUNS 3    /* after a hush, the detector's 25 ms window still holds speech */
+/* After a barge-in mute, the speech still reaches the detector: what the
+ * line-out had already been given (DS_VOICE_OUT_DELAY_MS) and then its
+ * 25 ms window. */
+#define SETTLE_RUNS ((DS_VOICE_OUT_DELAY_MS + 25u + 9u) / 10u)
 #define DATA_ONSET_RUNS 25 /* a different tone begun within 250 ms: data */
 #define DATA_QUIET_RUNS 70 /* data is over after 700 ms without a tone */
 #define DATA_GAP_RUNS 15 /* ... after 150 ms or less of silence (SPEC 1.1) */
@@ -984,12 +987,7 @@ static void listen_afresh(ds_voice *v)
     v->gap_before = 0;
     v->repeat = 0;
     v->settle = 0;
-    v->settle_heard = 0;
-    v->hushed = 0;
-    v->hush_age = 0;
-    v->hush_gap = 0;
-    v->credit = 0;
-    v->run_credit = 0;
+    v->clean_n = 0;
 }
 
 /* A data reception ended (a seed, a PSBT) or the signer's own tones did:
@@ -1023,19 +1021,16 @@ static void close_gate(ds_voice *v)
  *    its onsets is a tap of its own, acted on at 70 ms (and a tap of it
  *    still waiting is acted on at once).
  *  - A tone begun while the signer speaks (no key held or waiting) stops
- *    the speech at once: mixed with it, a key can read for 20 ms as
- *    another sharing one of its frequencies, and that read and the key
- *    would be two tones, data. What was heard until 30 ms after the hush
- *    is dropped, and the tone is judged on what follows, the speech gone:
- *    which key it is and whether it is data. A tone sounding through the
- *    hush without a break began at the hush: its 70 ms count from there
- *    and the rhythm rule takes its onset there, as it would without the
- *    speech. Otherwise it begins where it is heard clean. What was being
- *    said waits (hear): a key is acted on as it always was, over it (most
- *    stop it); no key, and it goes on where it stopped. A review item, the
- *    confirmation are so still said in full; and speech that by itself
- *    reads as a tone's onset for a moment (a few clips do, at some
- *    alignments with the detector) costs only a short pause.
+ *    the speech at once: mixed with it, keys read less surely. Nothing
+ *    else changes for it: its onset counts where it was heard, the rhythm
+ *    rule as above. Only, to count, the key must also be heard at least
+ *    20 ms after the speech has left the detector (SETTLE_RUNS), so the
+ *    speech's own sound can never make up a key. What was being said
+ *    waits (hear): a key is acted on as it always was, over it (most stop
+ *    it); no key, and it goes on where it stopped. A review item and the
+ *    confirmation are so still said in full; speech that by itself reads
+ *    as a tone's onset for a moment (a few clips do, at some alignments
+ *    with the detector) costs only a short pause.
  * Called once per 10 ms slice with the key heard now; returns the key to
  * act on, or 0. */
 static char held_key(ds_voice *v, char key)
@@ -1044,6 +1039,9 @@ static char held_key(ds_voice *v, char key)
 
     if (v->since_onset < UINT32_MAX) {
         v->since_onset++;
+    }
+    if (v->settle > 0) {
+        v->settle--; /* what the detector hears still holds the speech */
     }
     if (v->data) {
         /* data tones heard: no key until the burst is over */
@@ -1054,60 +1052,26 @@ static char held_key(ds_voice *v, char key)
         }
         return 0;
     }
-    if (v->settle > 0) {
-        /* just hushed: the speech is still in the detector's window; a
-         * tone in it is counted, not named */
-        v->settle_heard += key != 0;
-        v->run_gap = key == 0 ? v->run_gap + 1 : 0;
-        if (--v->settle == 0) {
-            v->credit = ONSET_RUNS + v->settle_heard;
-        }
-        return 0;
-    }
     if (key == 0) {
         if (++v->run_gap >= KEY_GAP_RUNS) {
             v->run_key = 0;
             v->run_n = 0;
             v->held = 0;
-            v->hushed = 0;
-            v->credit = 0;
         }
     } else {
         if (key == v->run_key) {
             v->run_n++;
+            v->clean_n += v->settle == 0;
         } else {
             v->gap_before = v->run_gap; /* the silence before this tone */
             v->run_key = key;
             v->run_n = 1;
-            /* only the first tone after the hush, if it sounded through
-             * (dropouts under 50 ms bridged, as in any key) */
-            v->run_credit = v->run_gap < KEY_GAP_RUNS ? v->credit : 0;
-            v->credit = 0;
+            v->clean_n = v->settle == 0;
         }
         v->run_gap = 0;
         if (v->run_n == ONSET_RUNS) { /* a tone heard 20 ms has begun */
-            /* the tone that hushed the speech: against the one before as
-             * of the hush; it began there if it sounded through */
-            int through = v->hushed && v->run_credit != 0;
-            uint32_t since = v->hushed ? v->hush_age : v->since_onset;
-            uint32_t gap = through ? v->hush_gap : v->gap_before;
-            uint32_t begun = through ? v->since_onset - v->hush_age : 0;
-            if (v->held == 0 && !v->hushed && v->pending == 0 && ds_voice_speaking(v)) {
-                /* barge-in: quiet first, then listen to it clean */
-                mute(v);
-                v->hushed = 1;
-                v->hush_age = v->since_onset;
-                v->hush_gap = v->gap_before;
-                v->settle = SETTLE_RUNS;
-                v->settle_heard = 0;
-                v->run_key = 0;
-                v->run_n = 0;
-                v->run_gap = 0;
-                return 0;
-            }
-            v->hushed = 0;
             if (v->onset_key != 0 && key != v->onset_key) {
-                if (since <= DATA_ONSET_RUNS && gap <= DATA_GAP_RUNS) {
+                if (v->since_onset <= DATA_ONSET_RUNS && v->gap_before <= DATA_GAP_RUNS) {
                     v->data = 1;
                     v->data_quiet = 0;
                     v->run_key = 0;
@@ -1126,10 +1090,16 @@ static char held_key(ds_voice *v, char key)
                 }
             }
             v->onset_key = key;
-            v->since_onset = begun;
+            v->since_onset = 0;
+            if (out == 0 && v->held == 0 && v->pending == 0 && ds_voice_speaking(v)) {
+                /* barge-in: quiet at once; the tone is judged on what
+                 * follows, without the speech */
+                mute(v);
+                v->settle = SETTLE_RUNS;
+                v->clean_n = 0;
+            }
         }
-        if (v->run_key != v->held && v->run_n + v->run_credit >= KEY_RUNS &&
-            v->run_n >= ONSET_RUNS) {
+        if (v->run_key != v->held && v->run_n >= KEY_RUNS && v->clean_n >= ONSET_RUNS) {
             v->held = v->run_key;
             if (v->repeat && out == 0) {
                 out = v->held;
@@ -1959,8 +1929,7 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
         /* a tone stopped the speech: once it is judged (a key, data, or
          * over without a key), what was being said is back for on_key */
         if (v->muted && (key != 0 || v->data ||
-                         (v->settle == 0 && v->run_key == 0 && v->run_gap >= KEY_GAP_RUNS &&
-                          v->pending == 0))) {
+                         (v->settle == 0 && v->run_key == 0 && v->pending == 0))) {
             unmute(v);
         }
         if (key != 0) {
