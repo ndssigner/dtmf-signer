@@ -843,6 +843,7 @@ static int say_step(ds_voice *v)
             if (v->out_made == 0 && v->out_total > 0) {
                 return STEP_WAIT;
             }
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
             say_about(v, DS_P_SEND_ABOUT, out_ms(v));
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
             if (!v->out_reset_said) {

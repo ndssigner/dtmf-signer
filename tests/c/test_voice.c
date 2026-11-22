@@ -3692,6 +3692,8 @@ static void test_screens_follow_the_grammar(void)
     CHECK(lines_in_a_row(&L, mark, hold_opts));
     press(&L, '#'); /* send it */
     CHECK(run_until(&L, "say sent", mark, 600000));
+    static const char *const tones[] = {"state tones", "ear notice", "say send_about", NULL};
+    CHECK(lines_in_a_row(&L, mark, tones));
     run_quiet(&L);
     CHECK(lines_in_a_row(&L, mark, sent));
     press(&L, '#'); /* the menu */
