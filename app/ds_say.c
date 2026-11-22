@@ -57,6 +57,7 @@ static const struct {
     {2, {392, 330}, {150, 300}, AMP_FULL, "fail"},                 /* DS_EAR_FAIL: 2 falling, minor third */
     {2, {587, 392}, {130, 220}, AMP_FULL, "close"},                /* DS_EAR_CLOSE: 2 falling, fifth */
     {2, {1175, 1568}, {70, 90}, AMP_FULL, "data"},                 /* DS_EAR_DATA: 2 high, quick, rising */
+    {3, {587, 440, 587}, {110, 110, 110}, AMP_FULL, "wait"},       /* DS_EAR_WAIT: to and fro, as a pendulum */
 };
 
 int32_t ds_say_motif(int e, const uint16_t **hz, const uint16_t **ms, uint8_t *n)

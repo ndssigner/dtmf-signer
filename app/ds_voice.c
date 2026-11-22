@@ -1282,12 +1282,14 @@ static void load_seed(ds_voice *v)
 /* Heavy work (a PBKDF2, a derivation) is not done on the audio path: it is
  * asked for here and run from ds_voice_tick, not in the tick that first sees
  * it (as ds_app's jobs), and only once the short sound that says the key was
- * taken has gone out (line_out), so it is heard before the wait. Meanwhile
- * keys are ignored. */
+ * taken and the wait motif have gone out (line_out), so they are heard before
+ * the work (on a board, seconds: the port loops the motif meanwhile, see
+ * ds_voice_work_due). Meanwhile keys are ignored. */
 static void ask_job(ds_voice *v, int job)
 {
     hush(v);
     ds_say_earcon(&v->say, DS_EAR_OPTION);
+    ds_say_earcon(&v->say, DS_EAR_WAIT);
     echo_said(v);
     v->job = job;
     v->job_seen = 0;
@@ -2053,7 +2055,7 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
     }
     /* once the sound that says the key was taken has gone out: on a board
      * the work holds the loop, and the sound would follow it */
-    if (v->job != JOB_NONE && v->job_seen && !ds_say_busy(&v->say)) {
+    if (ds_voice_work_due(v)) {
         run_job(v);
     }
     /* what the receivers heard, and the next part out: never on the audio path */
@@ -2102,6 +2104,11 @@ void ds_voice_init(ds_voice *v, uint32_t rate, const uint8_t *pack_region,
     ut_listener_init(&v->l, rate);
     v->step = STEPS_DONE;
     go(v, ST_IDLE);
+}
+
+int ds_voice_work_due(const ds_voice *v)
+{
+    return v->job != JOB_NONE && v->job_seen && !ds_say_busy(&v->say);
 }
 
 uint32_t ds_voice_keys(const ds_voice *v)

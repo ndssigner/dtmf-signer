@@ -21,7 +21,8 @@ enum {
     DS_EAR_FAIL,
     DS_EAR_CLOSE,      /* going back, closing */
     DS_EAR_DATA,       /* a dictated datum follows (an address, an amount...) */
-    DS_EAR_LAST = DS_EAR_DATA
+    DS_EAR_WAIT,       /* work follows that takes a while: wait */
+    DS_EAR_LAST = DS_EAR_WAIT
 };
 
 #define DS_SAY_RATE 16000u

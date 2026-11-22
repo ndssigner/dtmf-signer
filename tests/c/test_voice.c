@@ -724,7 +724,7 @@ static void test_pin_chars_never_in_echo(void)
     press(&L, '7');
     press(&L, '*'); /* drops it: back */
     type_pin(&L, pin);
-    run_ms(&L, 100);
+    run_ms(&L, 600); /* the earcon and the wait motif, then the work */
     CHECK(HAS(&L, "ear close", mark));
     CHECK(HAS(&L, "fingerprint 8b218e81", mark));
     CHECK(log_free_of(&L, pin, 0));
@@ -735,6 +735,7 @@ static void test_pin_chars_never_in_echo(void)
         const char *e = strchr(p, '\n');
         int ok = (e - p == 12 && memcmp(p, "say pin-char", 12) == 0) ||
                  (e - p == 10 && memcmp(p, "ear option", 10) == 0) ||
+                 (e - p == 8 && memcmp(p, "ear wait", 8) == 0) ||
                  (e - p == 9 && memcmp(p, "ear close", 9) == 0) ||
                  (e - p == 6 && memcmp(p, "ear ok", 6) == 0) ||
                  (e - p == 15 && memcmp(p, "say seed_loaded", 15) == 0) ||
@@ -788,7 +789,7 @@ static void test_hang_up_mid_pin_wipes(void)
     CHECK(HAS(&L, "state pin", mark));
     run_quiet(&L);
     type_pin(&L, "ABC123DEF456");
-    run_ms(&L, 100);
+    run_ms(&L, 600);
     CHECK(HAS(&L, "fingerprint 8b218e81", mark));
 
     /* mid keypad entry too */
@@ -896,8 +897,8 @@ static void test_pin_keys_forgotten(void)
     ut_synth_init(&syn, "#", 16000, 100, 200, 0);
     ut_synth_read(&syn, buf, 4800);
     int seen = 0;
-    for (int i = 0; i < 30; i++) {
-        step(&L, buf + i * CHUNK);
+    for (int i = 0; i < 80; i++) { /* the #, then the earcon and the wait motif */
+        step(&L, i < 30 ? buf + i * CHUNK : NULL);
         if (HAS(&L, "state fingerprint", 0)) {
             seen = 1;
             CHECK(!listener_holds(&L.v.l, "0123456789"));
@@ -3588,6 +3589,65 @@ static void test_motifs_are_distinct(void)
     }
 }
 
+/* Every job plays the wait motif right after its earcon, before the work:
+ * on a board the work holds the loop for seconds (the Pico at 125 MHz: the
+ * PIN 2.6 s, the derivation 2.6 s), and the port loops the motif meanwhile
+ * (ds_voice_work_due). Here the work is instant: the motif plays once. */
+static void test_work_plays_wait(void)
+{
+    static const char *const pin[] = {"ear option", "ear wait", "ear ok", "say seed_loaded", NULL};
+    static const char *const derive[] = {"ear option", "ear wait", "state menu-ready", NULL};
+    static const char *const account[] = {"ear option", "ear wait", NULL};
+    static const char *const sign[] = {"hook-flash", "ear option", "ear wait", "ear ok", NULL};
+    const psbt_vector *pv = vector("one input with change");
+    to_ready(&L, 0);
+    CHECK(lines_in_a_row(&L, 0, pin));
+    CHECK(lines_in_a_row(&L, 0, derive));
+    CHECK_EQ_INT(count_lines(&L, "ear wait", 0), 2);
+    size_t mark = L.log_len;
+    press(&L, '2'); /* the account */
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, account));
+    CHECK(find_line(&L, "say account_ready", mark) > find_line(&L, "ear wait", mark));
+    to_ready(&L, 0);
+    send_psbt(&L, pv);
+    review_to_confirm(&L);
+    mark = L.log_len;
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, sign));
+    CHECK_EQ_INT(count_lines(&L, "ear wait", mark), 1);
+}
+
+/* ds_voice_work_due says the next tick does the work: only once the earcon
+ * and the motif are out, and no longer after that tick. */
+static void test_work_due(void)
+{
+    to_ready(&L, 0);
+    CHECK(!ds_voice_work_due(&L.v));
+    press(&L, '2'); /* the account: asked at the key, run from a tick */
+    int due = 0, i = 0;
+    for (; i < 300; i++) {
+        int16_t o[CHUNK];
+        ds_voice_line_out(&L.v, o, CHUNK);
+        ds_voice_line_in(&L.v, o, CHUNK);
+        L.now += 10;
+        if (ds_voice_work_due(&L.v)) {
+            CHECK(!ds_say_busy(&L.v.say)); /* the earcon and the motif are out */
+            CHECK(!HAS(&L, "say account_ready", 0));
+            due++;
+            ds_voice_tick(&L.v, L.now); /* the work */
+            CHECK(!ds_voice_work_due(&L.v));
+            break;
+        }
+        ds_voice_tick(&L.v, L.now);
+    }
+    CHECK_EQ_INT(due, 1);
+    take_echo(&L);
+    run_quiet(&L);
+    CHECK(HAS(&L, "say account_ready", 0));
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_in_menu_does_nothing, test_two_toggles_network, test_zero_repeats,
@@ -3630,4 +3690,4 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_no_prompt_makes_a_key_at_any_alignment,
           test_own_voice_through_the_mute_is_no_key, test_no_join_makes_a_key,
           test_motifs_stay_clear_of_dtmf, test_motif_lengths,
-          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct)
+          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct, test_work_plays_wait, test_work_due)

@@ -112,7 +112,8 @@
  *
  * The echo (ds_voice_take_echo) is public data only, one line per take:
  * "state <name>", what is said ("say <id>", "num N", "chars X", "ear <motif>" (notice, turn,
- * option, receive, send, ok, fail, close; data right before each dictated datum), "tones K"; a secret character only as "say pin-char"), "lang xx",
+ * option, receive, send, ok, fail, close; data right before each dictated datum; wait before work that
+ * takes a while), "tones K"; a secret character only as "say pin-char"), "lang xx",
  * "hook-flash", "fingerprint xxxxxxxx", the account's descriptor,
  * "echo-dropped N", and the signed PSBT as ds_app gives it:
  *   signed-psbt-begin <id> <bytes>
@@ -269,6 +270,13 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms);
 /* The next echo line (NUL-terminated): returns its length, 0 when there is
  * none, or DS_ERR_SPACE (nothing taken) when cap is under DS_VOICE_ECHO_MAX. */
 int32_t ds_voice_take_echo(ds_voice *v, char *out, size_t cap);
+
+/* 1 when the next ds_voice_tick does heavy work (a PIN, a derivation, a
+ * signature, the account): seconds on a small board, during which nothing
+ * else runs. The wait motif has just gone out (ds_voice_line_out); a port
+ * that can play on its own meanwhile (an interrupt) loops that motif while
+ * the tick runs and stops it when the tick returns. */
+int ds_voice_work_due(const ds_voice *v);
 
 /* Keys heard since power-up, for the board LED: a count, never the keys. */
 uint32_t ds_voice_keys(const ds_voice *v);
