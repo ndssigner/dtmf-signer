@@ -10,6 +10,9 @@
  *  - the voice goes out by PWM on GP15: the loop keeps DS_OUT_LEAD_MS of
  *    ds_voice_line_out queued (ds_outq), and an interrupt 16000 times a
  *    second plays the next sample, silence when the queue is dry;
+ *  - while ds_voice does heavy work (seconds: nothing else runs), the
+ *    interrupt loops the wait motif on its own, and stops it at its next
+ *    rest when the work is done;
  *  - the clock follows the samples, lost ones included, so the hook's
  *    timing and the help are counted on the line's own time;
  *  - the USB serial is output only: the echo is printed, nothing is read.
@@ -31,12 +34,16 @@
 #include "adc_ring.h"
 #include "board.h"
 #include "ds_core.h"
+#include "ds_pack.h"
+#include "ds_prompts.h"
+#include "ds_say.h"
 #include "ds_voice.h"
 #include "line_io.h"
 
 /* Samples of the line handed to ds_voice at once. */
 #define AUDIO_CHUNK 256
 #define REPORT_MS 5000
+#define WORK_REPORT_US 50000u /* a tick longer than this is reported */
 #define LED_FLASH_MS 15 /* a short, dim flash per key heard */
 #define STACK_PAINT 0xC5C5C5C5u
 #define OUT_LEAD (DS_AUDIO_RATE / 1000u * DS_OUT_LEAD_MS)
@@ -60,6 +67,15 @@ static int16_t out_buf[DS_OUT_QUEUE];
 static ds_outq out;
 static int16_t out_chunk[OUT_LEAD];
 static uint audio_slice, audio_chan;
+
+/* The wait motif as PWM levels, looped by the interrupt while ds_voice
+ * works: a rest, then the motif (ds_say renders it, as ds_voice plays it). */
+#define WAIT_REST (DS_AUDIO_RATE * 270u / 1000u)
+#define WAIT_LEN (DS_AUDIO_RATE * 600u / 1000u)
+static uint16_t wait_loop[WAIT_LEN];
+static volatile int wait_on;   /* the main loop: 1 while the work runs */
+static int wait_playing;       /* the interrupt's: the loop is playing */
+static uint32_t wait_pos;
 
 /* Set when the hook changes, for the echo. */
 static int hook_changed;
@@ -145,7 +161,42 @@ static uint32_t ring_written_total(void)
 static void __not_in_flash_func(on_pacer)(void)
 {
     pwm_clear_irq(DS_PACER_SLICE);
+    /* The wait loop starts once what was queued (the motif's own end) has
+     * played, and stops only in its rest, so no note is cut. */
+    if (!wait_playing && wait_on && ds_outq_level(&out) == 0) {
+        wait_playing = 1;
+        wait_pos = 0;
+    }
+    if (wait_playing && !wait_on && wait_pos < WAIT_REST) {
+        wait_playing = 0;
+    }
+    if (wait_playing) {
+        pwm_set_chan_level(audio_slice, audio_chan, wait_loop[wait_pos]);
+        wait_pos = wait_pos + 1 == WAIT_LEN ? 0 : wait_pos + 1;
+        return;
+    }
     pwm_set_chan_level(audio_slice, audio_chan, ds_outq_pwm(ds_outq_pop(&out), DS_AUDIO_WRAP));
+}
+
+/* Renders the wait loop: the rest, then the motif. */
+static void wait_loop_init(void)
+{
+    static ds_say s;
+    int16_t *x = (int16_t *)wait_loop; /* rendered in place, then turned into levels */
+    ds_pack en;
+    size_t n = WAIT_REST;
+
+    memset(wait_loop, 0, sizeof wait_loop);
+    if (ds_pack_open(&en, ds_pack_en, ds_pack_en_len) == DS_OK) {
+        ds_say_init(&s, &en);
+        ds_say_earcon(&s, DS_EAR_WAIT);
+        while (ds_say_busy(&s) && n < WAIT_LEN) {
+            n += ds_say_read(&s, x + n, WAIT_LEN - n);
+        }
+    }
+    for (n = 0; n < WAIT_LEN; n++) {
+        wait_loop[n] = ds_outq_pwm(x[n], DS_AUDIO_WRAP); /* same slot, read then written */
+    }
 }
 
 static void audio_out_start(void)
@@ -153,6 +204,7 @@ static void audio_out_start(void)
     pwm_config c;
 
     ds_outq_init(&out, out_buf, DS_OUT_QUEUE);
+    wait_loop_init();
     gpio_set_function(DS_PIN_AUDIO_OUT, GPIO_FUNC_PWM);
     audio_slice = pwm_gpio_to_slice_num(DS_PIN_AUDIO_OUT);
     audio_chan = pwm_gpio_to_channel(DS_PIN_AUDIO_OUT);
@@ -265,7 +317,15 @@ int main(void)
 
         pump_samples();
         now = line_ms();
+        us = time_us_32();
+        wait_on = ds_voice_work_due(&voice); /* the interrupt loops the motif */
         ds_voice_tick(&voice, now);
+        wait_on = 0;
+        us = time_us_32() - us;
+        if (us > WORK_REPORT_US) {
+            /* heavy work ran in this tick (a PIN, a derivation, a signature) */
+            printf("work-ms %" PRIu32 "\n", us / 1000u);
+        }
         feed_out();
 
         /* The LED flashes once per key heard. */
