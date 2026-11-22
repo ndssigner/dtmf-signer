@@ -1281,7 +1281,8 @@ static void load_seed(ds_voice *v)
 
 /* Heavy work (a PBKDF2, a derivation) is not done on the audio path: it is
  * asked for here and run from ds_voice_tick, not in the tick that first sees
- * it (as ds_app's jobs). Meanwhile a short sound says the key was taken, and
+ * it (as ds_app's jobs), and only once the short sound that says the key was
+ * taken has gone out (line_out), so it is heard before the wait. Meanwhile
  * keys are ignored. */
 static void ask_job(ds_voice *v, int job)
 {
@@ -2050,7 +2051,9 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
         now_ms - v->down_at > DS_VOICE_HANGUP_MS) {
         hang_up(v);
     }
-    if (v->job != JOB_NONE && v->job_seen) {
+    /* once the sound that says the key was taken has gone out: on a board
+     * the work holds the loop, and the sound would follow it */
+    if (v->job != JOB_NONE && v->job_seen && !ds_say_busy(&v->say)) {
         run_job(v);
     }
     /* what the receivers heard, and the next part out: never on the audio path */

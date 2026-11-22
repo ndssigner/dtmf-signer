@@ -970,6 +970,19 @@ static void test_heavy_work_in_tick(void)
     L.now += 10;
     ds_voice_tick(&L.v, L.now); /* the tick that sees it: not yet */
     CHECK_EQ_INT(L.v.s.state, 0);
+    /* Nor while the sound that says the key was taken is still to go out:
+     * on a board the work holds the loop, and the sound would only be heard
+     * after it. Taking it out (line_out) does no work either. */
+    L.now += 10;
+    ds_voice_tick(&L.v, L.now);
+    CHECK_EQ_INT(L.v.s.state, 0);
+    CHECK(ds_say_busy(&L.v.say));
+    for (int k = 0; k < 200 && ds_say_busy(&L.v.say); k++) {
+        int16_t o[CHUNK];
+        ds_voice_line_out(&L.v, o, CHUNK);
+    }
+    CHECK(!ds_say_busy(&L.v.say));
+    CHECK_EQ_INT(L.v.s.state, 0);
     L.now += 10;
     ds_voice_tick(&L.v, L.now);
     CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
