@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 CODES = "`TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`."
-CAPABILITIES = {"docs/catalog.md": "Capabilities", "docs/es/catalogo.md": "Capacidades"}
+CAPABILITIES = {"docs/catalog.md": "Capabilities", "docs/es/catalog.md": "Capacidades"}
 
 
 def section(path, number):
@@ -32,11 +32,11 @@ class PhoneDocsTest(unittest.TestCase):
     def test_spec_phone_exception(self):
         self.assertIn("telephone line", section("SPEC.md", "4.1"))
         self.assertIn("hook", section("SPEC.md", "7"))
-        self.assertIn("línea telefónica", section("docs/es/especificacion.md", "4.1"))
-        self.assertIn("gancho", section("docs/es/especificacion.md", "7"))
+        self.assertIn("línea telefónica", section("docs/es/spec.md", "4.1"))
+        self.assertIn("gancho", section("docs/es/spec.md", "7"))
 
     def test_minimum_hardware_names_telephone_line(self):
-        for path, word in (("SPEC.md", "telephone line"), ("docs/es/especificacion.md", "línea telefónica")):
+        for path, word in (("SPEC.md", "telephone line"), ("docs/es/spec.md", "línea telefónica")):
             s7 = section(path, "7")
             bullets = [b for b in s7.split("\n- ") if b.startswith(("**A `CABLE`", "**An output", "**Una entrada `CABLE`", "**Una salida para"))]
             self.assertEqual(len(bullets), 2, path)
@@ -44,14 +44,14 @@ class PhoneDocsTest(unittest.TestCase):
                 self.assertIn(word, b.replace("\n  ", " "), path)
 
     def test_inv2_telephone_carve_out(self):
-        for path, words in (("SPEC.md", ("telephone", "handset")), ("docs/es/especificacion.md", ("teléfono", "auricular"))):
+        for path, words in (("SPEC.md", ("telephone", "handset")), ("docs/es/spec.md", ("teléfono", "auricular"))):
             text = (ROOT / path).read_text(encoding="utf-8")
             start = text.index("`INV-2`")
             for word in words:
                 self.assertIn(word, text[start : text.index("`INV-3`")], path)
 
     def test_spec_lists_new_capabilities(self):
-        for path in ("SPEC.md", "docs/es/especificacion.md"):
+        for path in ("SPEC.md", "docs/es/spec.md"):
             text = (ROOT / path).read_text(encoding="utf-8")
             for code in ("IN-PHONELINE", "OUT-PHONELINE", "VERIFY-VOICE", "PROFILE-PHONE"):
                 self.assertIn(f"`{code}`", text, path)

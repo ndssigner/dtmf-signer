@@ -57,7 +57,7 @@ test("the hero: title, two calls to action, ur-tones links from the config", () 
     const cta = /<div class="cta">([\s\S]*?)<\/div>/.exec(html)[1];
     assert.equal([...cta.matchAll(/<a /g)].length, 2);
     assert.match(cta, /href="#builds"/);
-    assert.match(cta, lang === "es" ? /docs\/es\/especificacion\.md/ : /blob\/main\/SPEC\.md/);
+    assert.match(cta, lang === "es" ? /docs\/es\/spec\.md/ : /blob\/main\/SPEC\.md/);
     const main = html.match(/<main>[\s\S]*<\/main>/)[0];
     assert.ok(main.includes(`href="${URTONES.spec}"`) && main.includes(`href="${URTONES.web}"`));
   }

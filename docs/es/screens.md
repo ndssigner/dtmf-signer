@@ -48,7 +48,7 @@ arranque del RP2040 está en ROM y no se puede reescribir.
 ![About: el repositorio](../images/screens/about-repo.png)
 
 La versión del firmware (como la describió git al compilarlo), su perfil y
-su hardware; luego cada capacidad de [el catálogo](catalogo.md), con la
+su hardware; luego cada capacidad de [el catálogo](catalog.md), con la
 casilla llena si esta compilación la tiene y vacía si la tendría otro
 hardware u otra compilación; luego el repositorio como código QR. ▲ ▼ pasan
 las páginas, ◀ vuelve atrás.
@@ -127,7 +127,7 @@ ASCII imprimible: `abc`, `ABC`, `123` (dígitos y los símbolos más usados) y
 y subiendo desde la primera a la anterior; las pestañas de abajo dicen dónde
 estás. El espacio, el `.` y el `-` están en las dos páginas de letras, y la
 casilla de borrar en la misma esquina de todas. Solo ASCII, a propósito: lo
-explica [la especificación de hardware](../hardware-minimo.md), en lo que
+explica [la especificación de hardware](minimal-hardware.md), en lo que
 dice de la passphrase.
 
 ![Huella de la cartera](../images/screens/wallet-fingerprint.png)

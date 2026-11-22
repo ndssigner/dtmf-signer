@@ -23,11 +23,11 @@ aislamiento, o manejarlo desde un terminal vintage por un puerto serie.
 DTMF-Signer y ur-tones están pensados para ir juntos.
 
 **Muchas formas de montarlo.** DTMF-Signer es una
-[especificación](docs/es/especificacion.md) que se puede montar de muchas
+[especificación](docs/es/spec.md) que se puede montar de muchas
 formas: desde una Raspberry Pi Pico, la referencia, hasta piezas
 recuperadas de una chatarrería (un microcontrolador de 8 bits, un chip
 decodificador DTMF de un teléfono viejo), sabiendo qué pierde cada montaje
-y cuánto tarda. El [catálogo](docs/es/catalogo.md) enumera las capacidades
+y cuánto tarda. El [catálogo](docs/es/catalog.md) enumera las capacidades
 y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
 Pico 2 vendrá después.
 
@@ -164,7 +164,7 @@ Un cargador USB-A con un cable USB-A a USB-C es el que funciona siempre
 | ![Revisando una salida: "Send to", el importe el doble de alto y la dirección completa en grupos de 4](docs/images/screens/review-send.png) | ![La PSBT firmada como QR animado, con sus partes y "looping"](docs/images/screens/signed.png) |
 | Cada salida: importe y dirección completa | La PSBT firmada, como QR |
 
-Todas las pantallas y cómo se navega por ellas: [las pantallas](docs/es/pantallas.md)
+Todas las pantallas y cómo se navega por ellas: [las pantallas](docs/es/screens.md)
 (dibujadas por el propio código del firmware).
 
 Para grabar la Pico, toma el UF2 adjunto a una versión y cópialo en la Pico
@@ -208,7 +208,7 @@ salida de línea, pilas y una tira con los GPIO libres.
   camino más privado.
 
 El análisis completo, por formato de distribución y por uso, está en
-[el análisis de riesgos](docs/es/analisis-riesgos.md).
+[el análisis de riesgos](docs/es/risk-analysis.md).
 
 ## Formas de montarlo
 
@@ -251,18 +251,18 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 
 ## Qué hay en el repositorio
 
-- [`SPEC.md`](SPEC.md) ([en español](docs/es/especificacion.md)): la
+- [`SPEC.md`](SPEC.md) ([en español](docs/es/spec.md)): la
   especificación: lo que debe hacer todo montaje, esté hecho de lo que esté
   hecho.
-- [`docs/catalog.md`](docs/catalog.md) ([en español](docs/es/catalogo.md)):
+- [`docs/catalog.md`](docs/catalog.md) ([en español](docs/es/catalog.md)):
   las capacidades y los perfiles que las combinan.
-- [`docs/hardware-minimo.md`](docs/hardware-minimo.md): la especificación de
+- [`docs/minimal-hardware.md`](docs/es/minimal-hardware.md): la especificación de
   hardware de la placa Pico completa: pines, audio, pantallas, formatos de
   distribución.
-- [Las pantallas](docs/es/pantallas.md) ([inglés](docs/screens.md)): cómo se
+- [Las pantallas](docs/es/screens.md) ([inglés](docs/screens.md)): cómo se
   ve la versión de la Pico en su OLED de 128 × 64 y cómo se navega, con
   imágenes de cada pantalla.
-- [Análisis de riesgos](docs/es/analisis-riesgos.md) ([inglés](docs/risk-analysis.md)):
+- [Análisis de riesgos](docs/es/risk-analysis.md) ([inglés](docs/risk-analysis.md)):
   cadena de suministro, privacidad del comprador, firmware, uso y
   amenazas físicas.
 - [`core/`](core/): el núcleo portable en C99: SHA-512, HMAC, PBKDF2, BIP39,
@@ -356,7 +356,7 @@ Las mismas direcciones que [NDS-Signer](https://github.com/ndssigner/nds-signer#
 - **Hardware** (circuitos, disposiciones de placa, plantillas imprimibles y,
   más adelante, diseños de PCB, como
   [la disposición en protoboard](hardware/breadboard/README.es.md) y
-  [docs/hardware-minimo.md](docs/hardware-minimo.md)): la
+  [docs/es/minimal-hardware.md](docs/es/minimal-hardware.md)): la
   [CERN-OHL-S v2](LICENSE-HARDWARE), una licencia de hardware abierto de
   reciprocidad fuerte. Quien fabrique y distribuya un diseño modificado debe
   publicar también sus fuentes.

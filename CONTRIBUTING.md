@@ -9,10 +9,10 @@ issue or pull request here, under the same rules.
 ## What is here
 
 - **The specification**, [`SPEC.md`](SPEC.md), with its Spanish translation
-  in [`docs/es/especificacion.md`](docs/es/especificacion.md): what every
+  in [`docs/es/spec.md`](docs/es/spec.md): what every
   build must do. This is the standard.
 - **The catalog**, [`docs/catalog.md`](docs/catalog.md) and
-  [`docs/es/catalogo.md`](docs/es/catalogo.md): the capabilities, what each
+  [`docs/es/catalog.md`](docs/es/catalog.md): the capabilities, what each
   one needs and costs, and the profiles that combine them.
 - **The test vectors**, `vectors/`: the contract. A build that reproduces
   them does what the specification says. So far `keys-v0.json` and
@@ -24,8 +24,8 @@ issue or pull request here, under the same rules.
 - **The reference firmware**: a portable core (`core/`: keys, PSBT signing and the session) and
   a build for a computer (`ports/host`) and the firmware for the Raspberry
   Pi Pico (`ports/pico`) exist.
-- **The Pico hardware**, [`docs/hardware-minimo.md`](docs/hardware-minimo.md)
-  (in Spanish for now), and the risk analysis,
+- **The Pico hardware**, [`docs/minimal-hardware.md`](docs/minimal-hardware.md),
+  and the risk analysis,
   [`docs/risk-analysis.md`](docs/risk-analysis.md) (in English and Spanish).
 
 ## Kinds of change

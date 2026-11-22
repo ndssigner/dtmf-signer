@@ -1,4 +1,4 @@
-English · [Español](es/catalogo.md)
+English · [Español](es/catalog.md)
 
 # DTMF-Signer catalog (draft v0)
 
@@ -502,8 +502,7 @@ build someone makes and measures.
   `SEEDCRAFT-CONSOLE` and `BTC-TAPROOT` (planned in its firmware modules).
   No `STORE-SEED`: this board is stateless. A variant
   that adds it needs the emergency wipe of §8 of the specification.
-- **Parts:** the board in [`docs/hardware-minimo.md`](hardware-minimo.md)
-  (in Spanish).
+- **Parts:** the board in [`docs/minimal-hardware.md`](minimal-hardware.md).
 
 ### `PROFILE-PHONE` — Phone Exchange (PEX)
 

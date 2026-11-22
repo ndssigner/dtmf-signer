@@ -18,11 +18,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # (English, Spanish). A pair is skipped while either file is missing.
 PAIRS: list[tuple[str, str]] = [
     ("README.md", "README.es.md"),
-    ("SPEC.md", "docs/es/especificacion.md"),
-    ("docs/catalog.md", "docs/es/catalogo.md"),
+    ("SPEC.md", "docs/es/spec.md"),
+    ("docs/catalog.md", "docs/es/catalog.md"),
     ("hardware/breadboard/README.md", "hardware/breadboard/README.es.md"),
-    ("docs/risk-analysis.md", "docs/es/analisis-riesgos.md"),
-    ("docs/screens.md", "docs/es/pantallas.md"),
+    ("docs/risk-analysis.md", "docs/es/risk-analysis.md"),
+    ("docs/screens.md", "docs/es/screens.md"),
+    ("docs/minimal-hardware.md", "docs/es/minimal-hardware.md"),
     ("ports/wasm/README.md", "ports/wasm/README.es.md"),
 ]
 

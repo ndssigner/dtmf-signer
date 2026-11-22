@@ -97,7 +97,7 @@ Everything that arrives as tones is attacker-controlled.
 [hardware/breadboard/](hardware/breadboard/README.md): the reference
 build's layout. The line input has a DC-blocking capacitor and a series
 resistor but no clamp diodes; the full board's input protection is in
-[docs/hardware-minimo.md](docs/hardware-minimo.md) (Spanish).
+[docs/minimal-hardware.md](docs/minimal-hardware.md).
 
 ## Pinned dependencies
 

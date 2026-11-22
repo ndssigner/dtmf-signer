@@ -6,9 +6,9 @@ botones en una escalera de resistencias. Es un proyecto CMake propio que
 reutiliza `core/` y `app/` sin cambios; este directorio solo contiene el
 hardware que los rodea (ADC y DMA, pantalla, botones, el eco por USB). El
 perfil es
-[`PROFILE-PICO-REF`](../../docs/es/catalogo.md#profile-pico-ref--referencia-pico)
+[`PROFILE-PICO-REF`](../../docs/es/catalog.md#profile-pico-ref--referencia-pico)
 y los tiempos medidos en esta placa están en el
-[catálogo](../../docs/es/catalogo.md). Con `DS_FIRMWARE=PEX` compila en
+[catálogo](../../docs/es/catalog.md). Con `DS_FIRMWARE=PEX` compila en
 su lugar [la Centralita](#la-centralita-pex), el firmware de voz.
 
 ## Conseguir el firmware
@@ -165,7 +165,7 @@ y `.bss`) es de unos 116 KB de 264 KB.
 ## La Centralita (PEX)
 
 El firmware de voz (perfil
-[`PROFILE-PHONE`](../../docs/es/catalogo.md#profile-phone--centralita-phone-exchange-pex)):
+[`PROFILE-PHONE`](../../docs/es/catalog.md#profile-phone--centralita-phone-exchange-pex)):
 un teléfono de tonos es toda la interfaz. No tiene pantalla ni botones. El
 firmador alimenta la línea telefónica, habla por ella y oye en ella las
 teclas y los tonos de la cartera. La lógica es `app/ds_voice`, la misma que

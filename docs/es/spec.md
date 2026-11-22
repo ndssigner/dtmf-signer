@@ -12,9 +12,9 @@ documento dice **qué tiene que hacer cualquier DTMF-Signer, esté hecho con
 lo que esté hecho**: una Raspberry Pi Pico, un microcontrolador de 8 bits,
 un procesador vintage, un chip decodificador DTMF recuperado de un teléfono
 viejo. Cómo lo hace cada montaje se describe en otros documentos: el
-[catálogo](catalogo.md) enumera las capacidades y los
+[catálogo](catalog.md) enumera las capacidades y los
 perfiles que las combinan, y
-[`docs/hardware-minimo.md`](../hardware-minimo.md) describe la placa de la
+[`docs/minimal-hardware.md`](minimal-hardware.md) describe la placa de la
 Pico.
 
 - **El objetivo:** que cualquiera pueda construir un firmador de confianza,
@@ -318,7 +318,7 @@ muestra el resumen, y la PSBT firmada como un QR. Es el perfil
 
 Un montaje se describe como **el núcleo (§2–§8) más un conjunto de
 capacidades**. Los perfiles son conjuntos de capacidades ya preparados y
-con nombre, para facilitar la elección. El [catálogo](catalogo.md) describe cada una en
+con nombre, para facilitar la elección. El [catálogo](catalog.md) describe cada una en
 detalle.
 
 **Todas las capacidades se describen igual:** qué hace; qué necesita
@@ -358,7 +358,7 @@ procesador; sus riesgos; los vectores que la comprueban.
 - `PROFILE-PICO-REF` — **Referencia Pico:** el prototipo actual, sobre una
   Raspberry Pi Pico. Su firmware (`ports/pico`) está probado en una protoboard.
 - `PROFILE-PICO-FULL` — **Pico completo:** la placa de
-  [`docs/hardware-minimo.md`](../hardware-minimo.md).
+  [`docs/minimal-hardware.md`](minimal-hardware.md).
 - `PROFILE-PHONE` — **Centralita (Phone Exchange, PEX):** una Pico y un teléfono
   de tonos como interfaz entera: locuciones en el auricular, el teclado
   como entrada, el auricular como acoplador acústico, un colgado para
@@ -406,7 +406,7 @@ inventadas, nunca fondos reales.**
   catálogo indica la comprobación externa.
 - El análisis de riesgos completo, incluidos la cadena de suministro y la
   privacidad del comprador, está en
-  [el análisis de riesgos](analisis-riesgos.md).
+  [el análisis de riesgos](risk-analysis.md).
 
 ## 12. Preguntas abiertas
 

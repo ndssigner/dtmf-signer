@@ -4,8 +4,8 @@
 
 **Estado:** vivo. Revisado al terminar el prototipo **Cable y QR** (la Pico
 en protoboard que escucha por cable y responde con códigos QR). Acompaña a
-la [especificación](especificacion.md), a
-[hardware-minimo.md](../hardware-minimo.md) y al mapa de auditoría
+la [especificación](spec.md), a
+[minimal-hardware.md](minimal-hardware.md) y al mapa de auditoría
 ([AUDIT.md](../../AUDIT.md)).
 **Valoraciones:** cualitativas (baja / media / alta), sin auditoría externa.
 
@@ -131,10 +131,10 @@ Mitigaciones:
 | Emisiones de la señal de vídeo analógica captadas a distancia | Baja | La semilla nunca se muestra; como mucho se ve el selector del PIN y la passphrase |
 | Smart TV que analiza lo que muestra (ACR) | Baja, si se usa la salida de vídeo | La semilla nunca se muestra; con una tele conectada, PIN y passphrase por cable |
 | Ruido o volumen inadecuado | Media (fallo, no fuga) | Corrección Reed-Solomon; la pantalla de escucha muestra el nivel con una marca a partir de la cual se leen bien los tonos, y pide más volumen cuando falla la lectura. El porcentaje de volumen de un ordenador no dice lo que llega (en el prototipo varió unos 10 dB a lo largo de un día con el mismo ajuste) |
-| Verificación con varios escuchadores que no son independientes de verdad (misma app, mismo sistema, o el aparato que creó la PSBT) | Media | Escuchadores de software o hardware distinto, sin conexión; el que creó la PSBT no cuenta como el honesto ([especificación, §5.1](especificacion.md#51-varios-escuchadores)) |
-| Un teléfono recuperado usado como teclado guarda el PIN en su memoria de rellamada o en su agenda | Media | Solo el teclado, un teléfono sin memoria, o borrarla marcando otra cosa ([especificación, §4.3](especificacion.md#43-un-teclado-de-teléfono-recuperado)) |
-| Un montaje que guarda la semilla la deja en una memoria de la que no se puede borrar con garantías | Media | Sin estado por defecto; si se guarda, cifrada y con borrado de emergencia que sobrescribe y comprueba ([especificación, §8](especificacion.md#8-guardar-la-semilla-y-borrado-de-emergencia)) |
-| Un montaje sin importes comprobados con varias entradas firma una comisión enorme (ataque de la comisión en SegWit v0) | Media | El firmador muestra "comisión NO verificada" y el importe declarado de cada entrada; comprobarlos en otro aparato **antes de confirmar**, porque después es tarde: la PSBT firmada vuelve al aparato que la creó, que puede transmitirla él mismo; desconfiar si se pide firmar otra vez las mismas entradas ([especificación, §6](especificacion.md#6-el-ataque-de-la-comisión-en-segwit-v0)). La referencia Pico comprueba los importes |
+| Verificación con varios escuchadores que no son independientes de verdad (misma app, mismo sistema, o el aparato que creó la PSBT) | Media | Escuchadores de software o hardware distinto, sin conexión; el que creó la PSBT no cuenta como el honesto ([especificación, §5.1](spec.md#51-varios-escuchadores)) |
+| Un teléfono recuperado usado como teclado guarda el PIN en su memoria de rellamada o en su agenda | Media | Solo el teclado, un teléfono sin memoria, o borrarla marcando otra cosa ([especificación, §4.3](spec.md#43-un-teclado-de-teléfono-recuperado)) |
+| Un montaje que guarda la semilla la deja en una memoria de la que no se puede borrar con garantías | Media | Sin estado por defecto; si se guarda, cifrada y con borrado de emergencia que sobrescribe y comprueba ([especificación, §8](spec.md#8-guardar-la-semilla-y-borrado-de-emergencia)) |
+| Un montaje sin importes comprobados con varias entradas firma una comisión enorme (ataque de la comisión en SegWit v0) | Media | El firmador muestra "comisión NO verificada" y el importe declarado de cada entrada; comprobarlos en otro aparato **antes de confirmar**, porque después es tarde: la PSBT firmada vuelve al aparato que la creó, que puede transmitirla él mismo; desconfiar si se pide firmar otra vez las mismas entradas ([especificación, §6](spec.md#6-el-ataque-de-la-comisión-en-segwit-v0)). La referencia Pico comprueba los importes |
 
 ## 5. Riesgos físicos
 
@@ -143,7 +143,7 @@ Mitigaciones:
 | Coacción física para entregar los fondos ("ataque de la llave inglesa") | Baja, pero de impacto máximo | **Cartera señuelo**: la semilla sin passphrase con una cantidad pequeña, y la principal tras la passphrase. Reducir la vinculación de identidad (sección 2.2) |
 | Robo o incautación del firmador | Baja | No guarda nada; sin la semilla, el PIN y la passphrase no sirve |
 | Acceso físico al firmador durante una sesión | Baja | Sesiones cortas; borrado de emergencia |
-| Una salida de altavoz o un volumen alto dañan la entrada de línea | Baja (avería, no fuga) | Volumen bajo; condensador de desacoplo y resistencia en serie. La protoboard de referencia no lleva diodos de protección; la placa completa los prevé ([hardware-minimo.md](../hardware-minimo.md)) |
+| Una salida de altavoz o un volumen alto dañan la entrada de línea | Baja (avería, no fuga) | Volumen bajo; condensador de desacoplo y resistencia en serie. La protoboard de referencia no lleva diodos de protección; la placa completa los prevé ([minimal-hardware.md](minimal-hardware.md)) |
 
 ## 6. Riesgos aceptados
 
@@ -171,5 +171,5 @@ Se documentan para que el usuario decida con conocimiento:
   firmware los use.
 - Consulta normativa para los formatos montados.
 - Riesgos propios de los montajes con piezas recuperadas (chips y memorias
-  de origen desconocido), a medida que el [catálogo](catalogo.md) recoja
+  de origen desconocido), a medida que el [catálogo](catalog.md) recoja
   montajes reales.

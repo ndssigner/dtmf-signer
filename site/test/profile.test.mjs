@@ -78,7 +78,7 @@ test("only the simulator's tab may run WebAssembly", () => {
 });
 test("the build tab links to the repo in the page's language", () => {
   assert.match(text(files, "en/cable-qr/build/index.html"), /blob\/main\/docs\/catalog\.md#profile-cable-qr--cable-and-qr/);
-  assert.match(text(files, "es/cable-qr/build/index.html"), /blob\/main\/docs\/es\/catalogo\.md/);
+  assert.match(text(files, "es/cable-qr/build/index.html"), /blob\/main\/docs\/es\/catalog\.md/);
   assert.match(text(files, "es/cable-qr/build/index.html"), /blob\/main\/hardware\/breadboard\/README\.es\.md/);
 });
 test("«What it does» mentions ur-tones with a link", () => {

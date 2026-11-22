@@ -1,8 +1,10 @@
+[English](../minimal-hardware.md) · Español
+
 # DTMF-Signer mínimo — Especificación de hardware (borrador)
 
 **Estado:** propuesta de diseño, sin probar en hardware.
 **Plataforma:** Raspberry Pi Pico 2 (RP2350), bare-metal, sin sistema operativo.
-**Perfil:** este documento describe el perfil `PROFILE-PICO-FULL` de la [especificación](es/especificacion.md) y el [catálogo](es/catalogo.md). El prototipo actual (`PROFILE-PICO-REF`) usa una Pico RP2040.
+**Perfil:** este documento describe el perfil `PROFILE-PICO-FULL` de la [especificación](spec.md) y el [catálogo](catalog.md). El prototipo actual (`PROFILE-PICO-REF`) usa una Pico RP2040.
 
 ---
 
@@ -168,7 +170,7 @@ TEST_
 
 ## 8. Política de canales
 
-La política de canales es común a todos los montajes y está en la [especificación](es/especificacion.md#4-canales): qué dato se acepta por qué clase de canal, y por qué. En esta placa, cada puerto pertenece a una clase:
+La política de canales es común a todos los montajes y está en la [especificación](spec.md#4-canales): qué dato se acepta por qué clase de canal, y por qué. En esta placa, cada puerto pertenece a una clase:
 
 | Puerto | Clase |
 |---|---|
@@ -231,7 +233,7 @@ Los puertos de la placa traen su protección prevista: el MAX3232 para RS-232 y 
 ## 12. Reglas de seguridad
 
 1. **La seed nunca se muestra** por ningún canal. Solo su huella.
-2. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. El firmware la pone a cero al terminar, al cancelar y por inactividad; desenchufar también la pierde, aunque no al instante (ver la [§8 de la especificación](es/especificacion.md#8-guardar-la-semilla-y-borrado-de-emergencia)).
+2. **Sin estado:** la seed vive solo en RAM. Nada se escribe en flash. El firmware la pone a cero al terminar, al cancelar y por inactividad; desenchufar también la pierde, aunque no al instante (ver la [§8 de la especificación](spec.md#8-guardar-la-semilla-y-borrado-de-emergencia)).
 3. **Apagado automático por inactividad**, que borra la seed.
 4. **Firmar requiere la cruceta del propio firmador.** Ningún terminal puede firmar por su cuenta.
 5. **Política de canales** de la sección 8, impuesta por el firmware.
@@ -241,7 +243,7 @@ Los puertos de la placa traen su protección prevista: el MAX3232 para RS-232 y 
 
 ## 13. Formatos de distribución
 
-El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. El análisis de riesgos de cada formato (manipulación, cadena de suministro y **privacidad del comprador**) está en [analisis-riesgos.md](es/analisis-riesgos.md).
+El objetivo es **abaratar y facilitar la vida al público**, no hacer negocio. El análisis de riesgos de cada formato (manipulación, cadena de suministro y **privacidad del comprador**) está en [risk-analysis.md](risk-analysis.md).
 
 | Formato | Contenido | Para quién |
 |---|---|---|
@@ -343,7 +345,7 @@ Para quien guarde su seed con [SeedCraft](https://github.com/ndssigner/seedcraft
 
 Detalles de la entrada:
 - **Separador entre piezas** (espacio o Enter) y **sin distinguir mayúsculas**, para que abreviaturas como "T", "TN" y "TNG" puedan convivir sin ambigüedad.
-- **Abreviaturas solo con letras y dígitos ASCII.** Los teclados PS/2 envían la posición de la tecla, no el carácter, y el firmware tiene que suponer una distribución (inglesa por defecto, española como opción). Los nombres largos pueden llevar cualquier carácter: solo sirven para bautizar.
+- **Abreviaturas solo con letras y dígitos ASCII.** Los teclados PS/2 envían la posición de la tecla, no el carácter, y el firmware tiene que suponer una distribución (inglesa por defecto, otras como opción). Los nombres largos pueden llevar cualquier carácter: solo sirven para bautizar.
 - **Cada abreviatura se valida al momento:** si no existe en el diccionario, el firmador avisa en el acto, aunque no muestre lo tecleado.
 - **Comando para deshacer la última pieza.**
 - **Introducción por filas de 16 piezas**, con confirmación al terminar cada fila. Una pieza de más o de menos desplaza todo lo que viene detrás; por filas se localiza enseguida dónde está el fallo.

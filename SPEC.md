@@ -1,4 +1,4 @@
-English · [Español](docs/es/especificacion.md)
+English · [Español](docs/es/spec.md)
 
 # DTMF-Signer specification (draft v0)
 
@@ -13,8 +13,8 @@ Raspberry Pi Pico, an 8-bit microcontroller, a vintage processor, a DTMF
 decoder chip salvaged from an old telephone. How a given build does it is
 described elsewhere: the [catalog](docs/catalog.md) lists the capabilities
 and the profiles that combine them, and
-[`docs/hardware-minimo.md`](docs/hardware-minimo.md) describes the Pico
-board (in Spanish).
+[`docs/minimal-hardware.md`](docs/minimal-hardware.md) describes the Pico
+board.
 
 - **The goal:** anyone can build a signer they trust, with new parts or, in
   the worst case, with parts recovered from a scrapyard, knowing exactly
@@ -345,7 +345,7 @@ class; its risks; the vectors that check it.
 - `PROFILE-PICO-REF` — **Pico reference:** the current prototype, on a
   Raspberry Pi Pico. Its firmware (`ports/pico`) is tested on a breadboard.
 - `PROFILE-PICO-FULL` — **Full Pico:** the board in
-  [`docs/hardware-minimo.md`](docs/hardware-minimo.md).
+  [`docs/minimal-hardware.md`](docs/minimal-hardware.md).
 - `PROFILE-PHONE` — **Phone Exchange (PEX):** a Pico and a tone
   telephone as the whole interface: voice prompts in the earpiece, the
   keypad for input, the handset as an acoustic coupler, a hang-up to

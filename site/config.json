@@ -28,7 +28,7 @@
       ],
       "docs": {
         "en": "docs/catalog.md#profile-cable-qr--cable-and-qr",
-        "es": "docs/es/catalogo.md#profile-cable-qr--cable-y-qr"
+        "es": "docs/es/catalog.md#profile-cable-qr--cable-y-qr"
       },
       "readme": {
         "en": "hardware/breadboard/README.md",
@@ -188,7 +188,7 @@
       "files": [],
       "docs": {
         "en": "docs/catalog.md#profile-phone--phone-exchange-pex",
-        "es": "docs/es/catalogo.md#profile-phone--centralita-phone-exchange-pex"
+        "es": "docs/es/catalog.md#profile-phone--centralita-phone-exchange-pex"
       },
       "simulator": {
         "module": "dtmf-signer-voice.mjs",
@@ -393,6 +393,6 @@
   },
   "spec": {
     "en": "SPEC.md",
-    "es": "docs/es/especificacion.md"
+    "es": "docs/es/spec.md"
   }
 }

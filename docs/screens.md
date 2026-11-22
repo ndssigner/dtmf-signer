@@ -125,7 +125,7 @@ ASCII: `abc`, `ABC`, `123` (digits and the commonest symbols) and `<{~`
 row to the previous one; the tabs at the bottom show where you are. Space,
 `.` and `-` are on both letter pages, and the delete cell is in the same
 corner of every page. Only ASCII, on purpose: see the passphrase notes in
-[the hardware specification](hardware-minimo.md).
+[the hardware specification](minimal-hardware.md).
 
 ![Wallet fingerprint](images/screens/wallet-fingerprint.png)
 

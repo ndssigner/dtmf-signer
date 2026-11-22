@@ -63,7 +63,7 @@ test("the header has builds, downloads, specification and the other language", (
   assert.match(en, /<nav class="site">[\s\S]*href="\.\.\/en\/#builds">Builds<[\s\S]*href="\.\.\/en\/downloads\/">Downloads<[\s\S]*SPEC\.md[^>]*>Specification</);
   assert.match(es, /href="\.\.\/es\/#builds">Montajes</);
   assert.match(es, /href="\.\.\/es\/downloads\/">Descargas</);
-  assert.match(es, /blob\/main\/docs\/es\/especificacion\.md"[^>]*>Especificaci\u00f3n</);
+  assert.match(es, /blob\/main\/docs\/es\/spec\.md"[^>]*>Especificaci\u00f3n</);
   assert.match(es, /href="\.\.\/en\/" hreflang="en"/);
   assert.match(en, /href="\.\.\/es\/" hreflang="es"/);
   assert.equal([...en.matchAll(/<a /g)].length, 5, "brand, three links, one language");

@@ -1,11 +1,11 @@
 # DTMF-Signer — Risk analysis
 
-*[Leer en español](es/analisis-riesgos.md)*
+*[Leer en español](es/risk-analysis.md)*
 
 **Status:** living document. Reviewed after the **Cable and QR** prototype
 (the breadboard Pico that listens by cable and answers with QR codes). It
 goes with the [specification](../SPEC.md),
-[hardware-minimo.md](hardware-minimo.md) (Spanish) and the audit map
+[minimal-hardware.md](minimal-hardware.md) and the audit map
 ([AUDIT.md](../AUDIT.md)).
 **Ratings:** qualitative (low / medium / high), with no external audit.
 
@@ -142,7 +142,7 @@ Mitigations:
 | Physical coercion to hand over the funds (the "wrench attack") | Low, but of maximum impact | A **decoy wallet**: the seed with no passphrase holds a small amount, the main wallet sits behind the passphrase. Reduce identity linking (section 2.2) |
 | Theft or seizure of the signer | Low | It stores nothing; without the seed, the PIN and the passphrase it is useless |
 | Physical access to the signer during a session | Low | Short sessions; the emergency wipe |
-| A speaker output or a high volume damages the line input | Low (damage, not a leak) | A low volume; a DC-blocking capacitor and a series resistor. The reference breadboard has no protection diodes; the full board plans them ([hardware-minimo.md](hardware-minimo.md)) |
+| A speaker output or a high volume damages the line input | Low (damage, not a leak) | A low volume; a DC-blocking capacitor and a series resistor. The reference breadboard has no protection diodes; the full board plans them ([minimal-hardware.md](minimal-hardware.md)) |
 
 ## 6. Accepted risks
 

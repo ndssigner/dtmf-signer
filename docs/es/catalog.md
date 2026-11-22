@@ -2,7 +2,7 @@
 
 # Catálogo de DTMF-Signer (borrador v0)
 
-La [especificación](especificacion.md) dice qué tiene que hacer todo
+La [especificación](spec.md) dice qué tiene que hacer todo
 DTMF-Signer. Este catálogo dice **qué añade cada pieza de un montaje, qué
 necesita y cuánto cuesta**, y qué perfiles ya preparados las combinan.
 Crece con cada montaje que alguien haga y mida.
@@ -15,7 +15,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Clases de procesador:** `CPU-8` (8 bits: AVR, 8051, Z80, 6502, por
   debajo de 20 MHz), `CPU-32S` (32 bits modesto: Cortex-M0 y similares, por
   debajo de 50 MHz), `CPU-32` (32 bits: RP2040, RP2350 y equivalentes).
-  Ver la [§9 de la especificación](especificacion.md#9-capacidades-y-perfiles).
+  Ver la [§9 de la especificación](spec.md#9-capacidades-y-perfiles).
 - **Los tiempos se miden, nunca se suponen.** Mientras nadie mida uno, pone
   "sin medir".
 - **Los precios**, si se dan, son rangos orientativos, o los introduce quien
@@ -120,7 +120,7 @@ Crece con cada montaje que alguien haga y mida.
   firmador (`LOCAL`). El PIN se teclea con varias pulsaciones por tecla para
   A–Z, y pasa por `TONES-SW` o `TONES-CHIP`. También sirve un teléfono de
   tonos entero en `IN-LINE`, sin modificarlo; entonces es `CABLE`
-  ([§4.1 de la especificación](especificacion.md#41-clases)), que
+  ([§4.1 de la especificación](spec.md#41-clases)), que
   sigue aceptando la semilla, el PIN y la frase de contraseña.
 - **Necesita:** el teclado y su generador de tonos, conectados a una
   entrada de tonos. O un teléfono entero y una **línea simulada**: el
@@ -151,7 +151,7 @@ Crece con cada montaje que alguien haga y mida.
   casi media semilla de 12 palabras, y **los conservaba sin alimentación**;
   solo funciona como primera acción tras descolgar. Sobrescríbela marcando
   otra cosa, y luego descuelga y pulsa rellamada para comprobar que solo
-  envía eso. Ver la [§4.3 de la especificación](especificacion.md#43-un-teclado-de-teléfono-recuperado).
+  envía eso. Ver la [§4.3 de la especificación](spec.md#43-un-teclado-de-teléfono-recuperado).
 - **Vectores:** previstos.
 
 ### `IN-PHONELINE` — un teléfono en la línea del firmador
@@ -159,7 +159,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Qué hace:** un teléfono de tonos en una línea que alimenta el
   firmador. Detecta el auricular descolgado, recibe el DTMF del teclado
   (`CABLE`, por la excepción de la
-  [§4.1 de la especificación](especificacion.md#41-clases): solo las teclas
+  [§4.1 de la especificación](spec.md#41-clases): solo las teclas
   pulsadas mientras el firmador las pide) y lo que capta el micrófono del
   auricular (`AIR`). Un colgado corto (200 a 1500 ms) es la confirmación, y
   ningún sonido puede imitarlo. Un colgado más largo conserva la sesión: al
@@ -350,7 +350,7 @@ Crece con cada montaje que alguien haga y mida.
 
 - **Qué hace:** el resumen se emite por el aire y lo muestran varios
   escuchadores de ur-tones independientes. Es correcto si al menos uno es
-  honesto. Ver la [§5.1 de la especificación](especificacion.md#51-varios-escuchadores).
+  honesto. Ver la [§5.1 de la especificación](spec.md#51-varios-escuchadores).
 - **Necesita:** `OUT-AIR`, y dos o más escuchadores independientes (por
   ejemplo, la herramienta web de ur-tones en un móvil y en un ordenador, sin
   conexión).
@@ -380,7 +380,7 @@ Crece con cada montaje que alguien haga y mida.
   SHA-256 completo del archivo del paquete con el publicado antes de
   instalarlo, y compara la huella que dice Acerca de (sus 16 primeros
   caracteres hexadecimales). Ver la
-  [§5 de la especificación](especificacion.md#5-verificar-lo-que-se-firma).
+  [§5 de la especificación](spec.md#5-verificar-lo-que-se-firma).
 - **Vectores:** previstos (el texto hablado de un resumen).
 
 ### `STORE-SEED` — guardar la semilla
@@ -391,7 +391,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** `CPU-8` sin medir · `CPU-32S` sin medir · `CPU-32` sin medir.
 - **Riesgos:** memoria de procedencia dudosa, extracción de un aparato
   robado, un borrado del que no hay garantías (nivelación de desgaste). Ver
-  la [§8 de la especificación](especificacion.md#8-guardar-la-semilla-y-borrado-de-emergencia).
+  la [§8 de la especificación](spec.md#8-guardar-la-semilla-y-borrado-de-emergencia).
 - **Vectores:** previstos.
 
 ### `BTC-TAPROOT` — Taproot
@@ -433,7 +433,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Riesgos:** sin ella, el firmador muestra "comisión NO verificada" y el
   importe declarado de cada entrada, y el usuario los comprueba en otro
   sitio antes de confirmar. Ver la
-  [§6 de la especificación](especificacion.md#6-el-ataque-de-la-comisión-en-segwit-v0).
+  [§6 de la especificación](spec.md#6-el-ataque-de-la-comisión-en-segwit-v0).
 - **Vectores:** previstos.
 
 ### `SPLIT-MCU` — varios microcontroladores
@@ -529,7 +529,7 @@ Crece con cada montaje que alguien haga y mida.
   Sin `STORE-SEED`: esta placa no guarda estado. Una
   variante que lo añada necesita el borrado de emergencia de la §8 de la
   especificación.
-- **Piezas:** la placa de [`docs/hardware-minimo.md`](../hardware-minimo.md).
+- **Piezas:** la placa de [`docs/minimal-hardware.md`](minimal-hardware.md).
 
 ### `PROFILE-PHONE` — Centralita (Phone Exchange, PEX)
 

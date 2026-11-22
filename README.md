@@ -240,17 +240,17 @@ for the use anyone makes of this design.
 
 ## In this repository
 
-- [`SPEC.md`](SPEC.md) ([Spanish](docs/es/especificacion.md)): the
+- [`SPEC.md`](SPEC.md) ([Spanish](docs/es/spec.md)): the
   specification: what every build must do, whatever it is made of.
-- [`docs/catalog.md`](docs/catalog.md) ([Spanish](docs/es/catalogo.md)): the
+- [`docs/catalog.md`](docs/catalog.md) ([Spanish](docs/es/catalog.md)): the
   capabilities and the profiles that combine them.
-- [`docs/hardware-minimo.md`](docs/hardware-minimo.md): the hardware
-  specification of the full Pico board: pins, audio, screens, distribution
-  formats (Spanish).
-- [The screens](docs/screens.md) ([Spanish](docs/es/pantallas.md)): how the
+- [`docs/minimal-hardware.md`](docs/minimal-hardware.md) ([Spanish](docs/es/minimal-hardware.md)): the
+  hardware specification of the full Pico board: pins, audio, screens,
+  distribution formats.
+- [The screens](docs/screens.md) ([Spanish](docs/es/screens.md)): how the
   Pico build looks on its 128 × 64 OLED and how you move through it, with
   pictures of every screen.
-- [Risk analysis](docs/risk-analysis.md) ([Spanish](docs/es/analisis-riesgos.md)):
+- [Risk analysis](docs/risk-analysis.md) ([Spanish](docs/es/risk-analysis.md)):
   supply chain, buyer privacy, firmware, use and physical threats.
 - [`core/`](core/): the portable C99 core: SHA-512, HMAC, PBKDF2, BIP39,
   BIP32 and the BIP84 wallet, from a seed to its fingerprints and xpub; PSBT
@@ -334,7 +334,7 @@ The same addresses as [NDS-Signer](https://github.com/ndssigner/nds-signer#donat
   its documentation: the [MIT licence](LICENSE).
 - **Hardware** (circuits, board layouts, printable templates and, later,
   PCB designs, such as [the breadboard layout](hardware/breadboard/README.md)
-  and [docs/hardware-minimo.md](docs/hardware-minimo.md)):
+  and [docs/minimal-hardware.md](docs/minimal-hardware.md)):
   the [CERN-OHL-S v2](LICENSE-HARDWARE), a strongly reciprocal open hardware
   licence. Whoever makes and distributes a modified design must publish its
   sources too.
