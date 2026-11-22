@@ -16,7 +16,12 @@ add_library(dtmf_app STATIC
   voice/ds_prompt_names.c
 )
 target_include_directories(dtmf_app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/voice)
-target_link_libraries(dtmf_app PUBLIC dtmf_core qrcodegen PRIVATE speex_nb ds_warnings)
+# libspeex: the full one by default; a firmware that only plays the prompts
+# sets DS_SPEEX_LIB to speex_nb_dec (decoder only) before adding app/.
+if(NOT DEFINED DS_SPEEX_LIB)
+  set(DS_SPEEX_LIB speex_nb)
+endif()
+target_link_libraries(dtmf_app PUBLIC dtmf_core qrcodegen PRIVATE ${DS_SPEEX_LIB} ds_warnings)
 
 # The built-in English prompts are data (hundreds of kilobytes): a library of
 # their own, linked only by the builds that speak, so the Cable and QR

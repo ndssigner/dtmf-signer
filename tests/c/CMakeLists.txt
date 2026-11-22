@@ -114,6 +114,13 @@ ds_add_test(test_speex)
 target_sources(test_speex PRIVATE ${DS_SPEEX_VECTOR_H})
 target_include_directories(test_speex PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_speex PRIVATE dtmf_app)
+# The same vector through the decoder-only libspeex (speex_nb_dec, what the
+# Pico's voice firmware links): it must decode bit for bit the same.
+add_executable(test_speex_dec test_speex.c ${PROJECT_SOURCE_DIR}/app/ds_speex.c ${DS_SPEEX_VECTOR_H})
+target_include_directories(test_speex_dec PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                           ${CMAKE_CURRENT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/app)
+target_link_libraries(test_speex_dec PRIVATE dtmf_core speex_nb_dec ds_warnings)
+add_test(NAME test_speex_dec COMMAND test_speex_dec)
 
 # What the signer says: the queue and the earcons (the talk-off check of every
 # clip is in test_voice, with the packs' own tests).
