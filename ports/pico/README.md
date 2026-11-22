@@ -7,7 +7,8 @@ resistor ladder. It is a CMake project of its own that reuses `core/` and
 DMA, display, buttons, the USB echo). The profile is
 [`PROFILE-PICO-REF`](../../docs/catalog.md#profile-pico-ref--pico-reference)
 and the times measured on this board are in the
-[catalog](../../docs/catalog.md).
+[catalog](../../docs/catalog.md). With `DS_FIRMWARE=CENTRALITA` it builds
+[the Centralita](#the-centralita) instead, the voice firmware.
 
 ## Get the firmware
 
@@ -72,6 +73,8 @@ Options:
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (default), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` is the one tested on hardware. `SSD1306_SPI` and `SSD1306_I2C` build, but are **not tested** on hardware. `SSD1306_I2C` uses I2C0 with SDA on GP4, SCL on GP5 and address 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (default), `OFF` | Rotates the picture 180 degrees. `ON` is right for the [breadboard layout](../../hardware/breadboard/README.md); `OFF` for a screen mounted the other way round. Both are tested. |
+| `DS_FIRMWARE` | `CABLE_QR` (default), `CENTRALITA` | `CABLE_QR` builds `dtmf-signer-pico.uf2`, this page's firmware. `CENTRALITA` builds `dtmf-signer-centralita.uf2`, the voice firmware: see [The Centralita](#the-centralita). |
+| `DS_LINE_DEBUG` | `OFF` (default), `ON` | Centralita only, a bench aid: once a second the USB echo gives the line's level and what the receiver has heard. Never in a release. |
 
 ## Power
 
@@ -152,6 +155,125 @@ is 4 KB). Core 1 is never started, and the linker fails if anything is placed
 where it would need its own stack. The minimum free stack seen was 2692 of
 8192 bytes, in the review and the signing; static RAM (`.data` and `.bss`) is
 about 116 KB of 264 KB.
+
+## The Centralita
+
+The voice firmware (profile
+[`PROFILE-PHONE`](../../docs/catalog.md#profile-phone--phone-exchange-centralita)):
+a tone telephone is the whole interface. It has no screen or buttons. The
+signer powers the telephone line, speaks into it and hears the keys and the
+wallet's tones on it. The logic is `app/ds_voice`, the same that runs in the
+website's simulator; [`voice_main.c`](voice_main.c) is the hardware around
+it.
+
+```bash
+cmake -S ports/pico -B build-centralita -DPICO_SDK_PATH=<path to the Pico SDK 2.3.1> -DDS_FIRMWARE=CENTRALITA
+cmake --build build-centralita
+```
+
+It links libspeex without its encoder (`speex_nb_dec`) and the built-in
+English prompts. It must fit in the first MB of flash, or the link fails:
+the second MB is the voice packs' region.
+
+### Voice packs
+
+Every language but English is a pack, written apart from the firmware, at
+flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)):
+
+```bash
+python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
+picotool load es.uf2
+picotool load -x build-centralita/dtmf-signer-centralita.uf2
+```
+
+Both loads need BOOTSEL, as above. With more than one language, the
+Centralita lists them when the handset is lifted.
+
+### The line
+
+**Never connect it to a socket of the real telephone network:** that line
+carries up to 48 V, and about 90 V AC when it rings.
+
+The signer feeds the line itself: the 5 V of the USB, raised to 12 V by a
+boost module, then a constant-current source of about 24 mA (an LM317 with
+51 ohms between OUT and ADJ). The current is what a telephone expects, and a
+short circuit on the line does no harm. An open line sits at about 11 V; a
+telephone off the hook holds it at 6 to 8 V.
+
+| Pin | Use |
+| --- | --- |
+| GP27 (ADC1) | The line, heard: 100 nF from the line to a node biased at 1.65 V (10 k to 3V3, 10 k to ground), then 1 k + 4.7 k with 10 nF to ground, as the line-in above |
+| GP28 (ADC2) | The line's voltage, for the hook: 47 k from the line, 10 k and 100 nF to ground |
+| GP15 | The voice into the line: PWM (10 bits, 122 kHz), 1 k and 10 nF to ground, then 10 uF (+ towards the line) |
+| GP25 | The board's LED: see below |
+
+The hook is off below 8 V on the line and on above 9 V. ds_voice then
+debounces it and tells a hook flash (200 ms to 1.5 s) from a hang-up. A
+telephone without its handset stays off the hook: press its hook switch by
+hand to hang up.
+
+The handset's microphone is the wallet's way in by air. An electret
+microphone module (a MAX9814) can stand in for a missing one: its output
+goes through a 22 k / 220 ohm divider and two 1 uF capacitors (+ towards the
+telephone) into the microphone pair. A wallet's audio by cable can take the
+same path, in place of the module.
+
+### The LED
+
+While the handset is held to a wallet, the person cannot hear the signer
+(and it is silent: it only listens), so the LED tells how a reception goes:
+
+| What happens | The LED |
+| --- | --- |
+| A tone or a key is heard | a short flash |
+| A part of a PSBT is taken | a long flash (300 ms), in the pause between frames |
+| A seed by the handset, or a PSBT, is complete | on, steady, until a key or the hook |
+
+### The USB echo
+
+Output only, public data only, as above: what is said (`say`, `ear`,
+`num`, `chars`), the states, `hook on|off`, the fingerprints, the
+descriptor, the signed PSBT between `signed-psbt-begin` and
+`signed-psbt-end`, `work-ms N` for each piece of work over 50 ms, and,
+every 5 s, `stack-free`, `loop-max-us` (the longest turn of the loop) and
+`underruns` (voice samples the PWM found missing: it plays silence then).
+
+### Timing and memory
+
+Measured at 125 MHz with the test seed (all zeros):
+
+| Work | Time |
+| --- | --- |
+| The seed, no PIN | 2.6 s |
+| The seed, a 12-character PIN | 4.5 s |
+| The wallet's derivation | 2.6 s |
+| The account | under 50 ms |
+| A PSBT's analysis | 170 ms |
+| The signature | 130 ms |
+
+A key taken for work sounds a short motif and then the wait motif, which
+the PWM interrupt loops on its own while the work holds the core. Away from
+the work, a turn of the loop takes about 3 ms; the voice is queued 20 ms
+ahead (`DS_VOICE_OUT_DELAY_MS` is 40). The minimum free stack seen was 2.8 KB
+of 8 KB, in the review; static RAM is about 129 KB of 264 KB, flash about
+555 KB.
+
+### What is tested (Centralita)
+
+On a breadboard with an old tone telephone (no handset, a pair of wired
+earbuds as its earpiece): the menus and the language list, the hook flash
+that wipes and the one that signs, the seed by the keypad, the seed by the
+handset encrypted with a 12-character PIN (its tones by cable into the
+microphone pair), a PSBT received the same way, reviewed and signed byte for
+byte as the computer build does, the account sent and read by a phone
+running ur-tones, the wait motif and the LED.
+
+**Not yet right:** by air, from a laptop's speaker to the microphone module,
+about one tone in ten was lost in long frames (laptops give little below
+1 kHz, where the lower DTMF tones are). And on the board, a wallet still
+looping a PSBT after it was complete once made two of its tones count as
+keys, which cancelled the review; the computer's tests of that case pass, and
+it is being looked into.
 
 ## What is tested
 

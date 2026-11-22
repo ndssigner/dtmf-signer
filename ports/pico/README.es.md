@@ -8,7 +8,8 @@ hardware que los rodea (ADC y DMA, pantalla, botones, el eco por USB). El
 perfil es
 [`PROFILE-PICO-REF`](../../docs/es/catalogo.md#profile-pico-ref--referencia-pico)
 y los tiempos medidos en esta placa están en el
-[catálogo](../../docs/es/catalogo.md).
+[catálogo](../../docs/es/catalogo.md). Con `DS_FIRMWARE=CENTRALITA` compila en
+su lugar [la Centralita](#la-centralita), el firmware de voz.
 
 ## Conseguir el firmware
 
@@ -74,6 +75,8 @@ Opciones:
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (por defecto), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` es la probada en hardware. `SSD1306_SPI` y `SSD1306_I2C` compilan, pero **no están probadas** en hardware. `SSD1306_I2C` usa I2C0 con SDA en GP4, SCL en GP5 y la dirección 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (por defecto), `OFF` | Gira la imagen 180 grados. `ON` es lo correcto para la [disposición en protoboard](../../hardware/breadboard/README.es.md); `OFF`, para una pantalla montada al revés. Las dos están probadas. |
+| `DS_FIRMWARE` | `CABLE_QR` (por defecto), `CENTRALITA` | `CABLE_QR` compila `dtmf-signer-pico.uf2`, el firmware de esta página. `CENTRALITA` compila `dtmf-signer-centralita.uf2`, el firmware de voz: ver [La Centralita](#la-centralita). |
+| `DS_LINE_DEBUG` | `OFF` (por defecto), `ON` | Solo la Centralita, una ayuda de banco: cada segundo, el eco por USB da el nivel de la línea y lo que ha oído el receptor. Nunca en una versión publicada. |
 
 ## Alimentación
 
@@ -158,6 +161,127 @@ del SDK es de 4 KB). El núcleo 1 no se arranca nunca, y el enlazador falla si
 algo se coloca donde necesitaría su propia pila. La pila libre mínima vista
 fue de 2692 de 8192 bytes, en la revisión y la firma; la RAM estática (`.data`
 y `.bss`) es de unos 116 KB de 264 KB.
+
+## La Centralita
+
+El firmware de voz (perfil
+[`PROFILE-PHONE`](../../docs/es/catalogo.md#profile-phone--centralita-phone-exchange)):
+un teléfono de tonos es toda la interfaz. No tiene pantalla ni botones. El
+firmador alimenta la línea telefónica, habla por ella y oye en ella las
+teclas y los tonos de la cartera. La lógica es `app/ds_voice`, la misma que
+corre en el simulador de la web; [`voice_main.c`](voice_main.c) es el
+hardware que la rodea.
+
+```bash
+cmake -S ports/pico -B build-centralita -DPICO_SDK_PATH=<ruta al SDK de la Pico 2.3.1> -DDS_FIRMWARE=CENTRALITA
+cmake --build build-centralita
+```
+
+Enlaza libspeex sin su codificador (`speex_nb_dec`) y las locuciones en
+inglés incorporadas. Tiene que caber en el primer MB de flash, o el enlazado
+falla: el segundo MB es la región de los paquetes de voz.
+
+### Paquetes de voz
+
+Cada idioma salvo el inglés es un paquete, que se graba aparte del
+firmware, en el desplazamiento de 1 MB de la flash (ver
+[`tools/voice`](../../tools/voice/README.md)):
+
+```bash
+python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
+picotool load es.uf2
+picotool load -x build-centralita/dtmf-signer-centralita.uf2
+```
+
+Las dos cargas necesitan BOOTSEL, como arriba. Con más de un idioma, la
+Centralita los ofrece al descolgar.
+
+### La línea
+
+**Nunca la conectes a una roseta de la red telefónica real:** esa línea
+lleva hasta 48 V, y unos 90 V de alterna cuando suena.
+
+El firmador alimenta la línea por sí mismo: los 5 V del USB, subidos a 12 V
+con un módulo elevador, y luego una fuente de corriente constante de unos
+24 mA (un LM317 con 51 ohmios entre OUT y ADJ). Es la corriente que espera
+un teléfono, y un cortocircuito en la línea no hace daño. Con la línea
+abierta hay unos 11 V; un teléfono descolgado la deja en 6 a 8 V.
+
+| Pin | Uso |
+| --- | --- |
+| GP27 (ADC1) | La línea, oída: 100 nF desde la línea a un nodo polarizado a 1,65 V (10 k a 3V3, 10 k a masa), luego 1 k + 4,7 k con 10 nF a masa, como la entrada de línea de arriba |
+| GP28 (ADC2) | La tensión de la línea, para el gancho: 47 k desde la línea, 10 k y 100 nF a masa |
+| GP15 | La voz hacia la línea: PWM (10 bits, 122 kHz), 1 k y 10 nF a masa, luego 10 uF (+ hacia la línea) |
+| GP25 | El LED de la placa: ver más abajo |
+
+El gancho está descolgado por debajo de 8 V en la línea y colgado por
+encima de 9 V. Después, ds_voice elimina los rebotes y distingue un colgado
+corto (de 200 ms a 1,5 s) de colgar. Un teléfono sin su auricular se queda
+descolgado: para colgar, aprieta a mano el pulsador del gancho.
+
+El micrófono del auricular es la entrada por aire de la cartera. Un módulo
+de micrófono electret (un MAX9814) puede sustituir uno que falte: su salida
+pasa por un divisor de 22 k / 220 ohmios y dos condensadores de 1 uF (+ hacia
+el teléfono) al par del micrófono. El audio de una cartera por cable puede
+seguir el mismo camino, en lugar del módulo.
+
+### El LED
+
+Mientras el auricular está pegado a una cartera, no se oye al firmador (y
+calla: solo escucha), así que el LED dice cómo va la recepción:
+
+| Qué pasa | El LED |
+| --- | --- |
+| Se oye un tono o una tecla | un destello corto |
+| Entra una parte de una PSBT | un destello largo (300 ms), en la pausa entre tramas |
+| Una semilla por el auricular, o una PSBT, está completa | encendido fijo, hasta una tecla o el gancho |
+
+### El eco por USB
+
+Solo de salida y solo datos públicos, como arriba: lo que se dice (`say`,
+`ear`, `num`, `chars`), los estados, `hook on|off`, las huellas, el
+descriptor, la PSBT firmada entre `signed-psbt-begin` y `signed-psbt-end`,
+`work-ms N` por cada trabajo de más de 50 ms y, cada 5 s, `stack-free`,
+`loop-max-us` (la vuelta más larga del bucle) y `underruns` (muestras de voz
+que el PWM no encontró: entonces da silencio).
+
+### Tiempos y memoria
+
+Medidos a 125 MHz con la semilla de prueba (toda a ceros):
+
+| Trabajo | Tiempo |
+| --- | --- |
+| La semilla, sin PIN | 2,6 s |
+| La semilla, con un PIN de 12 caracteres | 4,5 s |
+| La derivación de la cartera | 2,6 s |
+| La cuenta | menos de 50 ms |
+| El análisis de una PSBT | 170 ms |
+| La firma | 130 ms |
+
+Una tecla que pide trabajo suena con un motivo corto y luego el motivo de
+espera, que la interrupción del PWM repite por su cuenta mientras el trabajo
+ocupa el núcleo. Fuera de los trabajos, una vuelta del bucle tarda unos 3 ms;
+la voz va 20 ms por delante (`DS_VOICE_OUT_DELAY_MS` es 40). La pila libre
+mínima vista fue de 2,8 KB de 8 KB, en la revisión; la RAM estática es de
+unos 129 KB de 264 KB y la flash, de unos 555 KB.
+
+### Qué está probado (Centralita)
+
+En una protoboard con un teléfono de tonos antiguo (sin auricular, con unos
+auriculares de cable como cápsula): los menús y la lista de idiomas, el
+colgado corto que borra y el que firma, la semilla por el teclado, la semilla
+por el auricular cifrada con un PIN de 12 caracteres (sus tonos por cable al
+par del micrófono), una PSBT recibida igual, revisada y firmada byte a byte
+como la versión de ordenador, la cuenta enviada y leída por un móvil con
+ur-tones, el motivo de espera y el LED.
+
+**Todavía no va bien:** por el aire, del altavoz de un portátil al módulo de
+micrófono, se perdía más o menos un tono de cada diez en las tramas largas
+(los portátiles dan poco por debajo de 1 kHz, donde están los tonos graves
+del DTMF). Y en la placa, una cartera que seguía repitiendo una PSBT ya
+completa hizo una vez que dos de sus tonos contaran como teclas, lo que
+canceló la revisión; los tests de ese caso en el ordenador pasan, y se está
+investigando.
 
 ## Qué está probado
 
