@@ -154,6 +154,12 @@ target_link_libraries(${DS_TARGET} PRIVATE
 if(DS_FIRMWARE STREQUAL "CENTRALITA")
   # After dtmf_app, which uses it: the built-in English prompts.
   target_link_libraries(${DS_TARGET} PRIVATE ds_voice_packs hardware_pwm)
+  # A bench aid: once a second, the line's level and what the receiver
+  # has heard (public data only). Off in releases.
+  option(DS_LINE_DEBUG "Centralita: echo the line level and reception every second" OFF)
+  if(DS_LINE_DEBUG)
+    target_compile_definitions(${DS_TARGET} PRIVATE DS_LINE_DEBUG=1)
+  endif()
 endif()
 
 # The stack. Its deepest paths need about 5.5 KB on this build (the review:

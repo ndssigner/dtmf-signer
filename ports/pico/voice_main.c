@@ -77,6 +77,14 @@ static volatile int wait_on;   /* the main loop: 1 while the work runs */
 static int wait_playing;       /* the interrupt's: the loop is playing */
 static uint32_t wait_pos;
 
+#ifdef DS_LINE_DEBUG
+/* A bench aid, off in releases (-DDS_LINE_DEBUG=1): once a second, the
+ * line's peak-to-peak level and what the receiver has heard, so a
+ * reception can be followed as it happens. Public data only: the keys of a
+ * seed are never shown (rx.live holds a PSBT's only). */
+static uint16_t dbg_min = 4095, dbg_max;
+#endif
+
 /* Set when the hook changes, for the echo. */
 static int hook_changed;
 
@@ -274,6 +282,10 @@ static void pump_samples(void)
             int was = hook.off_hook;
 
             block[k++] = (int16_t)(((int32_t)raw[2 * j] - 2048) * 16);
+#ifdef DS_LINE_DEBUG
+            if (raw[2 * j] < dbg_min) dbg_min = raw[2 * j];
+            if (raw[2 * j] > dbg_max) dbg_max = raw[2 * j];
+#endif
             line_samples++;
             if (ds_hook_feed(&hook, raw[2 * j + 1], DS_LINE_V_RAW(DS_HOOK_OFF_MV),
                              DS_LINE_V_RAW(DS_HOOK_ON_MV)) &&
@@ -359,6 +371,19 @@ int main(void)
             loop_max = us - last_us;
         }
         last_us = us;
+#ifdef DS_LINE_DEBUG
+        {
+            static uint32_t next_dbg;
+            if ((int32_t)(now - next_dbg) >= 0) {
+                next_dbg = now + 1000;
+                printf("dbg pp %u keys %" PRIu32 " parts %" PRIu32 " live %s\n",
+                       (unsigned)(dbg_max > dbg_min ? dbg_max - dbg_min : 0), voice.rx.keys,
+                       voice.rx.parts, voice.rx.mode == DS_RX_PSBT ? voice.rx.live : "-");
+                dbg_min = 4095;
+                dbg_max = 0;
+            }
+        }
+#endif
         if ((int32_t)(now - next_report) >= 0) {
             next_report = now + REPORT_MS;
             printf("stack-free %" PRIu32 " loop-max-us %" PRIu32 " underruns %" PRIu32 "\n",
