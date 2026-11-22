@@ -2630,6 +2630,36 @@ static void test_barge_in_no_key_lets_it_go_on(void)
     }
 }
 
+/* What a mute set aside belongs to its state: if the state changed
+ * meanwhile without saying anything (no path does today: each speaks), it
+ * is not said in the new one. */
+static void test_mute_dropped_on_a_new_state(void)
+{
+    static int16_t blip[16000];
+    ut_synth s;
+    int about;
+    to_menu(&L);
+    press(&L, '9');
+    about = L.v.state; /* About's number, whatever it is */
+    to_menu_speaking(&L, 0);
+    run_ms(&L, 400);
+    CHECK(L.v.state != about);
+    memset(blip, 0, sizeof blip);
+    ut_synth_init(&s, "5", 16000, 30, 570, 0);
+    ut_synth_read(&s, blip, 9600);
+    int changed = 0;
+    for (int i = 0; i < 60; i++) {
+        step(&L, blip + i * CHUNK);
+        if (!changed && L.v.muted) {
+            L.v.state = about; /* as a tick could, quietly */
+            changed = 1;
+        }
+    }
+    CHECK(changed);
+    CHECK(!L.v.muted);
+    CHECK(!ds_voice_speaking(&L.v)); /* the menu's prompt was not resumed */
+}
+
 /* The confirmation likewise: a tone during "to sign, hang up..." that is
  * no key leaves it said in full, and then a flash signs. */
 static void test_barge_in_no_key_keeps_the_confirmation(void)
@@ -3574,6 +3604,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_barge_in_loses_few_keys, test_barge_in_hushes_on_onset,
           test_machine_tones_over_speech_are_no_keys,
           test_barge_in_no_key_lets_it_go_on, test_barge_in_no_key_keeps_the_confirmation,
+          test_mute_dropped_on_a_new_state,
           test_own_voice_said_whole_in_16ms_blocks,
           test_data_rule_still_holds_after_hush,
           test_no_help_while_receiving, test_boot_has_no_flashed_question,

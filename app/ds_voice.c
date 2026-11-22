@@ -878,6 +878,7 @@ static void mute(ds_voice *v)
     drop_muted(v);
     memcpy(&v->muted_say, &v->say, sizeof v->muted_say);
     v->muted_step = v->step;
+    v->muted_state = v->state;
     v->muted = 1;
     ds_say_clear(&v->say);
     v->step = STEPS_DONE;
@@ -885,13 +886,14 @@ static void mute(ds_voice *v)
 
 /* The tone judged: what was set aside goes on from where it stopped, as if
  * the tone had been heard over it (unless something else was queued
- * meanwhile, which replaced it). The echo already taken stays taken. */
+ * meanwhile, which replaced it, or the state changed: it was that state's).
+ * The echo already taken stays taken. */
 static void unmute(ds_voice *v)
 {
     if (!v->muted) {
         return;
     }
-    if (!ds_voice_speaking(v)) {
+    if (!ds_voice_speaking(v) && v->state == v->muted_state) {
         memcpy(v->muted_say.log, v->say.log, sizeof v->say.log);
         v->muted_say.lhead = v->say.lhead;
         v->muted_say.lcount = v->say.lcount;

@@ -204,7 +204,7 @@ typedef struct {
     /* barge-in: a tone begun during speech hushes it;
      * what was being said is kept aside until the tone is judged: it goes
      * on if the tone was no key (or a key that does not stop it) */
-    int muted, muted_step;
+    int muted, muted_step, muted_state;
     ds_say muted_say;    /* may hold a PIN's characters: wiped when done */
     uint32_t settle;     /* slices the speech may still be heard after a mute */
     uint32_t clean_n;    /* detections of the tone sounding heard after it */
