@@ -6,7 +6,8 @@ A minimal, cheap, open-hardware Bitcoin signer that anyone can build. The
 full board: a Raspberry Pi Pico, a small screen, five buttons, a microphone
 and a piezo; the reference build that works today, **Cable and QR**, leaves
 out the microphone and the piezo: it listens by cable and answers with QR
-codes.
+codes. The cheapest, the **Phone Exchange (PEX)**, has no screen and no
+buttons at all: an old tone telephone is its whole interface.
 It talks to your wallet with telephone tones (DTMF) through
 [ur-tones](https://github.com/ndssigner/ur-tones), through the air or by
 cable. No camera, no secure element and no storage: the seed lives in
@@ -36,6 +37,11 @@ comes later.
 > air (microphone and speaker), the PCBs and an independent review are still
 > to come. Do not use it with funds. Videos: [on the breadboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
 > and [on a perfboard with v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
+> The Phone Exchange (PEX) runs on a breadboard too: it loads a seed through
+> the handset or the keypad, reads out every output, and signs when you hang
+> up for a moment, byte for byte as the computer build does
+> ([its build](hardware/phone/README.md)). Its layout files and perfboard
+> are still to come.
 
 ## Motivation
 
@@ -162,6 +168,28 @@ Pico in BOOTSEL mode, or build it yourself with `tools/build-pico.sh`;
 built on Linux x86_64, as the published one is, it gives the same file byte
 for byte ([how](ports/pico/README.md#get-the-firmware)).
 
+## The cheapest build: Phone Exchange (PEX)
+
+No screen and no buttons: a tone telephone, handset and all, plugged into
+an RJ11 socket on the board, is the whole interface. The signer powers the
+telephone's line, as an exchange does, speaks to you in the earpiece and
+hears your keys, and your wallet's tones reach it through the handset's
+microphone ([the breadboard build](hardware/phone/README.md)):
+
+| Part | What for |
+|---|---|
+| Raspberry Pi Pico (RP2040) | The microcontroller. You buy it and flash it (`DS_FIRMWARE=PEX`) |
+| A tone telephone with its handset | Keypad, earpiece and microphone: the whole interface. Any second-hand one |
+| RJ11 socket | Where the telephone plugs in |
+| 5 to 12 V boost module and an LM317 | Power for the telephone's line from the USB, about 24 mA |
+
+A dozen resistors and capacitors complete it. It reads every output of a
+transaction aloud, the change and the fee, and signs only when you hang up
+for a moment and pick up again: no key can sign. It speaks English, and
+other languages as separate packs (Spanish today). While the handset is
+held to the wallet, the Pico's LED shows how the reception goes. Try it
+first in the [simulator](https://ndssigner.github.io/dtmf-signer/en/pex/).
+
 ## The full board (planned)
 
 | Part | What for |
@@ -214,6 +242,10 @@ The whole analysis, by distribution format and by use, is in
   unflashed, for convenience. Reflash it before use.
 - **A through-hole PCB** to order bare and solder by hand.
 
+The Phone Exchange (PEX) is on a breadboard for now
+([its build](hardware/phone/README.md)); its layout files and perfboard are
+to come.
+
 ## Roadmap
 
 - [x] Hardware-independent specification and capability catalog
@@ -227,6 +259,8 @@ The whole analysis, by distribution format and by use, is in
 - [ ] Simulation of the analog stages
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
 - [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe. On the perfboard, v0.2.0-alpha from the seed by tones to the signed PSBT read by Sparrow
+- [x] The Phone Exchange (PEX), the voice firmware (`app/ds_voice`): in the website's simulator, and on the Pico (`DS_FIRMWARE=PEX`). Tested on a breadboard: the menus, the seed by the keypad and by the handset with its PIN, the review read aloud, the signature by a hook flash byte for byte as the computer build does, the account read by ur-tones
+- [ ] The PEX's layout in DIY Layout Creator and KiCad, and its perfboard
 - [ ] Serial protocol for vintage terminals
 - [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review
@@ -274,7 +308,8 @@ for the use anyone makes of this design.
   `board.h`). `-DDS_DISPLAY=SSD1306_SPI` and `SSD1306_I2C` build for the
   SSD1306 but are not tested on hardware; the screen is turned 180 degrees by default, as the breadboard layout
   mounts it (`-DDS_DISPLAY_FLIP=OFF` for the other way round). The USB serial is output only (the public echo and `stack-free`).
-  See the [Pico README](ports/pico/README.md).
+  With `-DDS_FIRMWARE=PEX` it builds the Phone Exchange instead,
+  `dtmf-signer-pex.uf2`. See the [Pico README](ports/pico/README.md).
 - [`ports/wasm/`](ports/wasm/README.md): the same firmware as WebAssembly,
   the board of the website's simulator. `tools/build-wasm.sh` builds it with
   Emscripten in Docker, pinned by digest: the same commit gives the same file.
@@ -286,6 +321,9 @@ for the use anyone makes of this design.
   printable 1:1 templates. `tools/check_diy.py` reads the layout and prints
   what each part connects; `tools/breadboard_template.py` makes the
   templates.
+- [`hardware/phone/`](hardware/phone/README.md): the Phone Exchange (PEX)
+  on a breadboard: its circuit, its parts list and how to build and check it
+  step by step.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
   catalog or port DTMF-Signer.

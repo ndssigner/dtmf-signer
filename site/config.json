@@ -190,6 +190,10 @@
         "en": "docs/catalog.md#profile-phone--phone-exchange-pex",
         "es": "docs/es/catalog.md#profile-phone--centralita-phone-exchange-pex"
       },
+      "readme": {
+        "en": "hardware/phone/README.md",
+        "es": "hardware/phone/README.es.md"
+      },
       "simulator": {
         "module": "dtmf-signer-voice.mjs",
         "pin": "123456789012",

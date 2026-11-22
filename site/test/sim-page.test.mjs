@@ -321,14 +321,16 @@ test("the PEX credits its voices, and shows the board's LED", { skip: VOICE_SKIP
     assert.match(/<section class="mod mod-voice-signer[\s\S]*?<\/section>/.exec(h)[0], /class="sim-led"/);
   }
 });
-test("the PEX's status: designed, simulated; the breadboard and the port still to come", () => {
+test("the PEX's status: designed, simulated, on a breadboard and ported; the perfboard and the PCB still to come", () => {
   const s = JSON.parse(readFileSync(new URL("../../hardware/phone/status.json", import.meta.url), "utf8"));
   const st = (part, stage) => s[part].find((x) => x.stage === stage).state;
   assert.equal(st("hardware", "design"), "done");
   assert.equal(st("hardware", "simulation"), "done");
-  assert.equal(st("hardware", "breadboard"), "planned");
+  assert.equal(st("hardware", "breadboard"), "done");
+  assert.equal(st("hardware", "perfboard"), "planned");
+  assert.equal(st("hardware", "pcb"), "planned");
   assert.equal(st("firmware", "core"), "done");
-  assert.equal(st("firmware", "port"), "planned");
+  assert.equal(st("firmware", "port"), "done");
   assert.equal(st("firmware", "simulator"), "done");
 });
 

@@ -510,6 +510,16 @@ build someone makes and measures.
 - **Parts:** a Pico, a 5 to 12 V boost and a current source of about
   20 to 25 mA for the line, a divider to measure the line, the usual line
   input, the audio output into the line, an RJ11 socket and a tone
-  telephone with a handset.
+  telephone with a handset: no screen and no buttons, the cheapest of the
+  Pico builds. The breadboard build, its parts list and how to check it
+  step by step: [`hardware/phone/`](../hardware/phone/README.md); the
+  firmware: [`ports/pico/`](../ports/pico/README.md#the-phone-exchange-pex)
+  with `DS_FIRMWARE=PEX`.
 - **What it lacks:** its own screen, buttons, `OUT-QR`, `STORE-SEED`,
   `BTC-TAPROOT`, `BTC-MULTISIG` and the passphrase.
+- **Measured** on a breadboard (RP2040 at 125 MHz, `CPU-32`): the seed
+  without a PIN 2.6 s, with a 12-character PIN 4.5 s; the wallet's
+  derivation 2.6 s; a PSBT's review 170 ms; signing 130 ms, byte for byte as
+  the computer build signs. Minimum free stack seen: 2.8 KB of 8 KB. While
+  the work runs, the signer plays a wait motif, and the board's LED shows how
+  a reception goes while the handset is held to the wallet.

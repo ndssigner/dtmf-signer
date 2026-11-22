@@ -9,7 +9,9 @@ Un firmador de Bitcoin mínimo, barato y de hardware abierto que cualquiera
 puede montar. La placa completa: una Raspberry Pi Pico, una pantalla pequeña,
 cinco botones, un micrófono y un piezo; el montaje de referencia que ya
 funciona, **Cable y QR**, prescinde del micrófono y del piezo: escucha por
-cable y responde con códigos QR. Se comunica con tu cartera mediante tonos de
+cable y responde con códigos QR. El más barato, la **Centralita (PEX)**, no
+tiene ni pantalla ni botones: un teléfono de tonos antiguo es toda su
+interfaz. Se comunica con tu cartera mediante tonos de
 teléfono (DTMF) a través de [ur-tones](https://github.com/ndssigner/ur-tones),
 al aire o por cable. Sin cámara, sin elemento seguro y sin almacenamiento: la
 semilla vive en memoria solo mientras firmas. Para usarlo se alimenta con un
@@ -39,6 +41,11 @@ Pico 2 vendrá después.
 > Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
 > independiente. No lo uses con fondos. Vídeos: [en la protoboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
 > y [en placa perforada con v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
+> La Centralita (PEX) también funciona en protoboard: carga una semilla por
+> el auricular o por el teclado, lee cada salida en voz alta y firma cuando
+> cuelgas un momento, byte a byte como la versión de ordenador
+> ([su montaje](hardware/phone/README.es.md)). Faltan sus archivos de
+> disposición y la placa perforada.
 
 ## Motivación
 
@@ -172,6 +179,29 @@ en modo BOOTSEL, o compílalo tú con `tools/build-pico.sh`; compilado en
 Linux x86_64, como el publicado, da el mismo archivo byte a byte
 ([cómo](ports/pico/README.es.md#conseguir-el-firmware)).
 
+## El montaje más barato: Centralita (PEX)
+
+Sin pantalla ni botones: un teléfono de tonos, con su auricular, enchufado a
+un conector RJ11 de la placa, es toda la interfaz. El firmador alimenta la
+línea del teléfono, como una centralita, te habla por el auricular y oye tus
+teclas, y los tonos de tu cartera le llegan por el micrófono del auricular
+([el montaje en protoboard](hardware/phone/README.es.md)):
+
+| Pieza | Para qué |
+|---|---|
+| Raspberry Pi Pico (RP2040) | El microcontrolador. La compras y la flasheas tú (`DS_FIRMWARE=PEX`) |
+| Un teléfono de tonos con su auricular | Teclado, auricular y micrófono: toda la interfaz. Cualquiera de segunda mano |
+| Conector RJ11 | Donde se enchufa el teléfono |
+| Módulo elevador de 5 a 12 V y un LM317 | Alimentación de la línea del teléfono desde el USB, unos 24 mA |
+
+Una docena de resistencias y condensadores lo completan. Lee en voz alta
+cada salida de una transacción, el cambio y la comisión, y solo firma cuando
+cuelgas un momento y vuelves a descolgar: ninguna tecla puede firmar. Habla
+inglés, y otros idiomas como paquetes aparte (hoy, español). Mientras el
+auricular está pegado a la cartera, el LED de la Pico enseña cómo va la
+recepción. Pruébalo antes en el
+[simulador](https://ndssigner.github.io/dtmf-signer/es/pex/).
+
 ## La placa completa (prevista)
 
 | Pieza | Para qué |
@@ -225,6 +255,10 @@ El análisis completo, por formato de distribución y por uso, está en
   flashear, por comodidad. Reflashéala antes de usarla.
 - **Una PCB de agujero pasante** para pedirla vacía y soldarla a mano.
 
+La Centralita (PEX) está de momento en protoboard
+([su montaje](hardware/phone/README.es.md)); faltan sus archivos de
+disposición y la placa perforada.
+
 ## Hoja de ruta
 
 - [x] Especificación independiente del hardware y catálogo de capacidades
@@ -238,6 +272,8 @@ El análisis completo, por formato de distribución y por uso, está en
 - [ ] Simulación de las etapas analógicas
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
 - [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia. En la placa perforada, v0.2.0-alpha desde la semilla por tonos hasta la PSBT firmada leída por Sparrow
+- [x] La Centralita (PEX), el firmware de voz (`app/ds_voice`): en el simulador de la web, y en la Pico (`DS_FIRMWARE=PEX`). Probada en protoboard: los menús, la semilla por el teclado y por el auricular con su PIN, la revisión en voz alta, la firma por un colgado corto byte a byte como la versión de ordenador, la cuenta leída por ur-tones
+- [ ] La disposición de la Centralita en DIY Layout Creator y KiCad, y su placa perforada
 - [ ] Protocolo serie para terminales vintage
 - [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente
@@ -289,7 +325,8 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   compilan para la SSD1306 pero no están probadas en hardware;
   la pantalla va girada 180 grados por defecto, como la monta la disposición en
   protoboard (`-DDS_DISPLAY_FLIP=OFF` para el otro sentido). El serie USB es solo de salida (el
-  eco público y `stack-free`). Ver el [README de la Pico](ports/pico/README.es.md).
+  eco público y `stack-free`). Con `-DDS_FIRMWARE=PEX` compila en su lugar la
+  Centralita, `dtmf-signer-pex.uf2`. Ver el [README de la Pico](ports/pico/README.es.md).
 - [`ports/wasm/`](ports/wasm/README.es.md): el mismo firmware como
   WebAssembly, la placa del simulador de la web. `tools/build-wasm.sh` lo
   compila con Emscripten en Docker, fijado por digest: el mismo commit da el
@@ -302,6 +339,9 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
   y sus plantillas imprimibles 1:1. `tools/check_diy.py` lee la disposición y
   muestra qué conecta cada pieza; `tools/breadboard_template.py` genera las
   plantillas.
+- [`hardware/phone/`](hardware/phone/README.es.md): la Centralita (PEX) en
+  protoboard: su circuito, su lista de piezas y cómo montarla y comprobarla
+  paso a paso.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el

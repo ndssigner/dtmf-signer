@@ -2,6 +2,43 @@
 
 The firmware is a prototype: do not use it with funds.
 
+## Unreleased
+
+A second build, the cheapest: the **Phone Exchange (PEX)**, a tone
+telephone as the whole interface. Still a prototype, still not reviewed by
+anyone independent.
+
+- The voice firmware (`app/ds_voice`): the signer powers a telephone's line,
+  speaks in the earpiece and hears the keys. A seed through the handset
+  (with a PIN of 12 characters or more) or typed on the keypad, its
+  fingerprint said, every output, the change and the fee read aloud (the
+  whole address on request), and the signature only by a short hang-up,
+  never a key; the signed PSBT and the account go back as ur-tones through
+  the earpiece. Amounts in bitcoin or sats, a settings menu, the help said
+  once if you hesitate. A wallet's data tones never count as keys, and
+  neither does the signer's own voice.
+- One sound language: every screen that offers keys opens with a notice
+  motif and says each key as an option after the option motif; a key taken
+  for work sounds a short motif, then a wait motif that keeps playing while
+  the work runs.
+- Voice packs in Speex (fixed point, about a fifth of the ADPCM size):
+  English built in, Spanish as a pack; no prompt makes a key at any
+  alignment.
+- The PEX in the website's simulator (`/pex/`), with a test wallet by the
+  handset, and on the Raspberry Pi Pico: `DS_FIRMWARE=PEX` in `ports/pico`
+  gives `dtmf-signer-pex.uf2`, with libspeex decoder only. Measured at
+  125 MHz: signing 130 ms, byte for byte as the computer build signs; the
+  seed 2.6 s (4.5 s with a 12-character PIN). While the handset is held to
+  the wallet, the Pico's LED shows the reception: a flash per tone, a long
+  one per part, steady once it is all in.
+- `hardware/phone/`: the PEX on a breadboard, with a whole telephone on an
+  RJ11 socket, its line fed from the USB through a current source, its parts
+  list and a step-by-step build with checks. The layout files and the
+  perfboard are still to come.
+- Documentation in English first everywhere: the minimal hardware
+  specification is now in English (`docs/minimal-hardware.md`), and the
+  Spanish translations take the English file names.
+
 ## v0.2.0-alpha (2026-11-01)
 
 Still a prototype, still not reviewed by anyone independent. The first

@@ -536,7 +536,19 @@ Crece con cada montaje que alguien haga y mida.
 - **Capacidades:** `TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`.
 - **Piezas:** una Pico, un elevador de 5 a 12 V y una fuente de corriente de
   unos 20 a 25 mA para la línea, un divisor para medir la línea, la entrada
-  de línea de siempre, la salida de audio hacia la línea, una roseta RJ11 y
-  un teléfono de tonos con auricular.
+  de línea de siempre, la salida de audio hacia la línea, un conector RJ11 y
+  un teléfono de tonos con auricular: sin pantalla ni botones, el más barato
+  de los montajes con Pico. El montaje en protoboard, su lista de piezas y
+  cómo comprobarlo paso a paso:
+  [`hardware/phone/`](../../hardware/phone/README.es.md); el firmware:
+  [`ports/pico/`](../../ports/pico/README.es.md#la-centralita-pex) con
+  `DS_FIRMWARE=PEX`.
 - **Qué le falta:** pantalla propia, botones, `OUT-QR`, `STORE-SEED`,
   `BTC-TAPROOT`, `BTC-MULTISIG` y la passphrase.
+- **Medido** en protoboard (RP2040 a 125 MHz, `CPU-32`): la semilla sin PIN
+  2,6 s, con un PIN de 12 caracteres 4,5 s; la derivación de la cartera
+  2,6 s; la revisión de una PSBT 170 ms; la firma 130 ms, byte a byte como
+  firma la versión de ordenador. Pila libre mínima vista: 2,8 KB de 8 KB.
+  Mientras trabaja, el firmador suena con un motivo de espera, y el LED de la
+  placa enseña cómo va una recepción mientras el auricular está pegado a la
+  cartera.

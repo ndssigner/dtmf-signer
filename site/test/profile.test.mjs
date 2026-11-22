@@ -60,11 +60,12 @@ test("the build tab shows the layout and offers its files", () => {
   assert.match(html, /href="[^"]*files\/cable-qr\/template-es\.pdf"/);
   assert.ok(files.has("files/cable-qr/dtmf-signer-breadboard.diy"));
 });
-test("a build with no parts list or layout yet says so and points at its status", () => {
-  for (const t of ["parts", "build"]) {
-    const html = text(files, `es/pex/${t}/index.html`);
-    assert.match(html, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, t);
-    assert.doesNotMatch(html, /<table class="bom">/);
+test("the PEX: its parts list, and no drawn layout yet, which its build tab says, with its guide", () => {
+  for (const lang of ["en", "es"]) {
+    assert.match(text(files, `${lang}/pex/parts/index.html`), /<table class="bom">[\s\S]*RJ11 socket/, lang);
+    const html = text(files, `${lang}/pex/build/index.html`);
+    assert.match(html, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, lang);
+    assert.match(html, new RegExp(`hardware/phone/README${lang === "es" ? "\\.es" : ""}\\.md`), lang);
   }
 });
 test("the simulator's tab names its profile and holds a place for the simulator", () => {

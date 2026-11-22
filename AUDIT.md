@@ -69,6 +69,7 @@ the USB echo (`ds_app_take_echo`), which must carry public data only.
 | `app/ds_about.c` | The power-up warning's companion: the version, the profile, the catalog's capabilities (this build's ticked) and the repository's QR code. It says what the build was made with; it cannot prove it (a malicious firmware could show the same) |
 | `app/ds_review.c` | What the user checks before signing: one card per output with its kind (change only when the analysis proved it ours), its whole amount and its whole address in groups of 4, never cut or split; the fee and totals; the warnings; the confirmation. The address glyphs that keep g and q apart from 9 |
 | `app/ds_qr.c` | The signed PSBT and the xpub as animated UR QR codes |
+| `app/ds_voice.c` (`flash_counts`, `prompt_said`, the review states) | The Phone Exchange (PEX): every item of the review must be said in full before the confirmation, and only a hook flash that begins after the confirmation prompt was said in full signs (no key can); the same for the wipe |
 
 The PSBT rules, one by one, are in `core/ds_psbt.h`'s header comment and in
 [SPEC.md §2.1](SPEC.md#21-signing) and [§6](SPEC.md#6-the-segwit-v0-fee-attack).
@@ -83,6 +84,8 @@ Everything that arrives as tones is attacker-controlled.
 | `app/ds_rx.c` | What is accepted while listening for a seed or for a PSBT, and what is refused |
 | `core/ds_psbt.c`, `core/ds_tx.c` | Lengths, compact sizes, duplicate keys, counts and limits (`DS_MAX_INPUTS`, `DS_PSBT_MAX_KEYS`, `DS_PSBT_PREV_MAX`) |
 | `ports/pico/adc_ring.c`, `ports/pico/main.c` (`pump_samples`) | The DMA audio ring: samples are checked after they are copied, and a lap of the DMA is reported as lost audio, never delivered |
+| `app/ds_voice.c` (`hear`, `held_key`, the data and gate rules) | The PEX hears keys and a wallet's data tones on the same line: what counts as a key, what as data, and the barge-in over its own voice |
+| `ports/pico/voice_main.c` (`pump_samples`), `ports/pico/line_io.c` | The PEX's ring (lost samples only move its clock on: `ds_voice` is not told of them), the hook read from the line's voltage, the output queue |
 
 ### 4. The Pico port
 
@@ -91,6 +94,7 @@ Everything that arrives as tones is attacker-controlled.
 | `ports/pico/main.c` | The loop (draw before the next tick, button events within 200 ms of their samples: the confirmation rule depends on it, see `app/ds_app.h`), the USB echo (output only: the firmware never reads from USB; the USB stack still enumerates and accepts the host's bytes), the stack watermark |
 | `ports/pico/CMakeLists.txt` | 8 KB stack over both scratch banks (core 1 is never started, and the link fails if anything lands there), USB reset to bootloader disabled, libsecp256k1 with small tables |
 | `ports/pico/board.h`, `ports/pico/display_*.c` | Pins, the button ladder's thresholds, the screens |
+| `ports/pico/voice_main.c` | The PEX's loop: the voice queued 20 ms ahead (`DS_VOICE_OUT_DELAY_MS` 40), the wait motif looped by the PWM interrupt while the work holds the core, the LED, the USB echo (output only) |
 
 ### 5. The hardware
 
@@ -98,6 +102,9 @@ Everything that arrives as tones is attacker-controlled.
 build's layout. The line input has a DC-blocking capacitor and a series
 resistor but no clamp diodes; the full board's input protection is in
 [docs/minimal-hardware.md](docs/minimal-hardware.md).
+[hardware/phone/](hardware/phone/README.md): the PEX on a breadboard; its
+line is fed from the USB through a current source, so a short does no harm,
+and must never meet the real telephone network.
 
 ## Pinned dependencies
 
@@ -137,6 +144,11 @@ ReportLab 5.1.0 for the printable templates. Licences:
 - The confirmation rule has one accepted limit: tapping another button
   while OK is held splits the hold, so deliberate use of the buttons on the
   visible review can still confirm (`app/ds_app.h`).
+- The PEX on the board: a wallet still looping a PSBT after it was complete
+  once made two of its tones count as keys (the review was cancelled, not
+  signed). The same case passes on the computer; the likely cause is the
+  samples lost while the PSBT is analysed (170 ms), of which `ds_voice` is
+  not told. Under investigation.
 - libsecp256k1's context is never randomised on the signer (no blinding;
   `core/ds_secp.h`): its code is constant time, but side channels on the
   Pico have not been studied.
