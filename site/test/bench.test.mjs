@@ -97,12 +97,12 @@ test("an unknown port type is refused", () => {
   assert.ok(validateBench(p.bench).some((e) => e.includes("type smoke")));
 });
 
-test("a bench may turn to stacked at its own width (the Centralita's has four modules side by side)", async () => {
+test("a bench may turn to stacked at its own width (the PEX's has four modules side by side)", async () => {
   const { orientationFor } = await import("../static/sim/bench.mjs");
   assert.equal(orientationFor(790, 820), "v");
   assert.equal(orientationFor(830, 820), "h");
   assert.equal(orientationFor(730), "h");
   const p = centralita();
-  assert.ok(p.bench.turn >= 720, "the Centralita turns wider");
+  assert.ok(p.bench.turn >= 720, "the PEX turns wider");
   assert.ok(p.bench.modules.some((m) => m.column === "far"), "you and the wallet beyond the telephone");
 });

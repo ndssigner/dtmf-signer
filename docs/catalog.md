@@ -505,7 +505,7 @@ build someone makes and measures.
 - **Parts:** the board in [`docs/hardware-minimo.md`](hardware-minimo.md)
   (in Spanish).
 
-### `PROFILE-PHONE` — Phone exchange (Centralita)
+### `PROFILE-PHONE` — Phone Exchange (PEX)
 
 - **Capabilities:** `TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`.
 - **Parts:** a Pico, a 5 to 12 V boost and a current source of about

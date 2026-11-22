@@ -5,7 +5,7 @@
 // what the account and the signed PSBT hold comes from the signer's public
 // echo, which carries the same bytes as the QR (tests/c/test_app.c checks
 // they match); the image itself is not decoded. Nothing is ever broadcast.
-// Next to a telephone's handset (the Centralita) it plays at air pace and
+// Next to a telephone's handset (the PEX) it plays at air pace and
 // listens to the earpiece itself: ur-tones' Listener on the samples, never
 // the echo.
 import { seedAudio, psbtAudio, SignedCollector, EarDecoder } from "./wallet.mjs";

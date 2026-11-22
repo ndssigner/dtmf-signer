@@ -59,7 +59,7 @@ test("a build's downloads tab: the release firmware when it has one", () => {
     assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/centralita\/status\/">/, lang);
   }
 });
-test("the Centralita's downloads tab: its voice pack, with size and full SHA-256", () => {
+test("the PEX's downloads tab: its voice pack, with size and full SHA-256", () => {
   const bytes = readFileSync(new URL("../../app/voice/packs/es.bin", import.meta.url));
   const sha = createHash("sha256").update(bytes).digest("hex");
   for (const [lang, check] of [["en", "Check it before installing it"], ["es", "Compruébalo antes de instalarlo"]]) {

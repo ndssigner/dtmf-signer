@@ -531,7 +531,7 @@ Crece con cada montaje que alguien haga y mida.
   especificación.
 - **Piezas:** la placa de [`docs/hardware-minimo.md`](../hardware-minimo.md).
 
-### `PROFILE-PHONE` — Centralita (Phone exchange)
+### `PROFILE-PHONE` — Centralita (Phone Exchange, PEX)
 
 - **Capacidades:** `TONES-SW`, `IN-PHONELINE`, `OUT-PHONELINE`, `VERIFY-VOICE`, `BTC-INPUT-AMOUNTS`.
 - **Piezas:** una Pico, un elevador de 5 a 12 V y una fuente de corriente de

@@ -34,7 +34,7 @@
 /* Odd samples (the ladder) are used one in this many: 1 kHz. */
 #define DS_LADDER_DECIMATE 16u
 
-/* The Centralita (the voice firmware, DS_FIRMWARE=CENTRALITA) has no
+/* The Phone Exchange (PEX, the voice firmware, DS_FIRMWARE=PEX) has no
  * buttons: GP28 reads the line's voltage instead, through a divider
  * (47 kOhm from the line, 10 kOhm to ground, 100 nF across the 10 k). The
  * current source holds an open line at about 11 V; a telephone off the

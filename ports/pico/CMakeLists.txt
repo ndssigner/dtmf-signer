@@ -7,7 +7,7 @@
 # gives build-pico/dtmf-signer-pico.uf2. Built and tested with Pico SDK 2.3.1.
 # Options:
 #   DS_FIRMWARE      CABLE_QR (default: dtmf-signer-pico, screen and buttons)
-#                    or CENTRALITA (dtmf-signer-centralita: the voice firmware,
+#                    or PEX (dtmf-signer-pex: the Phone Exchange, the voice firmware,
 #                    a tone telephone as the whole interface)
 #   DS_DISPLAY       SH1106_SPI (default, tested on hardware), SSD1306_SPI or
 #                    SSD1306_I2C (not tested on hardware)
@@ -27,10 +27,10 @@ project(dtmf_signer_pico C CXX ASM)
 set(DS_DISPLAY "SH1106_SPI" CACHE STRING "Display: SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
 set_property(CACHE DS_DISPLAY PROPERTY STRINGS SH1106_SPI SSD1306_SPI SSD1306_I2C)
 option(DS_DISPLAY_FLIP "Rotate the display 180 degrees" ON)
-set(DS_FIRMWARE "CABLE_QR" CACHE STRING "Firmware: CABLE_QR or CENTRALITA")
-set_property(CACHE DS_FIRMWARE PROPERTY STRINGS CABLE_QR CENTRALITA)
-if(NOT DS_FIRMWARE MATCHES "^(CABLE_QR|CENTRALITA)$")
-  message(FATAL_ERROR "DS_FIRMWARE must be CABLE_QR or CENTRALITA")
+set(DS_FIRMWARE "CABLE_QR" CACHE STRING "Firmware: CABLE_QR or PEX")
+set_property(CACHE DS_FIRMWARE PROPERTY STRINGS CABLE_QR PEX)
+if(NOT DS_FIRMWARE MATCHES "^(CABLE_QR|PEX)$")
+  message(FATAL_ERROR "DS_FIRMWARE must be CABLE_QR or PEX")
 endif()
 
 if(NOT DS_DISPLAY MATCHES "^(SH1106_SPI|SSD1306_SPI|SSD1306_I2C)$")
@@ -98,19 +98,19 @@ add_library(ds_warnings INTERFACE)
 target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror
                                              -Wno-format-truncation)
 
-if(DS_FIRMWARE STREQUAL "CENTRALITA")
+if(DS_FIRMWARE STREQUAL "PEX")
   # It only plays the prompts: libspeex without its encoder.
   set(DS_SPEEX_LIB speex_nb_dec)
 endif()
 add_subdirectory(${DS_ROOT}/core core)
 add_subdirectory(${DS_ROOT}/app app)
-if(DS_FIRMWARE STREQUAL "CENTRALITA")
+if(DS_FIRMWARE STREQUAL "PEX")
   # What About says (docs/catalog.md, PROFILE-PHONE), and the output delay:
   # DS_OUT_LEAD_MS (board.h) queued ahead of the PWM, plus one turn of the
   # loop (its longest is printed every 5 s as loop-max-us).
   target_compile_definitions(dtmf_app PUBLIC
     "DS_HARDWARE=\"Pico, tone telephone\""
-    "DS_PROFILE=\"Phone exchange\""
+    "DS_PROFILE=\"Phone Exchange (PEX)\""
     "DS_CAPS=\"TONES-SW IN-PHONELINE OUT-PHONELINE VERIFY-VOICE BTC-INPUT-AMOUNTS\""
     DS_VOICE_OUT_DELAY_MS=40u)
 else()
@@ -128,8 +128,8 @@ else()
   set(DS_DISPLAY_SRC display_ssd1306.c)
 endif()
 
-if(DS_FIRMWARE STREQUAL "CENTRALITA")
-  set(DS_TARGET dtmf-signer-centralita)
+if(DS_FIRMWARE STREQUAL "PEX")
+  set(DS_TARGET dtmf-signer-pex)
   add_executable(${DS_TARGET} voice_main.c adc_ring.c line_io.c secp_callbacks.c)
   # The voice packs' region is the second MB of flash (board.h): the
   # firmware must fit in the first, or the link fails.
@@ -151,12 +151,12 @@ target_link_libraries(${DS_TARGET} PRIVATE
   dtmf_app dtmf_core
   pico_stdlib hardware_spi hardware_i2c hardware_adc hardware_dma
   hardware_watchdog ds_warnings)
-if(DS_FIRMWARE STREQUAL "CENTRALITA")
+if(DS_FIRMWARE STREQUAL "PEX")
   # After dtmf_app, which uses it: the built-in English prompts.
   target_link_libraries(${DS_TARGET} PRIVATE ds_voice_packs hardware_pwm)
   # A bench aid: once a second, the line's level and what the receiver
   # has heard (public data only). Off in releases.
-  option(DS_LINE_DEBUG "Centralita: echo the line level and reception every second" OFF)
+  option(DS_LINE_DEBUG "PEX: echo the line level and reception every second" OFF)
   if(DS_LINE_DEBUG)
     target_compile_definitions(${DS_TARGET} PRIVATE DS_LINE_DEBUG=1)
   endif()

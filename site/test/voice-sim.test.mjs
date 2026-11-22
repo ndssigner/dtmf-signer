@@ -1,4 +1,4 @@
-// The Centralita's simulator without a page: the telephone around the real
+// The PEX's simulator without a page: the telephone around the real
 // voice firmware (build/wasm/dtmf-signer-voice.mjs). The line is one node:
 // what the signer says, the keypad and the handset microphone, mixed.
 import { test } from "node:test";
@@ -284,7 +284,7 @@ function fakeButton(who, pressed) {
   const attrs = { "aria-pressed": String(pressed) };
   return Object.assign(b, { dataset: { who }, getAttribute: (k) => attrs[k], setAttribute: (k, v) => { attrs[k] = v; } });
 }
-test("switching who runs the wallet stops everything (the Centralita: mic, handset-mic queue, dialling, listening)", () => {
+test("switching who runs the wallet stops everything (the PEX: mic, handset-mic queue, dialling, listening)", () => {
   const n = { clearMic: 0, stopDialling: 0, mic: 0, listen: 0 };
   const vs = { clearMic() { n.clearMic++; }, stopDialling() { n.stopDialling++; } };
   const mic = { stop() { n.mic++; } }, wallet = { stopListening() { n.listen++; } };

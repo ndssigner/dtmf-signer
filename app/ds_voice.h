@@ -1,4 +1,4 @@
-/* DTMF-Signer "Centralita": the screenless build, a tone telephone as the
+/* DTMF-Signer Phone Exchange (PEX): the screenless build, a tone telephone as the
  * whole interface. The signer powers the line, the port tells it the hook
  * (off-hook or on-hook), hands it what arrives on the line (the telephone's
  * keys and microphone, and the signer's own voice: they share one node) and

@@ -437,6 +437,6 @@ export async function start(doc, loadModule) {
   requestAnimationFrame(frame);
 }
 
-// The Centralita's page runs voice-ui.mjs instead (it borrows from here).
+// The PEX's page runs voice-ui.mjs instead (it borrows from here).
 if (typeof document !== "undefined" && document.getElementById("sim-data") && document.getElementById("sim")?.dataset.firmware !== "voice")
   start(document, () => import("./dtmf-signer.mjs").then((f) => f.default()));

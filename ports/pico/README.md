@@ -7,8 +7,8 @@ resistor ladder. It is a CMake project of its own that reuses `core/` and
 DMA, display, buttons, the USB echo). The profile is
 [`PROFILE-PICO-REF`](../../docs/catalog.md#profile-pico-ref--pico-reference)
 and the times measured on this board are in the
-[catalog](../../docs/catalog.md). With `DS_FIRMWARE=CENTRALITA` it builds
-[the Centralita](#the-centralita) instead, the voice firmware.
+[catalog](../../docs/catalog.md). With `DS_FIRMWARE=PEX` it builds
+[the Phone Exchange (PEX)](#the-phone-exchange-pex) instead, the voice firmware.
 
 ## Get the firmware
 
@@ -73,8 +73,8 @@ Options:
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (default), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` is the one tested on hardware. `SSD1306_SPI` and `SSD1306_I2C` build, but are **not tested** on hardware. `SSD1306_I2C` uses I2C0 with SDA on GP4, SCL on GP5 and address 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (default), `OFF` | Rotates the picture 180 degrees. `ON` is right for the [breadboard layout](../../hardware/breadboard/README.md); `OFF` for a screen mounted the other way round. Both are tested. |
-| `DS_FIRMWARE` | `CABLE_QR` (default), `CENTRALITA` | `CABLE_QR` builds `dtmf-signer-pico.uf2`, this page's firmware. `CENTRALITA` builds `dtmf-signer-centralita.uf2`, the voice firmware: see [The Centralita](#the-centralita). |
-| `DS_LINE_DEBUG` | `OFF` (default), `ON` | Centralita only, a bench aid: once a second the USB echo gives the line's level and what the receiver has heard. Never in a release. |
+| `DS_FIRMWARE` | `CABLE_QR` (default), `PEX` | `CABLE_QR` builds `dtmf-signer-pico.uf2`, this page's firmware. `PEX` builds `dtmf-signer-pex.uf2`, the voice firmware: see [The Phone Exchange (PEX)](#the-phone-exchange-pex). |
+| `DS_LINE_DEBUG` | `OFF` (default), `ON` | PEX only, a bench aid: once a second the USB echo gives the line's level and what the receiver has heard. Never in a release. |
 
 ## Power
 
@@ -156,10 +156,10 @@ where it would need its own stack. The minimum free stack seen was 2692 of
 8192 bytes, in the review and the signing; static RAM (`.data` and `.bss`) is
 about 116 KB of 264 KB.
 
-## The Centralita
+## The Phone Exchange (PEX)
 
 The voice firmware (profile
-[`PROFILE-PHONE`](../../docs/catalog.md#profile-phone--phone-exchange-centralita)):
+[`PROFILE-PHONE`](../../docs/catalog.md#profile-phone--phone-exchange-pex)):
 a tone telephone is the whole interface. It has no screen or buttons. The
 signer powers the telephone line, speaks into it and hears the keys and the
 wallet's tones on it. The logic is `app/ds_voice`, the same that runs in the
@@ -167,8 +167,8 @@ website's simulator; [`voice_main.c`](voice_main.c) is the hardware around
 it.
 
 ```bash
-cmake -S ports/pico -B build-centralita -DPICO_SDK_PATH=<path to the Pico SDK 2.3.1> -DDS_FIRMWARE=CENTRALITA
-cmake --build build-centralita
+cmake -S ports/pico -B build-pex -DPICO_SDK_PATH=<path to the Pico SDK 2.3.1> -DDS_FIRMWARE=PEX
+cmake --build build-pex
 ```
 
 It links libspeex without its encoder (`speex_nb_dec`) and the built-in
@@ -183,11 +183,11 @@ flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)):
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 picotool load es.uf2
-picotool load -x build-centralita/dtmf-signer-centralita.uf2
+picotool load -x build-pex/dtmf-signer-pex.uf2
 ```
 
 Both loads need BOOTSEL, as above. With more than one language, the
-Centralita lists them when the handset is lifted.
+PEX lists them when the handset is lifted.
 
 ### The line
 
@@ -258,7 +258,7 @@ ahead (`DS_VOICE_OUT_DELAY_MS` is 40). The minimum free stack seen was 2.8 KB
 of 8 KB, in the review; static RAM is about 129 KB of 264 KB, flash about
 555 KB.
 
-### What is tested (Centralita)
+### What is tested (PEX)
 
 On a breadboard with an old tone telephone (no handset, a pair of wired
 earbuds as its earpiece): the menus and the language list, the hook flash

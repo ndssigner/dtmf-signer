@@ -359,7 +359,7 @@ procesador; sus riesgos; los vectores que la comprueban.
   Raspberry Pi Pico. Su firmware (`ports/pico`) está probado en una protoboard.
 - `PROFILE-PICO-FULL` — **Pico completo:** la placa de
   [`docs/hardware-minimo.md`](../hardware-minimo.md).
-- `PROFILE-PHONE` — **Centralita (Phone exchange):** una Pico y un teléfono
+- `PROFILE-PHONE` — **Centralita (Phone Exchange, PEX):** una Pico y un teléfono
   de tonos como interfaz entera: locuciones en el auricular, el teclado
   como entrada, el auricular como acoplador acústico, un colgado para
   confirmar. Sin pantalla y sin botones.

@@ -1,4 +1,4 @@
-// The Centralita's simulator on its page: the telephone (keypad, handset,
+// The PEX's simulator on its page: the telephone (keypad, handset,
 // R key, a Type code button that dials the wallet's keypad code as a
 // person's fingers would), its earpiece on the speakers of this computer,
 // you listening to the voice, the wallet held to the handset (simulated, or

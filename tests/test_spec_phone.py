@@ -1,4 +1,4 @@
-"""The phone-exchange build ("Centralita") is described in the spec and the catalog."""
+"""The Phone Exchange (PEX) build is described in the spec and the catalog."""
 
 import re
 import unittest

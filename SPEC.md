@@ -346,7 +346,7 @@ class; its risks; the vectors that check it.
   Raspberry Pi Pico. Its firmware (`ports/pico`) is tested on a breadboard.
 - `PROFILE-PICO-FULL` — **Full Pico:** the board in
   [`docs/hardware-minimo.md`](docs/hardware-minimo.md).
-- `PROFILE-PHONE` — **Phone exchange (Centralita):** a Pico and a tone
+- `PROFILE-PHONE` — **Phone Exchange (PEX):** a Pico and a tone
   telephone as the whole interface: voice prompts in the earpiece, the
   keypad for input, the handset as an acoustic coupler, a hang-up to
   confirm. No screen and no buttons.

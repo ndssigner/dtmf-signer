@@ -1,4 +1,4 @@
-// The Centralita end to end on the real voice firmware, driven like a
+// The PEX end to end on the real voice firmware, driven like a
 // person with a tone telephone: the public test seed 00…00 typed on the
 // keypad, the vector's PSBT played by a wallet next to the handset (air
 // pace), the review heard item by item, a hook flash, and the signed PSBT

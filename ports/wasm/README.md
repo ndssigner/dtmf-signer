@@ -30,7 +30,7 @@ drawing animates), and `dsw_picker_cell` for the tests. See `main.c`.
 ## The voice module
 
 `tools/build-wasm.sh` also builds `build/wasm/dtmf-signer-voice.mjs`: the
-screenless phone build (`app/ds_voice`, the Centralita) with the same
+screenless phone build (`app/ds_voice`, the Phone Exchange or PEX) with the same
 options. JavaScript only moves what a telephone line would carry: the hook
 (`dvw_hook`), the clock (`dvw_advance`), the samples in and out at 16 kHz
 (`dvw_in_buf` and `dvw_in`, `dvw_out_buf` and `dvw_out`) and the pack region

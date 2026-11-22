@@ -1,4 +1,4 @@
-// The Centralita's simulator, without any page: the telephone around the
+// The PEX's simulator, without any page: the telephone around the
 // voice firmware (ports/wasm/voice.c). It does only what the hardware
 // around the signer does. The telephone: its keypad (a dialler's DTMF,
 // 100 ms of the key's pair at -10 dBFS each), its hook, its handset

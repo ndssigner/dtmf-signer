@@ -8,8 +8,8 @@ hardware que los rodea (ADC y DMA, pantalla, botones, el eco por USB). El
 perfil es
 [`PROFILE-PICO-REF`](../../docs/es/catalogo.md#profile-pico-ref--referencia-pico)
 y los tiempos medidos en esta placa están en el
-[catálogo](../../docs/es/catalogo.md). Con `DS_FIRMWARE=CENTRALITA` compila en
-su lugar [la Centralita](#la-centralita), el firmware de voz.
+[catálogo](../../docs/es/catalogo.md). Con `DS_FIRMWARE=PEX` compila en
+su lugar [la Centralita](#la-centralita-pex), el firmware de voz.
 
 ## Conseguir el firmware
 
@@ -75,8 +75,8 @@ Opciones:
 | --- | --- | --- |
 | `DS_DISPLAY` | `SH1106_SPI` (por defecto), `SSD1306_SPI`, `SSD1306_I2C` | `SH1106_SPI` es la probada en hardware. `SSD1306_SPI` y `SSD1306_I2C` compilan, pero **no están probadas** en hardware. `SSD1306_I2C` usa I2C0 con SDA en GP4, SCL en GP5 y la dirección 0x3C. |
 | `DS_DISPLAY_FLIP` | `ON` (por defecto), `OFF` | Gira la imagen 180 grados. `ON` es lo correcto para la [disposición en protoboard](../../hardware/breadboard/README.es.md); `OFF`, para una pantalla montada al revés. Las dos están probadas. |
-| `DS_FIRMWARE` | `CABLE_QR` (por defecto), `CENTRALITA` | `CABLE_QR` compila `dtmf-signer-pico.uf2`, el firmware de esta página. `CENTRALITA` compila `dtmf-signer-centralita.uf2`, el firmware de voz: ver [La Centralita](#la-centralita). |
-| `DS_LINE_DEBUG` | `OFF` (por defecto), `ON` | Solo la Centralita, una ayuda de banco: cada segundo, el eco por USB da el nivel de la línea y lo que ha oído el receptor. Nunca en una versión publicada. |
+| `DS_FIRMWARE` | `CABLE_QR` (por defecto), `PEX` | `CABLE_QR` compila `dtmf-signer-pico.uf2`, el firmware de esta página. `PEX` compila `dtmf-signer-pex.uf2`, el firmware de voz: ver [La Centralita](#la-centralita-pex). |
+| `DS_LINE_DEBUG` | `OFF` (por defecto), `ON` | Solo la Centralita (PEX), una ayuda de banco: cada segundo, el eco por USB da el nivel de la línea y lo que ha oído el receptor. Nunca en una versión publicada. |
 
 ## Alimentación
 
@@ -162,10 +162,10 @@ algo se coloca donde necesitaría su propia pila. La pila libre mínima vista
 fue de 2692 de 8192 bytes, en la revisión y la firma; la RAM estática (`.data`
 y `.bss`) es de unos 116 KB de 264 KB.
 
-## La Centralita
+## La Centralita (PEX)
 
 El firmware de voz (perfil
-[`PROFILE-PHONE`](../../docs/es/catalogo.md#profile-phone--centralita-phone-exchange)):
+[`PROFILE-PHONE`](../../docs/es/catalogo.md#profile-phone--centralita-phone-exchange-pex)):
 un teléfono de tonos es toda la interfaz. No tiene pantalla ni botones. El
 firmador alimenta la línea telefónica, habla por ella y oye en ella las
 teclas y los tonos de la cartera. La lógica es `app/ds_voice`, la misma que
@@ -173,8 +173,8 @@ corre en el simulador de la web; [`voice_main.c`](voice_main.c) es el
 hardware que la rodea.
 
 ```bash
-cmake -S ports/pico -B build-centralita -DPICO_SDK_PATH=<ruta al SDK de la Pico 2.3.1> -DDS_FIRMWARE=CENTRALITA
-cmake --build build-centralita
+cmake -S ports/pico -B build-pex -DPICO_SDK_PATH=<ruta al SDK de la Pico 2.3.1> -DDS_FIRMWARE=PEX
+cmake --build build-pex
 ```
 
 Enlaza libspeex sin su codificador (`speex_nb_dec`) y las locuciones en
@@ -190,7 +190,7 @@ firmware, en el desplazamiento de 1 MB de la flash (ver
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 picotool load es.uf2
-picotool load -x build-centralita/dtmf-signer-centralita.uf2
+picotool load -x build-pex/dtmf-signer-pex.uf2
 ```
 
 Las dos cargas necesitan BOOTSEL, como arriba. Con más de un idioma, la

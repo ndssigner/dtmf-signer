@@ -36,7 +36,7 @@ jobs:
       - name: Tests of the checker
         run: python3 -m unittest discover -s tests -p 'test_check_docs.py' -v
       # The core workflow skips Markdown-only changes, so the spec and the
-      # catalog's Centralita checks run here too.
+      # catalog's PEX checks run here too.
       - name: The phone build in the spec and the catalog
         run: python3 -m unittest discover -s tests -p 'test_spec_phone.py' -v
       - name: Links, anchors and English/Spanish parity

@@ -186,8 +186,8 @@
       "hardware": "hardware/phone",
       "files": [],
       "docs": {
-        "en": "docs/catalog.md#profile-phone--phone-exchange-centralita",
-        "es": "docs/es/catalogo.md#profile-phone--centralita-phone-exchange"
+        "en": "docs/catalog.md#profile-phone--phone-exchange-pex",
+        "es": "docs/es/catalogo.md#profile-phone--centralita-phone-exchange-pex"
       },
       "simulator": {
         "module": "dtmf-signer-voice.mjs",

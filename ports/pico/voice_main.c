@@ -1,5 +1,5 @@
-/* DTMF-Signer "Centralita" on the Raspberry Pi Pico (RP2040): a tone
- * telephone as the whole interface (DS_FIRMWARE=CENTRALITA).
+/* DTMF-Signer Phone Exchange (PEX) on the Raspberry Pi Pico (RP2040): a tone
+ * telephone as the whole interface (DS_FIRMWARE=PEX).
  *
  * The device logic is ds_voice (app/); this file is the hardware around it:
  *  - the ADC runs round-robin over the line-in (GP27) and the line's voltage

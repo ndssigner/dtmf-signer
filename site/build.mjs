@@ -262,7 +262,7 @@ ${donateBlock(site, tr, root)}`;
 }
 
 // The firmware as WebAssembly (tools/build-wasm.sh), when it has been built:
-// the screen build, and the voice build (the Centralita).
+// the screen build, and the voice build (the PEX).
 const WASM_DIR = join(HERE, "..", "build", "wasm");
 const simModule = (p) => p.simulator?.module ?? "dtmf-signer.mjs";
 const PHRASES = join(HERE, "..", "tools", "voice", "phrases.json");
@@ -274,7 +274,7 @@ const SIM_KEYS = ["sim.unavailable", "wallet.idle", "wallet.sending", "wallet.no
   "wallet.sig_ok", "wallet.sig_bad", "wallet.bytes", "card.sending", "card.what_seed", "card.what_psbt", "card.seed_title",
   "card.pin", "card.fp", "card.seed_note", "card.psbt_title", "card.send", "card.to", "card.change", "card.fee", "card.total", "card.psbt_note",
   "card.scan_ok", "card.scan_bad", "card.scan_qr", "card.size", "card.noqr_note", "card.listening", "card.listening_note"];
-// The Centralita's (voice-ui.mjs): the same wallet's card, by air.
+// The PEX's (voice-ui.mjs): the same wallet's card, by air.
 const VOICE_SIM_KEYS = ["sim.unavailable", "wallet.out", "wallet.change", "wallet.fee", "wallet.sig_ok", "wallet.sig_bad",
   "wallet.bytes", "wallet.no_broadcast", "wallet.got", "phone.lift", "phone.hang", "status.on_hook", "status.speaking",
   "status.tones", "status.air_in", "status.air_out", "status.keypad", "status.listening_line", "say.pin_char", "say.tones",
@@ -343,7 +343,7 @@ ${buttons}
 // edge; who runs the app is chosen inside it, the simulated wallet or your
 // own device (this computer's microphone hearing its speaker). The card
 // area shows what you need for what you just did (ui.mjs fills it).
-// Held to a telephone's handset (module.air, the Centralita): it plays and
+// Held to a telephone's handset (module.air, the PEX): it plays and
 // listens through the air, so its third action is Listen, not Scan; yours
 // is this computer's microphone and speakers in place of the handset's.
 function walletBody(tr, sim, module) {
@@ -400,7 +400,7 @@ function firstHint(tr, voice = false) {
     for (const [k, v] of Object.entries(params)) t = t.replaceAll(`{${k}}`, v);
     return `<li>${t}</li>`;
   };
-  // The Centralita: the telephone's keys, the wallet by the handset.
+  // The PEX: the telephone's keys, the wallet by the handset.
   const keys = { hash: "<b>#</b>", one: "<b>1</b>", two: "<b>2</b>", flash: "<b>R</b>", type: b("⌨", "phone.type"),
     seed: b("🌱", "wallet.act_seed"), pay: b("₿", "wallet.act_pay"), listen: b("👂", "wallet.listen"),
     // The test seed's keypad code: voice-ui.mjs fills it from what ⌨ Type code dials.

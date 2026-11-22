@@ -1,4 +1,4 @@
-/* DTMF-Signer "Centralita": the exchange's state machine. See ds_voice.h.
+/* DTMF-Signer Phone Exchange (PEX): the exchange's state machine. See ds_voice.h.
  *
  * Each state says its prompt in steps (say_step): a step is queued only
  * once the previous one has been played, so a step may change the voice

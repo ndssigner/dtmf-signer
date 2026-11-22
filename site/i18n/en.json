@@ -131,7 +131,7 @@
   "yw.scan": "Scan: a compatible wallet, e.g. Nunchuk",
   "yw.scan_tip": "A wallet that reads animated UR QR codes (crypto-psbt, crypto-account)",
   "sim.led": "The {board}'s own LED ({pin}): one flash per tone heard",
-  "profile.centralita.title": "Phone exchange",
+  "profile.centralita.title": "Phone Exchange (PEX)",
   "profile.centralita.lede": "No screen, no buttons: a tone telephone is the whole interface.",
   "bench.phone": "Tone telephone",
   "bench.tip.signer.line": "Telephone line (RJ11): powers the telephone, hears its keys and its microphone, speaks into its earpiece",

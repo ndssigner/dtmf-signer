@@ -32,7 +32,7 @@ add_custom_command(
   COMMENT "Generating speex_vector.h"
   VERBATIM)
 
-# The voice firmware (the Centralita telephone exchange) as a second module,
+# The voice firmware (the Phone Exchange, PEX) as a second module,
 # dtmf-signer-voice.mjs: JavaScript only moves the line samples, the hook and
 # the pack region. Memory cannot grow, so it is sized here: the English pack
 # (~700 KB of data), the 1 MB pack region, ds_voice (~80 KB), the buffers and

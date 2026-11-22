@@ -1,4 +1,4 @@
-/* The voice firmware (the "Centralita" telephone exchange) as WebAssembly:
+/* The voice firmware (the Phone Exchange, PEX) as WebAssembly:
  * the phone of the website's simulator.
  *
  * As in main.c, it is only what a board does: JavaScript hands it the hook
