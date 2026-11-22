@@ -3186,6 +3186,110 @@ static void test_no_prompt_decodes_to_a_dtmf_key(void)
     }
 }
 
+/* What the firmware's detector makes of x (16 kHz) begun `phase` samples
+ * after one of its 10 ms hops: runs of one key as held_key counts them
+ * (dropouts under 50 ms bridged). *onsets: tones begun (2 detections);
+ * returns the longest run, in detections (7, 70 ms, is a key). */
+static unsigned longest_run(const int16_t *x, size_t n, unsigned phase, unsigned *onsets)
+{
+    static ut_detector d;
+    static const int16_t zero[160];
+    ut_det det[64];
+    char run_key = 0;
+    unsigned run_n = 0, run_gap = 0, longest = 0;
+    ut_detector_init(&d, 16000);
+    *onsets = 0;
+    for (size_t at = 0, fed = 0; at < n + phase;) {
+        size_t c, used, k;
+        if (fed < phase) {
+            c = phase - fed < 160 ? phase - fed : 160;
+            k = ut_detector_push(&d, zero, c, &used, det, 64);
+            fed += used;
+            at += used;
+        } else {
+            c = n - (at - phase) < 1024 ? n - (at - phase) : 1024;
+            k = ut_detector_push(&d, x + (at - phase), c, &used, det, 64);
+            at += used;
+        }
+        for (size_t i = 0; i < k; i++) {
+            char key = det[i].key;
+            if (key == 0) {
+                if (++run_gap >= 5) {
+                    run_key = 0;
+                    run_n = 0;
+                }
+                continue;
+            }
+            run_n = key == run_key ? run_n + 1 : 1;
+            run_key = key;
+            run_gap = 0;
+            if (run_n == 2)
+                (*onsets)++;
+            if (run_n > longest)
+                longest = run_n;
+        }
+    }
+    return longest;
+}
+
+/* Every clip of both packs and every motif, through ds_say at 16 kHz,
+ * begun at every sample of the detector's 10 ms hop (160 alignments: all
+ * there are, the 8 kHz decimation included): none ever sounds as a key
+ * (70 ms of one tone). A few begin a tone for a moment at some alignments
+ * (test_no_prompt_decodes_to_a_dtmf_key sees only one): the signer then
+ * pauses and goes on (test_barge_in_no_key_lets_it_go_on). Their number
+ * is held under a ceiling, so a voice that makes it much worse fails. */
+#define ONSET_PAIRS_CEILING 250 /* 180 pairs (12 sounds) when written */
+static void test_no_prompt_makes_a_key_at_any_alignment(void)
+{
+    static ds_pack packs[2];
+    static ds_say s;
+    static int16_t buf[16000 * 40];
+    unsigned pairs = 0, onset_pairs = 0, keys = 0, sounds = 0, onset_sounds = 0, worst = 0;
+    CHECK_EQ_INT(ds_pack_open(&packs[0], ds_pack_en, ds_pack_en_len), DS_OK);
+    CHECK_EQ_INT(ds_pack_open(&packs[1], es_bin, ES_BIN_LEN), DS_OK);
+    for (int k = 0; k < 3; k++) {
+        unsigned count = k < 2 ? DS_P_COUNT : DS_EAR_LAST + 1u;
+        for (unsigned id = k < 2 ? 0u : (unsigned)DS_EAR_NOTICE; id < count; id++) {
+            size_t n = 0;
+            int with_onset = 0;
+            ds_say_init(&s, &packs[k < 2 ? k : 0]);
+            if (k < 2)
+                ds_say_clip(&s, (uint16_t)id);
+            else
+                CHECK_EQ_INT(ds_say_earcon(&s, (int)id), DS_OK);
+            while (ds_say_busy(&s) && n < sizeof buf / sizeof buf[0])
+                n += ds_say_read(&s, buf + n, CHUNK);
+            CHECK(!ds_say_busy(&s));
+            sounds++;
+            for (unsigned phase = 0; phase < 160; phase++) {
+                unsigned onsets;
+                unsigned longest = longest_run(buf, n, phase, &onsets);
+                pairs++;
+                if (longest > worst)
+                    worst = longest;
+                if (onsets > 0) {
+                    onset_pairs++;
+                    with_onset = 1;
+                }
+                if (longest >= 7) {
+                    printf("%s %s at alignment %u sounds as a key (%u ms)\n",
+                           k < 2 ? ds_prompt_name[id] : "motif", k < 2 ? packs[k].lang : "",
+                           phase, longest * 10);
+                    keys++;
+                }
+            }
+            onset_sounds += with_onset;
+        }
+    }
+    printf("talk-off: %u sounds x 160 alignments: %u begin a tone (%u sounds), "
+           "longest %u ms, %u keys\n",
+           sounds, onset_pairs, onset_sounds, worst * 10, keys);
+    CHECK(pairs > 160u * 2u * 100u);
+    CHECK_EQ_INT(keys, 0);
+    CHECK(onset_pairs <= ONSET_PAIRS_CEILING);
+}
+
 /* ---- the melodic motifs ---- */
 
 static const unsigned dtmf_hz[8] = {697, 770, 852, 941, 1209, 1336, 1477, 1633};
@@ -3309,5 +3413,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_pack_v3_opens_and_says_a_clip, test_pack_v2_is_rejected,
           test_pack_frame_length_out_of_range_is_rejected,
           test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,
+          test_no_prompt_makes_a_key_at_any_alignment,
           test_motifs_stay_clear_of_dtmf, test_motif_lengths,
           test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct)
