@@ -3336,6 +3336,129 @@ static void test_no_prompt_makes_a_key_at_any_alignment(void)
     CHECK(onset_pairs <= ONSET_PAIRS_CEILING);
 }
 
+/* A sound (a clip of pack k < 2, or a motif when k == 2) at 16 kHz. */
+static size_t render_sound(ds_pack *packs, int k, unsigned id, int16_t *out, size_t cap)
+{
+    static ds_say s;
+    size_t n = 0;
+    ds_say_init(&s, &packs[k < 2 ? k : 0]);
+    if (k < 2)
+        ds_say_clip(&s, (uint16_t)id);
+    else
+        ds_say_earcon(&s, (int)id);
+    while (ds_say_busy(&s) && n + CHUNK <= cap)
+        n += ds_say_read(&s, out + n, CHUNK);
+    return n;
+}
+
+/* The barge-in itself, with the speech's own sound: each sound that can
+ * begin a tone, played as the signer's voice at every alignment of its
+ * listener; when it mutes, the sound goes on for DS_VOICE_OUT_DELAY_MS
+ * (what the line-out still held), then stops. It never makes a key. */
+static void test_own_voice_through_the_mute_is_no_key(void)
+{
+    static ds_pack packs[2];
+    static int16_t buf[16000 * 40], in[16000 * 41];
+    unsigned trials = 0, muted = 0, keys = 0;
+    CHECK_EQ_INT(ds_pack_open(&packs[0], ds_pack_en, ds_pack_en_len), DS_OK);
+    CHECK_EQ_INT(ds_pack_open(&packs[1], es_bin, ES_BIN_LEN), DS_OK);
+    to_menu(&L);
+    CHECK_EQ_INT(ds_say_pause(&L.v.say, 60000), DS_OK); /* speaking: silence */
+    run_ms(&L, 100);
+    CHECK(ds_voice_speaking(&L.v));
+    save_line(&L);
+    for (int k = 0; k < 3; k++) {
+        unsigned count = k < 2 ? DS_P_COUNT : DS_EAR_LAST + 1u;
+        for (unsigned id = k < 2 ? 0u : (unsigned)DS_EAR_NOTICE; id < count; id++) {
+            size_t n = render_sound(packs, k, id, buf, sizeof buf / sizeof buf[0]);
+            unsigned onsets = 0, any = 0;
+            for (unsigned phase = 0; phase < 160 && !any; phase++) {
+                (void)longest_run(buf, n, phase, &onsets);
+                any = onsets > 0;
+            }
+            if (!any)
+                continue;
+            for (unsigned pad = 0; pad < 160; pad++) {
+                size_t total = (pad + n + 16000 / 2 + CHUNK - 1) / CHUNK * CHUNK;
+                size_t cut = SIZE_MAX;
+                uint32_t k0 = ds_voice_keys(&L.v);
+                memset(in, 0, total * sizeof in[0]);
+                memcpy(in + pad, buf, n * sizeof buf[0]);
+                for (size_t at = 0; at < total; at += CHUNK) {
+                    if (cut != SIZE_MAX)
+                        for (size_t i = at; i < at + CHUNK; i++)
+                            if (i >= cut)
+                                in[i] = 0;
+                    step(&L, in + at);
+                    if (cut == SIZE_MAX && L.v.muted)
+                        cut = at + CHUNK + DS_VOICE_OUT_DELAY_MS * 16u;
+                }
+                trials++;
+                muted += cut != SIZE_MAX;
+                if (ds_voice_keys(&L.v) != k0) {
+                    printf("%s %s +%u: its own voice made a key\n",
+                           k < 2 ? ds_prompt_name[id] : "motif", k < 2 ? packs[k].lang : "", pad);
+                    keys++;
+                }
+                restore_line(&L);
+            }
+        }
+    }
+    printf("own voice through the mute: %u tries, %u muted, %u keys\n", trials, muted, keys);
+    CHECK(trials >= 160);
+    CHECK(muted > 0);
+    CHECK_EQ_INT(keys, 0);
+}
+
+/* Where one sound runs into the next (clip to clip in each pack, clip to
+ * motif and back), with no pause between: the last and first 100 ms of
+ * each ordered pair, at an alignment that turns with the pair. No join
+ * sounds as a key. */
+static void test_no_join_makes_a_key(void)
+{
+    enum { EDGE = 1600, MAXS = DS_P_COUNT * 2 + DS_EAR_LAST + 1 };
+    static ds_pack packs[2];
+    static int16_t buf[16000 * 40], head[MAXS][EDGE], tail[MAXS][EDGE], join[2 * EDGE];
+    static size_t hn[MAXS], tn[MAXS];
+    static int pack_of[MAXS];
+    unsigned m = 0, joins = 0, keys = 0, worst = 0;
+    CHECK_EQ_INT(ds_pack_open(&packs[0], ds_pack_en, ds_pack_en_len), DS_OK);
+    CHECK_EQ_INT(ds_pack_open(&packs[1], es_bin, ES_BIN_LEN), DS_OK);
+    for (int k = 0; k < 3; k++) {
+        unsigned count = k < 2 ? DS_P_COUNT : DS_EAR_LAST + 1u;
+        for (unsigned id = k < 2 ? 0u : (unsigned)DS_EAR_NOTICE; id < count; id++) {
+            size_t n = render_sound(packs, k, id, buf, sizeof buf / sizeof buf[0]);
+            if (n == 0)
+                continue;
+            hn[m] = n < EDGE ? n : EDGE;
+            tn[m] = hn[m];
+            memcpy(head[m], buf, hn[m] * sizeof buf[0]);
+            memcpy(tail[m], buf + n - tn[m], tn[m] * sizeof buf[0]);
+            pack_of[m] = k;
+            m++;
+        }
+    }
+    for (unsigned a = 0; a < m; a++) {
+        for (unsigned b = 0; b < m; b++) {
+            /* within one voice: a pack's clips, and the motifs with either */
+            if (pack_of[a] < 2 && pack_of[b] < 2 && pack_of[a] != pack_of[b])
+                continue;
+            unsigned onsets;
+            memcpy(join, tail[a], tn[a] * sizeof join[0]);
+            memcpy(join + tn[a], head[b], hn[b] * sizeof join[0]);
+            unsigned r = longest_run(join, tn[a] + hn[b], (a * 7u + b * 13u) % 160u, &onsets);
+            joins++;
+            if (r > worst)
+                worst = r;
+            if (r >= 7)
+                keys++;
+        }
+    }
+    printf("joins: %u, longest %u ms, %u keys\n", joins, worst * 10, keys);
+    CHECK(joins > 50000);
+    CHECK_EQ_INT(keys, 0);
+}
+
 /* ---- the melodic motifs ---- */
 
 static const unsigned dtmf_hz[8] = {697, 770, 852, 941, 1209, 1336, 1477, 1633};
@@ -3461,5 +3584,6 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_pack_frame_length_out_of_range_is_rejected,
           test_pack_clip_past_end_is_rejected, test_no_prompt_decodes_to_a_dtmf_key,
           test_no_prompt_makes_a_key_at_any_alignment,
+          test_own_voice_through_the_mute_is_no_key, test_no_join_makes_a_key,
           test_motifs_stay_clear_of_dtmf, test_motif_lengths,
           test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct)
