@@ -66,6 +66,10 @@ target_link_libraries(test_app PRIVATE dtmf_app)
 ds_add_test(test_adc_ring)
 target_sources(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico/adc_ring.c)
 target_include_directories(test_adc_ring PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico)
+# Its voice firmware's line I/O (the hook, the output queue): likewise.
+ds_add_test(test_line_io)
+target_sources(test_line_io PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico/line_io.c)
+target_include_directories(test_line_io PRIVATE ${PROJECT_SOURCE_DIR}/ports/pico)
 
 # Not a test: prints the device's screens for docs/screens.md
 # (tools/render_screens.py turns them into PNG files).
