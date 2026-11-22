@@ -23,12 +23,12 @@ test("the downloads page lists each build: firmware or not yet, packs with hash,
   for (const lang of ["en", "es"]) {
     const html = text(files, `${lang}/downloads/index.html`);
     const sec = (slug) => new RegExp(`<section class="dl-build" id="${slug}">([\\s\\S]*?)</section>`).exec(html)?.[1];
-    const a = sec("cable-qr"), c = sec("centralita");
+    const a = sec("cable-qr"), c = sec("pex");
     assert.ok(a && c, lang);
     assert.ok(a.includes(`${REL}dtmf-signer-pico.uf2`), lang);
     assert.match(a, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
     assert.ok(!c.includes("dtmf-signer-pico.uf2"), lang);
-    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/centralita\/status\/">/, lang);
+    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/pex\/status\/">/, lang);
     const row = /<li class="pack">([\s\S]*?)<\/li>/.exec(c);
     assert.equal(/<code class="sha">([0-9a-f]{64})<\/code>/.exec(row?.[1])?.[1], sha, lang);
     assert.ok(row[1].includes(`${Math.round(bytes.length / 1024)} KiB`), lang);
@@ -54,16 +54,16 @@ test("a build's downloads tab: the release firmware when it has one", () => {
     assert.ok(html.includes(`href="${REL}dtmf-signer-pico.uf2"`), lang);
     assert.ok(html.includes(`href="${REL}SHA256SUMS"`), lang);
     assert.match(html, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
-    const c = text(files, `${lang}/centralita/downloads/index.html`);
+    const c = text(files, `${lang}/pex/downloads/index.html`);
     assert.ok(!c.includes(`${REL}dtmf-signer-pico.uf2`), lang);
-    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/centralita\/status\/">/, lang);
+    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, lang);
   }
 });
 test("the PEX's downloads tab: its voice pack, with size and full SHA-256", () => {
   const bytes = readFileSync(new URL("../../app/voice/packs/es.bin", import.meta.url));
   const sha = createHash("sha256").update(bytes).digest("hex");
   for (const [lang, check] of [["en", "Check it before installing it"], ["es", "Compruébalo antes de instalarlo"]]) {
-    const html = text(files, `${lang}/centralita/downloads/index.html`);
+    const html = text(files, `${lang}/pex/downloads/index.html`);
     const row = /<li class="pack">([\s\S]*?)<\/li>/.exec(html);
     assert.ok(row, lang);
     assert.match(row[1], /href="[^"]*es\.bin"[^>]*>es\.bin</);

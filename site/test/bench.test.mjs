@@ -69,11 +69,11 @@ test("the signer's LED needs a pin and a board", () => {
   assert.ok(validateBench(p.bench).some((e) => e.includes("led")));
 });
 
-const centralita = () => structuredClone(JSON.parse(readFileSync(CONFIG, "utf8")).profiles.find((p) => p.slug === "centralita"));
+const pex = () => structuredClone(JSON.parse(readFileSync(CONFIG, "utf8")).profiles.find((p) => p.slug === "pex"));
 const portOf = (b, id) => { const [m, p] = id.split("."); return b.modules.find((x) => x.id === m).ports.find((x) => x.id === p); };
 
 test("sound through the air is its own port type; the telephone line stays phone", () => {
-  const p = centralita();
+  const p = pex();
   assert.deepEqual(validateBench(p.bench), []);
   for (const id of ["phone.mic", "phone.ear", "wallet.speaker-near", "wallet.mic-near", "you.ear-in"])
     assert.equal(portOf(p.bench, id).type, "air", id);
@@ -82,7 +82,7 @@ test("sound through the air is its own port type; the telephone line stays phone
   for (const m of p.bench.modes) for (const l of m.links) assert.equal(l.external, undefined, "the port's type says it, not a flag");
 });
 test("an air port linked to an audio port is refused", () => {
-  const p = centralita();
+  const p = pex();
   const wallet = p.bench.modules.find((m) => m.id === "wallet");
   wallet.ports.find((x) => x.id === "speaker-near").type = "audio";
   assert.ok(validateBench(p.bench).some((e) => /audio to air/.test(e)), validateBench(p.bench).join("\n"));
@@ -102,7 +102,7 @@ test("a bench may turn to stacked at its own width (the PEX's has four modules s
   assert.equal(orientationFor(790, 820), "v");
   assert.equal(orientationFor(830, 820), "h");
   assert.equal(orientationFor(730), "h");
-  const p = centralita();
+  const p = pex();
   assert.ok(p.bench.turn >= 720, "the PEX turns wider");
   assert.ok(p.bench.modules.some((m) => m.column === "far"), "you and the wallet beyond the telephone");
 });

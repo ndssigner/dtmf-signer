@@ -15,9 +15,9 @@ test("Cable y QR's gallery links its two videos of real builds, opened elsewhere
   }
 });
 test("a build without pictures yet says so and points at its status", () => {
-  const html = text(files, "es/centralita/gallery/index.html");
+  const html = text(files, "es/pex/gallery/index.html");
   assert.doesNotMatch(html, /<ul class="gallery">/);
-  assert.match(html, /class="not-yet"[\s\S]*href="[^"]*centralita\/status\/"/);
+  assert.match(html, /class="not-yet"[\s\S]*href="[^"]*pex\/status\/"/);
 });
 test("a photo with metadata (EXIF, GPS, text chunks) is refused; a clean one passes", () => {
   const jpegClean = Uint8Array.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x04, 0, 0, 0xff, 0xd9]);

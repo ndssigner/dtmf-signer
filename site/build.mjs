@@ -10,7 +10,7 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadSite, t } from "./lib/i18n.mjs";
 import { escapeHtml, renderMarkdown } from "./lib/markdown.mjs";
-import { layout, rootPage, specHref, translator } from "./lib/page.mjs";
+import { CSP, layout, rootPage, specHref, translator } from "./lib/page.mjs";
 import { bomTable, parseCsv } from "./lib/bom.mjs";
 import { parseStatus, renderStageDots, renderStatusSequence } from "./lib/status.mjs";
 import { galleryList, photoMetadata, photoHref } from "./lib/gallery.mjs";
@@ -93,6 +93,21 @@ ${sib.map((x) => `<li><a href="${escapeHtml(x.href)}" rel="noopener noreferrer">
     ? `<div class="prose">\n${html.slice(0, cut)}\n</div>\n<div class="origin-row">\n<div class="prose">\n${html.slice(cut)}\n</div>\n${aside}\n</div>`
     : `<div class="prose">\n${html}\n</div>`;
   return { title: "DTMF-Signer", body: `${hero}${builds}${prose}\n${donateBlock(site, tr, "../")}`, fallback };
+}
+
+// A page left at a build's old address: it sends the visitor on to the
+// new one (from <lang>/<from> to <lang>/<to>, both ending in /), and asks
+// search engines not to index it.
+export function movedPage(from, to) {
+  const href = escapeHtml("../".repeat(from.split("/").filter(Boolean).length) + to);
+  return `<!doctype html>
+<html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${CSP}">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=${href}">
+<title>DTMF-Signer</title></head>
+<body><p><a href="${href}">${href}</a></p></body></html>
+`;
 }
 
 // The tabs of a build, each its own page under <lang>/<slug>/: the
@@ -605,6 +620,9 @@ export function build({ siteDir, outDir, commit }) {
     page("", (tr) => homePage(site, lang, tr));
     if (site.config.release) page("downloads/", (tr) => downloadsPage(site, lang, tr, "../../"));
     for (const p of site.config.profiles) buildPages(site, lang, p, page);
+    // A build's old addresses (moved_from) still lead to it, tab by tab.
+    for (const p of site.config.profiles) for (const old of p.moved_from ?? [])
+      for (const [tab] of TABS) files.set(`${lang}/${old}/${tab}index.html`, Buffer.from(movedPage(`${old}/${tab}`, `${p.slug}/${tab}`)));
   }
 
   rmSync(outDir, { recursive: true, force: true });

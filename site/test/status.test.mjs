@@ -31,7 +31,7 @@ const files = buildInto();
 // The class each state of status.json gets on the page.
 const CLASS = { done: "done", doing: "wip", planned: "planned", na: "na" };
 test("the status tab shows each part as a sequence of stages, translated, with notes and links", () => {
-  for (const [b, dir] of [["cable-qr", "breadboard"], ["centralita", "phone"]]) {
+  for (const [b, dir] of [["cable-qr", "breadboard"], ["pex", "phone"]]) {
     const status = JSON.parse(readFileSync(new URL(`../../hardware/${dir}/status.json`, import.meta.url), "utf8"));
     const html = text(files, `es/${b}/status/index.html`);
     const lists = [...html.matchAll(/<ol class="stages">([\s\S]*?)<\/ol>/g)].map((m) => m[1]);

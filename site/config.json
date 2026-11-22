@@ -177,7 +177,8 @@
     },
     {
       "id": "PROFILE-PHONE",
-      "slug": "centralita",
+      "slug": "pex",
+      "moved_from": ["centralita"],
       "talks": [
         "tone_phone",
         "voice",

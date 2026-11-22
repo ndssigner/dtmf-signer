@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { buildInto, brokenLinks, text, SITE } from "./helpers.mjs";
 
 const files = buildInto();
-const BUILDS = ["cable-qr", "centralita"];
+const BUILDS = ["cable-qr", "pex"];
 // "" is the simulator's tab (▶ Try it), at the build's own address.
 const TABS = ["", "what/", "parts/", "build/", "gallery/", "status/", "downloads/"];
 const URTONES = { spec: "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md", web: "https://ndssigner.github.io/ur-tones/" };
@@ -26,14 +26,14 @@ test("each tab page marks exactly one tab as the current one, its own", () => {
 });
 test("language switch keeps the tab", () => {
   assert.match(text(files, "en/cable-qr/parts/index.html"), /href="\.\.\/\.\.\/\.\.\/es\/cable-qr\/parts\/" hreflang="es"/);
-  assert.match(text(files, "es/centralita/status/index.html"), /href="\.\.\/\.\.\/\.\.\/en\/centralita\/status\/" hreflang="en"/);
+  assert.match(text(files, "es/pex/status/index.html"), /href="\.\.\/\.\.\/\.\.\/en\/pex\/status\/" hreflang="en"/);
 });
 test("the build's header: pictogram, title, one line", () => {
   const html = text(files, "es/cable-qr/what/index.html");
   assert.match(html, /<img src="\.\.\/\.\.\/\.\.\/img\/builds\/cable-qr\.svg" alt="">/);
   assert.match(html, /<h1>Cable y QR<\/h1>/);
   assert.match(html, /<p class="lede">Escucha por cable/);
-  assert.match(text(files, "en/centralita/index.html"), /img\/builds\/centralita\.svg/);
+  assert.match(text(files, "en/pex/index.html"), /img\/builds\/pex\.svg/);
 });
 test("the pictograms: small line drawings, no text", () => {
   for (const b of BUILDS) {
@@ -62,8 +62,8 @@ test("the build tab shows the layout and offers its files", () => {
 });
 test("a build with no parts list or layout yet says so and points at its status", () => {
   for (const t of ["parts", "build"]) {
-    const html = text(files, `es/centralita/${t}/index.html`);
-    assert.match(html, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/centralita\/status\/">/, t);
+    const html = text(files, `es/pex/${t}/index.html`);
+    assert.match(html, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, t);
     assert.doesNotMatch(html, /<table class="bom">/);
   }
 });
@@ -93,4 +93,18 @@ test("the home page lists the build", () => {
 });
 test("links still resolve", () => {
   assert.deepEqual(brokenLinks(files), []);
+});
+
+// A build's old address (moved_from in config.json) still leads to it: each
+// of its tabs, in each language, a page that sends the visitor on.
+test("the PEX's old address, /centralita/, sends each tab on to /pex/", () => {
+  for (const lang of ["en", "es"]) for (const t of TABS) {
+    const path = `${lang}/centralita/${t}index.html`;
+    assert.ok(files.has(path), path);
+    const html = text(files, path);
+    const to = `${"../".repeat(1 + t.split("/").filter(Boolean).length)}pex/${t}`;
+    assert.match(html, new RegExp(`<meta http-equiv="refresh" content="0; url=${to.replace(/\./g, "\\.")}">`), path);
+    assert.match(html, new RegExp(`<a href="${to.replace(/\./g, "\\.")}">`), path);
+    assert.match(html, /<meta name="robots" content="noindex">/, path);
+  }
 });

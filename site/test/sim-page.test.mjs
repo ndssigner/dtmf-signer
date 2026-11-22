@@ -191,10 +191,10 @@ test("side by side, the port labels stand upright in the blocks' side margins", 
 // ---- the PEX (the voice build) ----
 const VOICE_SKIP = existsSync(new URL("../../build/wasm/dtmf-signer-voice.mjs", import.meta.url)) || REQUIRED
   ? false : "build/wasm/dtmf-signer-voice.mjs missing: run tools/build-wasm.sh";
-const voiceData = (lang) => JSON.parse(/<script type="application\/json" id="sim-data">([\s\S]*?)<\/script>/.exec(text(files, `${lang}/centralita/index.html`))[1]);
+const voiceData = (lang) => JSON.parse(/<script type="application\/json" id="sim-data">([\s\S]*?)<\/script>/.exec(text(files, `${lang}/pex/index.html`))[1]);
 
-test("/es/centralita/ has the phone keypad and handset, no screen, its profile", { skip: VOICE_SKIP }, () => {
-  const html = text(files, "es/centralita/index.html");
+test("/es/pex/ has the phone keypad and handset, no screen, its profile", { skip: VOICE_SKIP }, () => {
+  const html = text(files, "es/pex/index.html");
   const keys = [...html.matchAll(/data-key="([0-9*#])"/g)].map((m) => m[1]);
   assert.deepEqual(keys.sort(), [..."#*0123456789"].sort());
   assert.match(html, /<button type="button" class="ph-hook"[^>]*aria-pressed="false"/);
@@ -206,7 +206,7 @@ test("/es/centralita/ has the phone keypad and handset, no screen, its profile",
 });
 test("the PEX's bench passes the catalog", async () => {
   const { checkBenchAgainstCatalog, validateBench } = await import("../lib/bench.mjs");
-  const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "centralita");
+  const p = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8")).profiles.find((x) => x.slug === "pex");
   const catalog = readFileSync(new URL("../../docs/catalog.md", import.meta.url), "utf8");
   assert.equal(p.id, "PROFILE-PHONE");
   assert.deepEqual(validateBench(p.bench), []);
@@ -231,7 +231,7 @@ test("the text alternative: what the signer says, in the languages it can speak,
 test("the PEX's wallet: the same one module, the selector inside, Seed / Pay / Listen, no camera", { skip: VOICE_SKIP }, () => {
   assert.ok(voiceData("en").pin.length >= 12);
   for (const [lang, acts] of [["es", ["Semilla", "Pagar", "Escuchar"]], ["en", ["Seed", "Pay", "Listen"]]]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     assert.doesNotMatch(html, /class="sim-modes"|role="tab"|<button[^>]*data-mode=|data-module="(sim|your)-wallet"/, lang);
     const w = /<section class="mod mod-wallet" data-module="wallet"[\s\S]*?<\/section>/.exec(html)[0];
     assert.match(w, /<div class="seg" role="group"[^>]*>[\s\S]*?data-who="sim" aria-pressed="true"[\s\S]*?data-who="yours" aria-pressed="false"/);
@@ -244,12 +244,12 @@ test("the PEX's wallet: the same one module, the selector inside, Seed / Pay / L
     assert.match(w, /data-port="wallet\.speaker-near"/);
     assert.match(w, /data-port="wallet\.mic-near"/);
   }
-  const yw = /<div class="wl-yours" data-panel="yours"[\s\S]*?<\/section>/.exec(text(files, "es/centralita/index.html"))[0];
+  const yw = /<div class="wl-yours" data-panel="yours"[\s\S]*?<\/section>/.exec(text(files, "es/pex/index.html"))[0];
   assert.ok(yw.includes("Micrófono de este ordenador") && yw.includes("Altavoces de este ordenador"));
 });
 test("you hear the voice: a module with your ear, fed by the earpiece; the wallet gets the tones", { skip: VOICE_SKIP }, () => {
   for (const [lang, ear, title] of [["es", "👂 oído", "Tú"], ["en", "👂 ear", "You"]]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     const you = /<section class="mod mod-you" data-module="you"[\s\S]*?<\/section>/.exec(html)?.[0];
     assert.ok(you, lang);
     assert.ok(you.includes("🧑") && you.includes(title), lang);
@@ -268,7 +268,7 @@ test("you hear the voice: a module with your ear, fed by the earpiece; the walle
 });
 test("the earpiece's transcript: a speech bubble over the bench, live, saying what it is", { skip: VOICE_SKIP }, () => {
   for (const [lang, said] of [["es", "transcripción"], ["en", "transcript"]]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     const bench = /<div class="bench"[\s\S]*?<p class="sim-status"/.exec(html)[0];
     const b = /<p class="bubble"[^>]*>([\s\S]*?)<\/p>/.exec(bench);
     assert.ok(b, lang);
@@ -281,13 +281,13 @@ test("the earpiece's transcript: a speech bubble over the bench, live, saying wh
 });
 test("the PEX's legend calls the RJ11 a telephone cable", { skip: VOICE_SKIP }, () => {
   for (const [lang, t] of [["es", "cable telefónico"], ["en", "telephone cable"]]) {
-    const legend = /<ul class="legend">([\s\S]*?)<\/ul>/.exec(text(files, `${lang}/centralita/index.html`))[1];
+    const legend = /<ul class="legend">([\s\S]*?)<\/ul>/.exec(text(files, `${lang}/pex/index.html`))[1];
     assert.match(legend, new RegExp(`<li class="l-phone"><i aria-hidden="true"></i>${t}</li>`), lang);
   }
 });
 test("the PEX's first-time hint: the telephone's way, folded", { skip: VOICE_SKIP }, () => {
   for (const lang of ["es", "en"]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     const d = /<details class="first">\s*<summary>[^<]+<\/summary>\s*<ol>([\s\S]*?)<\/ol>\s*<\/details>/.exec(html);
     assert.ok(d, lang);
     assert.equal((d[1].match(/<li>/g) ?? []).length, 4, lang);
@@ -297,7 +297,7 @@ test("the PEX's first-time hint: the telephone's way, folded", { skip: VOICE_SKI
 });
 test("the telephone has a Type code button: off until lifted, a short tip, in both languages", { skip: VOICE_SKIP }, () => {
   for (const [lang, label] of [["en", "Type code"], ["es", "Teclear código"]]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     const phone = /<div class="ph-phone">[\s\S]*?<\/section>/.exec(html)[0];
     const b = /<button type="button" class="ph-type"[^>]*>[\s\S]*?<\/button>/.exec(phone)?.[0];
     assert.ok(b, lang);
@@ -310,7 +310,7 @@ test("the telephone has a Type code button: off until lifted, a short tip, in bo
   assert.match(ui, /vs\.dial\(wallet\.keypadCode\(\)\)/, "the wallet's keypad code, through the keypad");
 });
 test("the PEX credits its voices, and shows the board's LED", { skip: VOICE_SKIP }, () => {
-  const es = text(files, "es/centralita/index.html"), en = text(files, "en/centralita/index.html");
+  const es = text(files, "es/pex/index.html"), en = text(files, "en/pex/index.html");
   const plain = (h) => h.replace(/<[^>]+>/g, "");
   assert.ok(plain(es).includes("Voz española: Piper es_ES-sharvard-medium, corpus Sharvard (Universidad de Edimburgo), CC BY 3.0"));
   assert.ok(plain(en).includes("Spanish voice: Piper es_ES-sharvard-medium, Sharvard corpus (University of Edinburgh), CC BY 3.0"));
@@ -333,7 +333,7 @@ test("the PEX's status: designed, simulated; the breadboard and the port still t
 });
 
 // ---- the bench's visual language: neutral modules, coloured connectors and cables ----
-const BENCHES = [["cable-qr", SKIP, ["power", "audio", "light"]], ["centralita", VOICE_SKIP, ["power", "phone", "air"]]];
+const BENCHES = [["cable-qr", SKIP, ["power", "audio", "light"]], ["pex", VOICE_SKIP, ["power", "phone", "air"]]];
 for (const [slug, skip, types] of BENCHES) {
   test(`${slug}: the legend is always shown and lists exactly the cables of its bench`, { skip }, () => {
     for (const lang of ["en", "es"]) {
@@ -419,7 +419,7 @@ test("the first-time hint: a folded list, closed in the page, open on a first vi
 });
 
 // ---- Task 7, fix round 1 ----
-for (const [slug, skip] of [["cable-qr", SKIP], ["centralita", VOICE_SKIP]]) {
+for (const [slug, skip] of [["cable-qr", SKIP], ["pex", VOICE_SKIP]]) {
   test(`${slug}: no placeholder left unfilled on the page (tooltips included)`, { skip }, () => {
     for (const lang of ["en", "es"]) {
       const html = text(files, `${lang}/${slug}/index.html`).replace(/<script type="application\/json"[\s\S]*?<\/script>/g, "");
@@ -429,7 +429,7 @@ for (const [slug, skip] of [["cable-qr", SKIP], ["centralita", VOICE_SKIP]]) {
 }
 test("the PEX's guide: or type the keypad code yourself, folded, filled by the page", { skip: VOICE_SKIP }, () => {
   for (const [lang, say, show] of [["es", "o tecléalo tú:", "ver código"], ["en", "or type it yourself:", "show code"]]) {
-    const html = text(files, `${lang}/centralita/index.html`);
+    const html = text(files, `${lang}/pex/index.html`);
     const li = /<details class="first">[\s\S]*?<ol>\s*<li>[\s\S]*?<\/li>\s*<li>([\s\S]*?)<\/li>/.exec(html)[1];
     assert.ok(li.toLowerCase().includes(say), li);
     assert.match(li, new RegExp(`<details class="kcode"><summary>${show}</summary><code class="keypad-code"></code></details>`), lang);
@@ -462,13 +462,13 @@ test("the guide's code is what ⌨ Type code dials, on each network", { skip: VO
 });
 test("your wallet's mic button says it turns this computer's mic on, in both builds and languages", { skip: SKIP }, () => {
   for (const [lang, on] of [["es", "Activar micro"], ["en", "Turn on mic"]])
-    for (const slug of ["cable-qr", "centralita"]) {
+    for (const slug of ["cable-qr", "pex"]) {
       const html = text(files, `${lang}/${slug}/index.html`);
       assert.match(html, new RegExp(`class="mic-toggle"[^>]*>(<span[^>]*>🎙</span> ?)?${on}<`), `${lang}/${slug}`);
     }
 });
 test("every module keeps a strip for its help, and a module's tips show there, not floating", { skip: SKIP }, () => {
-  for (const slug of ["cable-qr", "centralita"]) {
+  for (const slug of ["cable-qr", "pex"]) {
     const html = text(files, `es/${slug}/index.html`);
     const mods = [...html.matchAll(/<section class="mod [\s\S]*?<\/section>/g)].map((m) => m[0]);
     assert.ok(mods.length >= 3, slug);
