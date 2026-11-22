@@ -75,17 +75,17 @@ static void test_out_queue_in_order(void)
 {
     int16_t buf[8];
     int16_t x[5] = {1, -2, 3, -4, 5};
-    ds_out o;
+    ds_outq o;
 
-    ds_out_init(&o, buf, 8);
-    CHECK_EQ_INT(ds_out_level(&o), 0);
-    CHECK_EQ_INT(ds_out_room(&o, 6), 6);
-    ds_out_push(&o, x, 5);
-    CHECK_EQ_INT(ds_out_level(&o), 5);
-    CHECK_EQ_INT(ds_out_room(&o, 6), 1);
-    CHECK_EQ_INT(ds_out_room(&o, 4), 0); /* already past the lead */
+    ds_outq_init(&o, buf, 8);
+    CHECK_EQ_INT(ds_outq_level(&o), 0);
+    CHECK_EQ_INT(ds_outq_room(&o, 6), 6);
+    ds_outq_push(&o, x, 5);
+    CHECK_EQ_INT(ds_outq_level(&o), 5);
+    CHECK_EQ_INT(ds_outq_room(&o, 6), 1);
+    CHECK_EQ_INT(ds_outq_room(&o, 4), 0); /* already past the lead */
     for (int i = 0; i < 5; i++) {
-        CHECK_EQ_INT(ds_out_pop(&o), x[i]);
+        CHECK_EQ_INT(ds_outq_pop(&o), x[i]);
     }
     CHECK_EQ_INT(o.underruns, 0);
 }
@@ -93,28 +93,28 @@ static void test_out_queue_in_order(void)
 static void test_out_wraps(void)
 {
     int16_t buf[8];
-    ds_out o;
+    ds_outq o;
 
-    ds_out_init(&o, buf, 8);
+    ds_outq_init(&o, buf, 8);
     for (int16_t i = 0; i < 100; i++) {
         int16_t a[3] = {i, (int16_t)(i + 1000), (int16_t)(-i)};
 
-        ds_out_push(&o, a, 3);
-        CHECK_EQ_INT(ds_out_pop(&o), i);
-        CHECK_EQ_INT(ds_out_pop(&o), i + 1000);
-        CHECK_EQ_INT(ds_out_pop(&o), -i);
+        ds_outq_push(&o, a, 3);
+        CHECK_EQ_INT(ds_outq_pop(&o), i);
+        CHECK_EQ_INT(ds_outq_pop(&o), i + 1000);
+        CHECK_EQ_INT(ds_outq_pop(&o), -i);
     }
-    CHECK_EQ_INT(ds_out_level(&o), 0);
+    CHECK_EQ_INT(ds_outq_level(&o), 0);
 }
 
 /* Never more than the buffer holds: room is capped by it. */
 static void test_out_room_is_capped(void)
 {
     int16_t buf[8];
-    ds_out o;
+    ds_outq o;
 
-    ds_out_init(&o, buf, 8);
-    CHECK_EQ_INT(ds_out_room(&o, 100), 8);
+    ds_outq_init(&o, buf, 8);
+    CHECK_EQ_INT(ds_outq_room(&o, 100), 8);
 }
 
 /* Nothing waiting (the main loop is busy): silence, counted. */
@@ -122,25 +122,25 @@ static void test_out_underrun_is_silence(void)
 {
     int16_t buf[8];
     int16_t x[1] = {7};
-    ds_out o;
+    ds_outq o;
 
-    ds_out_init(&o, buf, 8);
-    CHECK_EQ_INT(ds_out_pop(&o), 0);
-    CHECK_EQ_INT(ds_out_pop(&o), 0);
+    ds_outq_init(&o, buf, 8);
+    CHECK_EQ_INT(ds_outq_pop(&o), 0);
+    CHECK_EQ_INT(ds_outq_pop(&o), 0);
     CHECK_EQ_INT(o.underruns, 2);
-    ds_out_push(&o, x, 1);
-    CHECK_EQ_INT(ds_out_pop(&o), 7);
+    ds_outq_push(&o, x, 1);
+    CHECK_EQ_INT(ds_outq_pop(&o), 7);
     CHECK_EQ_INT(o.underruns, 2);
 }
 
 static void test_pwm_level(void)
 {
-    CHECK_EQ_INT(ds_out_pwm(0, 1023), 512);
-    CHECK_EQ_INT(ds_out_pwm(-32768, 1023), 0);
-    CHECK_EQ_INT(ds_out_pwm(32767, 1023), 1023);
-    CHECK_EQ_INT(ds_out_pwm(16384, 1023), 768);
-    CHECK_EQ_INT(ds_out_pwm(0, 255), 128);
-    CHECK_EQ_INT(ds_out_pwm(32767, 255), 255);
+    CHECK_EQ_INT(ds_outq_pwm(0, 1023), 512);
+    CHECK_EQ_INT(ds_outq_pwm(-32768, 1023), 0);
+    CHECK_EQ_INT(ds_outq_pwm(32767, 1023), 1023);
+    CHECK_EQ_INT(ds_outq_pwm(16384, 1023), 768);
+    CHECK_EQ_INT(ds_outq_pwm(0, 255), 128);
+    CHECK_EQ_INT(ds_outq_pwm(32767, 255), 255);
 }
 
 TEST_MAIN(test_hook_starts_on_hook, test_hook_averages_a_millisecond, test_hook_hysteresis,

@@ -6,6 +6,9 @@
 #
 # gives build-pico/dtmf-signer-pico.uf2. Built and tested with Pico SDK 2.3.1.
 # Options:
+#   DS_FIRMWARE      CABLE_QR (default: dtmf-signer-pico, screen and buttons)
+#                    or CENTRALITA (dtmf-signer-centralita: the voice firmware,
+#                    a tone telephone as the whole interface)
 #   DS_DISPLAY       SH1106_SPI (default, tested on hardware), SSD1306_SPI or
 #                    SSD1306_I2C (not tested on hardware)
 #   DS_DISPLAY_FLIP  rotate the picture 180 degrees (ON: the breadboard layout
@@ -24,6 +27,11 @@ project(dtmf_signer_pico C CXX ASM)
 set(DS_DISPLAY "SH1106_SPI" CACHE STRING "Display: SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
 set_property(CACHE DS_DISPLAY PROPERTY STRINGS SH1106_SPI SSD1306_SPI SSD1306_I2C)
 option(DS_DISPLAY_FLIP "Rotate the display 180 degrees" ON)
+set(DS_FIRMWARE "CABLE_QR" CACHE STRING "Firmware: CABLE_QR or CENTRALITA")
+set_property(CACHE DS_FIRMWARE PROPERTY STRINGS CABLE_QR CENTRALITA)
+if(NOT DS_FIRMWARE MATCHES "^(CABLE_QR|CENTRALITA)$")
+  message(FATAL_ERROR "DS_FIRMWARE must be CABLE_QR or CENTRALITA")
+endif()
 
 if(NOT DS_DISPLAY MATCHES "^(SH1106_SPI|SSD1306_SPI|SSD1306_I2C)$")
   message(FATAL_ERROR "DS_DISPLAY must be SH1106_SPI, SSD1306_SPI or SSD1306_I2C")
@@ -90,11 +98,26 @@ add_library(ds_warnings INTERFACE)
 target_compile_options(ds_warnings INTERFACE -Wall -Wextra -Werror
                                              -Wno-format-truncation)
 
+if(DS_FIRMWARE STREQUAL "CENTRALITA")
+  # It only plays the prompts: libspeex without its encoder.
+  set(DS_SPEEX_LIB speex_nb_dec)
+endif()
 add_subdirectory(${DS_ROOT}/core core)
 add_subdirectory(${DS_ROOT}/app app)
-# What the About pages say about this build (its capabilities are the
-# Cable and QR profile's, the default in app/ds_about.h).
-target_compile_definitions(dtmf_app PUBLIC "DS_HARDWARE=\"Pico, OLED 128x64\"")
+if(DS_FIRMWARE STREQUAL "CENTRALITA")
+  # What About says (docs/catalog.md, PROFILE-PHONE), and the output delay:
+  # DS_OUT_LEAD_MS (board.h) queued ahead of the PWM, plus one turn of the
+  # loop (its longest is printed every 5 s as loop-max-us).
+  target_compile_definitions(dtmf_app PUBLIC
+    "DS_HARDWARE=\"Pico, tone telephone\""
+    "DS_PROFILE=\"Phone exchange\""
+    "DS_CAPS=\"TONES-SW IN-PHONELINE OUT-PHONELINE VERIFY-VOICE BTC-INPUT-AMOUNTS\""
+    DS_VOICE_OUT_DELAY_MS=40u)
+else()
+  # What the About pages say about this build (its capabilities are the
+  # Cable and QR profile's, the default in app/ds_about.h).
+  target_compile_definitions(dtmf_app PUBLIC "DS_HARDWARE=\"Pico, OLED 128x64\"")
+endif()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS ON)
@@ -105,20 +128,33 @@ else()
   set(DS_DISPLAY_SRC display_ssd1306.c)
 endif()
 
-add_executable(dtmf-signer-pico main.c adc_ring.c secp_callbacks.c ${DS_DISPLAY_SRC})
+if(DS_FIRMWARE STREQUAL "CENTRALITA")
+  set(DS_TARGET dtmf-signer-centralita)
+  add_executable(${DS_TARGET} voice_main.c adc_ring.c line_io.c secp_callbacks.c)
+  # The voice packs' region is the second MB of flash (board.h): the
+  # firmware must fit in the first, or the link fails.
+  pico_override_flash_size(${DS_TARGET} "1024 * 1024")
+else()
+  set(DS_TARGET dtmf-signer-pico)
+  add_executable(${DS_TARGET} main.c adc_ring.c secp_callbacks.c ${DS_DISPLAY_SRC})
+endif()
 # A reproducible build: no build date in the binary info, and no paths of
 # this machine in any string, so the same commit, SDK and toolchain give the
 # same UF2 byte for byte (tools/build-pico.sh).
-target_compile_definitions(dtmf-signer-pico PRIVATE PICO_NO_BI_PROGRAM_BUILD_DATE=1)
-target_include_directories(dtmf-signer-pico PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-target_compile_definitions(dtmf-signer-pico PRIVATE DS_DISPLAY_${DS_DISPLAY}=1)
+target_compile_definitions(${DS_TARGET} PRIVATE PICO_NO_BI_PROGRAM_BUILD_DATE=1)
+target_include_directories(${DS_TARGET} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_compile_definitions(${DS_TARGET} PRIVATE DS_DISPLAY_${DS_DISPLAY}=1)
 if(DS_DISPLAY_FLIP)
-  target_compile_definitions(dtmf-signer-pico PRIVATE DS_DISPLAY_FLIP=1)
+  target_compile_definitions(${DS_TARGET} PRIVATE DS_DISPLAY_FLIP=1)
 endif()
-target_link_libraries(dtmf-signer-pico PRIVATE
+target_link_libraries(${DS_TARGET} PRIVATE
   dtmf_app dtmf_core
   pico_stdlib hardware_spi hardware_i2c hardware_adc hardware_dma
   hardware_watchdog ds_warnings)
+if(DS_FIRMWARE STREQUAL "CENTRALITA")
+  # After dtmf_app, which uses it: the built-in English prompts.
+  target_link_libraries(${DS_TARGET} PRIVATE ds_voice_packs hardware_pwm)
+endif()
 
 # The stack. Its deepest paths need about 5.5 KB on this build (the review:
 # PSBT analysis, BIP32, secp256k1) and 4.7 KB (signing), more than the 4 KB
@@ -131,10 +167,10 @@ target_link_libraries(dtmf-signer-pico PRIVATE
 # paints and measures). Anything placed in .scratch_x or .stack1 (core 1's
 # default stack: multicore_launch_core1) or in .scratch_y now overflows its
 # region and the link fails, instead of sharing memory with the stack.
-pico_set_linker_script_var(dtmf-signer-pico SCRATCH_X_LENGTH 0)
-pico_set_linker_script_var(dtmf-signer-pico SCRATCH_Y_ORIGIN 0x20040000)
-pico_set_linker_script_var(dtmf-signer-pico SCRATCH_Y_LENGTH 0x2000)
+pico_set_linker_script_var(${DS_TARGET} SCRATCH_X_LENGTH 0)
+pico_set_linker_script_var(${DS_TARGET} SCRATCH_Y_ORIGIN 0x20040000)
+pico_set_linker_script_var(${DS_TARGET} SCRATCH_Y_LENGTH 0x2000)
 
-pico_enable_stdio_usb(dtmf-signer-pico 1)
-pico_enable_stdio_uart(dtmf-signer-pico 0)
-pico_add_extra_outputs(dtmf-signer-pico)
+pico_enable_stdio_usb(${DS_TARGET} 1)
+pico_enable_stdio_uart(${DS_TARGET} 0)
+pico_add_extra_outputs(${DS_TARGET})

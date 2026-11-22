@@ -35,24 +35,24 @@ typedef struct {
     uint32_t n;
     volatile uint32_t w, r; /* totals pushed and popped (wrap at 32 bits) */
     volatile uint32_t underruns;
-} ds_out;
+} ds_outq;
 
-void ds_out_init(ds_out *o, int16_t *buf, uint32_t n);
+void ds_outq_init(ds_outq *o, int16_t *buf, uint32_t n);
 
 /* Samples waiting to be played. */
-uint32_t ds_out_level(const ds_out *o);
+uint32_t ds_outq_level(const ds_outq *o);
 
 /* How many to push to have lead waiting (0 when there are already that
  * many), never more than fit. */
-uint32_t ds_out_room(const ds_out *o, uint32_t lead);
+uint32_t ds_outq_room(const ds_outq *o, uint32_t lead);
 
-/* Appends k samples (k <= ds_out_room's answer). */
-void ds_out_push(ds_out *o, const int16_t *x, uint32_t k);
+/* Appends k samples (k <= ds_outq_room's answer). */
+void ds_outq_push(ds_outq *o, const int16_t *x, uint32_t k);
 
 /* The next sample, or 0 (silence) when none is waiting. */
-int16_t ds_out_pop(ds_out *o);
+int16_t ds_outq_pop(ds_outq *o);
 
 /* The PWM level for a sample: a counter running 0..wrap, mid scale at 0. */
-uint16_t ds_out_pwm(int16_t s, uint16_t wrap);
+uint16_t ds_outq_pwm(int16_t s, uint16_t wrap);
 
 #endif
