@@ -2389,6 +2389,294 @@ static void test_key_cuts_motif_and_long(void)
     CHECK(!HAS(&L, "say fingerprint_is", mark));
 }
 
+/* ---- barge-in: a key pressed while the signer speaks ---- */
+
+/* Off-hook until the menu is being said: in English (the built-in voice)
+ * or, with es, in Spanish chosen from the list. */
+static void to_menu_speaking(line_t *t, int es)
+{
+    if (!es) {
+        power_up(t, NULL, 0);
+        hook(t, 1);
+    } else {
+        power_up(t, es_bin, ES_BIN_LEN);
+        hook(t, 1);
+        run_ms(t, 100);
+        press(t, '2'); /* Spanish, barging into the list */
+    }
+    CHECK(run_until_line(t, "state menu-empty", 0, 2000));
+    CHECK(ds_voice_speaking(&t->v));
+}
+
+/* The line as it is now, to try one press after another from the same point. */
+static struct {
+    ds_voice v;
+    uint32_t now;
+    size_t log_len, out_len;
+} snap;
+
+static void save_line(const line_t *t)
+{
+    memcpy(&snap.v, &t->v, sizeof snap.v);
+    snap.now = t->now;
+    snap.log_len = t->log_len;
+    snap.out_len = t->out_len;
+}
+
+static void restore_line(line_t *t)
+{
+    memcpy(&t->v, &snap.v, sizeof t->v);
+    t->now = snap.now;
+    t->log_len = snap.log_len;
+    t->log[t->log_len] = '\0';
+    t->out_len = snap.out_len;
+}
+
+/* What a few tones did to the line: keys counted, slices the detector
+ * heard the first tone as itself, whether data was seen, whether the
+ * signer fell quiet. */
+typedef struct {
+    uint32_t keys, heard;
+    int data, quiet;
+} tried_t;
+
+/* tones (tone_ms each, gap_ms apart) begun pad_ms into the next 10 ms,
+ * then silence, 600 ms in all. */
+static tried_t try_tones(line_t *t, const char *tones, uint32_t tone_ms, uint32_t gap_ms,
+                         unsigned pad_ms)
+{
+    static int16_t buf[16000];
+    tried_t r = {0, 0, 0, 0};
+    uint32_t k = ds_voice_keys(&t->v);
+    ut_synth s;
+    memset(buf, 0, sizeof buf);
+    ut_synth_init(&s, tones, 16000, tone_ms, gap_ms, 0);
+    ut_synth_read(&s, buf + pad_ms * 16, 8000);
+    for (int i = 0; i < 60; i++) {
+        step(t, buf + i * CHUNK);
+        r.heard += t->v.l.keys.live_key == tones[0];
+        r.data |= t->v.data;
+        if (i < 10) /* within 100 ms of the first tone */
+            r.quiet |= !ds_voice_speaking(&t->v);
+    }
+    r.keys = ds_voice_keys(&t->v) - k;
+    return r;
+}
+
+/* Every key, begun at every 10 ms of the greeting and the menu (and at
+ * every millisecond within them, in turn), in both voices, is counted once.
+ * A key mixed with speech could read for 20 ms as a key sharing one of its
+ * frequencies; with the real key after it, that made two tones begun
+ * within 250 ms, data, and the key was lost (about 0.5 % of the presses).
+ * A 100 ms key the speech covers so that the detector hears it less than
+ * the 70 ms a key needs is too short, as without the speech; held 150 ms,
+ * none is lost. */
+static void test_barge_in_keeps_every_key(void)
+{
+    static const char keys[] = "0123456789*#";
+    unsigned presses = 0, lost = 0, data = 0, twice = 0, short_heard = 0, long_presses = 0,
+             long_lost = 0;
+    for (int es = 0; es < 2; es++) {
+        to_menu_speaking(&L, es);
+        for (unsigned j = 0; ds_voice_speaking(&L.v); j++) {
+            if (L.v.deaf) { /* the key that chose Spanish, still going */
+                step(&L, NULL);
+                continue;
+            }
+            save_line(&L);
+            for (unsigned i = 0; keys[i] != '\0'; i++) {
+                char one[2] = {keys[i], 0};
+                unsigned pad = (j * 3 + i * 7) % 10;
+                tried_t r = try_tones(&L, one, 100, 500, pad);
+                presses++;
+                data += r.data != 0;
+                twice += r.keys > 1;
+                if (r.keys == 0 && r.heard < 7)
+                    short_heard++;
+                else if (r.keys == 0)
+                    lost++;
+                restore_line(&L);
+                if (j % 4 == 0) {
+                    r = try_tones(&L, one, 150, 450, pad);
+                    long_presses++;
+                    long_lost += r.keys != 1;
+                    restore_line(&L);
+                }
+            }
+            step(&L, NULL);
+        }
+    }
+    printf("barge-in: %u keys of 100 ms while speaking: %u lost, %u heard under 70 ms; "
+           "%u of 150 ms: %u lost\n",
+           presses, lost, short_heard, long_presses, long_lost);
+    CHECK(presses > 4000);
+    CHECK_EQ_INT(data, 0);
+    CHECK_EQ_INT(lost, 0);
+    CHECK_EQ_INT(twice, 0);
+    CHECK(short_heard * 500 < presses); /* under 0.2 %: the speech's loudest syllables */
+    CHECK(long_presses > 4000);
+    CHECK_EQ_INT(long_lost, 0);
+}
+
+/* A tone begun while the signer speaks (heard twice in a row, 20 ms, as
+ * the firmware's detector reports it) stops the speech within one 10 ms
+ * slice, before the key is known. */
+static void test_barge_in_hushes_on_onset(void)
+{
+    static const char keys[] = "0123456789*#";
+    static int16_t buf[16000];
+    for (int es = 0; es < 2; es++) {
+        to_menu_speaking(&L, es);
+        run_ms(&L, 400);
+        CHECK(ds_voice_speaking(&L.v));
+        save_line(&L);
+        for (unsigned i = 0; keys[i] != '\0'; i++) {
+            char one[2] = {keys[i], 0};
+            ut_synth s;
+            memset(buf, 0, sizeof buf);
+            ut_synth_init(&s, one, 16000, 100, 200, 0);
+            ut_synth_read(&s, buf, 4800);
+            int onset = -1, quiet = -1;
+            for (int k = 0; k < 30; k++) {
+                step(&L, buf + k * CHUNK);
+                if (onset < 0 && L.v.l.keys.live_key != 0 && L.v.l.keys.live_run >= 2)
+                    onset = k;
+                if (quiet < 0 && !ds_say_busy(&L.v.say) && !ds_voice_speaking(&L.v))
+                    quiet = k;
+            }
+            CHECK(onset >= 0);
+            CHECK(quiet >= 0 && quiet <= onset + 1);
+            restore_line(&L);
+        }
+    }
+}
+
+/* A tone that turns out to be no key (30 ms: begun, never long enough)
+ * stops the speech only for a moment: what was being said then goes on
+ * from where it stopped, whole, and nothing else happens. */
+static void test_barge_in_no_key_lets_it_go_on(void)
+{
+    static int16_t ref[OUT_MAX / 2];
+    static char ref_log[1 << 14];
+    for (int es = 0; es < 2; es++) {
+        to_menu_speaking(&L, es);
+        run_ms(&L, 1600);
+        save_line(&L);
+        size_t from = L.out_len, mark = L.log_len;
+        run_quiet(&L);
+        size_t n_ref = L.out_len - from;
+        CHECK(n_ref <= sizeof ref / sizeof ref[0]);
+        memcpy(ref, L.out + from, n_ref * sizeof ref[0]);
+        snprintf(ref_log, sizeof ref_log, "%s", L.log + mark);
+        restore_line(&L);
+        uint32_t k = ds_voice_keys(&L.v);
+        tried_t r = try_tones(&L, "5", 30, 570, 0);
+        run_quiet(&L);
+        size_t n = L.out_len - from;
+        CHECK(r.quiet);
+        CHECK_EQ_INT(ds_voice_keys(&L.v), k);
+        CHECK(!L.v.data);
+        CHECK_EQ_STR(L.log + mark, ref_log); /* the same words, in the same order */
+        /* a pause of 50 to 300 ms, the rest sample for sample */
+        CHECK(n >= n_ref + 50 * 16 && n <= n_ref + 300 * 16);
+        CHECK(n >= n_ref && memcmp(L.out + L.out_len - (n_ref - 16000), ref + 16000,
+                                   (n_ref - 16000) * sizeof ref[0]) == 0);
+    }
+}
+
+/* The confirmation likewise: a tone during "to sign, hang up..." that is
+ * no key leaves it said in full, and then a flash signs. */
+static void test_barge_in_no_key_keeps_the_confirmation(void)
+{
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm_now(&L);
+    run_ms(&L, 300);
+    CHECK(ds_voice_speaking(&L.v));
+    tried_t r = try_tones(&L, "7", 30, 570, 0);
+    CHECK(r.quiet);
+    CHECK_EQ_INT(r.keys, 0);
+    run_quiet(&L);
+    size_t mark = L.log_len;
+    on_hook(&L, 500);
+    run_quiet(&L);
+    CHECK(HAS(&L, "state hold-near", mark));
+    CHECK(HAS(&L, "say signed", mark));
+}
+
+/* The site's simulator feeds the line in blocks of 16 ms, not 10, and
+ * there the signer's own voice can read as a tone's onset for a moment (as
+ * a few clips can at some alignments with the detector): it pauses, and
+ * goes on. The list, the greeting, the menu and About, in either voice,
+ * are said to their end. */
+static void test_own_voice_said_whole_in_16ms_blocks(void)
+{
+    enum { B = 256 };
+    for (int es = 0; es < 2; es++) {
+        int16_t o[B], kb[B];
+        static int16_t keybuf[16000];
+        power_up(&L, es_bin, ES_BIN_LEN);
+        hook(&L, 1);
+        const char *keys = es ? "29" : "19";
+        size_t mark = 0;
+        for (int i = 0; i < 2; i++) {
+            ut_synth s;
+            char one[2] = {keys[i], 0};
+            memset(keybuf, 0, sizeof keybuf);
+            ut_synth_init(&s, one, 16000, 100, 200, 0);
+            ut_synth_read(&s, keybuf, 4800);
+            mark = L.log_len;
+            /* 300 ms into what it says, the key; then until it is quiet */
+            for (uint32_t ms = 0, at = 0; ms < 120000; ms += B / 16) {
+                ds_voice_line_out(&L.v, o, B);
+                memset(kb, 0, sizeof kb);
+                if (ms >= 300 && at < 4800) {
+                    memcpy(kb, keybuf + at, sizeof kb);
+                    at += B;
+                }
+                for (int k = 0; k < B; k++) {
+                    int32_t x = o[k] + kb[k];
+                    o[k] = (int16_t)(x > 32767 ? 32767 : x < -32768 ? -32768 : x);
+                }
+                ds_voice_line_in(&L.v, o, B);
+                L.now += B / 16;
+                ds_voice_tick(&L.v, L.now);
+                take_echo(&L);
+                if (at >= 4800 && !ds_voice_speaking(&L.v) && !L.v.muted)
+                    break; /* quiet, and not just paused */
+            }
+        }
+        CHECK(HAS(&L, "state about", mark));
+        CHECK(HAS(&L, "say opt_back", mark)); /* About said to its end */
+    }
+}
+
+/* After a hush the data rule is whole: two different tones 60 ms apart
+ * (the first one stopping the speech) are data, never a key; what was
+ * being said then goes on, as it did over data before. */
+static void test_data_rule_still_holds_after_hush(void)
+{
+    static const char *const pairs[] = {"14", "58", "#0", "*9", "27", "36", "A1", NULL};
+    for (int es = 0; es < 2; es++) {
+        to_menu_speaking(&L, es);
+        run_ms(&L, 1600); /* past the multi-tap of the key that chose Spanish */
+        save_line(&L);
+        for (int p = 0; pairs[p] != NULL; p++) {
+            for (unsigned pad = 0; pad < 10; pad += 3) {
+                size_t mark = L.log_len;
+                CHECK(ds_voice_speaking(&L.v));
+                tried_t r = try_tones(&L, pairs[p], 100, 60, pad);
+                CHECK_EQ_INT(r.keys, 0);
+                CHECK(r.data);
+                CHECK(strstr(L.log + mark, "state ") == NULL);
+                CHECK(r.quiet);                 /* hushed */
+                CHECK(ds_voice_speaking(&L.v)); /* and back */
+                restore_line(&L);
+            }
+        }
+    }
+}
+
 /* While a seed or a PSBT is being received, no help: the reception has its
  * own waits. */
 static void test_no_help_while_receiving(void)
@@ -3010,6 +3298,10 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_review_fails_closed, test_review_names_keys, test_keypad_path_warns,
           test_help_once_after_8s, test_zero_repeats_last_heard,
           test_help_without_long_says_short, test_key_cuts_motif_and_long,
+          test_barge_in_keeps_every_key, test_barge_in_hushes_on_onset,
+          test_barge_in_no_key_lets_it_go_on, test_barge_in_no_key_keeps_the_confirmation,
+          test_own_voice_said_whole_in_16ms_blocks,
+          test_data_rule_still_holds_after_hush,
           test_no_help_while_receiving, test_boot_has_no_flashed_question,
           test_menu_says_choose_then_options_with_motif, test_network_said_when_it_matters,
           test_address_parts_named, test_exchanges_announce_duration_and_reset,

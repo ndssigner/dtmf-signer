@@ -191,6 +191,16 @@ typedef struct {
     char pending;        /* a key held, waiting 250 ms from its start (data?) */
     uint32_t gap_before; /* the silence before the tone sounding */
     int repeat;          /* it is the same key again (multi-tap) */
+    /* barge-in: a tone begun during speech hushes it, then is heard clean;
+     * what was being said is kept aside until the tone is judged: it goes
+     * on if the tone was no key (or a key that does not stop it) */
+    int muted, muted_step;
+    ds_say muted_say;    /* may hold a PIN's characters: wiped when done */
+    uint32_t settle;     /* slices still unheard after the hush (its speech) */
+    uint32_t settle_heard; /* of them, slices with a tone */
+    int hushed;          /* the next onset is the tone that hushed it */
+    uint32_t hush_age, hush_gap; /* since_onset and gap_before at the hush */
+    uint32_t credit, run_credit; /* slices it sounded through the hush */
     int gate;            /* after data: no key until 1000 ms without a tone */
     uint32_t gate_quiet;
     int air_warned;      /* the air warning was said (once per power-up) */
