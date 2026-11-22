@@ -135,5 +135,7 @@ export class VoiceSimulator {
   }
 
   keys() { return this.m._dvw_keys(); }
+  // The board's LED as the firmware drives it: a reception's progress.
+  led() { return this.m._dvw_led() !== 0; }
   version() { return this.m.UTF8ToString(this.m._dvw_version()); }
 }

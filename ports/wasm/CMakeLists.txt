@@ -43,7 +43,7 @@ target_link_libraries(dtmf-signer-voice-wasm PRIVATE dtmf_app dtmf_core ds_voice
 set_target_properties(dtmf-signer-voice-wasm PROPERTIES OUTPUT_NAME dtmf-signer-voice SUFFIX .mjs)
 set(DVW_EXPORTS
   _dvw_region_buf _dvw_region_len _dvw_init _dvw_hook _dvw_advance _dvw_in_buf _dvw_in
-  _dvw_out_buf _dvw_out _dvw_take_echo _dvw_echo _dvw_keys _dvw_version _dvw_speex_selftest)
+  _dvw_out_buf _dvw_out _dvw_take_echo _dvw_echo _dvw_keys _dvw_led _dvw_version _dvw_speex_selftest)
 list(JOIN DVW_EXPORTS "," DVW_EXPORTS_CSV)
 target_link_options(dtmf-signer-voice-wasm PRIVATE
   -O2

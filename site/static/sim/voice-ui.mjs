@@ -437,7 +437,9 @@ export async function start(doc, loadModule, loadPack) {
       const t = transcript.end();
       if (t) say(t);
     }
-    const lit = led.update(vs.keys(), now);
+    // A flash per key, kept long enough to see; and the firmware's own LED
+    // (a long flash per PSBT part, steady once a reception is in).
+    const lit = led.update(vs.keys(), now) || vs.led();
     if (lit !== ledOn && ledEl) { ledEl.classList.toggle("on", lit); ledOn = lit; }
     const warn = signerNet !== null && signerNet !== wallet.net;
     if (warn !== lastWarn) { wdWarn.hidden = !warn; lastWarn = warn; }

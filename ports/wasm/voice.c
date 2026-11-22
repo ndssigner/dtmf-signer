@@ -89,6 +89,10 @@ EMSCRIPTEN_KEEPALIVE const char *dvw_echo(void) { return echo; }
 
 EMSCRIPTEN_KEEPALIVE uint32_t dvw_keys(void) { return ds_voice_keys(&voice); }
 
+/* The board's LED as the firmware drives it (1: on): the reception's
+ * progress while the handset is held to a wallet. */
+EMSCRIPTEN_KEEPALIVE int dvw_led(void) { return ds_voice_led(&voice); }
+
 EMSCRIPTEN_KEEPALIVE const char *dvw_version(void) { return DS_VERSION; }
 
 /* A test hook, not part of the phone: decodes the shared Speex vector

@@ -44,7 +44,6 @@
 #define AUDIO_CHUNK 256
 #define REPORT_MS 5000
 #define WORK_REPORT_US 50000u /* a tick longer than this is reported */
-#define LED_FLASH_MS 15 /* a short, dim flash per key heard */
 #define STACK_PAINT 0xC5C5C5C5u
 #define OUT_LEAD (DS_AUDIO_RATE / 1000u * DS_OUT_LEAD_MS)
 
@@ -307,8 +306,7 @@ static void pump_samples(void)
 int main(void)
 {
     static char line[DS_VOICE_ECHO_MAX];
-    uint32_t next_report, keys = 0, led_off = 0, loop_max = 0, last_us;
-    int led = 0;
+    uint32_t next_report, loop_max = 0, last_us;
 
     stack_paint();
     stdio_init_all();
@@ -340,17 +338,8 @@ int main(void)
         }
         feed_out();
 
-        /* The LED flashes once per key heard. */
-        if (ds_voice_keys(&voice) != keys) {
-            keys = ds_voice_keys(&voice);
-            led = 1;
-            led_off = now + LED_FLASH_MS;
-            gpio_put(DS_PIN_LED, 1);
-        }
-        if (led && (int32_t)(now - led_off) >= 0) {
-            led = 0;
-            gpio_put(DS_PIN_LED, 0);
-        }
+        /* The LED as ds_voice drives it: a reception's progress. */
+        gpio_put(DS_PIN_LED, ds_voice_led(&voice));
 
         /* The hook as measured (the echo says what ds_voice made of it). */
         if (hook_changed) {

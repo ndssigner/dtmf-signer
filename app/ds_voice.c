@@ -1700,6 +1700,7 @@ static void poll_rx(ds_voice *v)
     while ((r = ds_rx_poll(&v->rx)) != DS_RX_NONE) {
         if (r == DS_RX_GOT_SEED) {
             if ((v->rx.group[0] == '*') == keypad) {
+                v->led_hold = !keypad; /* by the handset: bring it back */
                 ask_pin(v, keypad ? ST_KEYPAD_PIN : ST_PIN);
                 return;
             }
@@ -1723,6 +1724,7 @@ static void poll_psbt(ds_voice *v)
     int32_t r;
     while ((r = ds_rx_poll(&v->rx)) != DS_RX_NONE) {
         if (r == DS_RX_DONE) {
+            v->led_hold = 1; /* all in: bring the handset back */
             review(v);
             return;
         }
@@ -2011,6 +2013,7 @@ static void hear(ds_voice *v, const int16_t *x, size_t n)
         }
         if (key != 0) {
             v->keys++;
+            v->led_hold = 0; /* the person is back */
             v->quiet_at = v->now; /* any key: the wait for the help starts again */
             on_key(v, key);
         }
@@ -2086,6 +2089,7 @@ static void debounce(ds_voice *v, uint32_t now)
         return;
     }
     v->hook = v->hook_raw;
+    v->led_hold = 0; /* the person is back */
     v->quiet_at = now; /* the wait for the help starts again */
     if (!v->hook) {
         v->down_at = v->raw_at;
@@ -2120,6 +2124,17 @@ void ds_voice_tick(ds_voice *v, uint32_t now_ms)
 {
     v->now = now_ms;
     debounce(v, now_ms);
+    /* the LED: a flash per tone or key heard, a longer one per part */
+    if (v->keys != v->led_keys) {
+        v->led_keys = v->keys;
+        v->led_until = now_ms + DS_VOICE_LED_TONE_MS;
+    }
+    if (v->rx.parts != v->led_parts) {
+        if (v->rx.parts > v->led_parts) {
+            v->led_until = now_ms + DS_VOICE_LED_PART_MS;
+        }
+        v->led_parts = v->rx.parts;
+    }
     /* still on-hook (not even bouncing back) past DS_VOICE_HANGUP_MS */
     if (!v->hook && !v->hook_raw && v->state != ST_IDLE &&
         now_ms - v->down_at > DS_VOICE_HANGUP_MS) {
@@ -2176,6 +2191,11 @@ void ds_voice_init(ds_voice *v, uint32_t rate, const uint8_t *pack_region,
     ut_listener_init(&v->l, rate);
     v->step = STEPS_DONE;
     go(v, ST_IDLE);
+}
+
+int ds_voice_led(const ds_voice *v)
+{
+    return v->led_hold || (int32_t)(v->now - v->led_until) < 0;
 }
 
 int ds_voice_work_due(const ds_voice *v)

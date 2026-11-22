@@ -166,6 +166,10 @@
 #ifndef DS_VOICE_OUT_DELAY_MS
 #define DS_VOICE_OUT_DELAY_MS 10u
 #endif
+/* The LED (ds_voice_led): on this long after each tone heard, after each
+ * PSBT part taken; on, steady, once a reception is complete. */
+#define DS_VOICE_LED_TONE_MS 15u
+#define DS_VOICE_LED_PART_MS 300u
 #define DS_VOICE_ECHO_BUF 1024
 #define DS_VOICE_ECHO_MAX 256       /* the cap ds_voice_take_echo needs */
 #define DS_VOICE_ECHO_CHUNK 48      /* signed PSBT bytes per echo line */
@@ -199,6 +203,9 @@ typedef struct {
     int helped;          /* the help was given for this request */
     int longer;          /* the prompt is said with its longer versions */
     uint32_t keys;       /* keys heard (a count only) */
+    /* the LED: the counts last seen, until when it is on, held on */
+    uint32_t led_keys, led_parts, led_until;
+    int led_hold;
     /* loading the seed (secrets: wiped on a hang-up, a wipe, a failure) */
     ds_rx rx;            /* the seed's tones: by the handset or typed */
     uint32_t rx_keys;    /* rx.keys already counted */
@@ -288,6 +295,15 @@ int32_t ds_voice_take_echo(ds_voice *v, char *out, size_t cap);
  * that can play on its own meanwhile (an interrupt) loops that motif while
  * the tick runs and stops it when the tick returns. */
 int ds_voice_work_due(const ds_voice *v);
+
+/* The board's LED, as of the last ds_voice_tick: 1 on. While the handset is
+ * held to a wallet the signer is silent and the person cannot hear it, so
+ * the LED tells how a reception goes: a short flash per tone heard
+ * (DS_VOICE_LED_TONE_MS: tones arrive), a long one per PSBT part taken
+ * (DS_VOICE_LED_PART_MS: it advances), and on, steady, once a seed by the
+ * handset or a PSBT is in, until a key or the hook says the person is
+ * back. Elsewhere, a short flash per key heard. */
+int ds_voice_led(const ds_voice *v);
 
 /* Keys heard since power-up, for the board LED: a count, never the keys. */
 uint32_t ds_voice_keys(const ds_voice *v);

@@ -3729,6 +3729,96 @@ static void test_language_list_grammar(void)
     CHECK(lines_in_a_row(&L, 0, list));
 }
 
+/* The LED while the handset is held to a wallet, away from the ear: a short
+ * flash per tone heard, a long one (DS_VOICE_LED_PART_MS) per PSBT part
+ * taken, and on, steady, once a reception is complete, until a key or the
+ * hook says the person is back. */
+static unsigned led_steps, led_longest, led_run;
+static void led_watch_reset(void)
+{
+    led_steps = led_longest = led_run = 0;
+}
+static void led_watch(line_t *t)
+{
+    if (ds_voice_led(&t->v)) {
+        led_steps++;
+        if (++led_run > led_longest)
+            led_longest = led_run;
+    } else {
+        led_run = 0;
+    }
+}
+static void play_watching(line_t *t, const int16_t *x, size_t n)
+{
+    static int16_t c[CHUNK];
+    for (size_t i = 0; i < n; i += CHUNK) {
+        size_t k = n - i < CHUNK ? n - i : CHUNK;
+        memset(c, 0, sizeof c);
+        memcpy(c, x + i, k * sizeof x[0]);
+        step(t, c);
+        led_watch(t);
+    }
+}
+static void run_watching(line_t *t, uint32_t ms)
+{
+    for (uint32_t i = 0; i < ms / 10; i++) {
+        step(t, NULL);
+        led_watch(t);
+    }
+}
+
+static void test_led_follows_a_reception(void)
+{
+    /* the seed by the handset: a flicker while its tones play, never long */
+    CHECK(tones_seed_ur(seed_6a, 16, "ABC123DEF456", seed_tones, sizeof seed_tones) > 0);
+    to_seed_how(&L);
+    press(&L, '1');
+    run_quiet(&L);
+    CHECK(!ds_voice_led(&L.v));
+    led_watch_reset();
+    size_t n = tones_render(seed_tones, seed_audio, sizeof seed_audio / sizeof seed_audio[0]);
+    play_watching(&L, seed_audio, n - 8000); /* all but its end: the frame not yet complete */
+    CHECK(led_steps > 20);                     /* it flickers */
+    CHECK(led_longest <= 3);                   /* never on for long */
+    play_watching(&L, seed_audio + n - 8000, 8000);
+    run_watching(&L, 500);
+    CHECK(HAS(&L, "state pin", 0));
+    /* complete: on, steady, while the PIN is asked for, however long */
+    led_watch_reset();
+    run_watching(&L, 5000);
+    CHECK_EQ_INT(led_steps, 500);
+    /* a key: the person is back, the LED off (but the key's own flash) */
+    press(&L, '7');
+    run_ms(&L, 100);
+    CHECK(!ds_voice_led(&L.v));
+
+    /* a PSBT: a long flash per part taken, then steady once it is all in */
+    to_ready(&L, 0);
+    int32_t c = ut_psbt_to_cbor(vector("one input with change")->psbt,
+                                vector("one input with change")->psbt_len, psbt_cbor, sizeof psbt_cbor);
+    CHECK(c > 0);
+    CHECK(ut_fountain_encoder_init(&psbt_enc, psbt_cbor, (size_t)c, 100) >= 0);
+    press(&L, '1');
+    run_quiet(&L);
+    unsigned long_flashes = 0;
+    for (uint32_t i = 0; i < 4 * psbt_enc.seq_len && !HAS(&L, "state review", 0); i++) {
+        CHECK(tones_next_part(&psbt_enc, part_tones, sizeof part_tones) > 0);
+        led_watch_reset();
+        play_watching(&L, seed_audio, tones_render(part_tones, seed_audio, sizeof seed_audio / sizeof seed_audio[0]));
+        run_watching(&L, 400);
+        if (led_longest * 10 >= DS_VOICE_LED_PART_MS - 20)
+            long_flashes++;
+    }
+    CHECK(HAS(&L, "state review", 0));
+    CHECK(long_flashes >= psbt_enc.seq_len - 1); /* each part but the last, long */
+    led_watch_reset();
+    run_watching(&L, 3000); /* the review is said: steady on */
+    CHECK_EQ_INT(led_steps, 300);
+    hook(&L, 0); /* a hang-up: back, off */
+    run_ms(&L, 100);
+    CHECK(!ds_voice_led(&L.v));
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_in_menu_does_nothing, test_two_toggles_network, test_zero_repeats,
@@ -3771,4 +3861,4 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_no_prompt_makes_a_key_at_any_alignment,
           test_own_voice_through_the_mute_is_no_key, test_no_join_makes_a_key,
           test_motifs_stay_clear_of_dtmf, test_motif_lengths,
-          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct, test_work_plays_wait, test_work_due, test_screens_follow_the_grammar, test_language_list_grammar)
+          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct, test_work_plays_wait, test_work_due, test_screens_follow_the_grammar, test_language_list_grammar, test_led_follows_a_reception)
