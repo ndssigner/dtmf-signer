@@ -37,7 +37,7 @@ target_include_directories(speex_nb
   PRIVATE ${SPEEX_DIR}/port ${SPEEX_DIR}/libspeex ${SPEEX_DIR}/include/speex)
 # vbr.c calls log() and pow(); the C library carries them on macOS and in
 # Emscripten, but glibc and newlib keep them in libm.
-find_library(SPEEX_LIBM m)
-if(SPEEX_LIBM)
-  target_link_libraries(speex_nb PUBLIC ${SPEEX_LIBM})
+# (by name, not find_library: a cross build must not pick up the host's)
+if(NOT APPLE AND NOT EMSCRIPTEN)
+  target_link_libraries(speex_nb PUBLIC m)
 endif()
