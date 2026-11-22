@@ -194,6 +194,10 @@ PEX lists them when the handset is lifted.
 **Never connect it to a socket of the real telephone network:** that line
 carries up to 48 V, and about 90 V AC when it rings.
 
+The telephone is a whole tone telephone, handset and all, plugged with its
+own telephone cable into an RJ11 socket on the board: the line is the
+socket's two centre contacts.
+
 The signer feeds the line itself: the 5 V of the USB, raised to 12 V by a
 boost module, then a constant-current source of about 24 mA (an LM317 with
 51 ohms between OUT and ADJ). The current is what a telephone expects, and a
@@ -208,15 +212,10 @@ telephone off the hook holds it at 6 to 8 V.
 | GP25 | The board's LED: see below |
 
 The hook is off below 8 V on the line and on above 9 V. ds_voice then
-debounces it and tells a hook flash (200 ms to 1.5 s) from a hang-up. A
-telephone without its handset stays off the hook: press its hook switch by
-hand to hang up.
+debounces it and tells a hook flash (200 ms to 1.5 s) from a hang-up.
 
-The handset's microphone is the wallet's way in by air. An electret
-microphone module (a MAX9814) can stand in for a missing one: its output
-goes through a 22 k / 220 ohm divider and two 1 uF capacitors (+ towards the
-telephone) into the microphone pair. A wallet's audio by cable can take the
-same path, in place of the module.
+The wallet reaches the signer by air, through the handset's microphone: the
+person holds the handset to the wallet while its tones play.
 
 ### The LED
 
@@ -260,11 +259,14 @@ of 8 KB, in the review; static RAM is about 129 KB of 264 KB, flash about
 
 ### What is tested (PEX)
 
-On a breadboard with an old tone telephone (no handset, a pair of wired
-earbuds as its earpiece): the menus and the language list, the hook flash
-that wipes and the one that signs, the seed by the keypad, the seed by the
-handset encrypted with a 12-character PIN (its tones by cable into the
-microphone pair), a PSBT received the same way, reviewed and signed byte for
+On a breadboard, with a tone telephone that had lost its handset: its hook
+switch was pressed by hand, a pair of wired earbuds stood in for the
+earpiece, and an electret microphone module (a MAX9814, through a
+22 k / 220 ohm divider and two 1 uF capacitors) for the microphone; the
+wallet's tones were also fed by cable into that microphone input. So tested:
+the menus and the language list, the hook flash that wipes and the one that
+signs, the seed by the keypad, the seed by the handset encrypted with a
+12-character PIN, a PSBT received the same way, reviewed and signed byte for
 byte as the computer build does, the account sent and read by a phone
 running ur-tones, the wait motif and the LED.
 

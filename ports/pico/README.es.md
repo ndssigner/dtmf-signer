@@ -201,6 +201,10 @@ Centralita los ofrece al descolgar.
 **Nunca la conectes a una roseta de la red telefónica real:** esa línea
 lleva hasta 48 V, y unos 90 V de alterna cuando suena.
 
+El teléfono es un teléfono de tonos completo, con su auricular, enchufado
+con su propio cable telefónico a un conector RJ11 hembra de la placa: la
+línea son los dos contactos centrales del conector.
+
 El firmador alimenta la línea por sí mismo: los 5 V del USB, subidos a 12 V
 con un módulo elevador, y luego una fuente de corriente constante de unos
 24 mA (un LM317 con 51 ohmios entre OUT y ADJ). Es la corriente que espera
@@ -216,14 +220,10 @@ abierta hay unos 11 V; un teléfono descolgado la deja en 6 a 8 V.
 
 El gancho está descolgado por debajo de 8 V en la línea y colgado por
 encima de 9 V. Después, ds_voice elimina los rebotes y distingue un colgado
-corto (de 200 ms a 1,5 s) de colgar. Un teléfono sin su auricular se queda
-descolgado: para colgar, aprieta a mano el pulsador del gancho.
+corto (de 200 ms a 1,5 s) de colgar.
 
-El micrófono del auricular es la entrada por aire de la cartera. Un módulo
-de micrófono electret (un MAX9814) puede sustituir uno que falte: su salida
-pasa por un divisor de 22 k / 220 ohmios y dos condensadores de 1 uF (+ hacia
-el teléfono) al par del micrófono. El audio de una cartera por cable puede
-seguir el mismo camino, en lugar del módulo.
+La cartera llega al firmador por el aire, por el micrófono del auricular: se
+acerca el auricular a la cartera mientras suenan sus tonos.
 
 ### El LED
 
@@ -267,11 +267,14 @@ unos 129 KB de 264 KB y la flash, de unos 555 KB.
 
 ### Qué está probado (Centralita)
 
-En una protoboard con un teléfono de tonos antiguo (sin auricular, con unos
-auriculares de cable como cápsula): los menús y la lista de idiomas, el
-colgado corto que borra y el que firma, la semilla por el teclado, la semilla
-por el auricular cifrada con un PIN de 12 caracteres (sus tonos por cable al
-par del micrófono), una PSBT recibida igual, revisada y firmada byte a byte
+En una protoboard, con un teléfono de tonos que había perdido su auricular:
+su gancho se apretaba a mano, unos auriculares de cable hacían de cápsula y
+un módulo de micrófono electret (un MAX9814, con un divisor de
+22 k / 220 ohmios y dos condensadores de 1 uF) hacía de micrófono; los tonos
+de la cartera también entraron por cable a esa entrada de micrófono. Así se
+probó: los menús y la lista de idiomas, el colgado corto que borra y el que
+firma, la semilla por el teclado, la semilla por el auricular cifrada con un
+PIN de 12 caracteres, una PSBT recibida igual, revisada y firmada byte a byte
 como la versión de ordenador, la cuenta enviada y leída por un móvil con
 ur-tones, el motivo de espera y el LED.
 
