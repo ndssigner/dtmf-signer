@@ -75,6 +75,10 @@
   "es": "Asterisco, volver.",
   "en": "Star, go back."
  },
+ "opt_repeat": {
+  "es": "Cero, repetir.",
+  "en": "Zero, repeat."
+ },
  "net_main_say": {
   "es": "En la red principal, méinnet.",
   "en": "On the main network, main net."
@@ -195,12 +199,20 @@
    "en": "Seed fingerprint, to compare with your wallet's:"
   }
  },
- "if_correct_hash": {
-  "es": "Si coincide, almohadilla. Si no, asterisco.",
-  "en": "If it matches, hash. If not, star.",
+ "opt_fp_match": {
+  "es": "Almohadilla, coincide.",
+  "en": "Hash, it matches.",
   "long": {
-   "es": "Si coincide, almohadilla, y la semilla queda lista para firmar. Si no, asterisco, para descartarla; se confirma colgando un momento. El cero la repite.",
-   "en": "If it matches, hash, and the seed is ready to sign with. If not, star, to discard it; you confirm by hanging up for a moment. Zero says it again."
+   "es": "Almohadilla, coincide: la semilla queda lista para firmar.",
+   "en": "Hash, it matches, and the seed is ready to sign with."
+  }
+ },
+ "opt_fp_differs": {
+  "es": "Asterisco, no coincide.",
+  "en": "Star, it does not match.",
+  "long": {
+   "es": "Asterisco, no coincide: se descarta, y se confirma colgando un momento.",
+   "en": "Star, it does not match: it is discarded, and you confirm by hanging up for a moment."
   }
  },
  "psbt_listening": {
@@ -259,12 +271,24 @@
   "es": "Atención: una entrada tuya no trae su importe y no se firmará.",
   "en": "Warning: an input of yours has no amount attached and will not be signed."
  },
- "review_keys": {
-  "es": "Almohadilla, lo siguiente. Cinco, la dirección completa. Asterisco, cancelar.",
-  "en": "Hash, next. Five, the whole address. Star, cancel.",
+ "opt_next": {
+  "es": "Almohadilla, lo siguiente.",
+  "en": "Hash, next.",
   "long": {
-   "es": "Almohadilla, lo siguiente. Cinco, la dirección completa. Cero, repetir. Asterisco, cancelar sin firmar. Solo se puede firmar después de oírlo todo.",
-   "en": "Hash, the next item. Five, the whole address. Zero, again. Star, cancel without signing. Signing comes only after you have heard it all."
+   "es": "Almohadilla, lo siguiente. Solo se puede firmar después de oírlo todo.",
+   "en": "Hash, the next item; signing comes only once you have heard it all."
+  }
+ },
+ "opt_full_address": {
+  "es": "Cinco, la dirección completa.",
+  "en": "Five, the whole address."
+ },
+ "opt_cancel": {
+  "es": "Asterisco, cancelar.",
+  "en": "Star, cancel.",
+  "long": {
+   "es": "Asterisco, cancelar sin firmar.",
+   "en": "Star, cancel without signing."
   }
  },
  "sats": {
@@ -280,19 +304,19 @@
   "en": "bitcoin."
  },
  "sign_hook": {
-  "es": "Eso es todo. Para firmar, cuelga un momento y vuelve a descolgar. Asterisco, cancelar.",
-  "en": "That is all. To sign, hang up for a moment, then pick up again. Star, cancel.",
+  "es": "Eso es todo. Para firmar, cuelga un momento y vuelve a descolgar.",
+  "en": "That is all. To sign, hang up for a moment, then pick up again.",
   "long": {
-   "es": "Eso es todo. Para firmar, cuelga menos de un segundo y vuelve a descolgar: ninguna tecla puede firmar. Asterisco, cancelar sin firmar. Cero, repetir.",
-   "en": "That is all. To sign, hang up for less than a second, then pick up again: no key can sign. Star, cancel without signing. Zero, say it again."
+   "es": "Eso es todo. Para firmar, cuelga menos de un segundo y vuelve a descolgar: ninguna tecla puede firmar.",
+   "en": "That is all. To sign, hang up for less than a second, then pick up again: no key can sign."
   }
  },
  "wipe_hook": {
-  "es": "Para borrarlo todo, cuelga un momento y vuelve a descolgar. Asterisco, volver.",
-  "en": "To wipe everything, hang up for a moment, then pick up again. Star, go back.",
+  "es": "Para borrarlo todo, cuelga un momento y vuelve a descolgar.",
+  "en": "To wipe everything, hang up for a moment, then pick up again.",
   "long": {
-   "es": "Para borrarlo todo, semilla incluida, cuelga menos de un segundo y vuelve a descolgar: ninguna tecla puede borrar. Asterisco, volver sin borrar. Cero, repetir.",
-   "en": "To wipe everything, the seed too, hang up for less than a second, then pick up again: no key can wipe. Star, go back without wiping. Zero, say it again."
+   "es": "Para borrarlo todo, semilla incluida, cuelga menos de un segundo y vuelve a descolgar: ninguna tecla puede borrar.",
+   "en": "To wipe everything, the seed too, hang up for less than a second, then pick up again: no key can wipe."
   }
  },
  "signed": {
@@ -304,16 +328,32 @@
   "en": "Your account, ready for your wallet."
  },
  "hold_near": {
-  "es": "Pon tu guálet a escuchar, acerca el auricular y pulsa almohadilla.",
-  "en": "Set your wallet listening, hold the handset to it, then press hash.",
+  "es": "Pon tu guálet a escuchar y acerca el auricular.",
+  "en": "Set your wallet listening and hold the handset to it."
+ },
+ "opt_send": {
+  "es": "Almohadilla, enviar.",
+  "en": "Hash, to send."
+ },
+ "opt_menu_back": {
+  "es": "Asterisco, volver al menú.",
+  "en": "Star, back to the menu.",
   "long": {
-   "es": "Pon tu guálet a escuchar, acerca el auricular y pulsa almohadilla para enviar. Asterisco, volver al menú sin enviar. Cero, repetir.",
-   "en": "Set your wallet listening, hold the handset to it, then press hash to send. Star, back to the menu without sending. Zero, say it again."
+   "es": "Asterisco, volver al menú sin enviar.",
+   "en": "Star, back to the menu without sending."
   }
  },
- "again_hint": {
-  "es": "Ya está. Cero, enviarlo otra vez si a tu guálet no le ha llegado. Almohadilla, volver al menú.",
-  "en": "Done. Zero, send it again if your wallet missed it. Hash, back to the menu."
+ "sent": {
+  "es": "Enviado.",
+  "en": "Sent."
+ },
+ "opt_send_again": {
+  "es": "Cero, enviarlo otra vez si a tu guálet no le ha llegado.",
+  "en": "Zero, send it again if your wallet missed it."
+ },
+ "opt_menu": {
+  "es": "Almohadilla, volver al menú.",
+  "en": "Hash, return to the menu."
  },
  "redial_note": {
   "es": "Tu teléfono puede recordar lo último que marcaste.",

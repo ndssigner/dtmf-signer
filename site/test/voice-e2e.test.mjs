@@ -81,7 +81,7 @@ test("a keypad seed, a PSBT by the handset, a hook flash: the earpiece carries t
   ear = new EarDecoder(U, RATE);
   mark = log.length;
   type("#");                                   // play it
-  until("say again_hint", mark, 900000);
+  until("say sent", mark, 900000);
   quiet();
   ear.flush();
   const got = ear.result;

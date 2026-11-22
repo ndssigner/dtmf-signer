@@ -49,7 +49,7 @@ static const struct {
 } motif_def[] = {
     {0, {0}, {0}, 0, ""},
     {2, {440, 659}, {150, 200}, AMP_FULL, "notice"},               /* DS_EAR_NOTICE: 2 rising */
-    {1, {1760}, {300}, AMP_FULL, "turn"},                          /* DS_EAR_TURN: 1 high */
+    {1, {1760}, {80}, AMP_FULL, "taken"},                          /* DS_EAR_TAKEN: 1 high, short */
     {1, {988}, {100}, AMP_FULL, "option"},                         /* DS_EAR_OPTION: 1 mid, short */
     {3, {659, 523, 440}, {110, 110, 110}, AMP_LISTEN, "receive"},  /* DS_EAR_RECEIVE: 3 falling, soft */
     {3, {392, 494, 587}, {110, 110, 110}, AMP_FULL, "send"},       /* DS_EAR_SEND: 3 rising */

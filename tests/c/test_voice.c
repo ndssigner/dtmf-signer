@@ -613,7 +613,7 @@ static void test_air_seed_with_long_pin(void)
     run_quiet(&L);
     /* one per press (A twice, B three times, ...), one NEXT per character */
     CHECK_EQ_INT(count_lines(&L, "say pin-char", mark), 24);
-    CHECK_EQ_INT(count_lines(&L, "ear option", mark), 13); /* and one for # */
+    CHECK_EQ_INT(count_lines(&L, "ear taken", mark), 13); /* and one for # */
     long f = find_line(&L, "fingerprint 8b218e81", mark);
     CHECK(f >= 0);
     CHECK(f >= 0 && HAS(&L, "state fingerprint", mark));
@@ -622,7 +622,7 @@ static void test_air_seed_with_long_pin(void)
     CHECK(fi >= 0 && HAS(&L, "chars 8b218e81", (size_t)fi));
     static const char *const fpd[] = {"say fingerprint_is", "ear data", "chars 8b218e81", NULL};
     CHECK(lines_in_a_row(&L, mark, fpd));
-    CHECK(fi >= 0 && HAS(&L, "say if_correct_hash", (size_t)fi));
+    CHECK(fi >= 0 && HAS(&L, "say opt_fp_match", (size_t)fi));
     CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
     CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
     CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
@@ -735,6 +735,7 @@ static void test_pin_chars_never_in_echo(void)
         const char *e = strchr(p, '\n');
         int ok = (e - p == 12 && memcmp(p, "say pin-char", 12) == 0) ||
                  (e - p == 10 && memcmp(p, "ear option", 10) == 0) ||
+                 (e - p == 9 && memcmp(p, "ear taken", 9) == 0) ||
                  (e - p == 8 && memcmp(p, "ear wait", 8) == 0) ||
                  (e - p == 9 && memcmp(p, "ear close", 9) == 0) ||
                  (e - p == 6 && memcmp(p, "ear ok", 6) == 0) ||
@@ -1243,7 +1244,7 @@ static const uint8_t *hear_tones(line_t *t, const char **type, size_t *len)
     tapping = 1;
     size_t mark = t->log_len;
     press(t, '#');
-    CHECK(run_until(t, "say again_hint", mark, 600000));
+    CHECK(run_until(t, "say sent", mark, 600000));
     run_quiet(t);
     ut_listener_flush(&tap);
     tapping = 0;
@@ -1849,7 +1850,7 @@ static void test_hook_flash_signs(void)
     CHECK(p != NULL && n > 0 && plen == (size_t)n && memcmp(p, signed_psbt, plen) == 0);
     /* 2 rounds of 100-byte parts, its own tones never taken as keys */
     CHECK_EQ_INT(count_lines(&L, "state tones", m2), 1);
-    long first = find_line(&L, "state tones", m2), hint = find_line(&L, "say again_hint", m2);
+    long first = find_line(&L, "state tones", m2), hint = find_line(&L, "say sent", m2);
     CHECK(first >= 0 && hint > first);
     {
         uint32_t parts = (uint32_t)((len + 99) / 100);
@@ -2205,17 +2206,18 @@ static void test_review_names_keys(void)
     size_t mark = L.log_len;
     send_psbt(&L, vector("one input with change"));
     run_quiet(&L);
-    static const char *const first[] = {"chars pe9ug", "say review_keys", NULL};
+    static const char *const first[] = {"chars pe9ug", "ear option", "say opt_next", NULL};
     CHECK(lines_in_a_row(&L, mark, first));
-    CHECK_EQ_INT(count_lines(&L, "say review_keys", mark), 1);
+    CHECK_EQ_INT(count_lines(&L, "say opt_next", mark), 1);
     press(&L, '#');
     run_quiet(&L);
     CHECK(HAS(&L, "say change", mark));
-    CHECK_EQ_INT(count_lines(&L, "say review_keys", mark), 1);
+    CHECK_EQ_INT(count_lines(&L, "say opt_next", mark), 1);
     size_t m2 = L.log_len;
     run_ms(&L, DS_VOICE_HELP_MS + 500);
     run_quiet(&L);
-    CHECK_EQ_INT(count_lines(&L, "say review_keys_long", m2), 1);
+    CHECK_EQ_INT(count_lines(&L, "say opt_next_long", m2), 1);
+    CHECK_EQ_INT(count_lines(&L, "say opt_repeat", m2), 1);
     CHECK(!HAS(&L, "say change", m2)); /* the hint, not the item again */
     CHECK_EQ_INT(L.v.item, 1);
     size_t m3 = L.log_len;
@@ -2344,7 +2346,18 @@ static void test_key_cuts_motif_and_long(void)
     static int16_t clipbuf[16000 * 10];
     ds_pack en;
     CHECK_EQ_INT(ds_pack_open(&en, ds_pack_en, ds_pack_en_len), DS_OK);
-    size_t lwipe = render_clip(&en, DS_P_WIPE_HOOK, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
+    /* the wipe screen: the notice motif, what to do, a pause, the option
+     * motif and "star, go back" (and the pause after it) */
+    size_t lwipe = render_clip(&en, DS_P_WIPE_HOOK, clipbuf, sizeof clipbuf / sizeof clipbuf[0]) +
+                   render_clip(&en, DS_P_OPT_BACK, clipbuf, sizeof clipbuf / sizeof clipbuf[0]) +
+                   (size_t)(300 + 150) * 16;
+    for (int e = DS_EAR_NOTICE; e <= DS_EAR_OPTION; e += DS_EAR_OPTION - DS_EAR_NOTICE) {
+        const uint16_t *mh, *mm;
+        uint8_t mn;
+        CHECK_EQ_INT(ds_say_motif(e, &mh, &mm, &mn), DS_OK);
+        for (uint8_t i = 0; i < mn; i++)
+            lwipe += (size_t)mm[i] * 16;
+    }
     size_t llong = render_clip(&en, DS_P_CHOOSE_OPTION_LONG, clipbuf, sizeof clipbuf / sizeof clipbuf[0]);
     const uint16_t *hz, *ms;
     uint8_t n;
@@ -2798,7 +2811,7 @@ static void test_keypad_path_warns(void)
     CHECK(k >= 0 && w > k);
     CHECK(w >= 0 && find_line(&L, "say keypad_ask", (size_t)w) >= 0);
     run_quiet(&L);
-    long f = find_line(&L, "say if_correct_hash", 0);
+    long f = find_line(&L, "say fingerprint_is", 0);
     long r = find_line(&L, "say redial_note", 0);
     CHECK(f >= 0 && r > f);
     CHECK_EQ_INT(count_lines(&L, "say redial_note", 0), 1);
@@ -3002,7 +3015,7 @@ static void test_exchanges_announce_duration_and_reset(void)
     for (int i = 0; i < 3000 && strstr(L.log + mark, "\ntones ") == NULL; i++)
         step(&L, NULL);
     uint32_t t0 = L.now;
-    CHECK(run_until_line(&L, "say again_hint", mark, 600000));
+    CHECK(run_until_line(&L, "say sent", mark, 600000));
     long took = (long)(L.now - t0);
     long tones = find_line(&L, "ear send", mark);
     CHECK(tones >= 0 && strstr(L.log + mark, "\ntones ") > L.log + tones);
@@ -3030,7 +3043,7 @@ static void test_exchanges_announce_duration_and_reset(void)
     mark = L.log_len;
     press(&L, '1');
     run_quiet(&L);
-    static const char *const psbt[] = {"state psbt-listen", "say psbt_listening", "say psbt_about",
+    static const char *const psbt[] = {"state psbt-listen", "ear notice", "say psbt_listening", "say psbt_about",
                                        "say if_cut_reset", "ear receive", NULL};
     CHECK(lines_in_a_row(&L, mark, psbt));
     size_t first = 0;
@@ -3542,7 +3555,7 @@ static void test_motif_lengths(void)
         CHECK_EQ_INT(ds_say_motif(e, &hz, &ms, &n), DS_OK);
         for (uint8_t i = 0; i < n; i++)
             total += ms[i];
-        if (e == DS_EAR_OPTION) {
+        if (e == DS_EAR_OPTION || e == DS_EAR_TAKEN) {
             CHECK(total >= 10 && total <= 150);
         } else if (e == DS_EAR_DATA) {
             CHECK(total >= 10 && total <= 200);
@@ -3595,10 +3608,10 @@ static void test_motifs_are_distinct(void)
  * (ds_voice_work_due). Here the work is instant: the motif plays once. */
 static void test_work_plays_wait(void)
 {
-    static const char *const pin[] = {"ear option", "ear wait", "ear ok", "say seed_loaded", NULL};
-    static const char *const derive[] = {"ear option", "ear wait", "state menu-ready", NULL};
-    static const char *const account[] = {"ear option", "ear wait", NULL};
-    static const char *const sign[] = {"hook-flash", "ear option", "ear wait", "ear ok", NULL};
+    static const char *const pin[] = {"ear taken", "ear wait", "ear ok", "say seed_loaded", NULL};
+    static const char *const derive[] = {"ear taken", "ear wait", "state menu-ready", NULL};
+    static const char *const account[] = {"ear taken", "ear wait", NULL};
+    static const char *const sign[] = {"hook-flash", "ear taken", "ear wait", "ear ok", NULL};
     const psbt_vector *pv = vector("one input with change");
     to_ready(&L, 0);
     CHECK(lines_in_a_row(&L, 0, pin));
@@ -3648,6 +3661,72 @@ static void test_work_due(void)
     CHECK(HAS(&L, "say account_ready", 0));
 }
 
+/* The sound grammar: every screen that offers keys opens with the notice
+ * motif, says what it is about, then each key as an option after the
+ * option motif (as the menus do); the screens that ask for input open with
+ * the notice motif too. A key taken for work sounds "taken", never "option". */
+static void test_screens_follow_the_grammar(void)
+{
+    static const char *const fp[] = {"ear notice", "say fingerprint_is", NULL};
+    static const char *const fp_opts[] = {"ear option", "say opt_fp_match", "ear option",
+                                          "say opt_fp_differs", NULL};
+    static const char *const keypad[] = {"state seed-keypad", "ear notice", NULL};
+    static const char *const keypad_pin[] = {"state keypad-pin", "ear notice", "say keypad_pin_ask", NULL};
+    static const char *const hold[] = {"ear notice", "say account_ready", NULL};
+    static const char *const hold_opts[] = {"say hold_near", "ear option", "say opt_send", "ear option",
+                                            "say opt_menu_back", NULL};
+    static const char *const sent[] = {"ear notice", "say sent", "ear option", "say opt_send_again",
+                                       "ear option", "say opt_menu", NULL};
+    static const char *const wipe[] = {"ear notice", "say wipe_hook", "ear option", "say opt_back", NULL};
+    static const char *const confirm[] = {"ear notice", "say sign_hook", "ear option", "say opt_cancel", NULL};
+    static const char *const psbt[] = {"state psbt-listen", "ear notice", "say psbt_listening", NULL};
+    to_ready(&L, 0);
+    CHECK(lines_in_a_row(&L, 0, fp));
+    CHECK(lines_in_a_row(&L, 0, fp_opts));
+    CHECK(lines_in_a_row(&L, 0, keypad));
+    CHECK(lines_in_a_row(&L, 0, keypad_pin));
+    size_t mark = L.log_len;
+    press(&L, '2'); /* the account */
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, hold));
+    CHECK(lines_in_a_row(&L, mark, hold_opts));
+    press(&L, '#'); /* send it */
+    CHECK(run_until(&L, "say sent", mark, 600000));
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, sent));
+    press(&L, '#'); /* the menu */
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '3'); /* wipe? */
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, wipe));
+    press(&L, '*');
+    run_quiet(&L);
+    mark = L.log_len;
+    press(&L, '1'); /* sign */
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, mark, psbt));
+    to_ready(&L, 0);
+    send_psbt(&L, vector("one input with change"));
+    review_to_confirm(&L);
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, 0, confirm));
+    CHECK_EQ_INT(count_lines(&L, "ear turn", 0), 0);
+}
+
+/* Two languages: the list opens with the notice motif, and each language is
+ * an option. */
+static void test_language_list_grammar(void)
+{
+    static const char *const list[] = {"state lang", "ear notice", "ear option", "say lang_press",
+                                       "say c_1", "ear option", "say lang_press", "say c_2", NULL};
+    power_up(&L, es_bin, ES_BIN_LEN);
+    hook(&L, 1);
+    run_ms(&L, 300);
+    run_quiet(&L);
+    CHECK(lines_in_a_row(&L, 0, list));
+}
+
 TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_languages_listed_and_chosen, test_about_says_fingerprints,
           test_hash_in_menu_does_nothing, test_two_toggles_network, test_zero_repeats,
@@ -3690,4 +3769,4 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_no_prompt_makes_a_key_at_any_alignment,
           test_own_voice_through_the_mute_is_no_key, test_no_join_makes_a_key,
           test_motifs_stay_clear_of_dtmf, test_motif_lengths,
-          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct, test_work_plays_wait, test_work_due)
+          test_no_motif_decodes_to_a_dtmf_key, test_motifs_are_distinct, test_work_plays_wait, test_work_due, test_screens_follow_the_grammar, test_language_list_grammar)

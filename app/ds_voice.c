@@ -500,6 +500,26 @@ static void close_gate(ds_voice *v);
 static void hush(ds_voice *v);
 static void redial_once(ds_voice *v);
 
+/* The review's options, said once per review after its first item, and
+ * longer, with "zero, repeat", as its help. */
+static void review_options(ds_voice *v, int longer)
+{
+    static const uint16_t opt[] = {DS_P_OPT_NEXT, DS_P_OPT_FULL_ADDRESS, DS_P_OPT_CANCEL};
+    for (size_t i = 0; i < sizeof opt / sizeof opt[0]; i++) {
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        if (longer) {
+            long_clip(v, opt[i]);
+        } else {
+            clip(v, opt[i]);
+        }
+        ds_say_pause(&v->say, OPTION_GAP_MS);
+    }
+    if (longer) {
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        clip(v, DS_P_OPT_REPEAT);
+    }
+}
+
 /* The network, as it is said when it matters (the seed loaded, a review
  * begun, the account sent; never in a menu). */
 static uint16_t net_phrase(const ds_voice *v)
@@ -567,6 +587,25 @@ static int menu_step(ds_voice *v, int k, uint16_t title, uint16_t now, const uin
     return 1;
 }
 
+/* Step k of the options of a screen that offers keys but is no menu (its
+ * head, the notice motif and what it is about, came first): each option as
+ * "key, action" after the option motif, as in a menu; said as the help
+ * (longer), "zero, repeat" last. 0 when over. */
+static int options_step(ds_voice *v, int k, const uint16_t *opt, int n)
+{
+    if (k < n) {
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        ask(v, opt[k]);
+        ds_say_pause(&v->say, OPTION_GAP_MS);
+    } else if (k == n && v->longer) {
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        clip(v, DS_P_OPT_REPEAT);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
 /* What goes out, as tones, takes this long: each part at cable pace (its
  * tones, two pauses) and the silence after it. All parts are about as long
  * as the first, made already. */
@@ -589,18 +628,30 @@ static int say_step(ds_voice *v)
     static const uint16_t resume[] = {DS_P_OPT_RESUME, DS_P_OPT_START_OVER};
     static const uint16_t settings[] = {DS_P_OPT_UNIT_AUTO, DS_P_OPT_UNIT_BTC, DS_P_OPT_UNIT_SATS,
                                         DS_P_OPT_ABOUT, DS_P_OPT_BACK};
+    static const uint16_t fp_opts[] = {DS_P_OPT_FP_MATCH, DS_P_OPT_FP_DIFFERS};
+    static const uint16_t confirm_opts[] = {DS_P_OPT_CANCEL};
+    static const uint16_t wipe_opts[] = {DS_P_OPT_BACK};
+    static const uint16_t hold_opts[] = {DS_P_OPT_SEND, DS_P_OPT_MENU_BACK};
+    static const uint16_t sent_opts[] = {DS_P_OPT_SEND_AGAIN, DS_P_OPT_MENU};
+#define OPTIONS(k0, o) options_step(v, k - (k0), (o), (int)(sizeof(o) / sizeof((o)[0])))
 #define MENU(title, now, o) menu_step(v, k, (title), (now), (o), (int)(sizeof(o) / sizeof((o)[0])))
 
     switch (v->state) {
     case ST_LANG:
-        /* each language in its own voice: "For English, press 1", ... */
-        if (k >= v->packs.n) {
+        /* the notice motif, then each language in its own voice as an
+         * option: "For English, press 1", ... */
+        if (k == 0) {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            break;
+        }
+        if (k > v->packs.n) {
             ds_say_set_pack(&v->say, voice(v));
             return 0;
         }
-        ds_say_set_pack(&v->say, &v->packs.pack[k]);
+        ds_say_set_pack(&v->say, &v->packs.pack[k - 1]);
+        ds_say_earcon(&v->say, DS_EAR_OPTION);
         ask(v, DS_P_LANG_PRESS);
-        ask(v, (uint16_t)(DS_P_C_1 + k));
+        ask(v, (uint16_t)(DS_P_C_1 + k - 1));
         ds_say_pause(&v->say, ENTRY_GAP_MS);
         break;
     case ST_MENU_EMPTY:
@@ -650,6 +701,7 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        ds_say_earcon(&v->say, DS_EAR_NOTICE);
         ask(v, DS_P_SEED_LISTENING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         if (!v->air_warned) {
@@ -667,6 +719,7 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        ds_say_earcon(&v->say, DS_EAR_NOTICE);
         ask(v, DS_P_PIN_ASK);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ask(v, DS_P_PIN_WARNING);
@@ -675,6 +728,7 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        ds_say_earcon(&v->say, DS_EAR_NOTICE);
         if (!v->keypad_warned) { /* once per power-up: the keys and the PIN */
             v->keypad_warned = 1;
             ask(v, DS_P_PIN_WARNING);
@@ -686,25 +740,27 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        ds_say_earcon(&v->say, DS_EAR_NOTICE);
         ask(v, DS_P_KEYPAD_PIN_ASK);
         break;
     case ST_FINGERPRINT:
-        if (k == 1 && !v->redial_said) {
-            /* then the redial note, once per call: a PIN, or a seed by
-             * the keypad, was typed */
+        /* the fingerprint, the redial note once per call (a PIN, or a
+         * seed by the keypad, was typed), then the options */
+        if (k == 0) {
+            snprintf(fp, sizeof fp, "%08x", (unsigned)v->seed_fp);
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            ask(v, DS_P_FINGERPRINT_IS);
+            data_mark(v);
+            ds_say_chars_grouped(&v->say, fp);
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
-            redial_once(v);
-            break;
-        }
-        if (k > 0) {
+        } else if (k == 1) {
+            if (!v->redial_said) {
+                redial_once(v);
+                ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            }
+        } else if (!OPTIONS(2, fp_opts)) {
             return 0;
         }
-        snprintf(fp, sizeof fp, "%08x", (unsigned)v->seed_fp);
-        ask(v, DS_P_FINGERPRINT_IS);
-        data_mark(v);
-        ds_say_chars_grouped(&v->say, fp);
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, DS_P_IF_CORRECT_HASH);
         break;
     case ST_MENU_READY:
         if (!MENU(DS_PACK_NONE, DS_PACK_NONE, ready)) {
@@ -718,6 +774,7 @@ static int say_step(ds_voice *v)
         if (k > 0) {
             return 0;
         }
+        ds_say_earcon(&v->say, DS_EAR_NOTICE);
         ask(v, DS_P_PSBT_LISTENING);
         ds_say_pause(&v->say, SENTENCE_GAP_MS);
         ask(v, DS_P_PSBT_ABOUT);
@@ -741,30 +798,41 @@ static int say_step(ds_voice *v)
         }
         break;
     case ST_CONFIRM:
-        if (k > 0) {
+        /* how to sign (a flash: no key), then the options */
+        if (k == 0) {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            ask(v, DS_P_SIGN_HOOK);
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        } else if (!OPTIONS(1, confirm_opts)) {
             return 0;
         }
-        ask(v, DS_P_SIGN_HOOK);
         break;
     case ST_WIPE_CONFIRM:
-        if (k > 0) {
+        if (k == 0) {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            ask(v, DS_P_WIPE_HOOK);
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        } else if (!OPTIONS(1, wipe_opts)) {
             return 0;
         }
-        ask(v, DS_P_WIPE_HOOK);
         break;
     case ST_HOLD_NEAR:
-        /* what is ready (the account: on which network), then what to do */
-        if (k > 0) {
+        /* what is ready (the account: on which network), what to do, then
+         * the options */
+        if (k == 0) {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            if (v->out_kind == OUT_SIGNED) {
+                ask(v, DS_P_SIGNED);
+            } else {
+                ask(v, DS_P_ACCOUNT_READY);
+                ask(v, net_phrase(v));
+            }
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+            ask(v, DS_P_HOLD_NEAR);
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        } else if (!OPTIONS(1, hold_opts)) {
             return 0;
         }
-        if (v->out_kind == OUT_SIGNED) {
-            ask(v, DS_P_SIGNED);
-        } else {
-            ask(v, DS_P_ACCOUNT_READY);
-            ask(v, net_phrase(v));
-        }
-        ds_say_pause(&v->say, SENTENCE_GAP_MS);
-        ask(v, DS_P_HOLD_NEAR);
         break;
     case ST_TONES:
         /* how long it takes, once the first part is made (and the first
@@ -793,8 +861,10 @@ static int say_step(ds_voice *v)
         } else if (!v->out_heard) {
             close_gate(v); /* nothing heard during the tones counts */
             v->out_heard = 1;
-            ask(v, DS_P_AGAIN_HINT);
-        } else {
+            ds_say_earcon(&v->say, DS_EAR_NOTICE);
+            ask(v, DS_P_SENT);
+            ds_say_pause(&v->say, SENTENCE_GAP_MS);
+        } else if (!OPTIONS(2 + (int)v->out_total, sent_opts)) {
             return 0;
         }
         break;
@@ -811,6 +881,7 @@ static int say_step(ds_voice *v)
         return 0;
     }
 #undef MENU
+#undef OPTIONS
     echo_said(v);
     v->step++;
     return 1;
@@ -829,7 +900,7 @@ static void prompt_said(ds_voice *v)
         if (!v->keys_said) {
             v->keys_said = 1;
             ds_say_pause(&v->say, SENTENCE_GAP_MS);
-            clip(v, DS_P_REVIEW_KEYS);
+            review_options(v, 0);
             echo_said(v);
         }
     } else if ((v->state == ST_CONFIRM || v->state == ST_WIPE_CONFIRM) && !v->prompt_heard) {
@@ -945,7 +1016,7 @@ static void help(ds_voice *v)
     v->helped = 1;
     if (v->state == ST_REVIEW) {
         hush(v);
-        long_clip(v, DS_P_REVIEW_KEYS);
+        review_options(v, 1);
         echo_said(v);
     } else {
         v->longer = 1;
@@ -1288,7 +1359,7 @@ static void load_seed(ds_voice *v)
 static void ask_job(ds_voice *v, int job)
 {
     hush(v);
-    ds_say_earcon(&v->say, DS_EAR_OPTION);
+    ds_say_earcon(&v->say, DS_EAR_TAKEN);
     ds_say_earcon(&v->say, DS_EAR_WAIT);
     echo_said(v);
     v->job = job;
@@ -1589,7 +1660,7 @@ static void pin_said(ds_voice *v, int r)
         break;
     case DS_MT_COMMIT:
         hush(v);
-        ds_say_earcon(&v->say, DS_EAR_OPTION);
+        ds_say_earcon(&v->say, DS_EAR_TAKEN);
         if (m->has_pending) {
             ds_say_secret_char(&v->say, m->pending);
         }

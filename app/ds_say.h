@@ -13,8 +13,8 @@
 /* The spoken UI's melodic motifs, each a few single notes. */
 enum {
     DS_EAR_NOTICE = 1, /* a warning */
-    DS_EAR_TURN,       /* it is the user's turn */
-    DS_EAR_OPTION,     /* a choice was taken */
+    DS_EAR_TAKEN,      /* a key was taken (the work it asks for follows) */
+    DS_EAR_OPTION,     /* an option follows: "key, action" */
     DS_EAR_RECEIVE,    /* listening to the air */
     DS_EAR_SEND,       /* sending on the air */
     DS_EAR_OK,

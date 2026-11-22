@@ -122,7 +122,7 @@ static void test_log_tokens(void)
 static void test_earcon_lengths_and_level(void)
 {
     static const struct { int e; size_t ms; } want[] = {
-        {DS_EAR_NOTICE, 350}, {DS_EAR_TURN, 300}, {DS_EAR_OPTION, 100},
+        {DS_EAR_NOTICE, 350}, {DS_EAR_TAKEN, 80}, {DS_EAR_OPTION, 100},
         {DS_EAR_RECEIVE, 330}, {DS_EAR_SEND, 330}, {DS_EAR_OK, 460},
         {DS_EAR_FAIL, 450}, {DS_EAR_CLOSE, 350}};
     for (size_t i = 0; i < sizeof want / sizeof want[0]; i++) {

@@ -7,7 +7,17 @@
  *   on-hook (idle) --off-hook--> [language list] --> greeting, then menu
  *   Each prompt says where you are, then what you can do. A menu: the
  *   notice motif, its title if any, "choose an option", then each option
- *   as "number, action" after the option motif. The network is said when it
+ *   as "number, action" after the option motif. Every other screen that
+ *   offers keys (the fingerprint, the review's keys, the confirmation, the
+ *   wipe, what is ready to send, what was sent, the language list) is said
+ *   the same way: the notice motif, what it is about, then each key as an
+ *   option after the option motif (and, in the help, "zero, repeat"); a
+ *   hook flash is no key and is told in what it is about. The screens that
+ *   ask for input (a seed, a PIN, a PSBT) open with the notice motif too.
+ *   Motifs: notice (a screen begins, or a warning), option (an option
+ *   follows), taken (a key was taken for work), wait (work follows, looped
+ *   by a port while it runs), receive and send (right before tones), ok,
+ *   fail, close (going back), data (a dictated datum follows). The network is said when it
  *   matters (the seed loaded, a review begun, the account sent), never in a
  *   menu. Before each exchange of tones: how long it takes (in 5 s steps,
  *   from 2 minutes in minutes; a PSBT by air: "a few minutes")
@@ -48,8 +58,8 @@
  *     heard. After the last item, # asks for the confirmation: a hook flash
  *     (a short hang-up) signs; keys never do. Then "signed, hold the handset to your wallet": # plays
  *     the signed PSBT as ur-tones data tones (multi-part URs, 100-byte
- *     fragments, two rounds), half-duplex; then 0 plays them again, # (or *)
- *     back to the menu, with the redial note the first time in a call. An
+ *     fragments, two rounds), half-duplex; then "sent": 0 plays them again,
+ *     # (or *) back to the menu, with the redial note the first time in a call. An
  *     error (wrong network, invalid PSBT, change not ours...) says so and
  *     goes back to the menu: nothing is signed.
  *   account: the account (crypto-account UR) the same way, "hash to send".
@@ -73,11 +83,12 @@
  *   300 ms between frames). A device playing tones near the handset can
  *   still press keys (cancel, repeat, start an action).
  *   PIN by multi-tap (ds_multitap): each key is said back as a secret
- *   character, the "next" sound when one is committed, "back" and the last
+ *   character, the taken motif when one is committed, "back" and the last
  *   one left after *; # ends it, * with nothing left cancels. A PIN key
  *   counts as any key does (above).
  *   The decrypt and the derivation run from ds_voice_tick, never from
- *   ds_voice_line_in: the key that asks for them gets a short sound.
+ *   ds_voice_line_in: the key that asks for them gets the taken motif and
+ *   the wait motif, and the work runs once both have gone out.
  *
  * Keys are heard while the signer speaks (barge-in): a key the state acts on
  * stops what is being said and acts; any other key is ignored and the
