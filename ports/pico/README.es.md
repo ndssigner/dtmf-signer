@@ -180,7 +180,8 @@ tools/build-pico.sh pex
 ```
 
 Da `build-pico-pex-release/dtmf-signer-pex.uf2` y su SHA-256, y se carga
-igual (BOOTSEL y copiar el UF2). Desde la
+igual (BOOTSEL y copiar el UF2); con paquetes de idioma, como en
+[Paquetes de voz](#paquetes-de-voz). Desde la
 v0.3.0-alpha, las versiones también lo llevan, compilado por la CI. Con CMake a mano, es
 la opción `-DDS_FIRMWARE=PEX`.
 
@@ -190,25 +191,26 @@ falla: el segundo MB es la región de los paquetes de voz.
 
 ### Paquetes de voz
 
-Cada idioma salvo el inglés es un paquete, que se graba aparte del
-firmware, en el desplazamiento de 1 MB de la flash (ver
-[`tools/voice`](../../tools/voice/README.md)).
+La Centralita habla inglés; cada otro idioma es un paquete, que se graba en
+la flash junto al firmware (ver [`tools/voice`](../../tools/voice/README.md)).
+[`tools/install_pex.py`](../../tools/install_pex.py) pone en la Pico el
+firmware y los paquetes que elijas de una vez:
 
-**Lo sencillo:** `dtmf-signer-pex-es.uf2` es el firmware y el paquete
-español en un solo archivo (uno por idioma, hecho por
-`tools/build-pico.sh pex` y adjunto a las versiones). Cópialo a la placa
-como arriba, una vez: habla inglés y español. Copiar dos archivos a la vez
-no funciona: la Pico se reinicia en cuanto termina el primero.
+1. Pon en una carpeta `dtmf-signer-pex.uf2`, `install_pex.py` y los
+   paquetes que quieras (`es.bin`, ...), todos de las descargas de la misma
+   versión (en la web, o la versión publicada y `app/voice/packs/`). Si
+   añades `SHA256SUMS`, el firmware se comprueba con él.
+2. Mantén pulsado el botón BOOTSEL de la Pico mientras la enchufas: aparece
+   una unidad llamada `RPI-RP2`.
+3. En esa carpeta, ejecuta `python3 install_pex.py` (en Windows, `py install_pex.py`).
 
-**Un paquete solo,** para añadirlo a una placa que ya tiene el firmware:
-
-```bash
-python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
-```
-
-y copia `es.uf2` a la placa en BOOTSEL. Un segundo idioma va detrás del
-primero: su `--offset` es el tamaño del primer paquete redondeado a 4 KB.
-Con más de un idioma, la Centralita los ofrece al descolgar.
+Necesita Python 3.8 o posterior y nada más. Comprueba cada archivo, dice
+qué idiomas entran, copia un solo UF2 a la Pico y la Pico se reinicia sola;
+al descolgar, la Centralita ofrece los idiomas. Para cambiarlos más
+adelante, vuelve a ejecutarlo con otros paquetes: los anteriores se borran.
+Caben hasta tres paquetes además del inglés. Copiar a mano el firmware y un
+paquete como dos archivos no funciona: la Pico se reinicia en cuanto
+termina el primero.
 
 ### La línea
 

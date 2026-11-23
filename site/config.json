@@ -211,6 +211,7 @@
         "en": "ports/pico/README.md#the-phone-exchange-pex",
         "es": "ports/pico/README.es.md#la-centralita-pex"
       },
+      "installer": "tools/install_pex.py",
       "packs_guide": {
         "en": "ports/pico/README.md#voice-packs",
         "es": "ports/pico/README.es.md#paquetes-de-voz"

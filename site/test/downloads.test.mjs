@@ -65,6 +65,19 @@ test("each build's downloads tab: its own firmware from the release, and its gui
     assert.match(c, /<li><a href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
   }
 });
+test("the PEX's downloads offer its installer with the three steps; Cable and QR has none", () => {
+  for (const lang of ["en", "es"]) {
+    const c = text(files, `${lang}/pex/downloads/index.html`);
+    assert.match(c, /<a href="[^"]*files\/pex\/install_pex\.py" download>install_pex\.py<\/a>/, lang);
+    const steps = /<ol class="install-steps">([\s\S]*?)<\/ol>/.exec(c)?.[1] ?? "";
+    assert.equal((steps.match(/<li>/g) ?? []).length, 3, lang);
+    assert.match(steps, /dtmf-signer-pex\.uf2/, lang);
+    assert.match(steps, /BOOTSEL/, lang);
+    assert.match(steps, /<code>python3 install_pex\.py<\/code>/, lang);
+    assert.doesNotMatch(text(files, `${lang}/cable-qr/downloads/index.html`), /install_pex|install-steps/, lang);
+  }
+  assert.ok(files.get("files/pex/install_pex.py")?.equals(readFileSync(new URL("../../tools/install_pex.py", import.meta.url))));
+});
 test("the release names each build's UF2, and a build marked published has one", () => {
   const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
   const slugs = config.profiles.map((p) => p.slug);

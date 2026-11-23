@@ -12,9 +12,8 @@
 #   tools/build-pico.sh pex        # the Phone Exchange (PEX), the voice firmware
 #
 # Cable and QR gives build-pico-release/dtmf-signer-pico.uf2; the PEX gives
-# build-pico-pex-release/dtmf-signer-pex.uf2 (English built in) and, for
-# each language pack, dtmf-signer-pex-<lang>.uf2: the firmware and the pack
-# in one file (ports/pico/README.md#voice-packs).
+# build-pico-pex-release/dtmf-signer-pex.uf2 (English built in; other
+# languages are packs, installed apart: ports/pico/README.md#voice-packs).
 #
 # Needs git, cmake (3.22 or later), ninja or make, python3, curl and tar,
 # and picotool 2.3.1: installed (Homebrew: brew install picotool), or else
@@ -111,16 +110,6 @@ say ""
 say "Built: $UF2"
 say "Version: $(git -C "$ROOT" describe --tags --always --dirty)"
 say "SHA-256: $(sha256 "$UF2")"
-# The PEX with each language pack, in one file: one copy onto the board.
-if [ "$FIRMWARE" = PEX ]; then
-    for pack in "$ROOT"/app/voice/packs/*.bin; do
-        lang=$(basename "$pack" .bin)
-        out=$BUILD/$NAME-$lang.uf2
-        python3 "$ROOT/tools/voice/make_uf2.py" "$pack" --offset 0 --firmware "$UF2" "$out"
-        say "With the $lang pack: $out"
-        say "SHA-256: $(sha256 "$out")"
-    done
-fi
 if [ "$GCC_HOST" != x86_64 ]; then
     say "(built on $GCC_HOST: the published UF2 is built on Linux x86_64, and"
     say " only a build there matches its SHA-256 byte for byte)"
@@ -129,6 +118,6 @@ say ""
 say "To flash it: hold BOOTSEL while plugging the Pico in, then copy the UF2"
 say "onto the drive that appears (RPI-RP2)."
 if [ "$FIRMWARE" = PEX ]; then
-    say "It speaks English; $NAME-<lang>.uf2 is the same firmware with that"
-    say "language's pack, flashed the same way in one copy."
+    say "It speaks English; for another language, install its pack too:"
+    say "ports/pico/README.md#voice-packs"
 fi

@@ -174,7 +174,8 @@ tools/build-pico.sh pex
 ```
 
 It gives `build-pico-pex-release/dtmf-signer-pex.uf2` and its SHA-256, and
-is flashed the same way (BOOTSEL, then copy the UF2). From
+is flashed the same way (BOOTSEL, then copy the UF2); with language packs,
+as in [Voice packs](#voice-packs). From
 v0.3.0-alpha, the releases carry it too, built by the CI. With CMake by hand, it is the
 option `-DDS_FIRMWARE=PEX`.
 
@@ -184,24 +185,25 @@ the second MB is the voice packs' region.
 
 ### Voice packs
 
-Every language but English is a pack, written apart from the firmware, at
-flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)).
+The PEX speaks English; every other language is a pack, written to the
+flash beside the firmware (see [`tools/voice`](../../tools/voice/README.md)).
+[`tools/install_pex.py`](../../tools/install_pex.py) puts the firmware and the
+packs you choose on the Pico in one go:
 
-**The simple way:** `dtmf-signer-pex-es.uf2` is the firmware and the Spanish
-pack in one file (one per language, made by `tools/build-pico.sh pex` and
-attached to the releases). Copy it onto the board as above, once: it speaks
-English and Spanish. Two files copied at once do not work: the Pico
-restarts as soon as the first one is in.
+1. Put in one folder `dtmf-signer-pex.uf2`, `install_pex.py` and the packs
+   you want (`es.bin`, ...), all from the same version's downloads (on the
+   website, or the release and `app/voice/packs/`). Add `SHA256SUMS` and the
+   firmware is checked against it.
+2. Hold the Pico's BOOTSEL button while you plug it in: a drive called
+   `RPI-RP2` appears.
+3. In that folder, run `python3 install_pex.py` (on Windows, `py install_pex.py`).
 
-**A pack on its own,** to add it to a board that already has the firmware:
-
-```bash
-python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
-```
-
-and copy `es.uf2` onto the board in BOOTSEL. A second language goes after
-the first: its `--offset` is the first pack's size rounded up to 4 KB.
-With more than one language, the PEX lists them when the handset is lifted.
+It needs Python 3.8 or later and nothing else. It checks every file, says
+which languages go in, copies one UF2 onto the Pico and the Pico restarts
+by itself; lifting the handset, the PEX offers the languages. To change
+them later, run it again with other packs: the earlier ones are wiped. Up
+to three packs fit besides English. Copying the firmware and a pack by hand
+as two files does not work: the Pico restarts as soon as the first one is in.
 
 ### The line
 

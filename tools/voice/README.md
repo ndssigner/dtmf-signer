@@ -41,10 +41,6 @@ region. On the Pico, `make_uf2.py` wraps a pack for drag-and-drop:
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 ```
 
-With `--firmware dtmf-signer-pex.uf2`, the firmware and the pack go in one
-UF2, copied onto the board at once (`tools/build-pico.sh pex` makes one per
-pack: `dtmf-signer-pex-<lang>.uf2`).
-
 Adding or changing a phrase: edit `phrases.json` (ASCII lowercase IDs; the
 C names are `DS_P_` plus the ID in capitals) and regenerate the header and
 every pack (a pack with another phrase count is ignored by the firmware).

@@ -4,10 +4,12 @@ The firmware is a prototype: do not use it with funds.
 
 ## Unreleased
 
-- The PEX with a language in one file: `dtmf-signer-pex-es.uf2` is the
-  firmware and the Spanish pack together, copied onto the Pico once
-  (`tools/voice/make_uf2.py --firmware`; `tools/build-pico.sh pex` makes one
-  per pack, and the releases carry them).
+- `tools/install_pex.py` puts the PEX on a Pico with the language packs you
+  choose, in one go: with the firmware and the packs in one folder and the
+  Pico in BOOTSEL, `python3 install_pex.py` checks every file (a pack for
+  another firmware version, a damaged one, more than three), wipes earlier
+  packs and copies one UF2 onto the Pico. Python 3.8, nothing else. The
+  website's downloads offer it with the three steps.
 
 ## v0.3.0-alpha (2026-11-23)
 

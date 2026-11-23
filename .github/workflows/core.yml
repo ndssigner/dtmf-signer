@@ -92,5 +92,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: dtmf-signer-pex-uf2
-          path: build-pico-pex-release/dtmf-signer-pex*.uf2
+          path: build-pico-pex-release/dtmf-signer-pex.uf2
           if-no-files-found: error
