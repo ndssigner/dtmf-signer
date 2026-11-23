@@ -36,6 +36,10 @@
         "en": "hardware/breadboard/README.md",
         "es": "hardware/breadboard/README.es.md"
       },
+      "firmware_guide": {
+        "en": "ports/pico/README.md#get-the-firmware",
+        "es": "ports/pico/README.es.md#conseguir-el-firmware"
+      },
       "simulator": {
         "pin": "1234",
         "networks": {
@@ -202,6 +206,14 @@
       "readme": {
         "en": "hardware/phone/README.md",
         "es": "hardware/phone/README.es.md"
+      },
+      "firmware_guide": {
+        "en": "ports/pico/README.md#the-phone-exchange-pex",
+        "es": "ports/pico/README.es.md#la-centralita-pex"
+      },
+      "packs_guide": {
+        "en": "ports/pico/README.md#voice-packs",
+        "es": "ports/pico/README.es.md#paquetes-de-voz"
       },
       "gallery": [
         {
@@ -397,7 +409,9 @@
   ],
   "release": {
     "tag": "v0.2.0-alpha",
-    "uf2": "dtmf-signer-pico.uf2",
+    "uf2": {
+      "cable-qr": "dtmf-signer-pico.uf2"
+    },
     "sums": "SHA256SUMS"
   },
   "donate": {

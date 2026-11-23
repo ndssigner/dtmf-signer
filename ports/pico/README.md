@@ -166,10 +166,16 @@ wallet's tones on it. The logic is `app/ds_voice`, the same that runs in the
 website's simulator; [`voice_main.c`](voice_main.c) is the hardware around
 it.
 
+It is built as Cable and QR's is (above), from a clone of the repository:
+
 ```bash
-cmake -S ports/pico -B build-pex -DPICO_SDK_PATH=<path to the Pico SDK 2.3.1> -DDS_FIRMWARE=PEX
-cmake --build build-pex
+tools/build-pico.sh pex
 ```
+
+It gives `build-pico-pex-release/dtmf-signer-pex.uf2` and its SHA-256, and
+is flashed the same way (BOOTSEL, then copy the UF2). The releases after
+v0.2.0-alpha carry it too, built by the CI. With CMake by hand, it is the
+option `-DDS_FIRMWARE=PEX`.
 
 It links libspeex without its encoder (`speex_nb_dec`) and the built-in
 English prompts. It must fit in the first MB of flash, or the link fails:
@@ -183,7 +189,7 @@ flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)):
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 picotool load es.uf2
-picotool load -x build-pex/dtmf-signer-pex.uf2
+picotool load -x build-pico-pex-release/dtmf-signer-pex.uf2
 ```
 
 Both loads need BOOTSEL, as above. With more than one language, the

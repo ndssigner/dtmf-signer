@@ -172,10 +172,16 @@ teclas y los tonos de la cartera. La lógica es `app/ds_voice`, la misma que
 corre en el simulador de la web; [`voice_main.c`](voice_main.c) es el
 hardware que la rodea.
 
+Se compila como el de Cable y QR (arriba), desde un clon del repositorio:
+
 ```bash
-cmake -S ports/pico -B build-pex -DPICO_SDK_PATH=<ruta al SDK de la Pico 2.3.1> -DDS_FIRMWARE=PEX
-cmake --build build-pex
+tools/build-pico.sh pex
 ```
+
+Da `build-pico-pex-release/dtmf-signer-pex.uf2` y su SHA-256, y se carga
+igual (BOOTSEL y copiar el UF2). Las versiones posteriores a la
+v0.2.0-alpha también lo llevan, compilado por la CI. Con CMake a mano, es
+la opción `-DDS_FIRMWARE=PEX`.
 
 Enlaza libspeex sin su codificador (`speex_nb_dec`) y las locuciones en
 inglés incorporadas. Tiene que caber en el primer MB de flash, o el enlazado
@@ -190,7 +196,7 @@ firmware, en el desplazamiento de 1 MB de la flash (ver
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
 picotool load es.uf2
-picotool load -x build-pex/dtmf-signer-pex.uf2
+picotool load -x build-pico-pex-release/dtmf-signer-pex.uf2
 ```
 
 Las dos cargas necesitan BOOTSEL, como arriba. Con más de un idioma, la

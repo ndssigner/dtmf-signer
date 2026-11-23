@@ -8,7 +8,12 @@
 # the SHA-256 differs: to check a release, build on Linux x86_64 (or in a
 # Linux x86_64 container, see ports/pico/README.md).
 #
-#   tools/build-pico.sh            # build; prints the UF2's path and SHA-256
+#   tools/build-pico.sh            # Cable and QR; prints the UF2's path and SHA-256
+#   tools/build-pico.sh pex        # the Phone Exchange (PEX), the voice firmware
+#
+# Cable and QR gives build-pico-release/dtmf-signer-pico.uf2; the PEX gives
+# build-pico-pex-release/dtmf-signer-pex.uf2 (English built in; other
+# languages are packs, installed apart: ports/pico/README.md#voice-packs).
 #
 # Needs git, cmake (3.22 or later), ninja or make, python3, curl and tar,
 # and picotool 2.3.1: installed (Homebrew: brew install picotool), or else
@@ -25,6 +30,12 @@ GCC_VER=14.3.rel1
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'build-pico: %s\n' "$*" >&2; exit 1; }
+
+case "${1:-cable-qr}" in
+cable-qr) FIRMWARE=CABLE_QR NAME=dtmf-signer-pico DEFAULT_BUILD=build-pico-release ;;
+pex) FIRMWARE=PEX NAME=dtmf-signer-pex DEFAULT_BUILD=build-pico-pex-release ;;
+*) die "unknown build '$1': cable-qr (the default) or pex" ;;
+esac
 
 case "$(uname -s)-$(uname -m)" in
 Linux-x86_64)
@@ -85,15 +96,15 @@ git -C "$ROOT" submodule -q update --init --recursive
 git -C "$ROOT" describe --tags --always >/dev/null 2>&1 || die "not a git clone: the version would be unknown"
 
 # Always from scratch, in a folder of its own.
-BUILD=${DS_BUILD:-$ROOT/build-pico-release}
+BUILD=${DS_BUILD:-$ROOT/$DEFAULT_BUILD}
 rm -rf "$BUILD"
 PATH=$GCC_DIR/bin:$PATH
 export PATH
 cmake -S "$ROOT/ports/pico" -B "$BUILD" -G "$GEN" -DCMAKE_BUILD_TYPE=Release \
-    -DPICO_SDK_PATH="$SDK_DIR" -DPICO_TOOLCHAIN_PATH="$GCC_DIR" >/dev/null
+    -DPICO_SDK_PATH="$SDK_DIR" -DPICO_TOOLCHAIN_PATH="$GCC_DIR" -DDS_FIRMWARE="$FIRMWARE" >/dev/null
 cmake --build "$BUILD" >/dev/null
 
-UF2=$BUILD/dtmf-signer-pico.uf2
+UF2=$BUILD/$NAME.uf2
 [ -f "$UF2" ] || die "the build did not make $UF2"
 say ""
 say "Built: $UF2"
@@ -106,3 +117,7 @@ fi
 say ""
 say "To flash it: hold BOOTSEL while plugging the Pico in, then copy the UF2"
 say "onto the drive that appears (RPI-RP2)."
+if [ "$FIRMWARE" = PEX ]; then
+    say "It speaks English; for another language, install its pack too:"
+    say "ports/pico/README.md#voice-packs"
+fi

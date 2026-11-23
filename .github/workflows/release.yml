@@ -1,6 +1,7 @@
-# Builds the Pico firmware for a release tag: the UF2 that is attached to
-# the release, made with tools/build-pico.sh on Linux x86_64, so anyone can
-# build the same tag there (or in a Linux x86_64 container) and compare.
+# Builds the Pico firmware for a release tag: the UF2s that are attached to
+# the release (Cable and QR's and the PEX's), made with tools/build-pico.sh
+# on Linux x86_64, so anyone can build the same tag there (or in a Linux
+# x86_64 container) and compare.
 name: release
 
 on:
@@ -35,15 +36,20 @@ jobs:
       # No cache here: a release is built from what the script downloads and
       # checks, nothing kept from earlier runs.
       - run: tools/build-pico.sh
+      - run: tools/build-pico.sh pex
+      # Both builds' UF2s, with one SHA256SUMS for the release.
       - name: SHA256SUMS
         run: |
-          cd build-pico-release
-          sha256sum dtmf-signer-pico.uf2 > SHA256SUMS
+          mkdir dist
+          cp build-pico-release/dtmf-signer-pico.uf2 build-pico-pex-release/dtmf-signer-pex.uf2 dist/
+          cd dist
+          sha256sum dtmf-signer-pico.uf2 dtmf-signer-pex.uf2 > SHA256SUMS
           cat SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
           name: dtmf-signer-pico-release
           path: |
-            build-pico-release/dtmf-signer-pico.uf2
-            build-pico-release/SHA256SUMS
+            dist/dtmf-signer-pico.uf2
+            dist/dtmf-signer-pex.uf2
+            dist/SHA256SUMS
           if-no-files-found: error

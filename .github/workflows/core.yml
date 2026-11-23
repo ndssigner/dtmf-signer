@@ -86,3 +86,11 @@ jobs:
           name: dtmf-signer-pico-uf2
           path: build-pico-release/dtmf-signer-pico.uf2
           if-no-files-found: error
+      # The Phone Exchange (PEX): the voice firmware, the same way.
+      - run: tools/build-pico.sh pex
+      - run: ~/.cache/dtmf-signer/arm-gnu-toolchain-14.3.rel1-x86_64/bin/arm-none-eabi-size build-pico-pex-release/dtmf-signer-pex.elf
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dtmf-signer-pex-uf2
+          path: build-pico-pex-release/dtmf-signer-pex.uf2
+          if-no-files-found: error

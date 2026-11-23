@@ -188,7 +188,7 @@ ${files(root)}
       } else if (tab === "status/") {
         body = renderStatusSequence(status, tr);
       } else {
-        body = downloadsTab(site, tr, p, status, root, files(root), notYet);
+        body = downloadsTab(site, tr, lang, p, status, root, files(root), notYet);
       }
       const head = `<div class="build-head">
 <img src="${root}img/builds/${slug}.svg" alt="">
@@ -211,25 +211,29 @@ const buildFiles = (p, root) => (p.files ?? []).map((f) => {
   return `<li><a href="${root}files/${escapeHtml(p.slug)}/${name}">${name}</a></li>`;
 }).join("\n");
 
-// A build's downloads: its released firmware (or where it stands), its
-// language packs with their size and hash, and the files for building it.
-// On the downloads page the same block sits under the build's name, one
-// heading level lower (h = 3) and with ids prefixed by the build.
-function downloadsTab(site, tr, p, status, root, files, notYet, h = 2, pre = "") {
+// A build's downloads: its released firmware (or, until there is one, how
+// to build it), its language packs with their size and hash and how to
+// install them, and the files for building it. On the downloads page the
+// same block sits under the build's name, one heading level lower (h = 3)
+// and with ids prefixed by the build.
+function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre = "") {
   const e = (k, params) => escapeHtml(tr(k, params));
-  // One release for now (site.config.release), so only one build can have it:
-  // a second released build will need its own release per build.
+  // One release carries every build's UF2 (site.config.release.uf2, by
+  // build) and one SHA256SUMS; a build shows it once its status says so.
   const rel = site.config.release;
-  let firmware = notYet;
-  if (rel && released(status)) {
+  const uf2 = rel?.uf2?.[p.slug];
+  const published = Boolean(uf2) && released(status);
+  const guide = p.firmware_guide ? ext(blob(site, perLang(p.firmware_guide, lang)), tr("downloads.guide")) : "";
+  let firmware = guide ? `<p class="not-yet">${e("downloads.unpublished")} ${guide}</p>` : notYet;
+  if (published) {
     const base = `${site.config.repo}/releases/download/${rel.tag}/`;
     firmware = `<ul>
-<li>${ext(base + rel.uf2, rel.uf2)}</li>
+<li>${ext(base + uf2, uf2)}</li>
 <li>${ext(base + rel.sums, rel.sums)}</li>
-<li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>
+<li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>${guide ? `\n<li>${guide}</li>` : ""}
 </ul>`;
   }
-  const fwTitle = rel && released(status) ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
+  const fwTitle = published ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
   const packs = site.packs.filter((k) => k.slug === p.slug).map((k) =>
     `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(t(site, k.lang, "lang.name").text)}, ${kib(k.size)})<br>
 <span class="sha-label">SHA-256</span> <code class="sha">${k.sha256}</code></li>`).join("\n");
@@ -239,7 +243,7 @@ function downloadsTab(site, tr, p, status, root, files, notYet, h = 2, pre = "")
 ${packs}
 </ul>
 <p class="verify"><span aria-hidden="true">🔎</span> ${e("downloads.verify")}</p>
-<p class="install">${e("downloads.install")}</p>` : "";
+<p class="install">${p.packs_guide ? ext(blob(site, perLang(p.packs_guide, lang)), tr("downloads.packs_guide")) : ""}</p>` : "";
   const fileBlock = files ? `
 <h${h} id="${pre}files">${e("downloads.files")}</h${h}>
 <ul>
@@ -272,7 +276,7 @@ function downloadsPage(site, lang, tr, root) {
     const notYet = `<p class="not-yet">${escapeHtml(tr("build.not_yet"))} <a href="../${escapeHtml(p.slug)}/status/">${escapeHtml(tr("tab.status"))}</a></p>`;
     return `<section class="dl-build" id="${escapeHtml(p.slug)}">
 <h2>${escapeHtml(tr(`profile.${p.slug}.title`))}</h2>
-${downloadsTab(site, tr, p, status, root, buildFiles(p, root), notYet, 3, `${escapeHtml(p.slug)}-`)}
+${downloadsTab(site, tr, lang, p, status, root, buildFiles(p, root), notYet, 3, `${escapeHtml(p.slug)}-`)}
 </section>`;
   }).join("\n");
   const body = `<h1>${escapeHtml(tr("downloads.title"))}</h1>

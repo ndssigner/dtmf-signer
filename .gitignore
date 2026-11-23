@@ -2,5 +2,6 @@ build/
 __pycache__/
 build-pico/
 build-pico-release/
+build-pico-pex-release/
 build-pico-repro*/
 build-wasm/

@@ -28,11 +28,11 @@ test("the downloads page lists each build: firmware or not yet, packs with hash,
     assert.ok(a.includes(`${REL}dtmf-signer-pico.uf2`), lang);
     assert.match(a, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
     assert.ok(!c.includes("dtmf-signer-pico.uf2"), lang);
-    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/pex\/status\/">/, lang);
+    assert.match(c, /<p class="not-yet">[^<]*<a href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
     const row = /<li class="pack">([\s\S]*?)<\/li>/.exec(c);
     assert.equal(/<code class="sha">([0-9a-f]{64})<\/code>/.exec(row?.[1])?.[1], sha, lang);
     assert.ok(row[1].includes(`${Math.round(bytes.length / 1024)} KiB`), lang);
-    assert.match(c, /make_uf2\.py --offset/, lang);
+    assert.match(c, /<p class="install"><a href="[^"]*ports\/pico\/README[^"]*#(voice-packs|paquetes-de-voz)"/, lang);
     assert.match(c, lang === "es" ? /Compruébalo antes de instalarlo/ : /Check it before installing it/, lang);
     assert.ok(!a.includes('class="pack"'), lang);
   }
@@ -54,9 +54,22 @@ test("a build's downloads tab: the release firmware when it has one", () => {
     assert.ok(html.includes(`href="${REL}dtmf-signer-pico.uf2"`), lang);
     assert.ok(html.includes(`href="${REL}SHA256SUMS"`), lang);
     assert.match(html, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
+    assert.match(html, /<li><a href="[^"]*ports\/pico\/README[^"]*#(get-the-firmware|conseguir-el-firmware)"/, lang);
     const c = text(files, `${lang}/pex/downloads/index.html`);
     assert.ok(!c.includes(`${REL}dtmf-signer-pico.uf2`), lang);
-    assert.match(c, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, lang);
+    assert.ok(!c.includes("dtmf-signer-pex.uf2"), lang);
+    assert.match(c, lang === "es" ? /Aún sin publicar/ : /Not published yet/, lang);
+    assert.match(c, /href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
+  }
+});
+test("the release names each build's UF2, and a build marked published has one", () => {
+  const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
+  const slugs = config.profiles.map((p) => p.slug);
+  for (const slug of Object.keys(config.release.uf2)) assert.ok(slugs.includes(slug), slug);
+  for (const p of config.profiles) {
+    const status = JSON.parse(readFileSync(new URL(`../../${p.hardware}/status.json`, import.meta.url), "utf8"));
+    const published = status.firmware.find((s) => s.stage === "release")?.state === "done";
+    assert.equal(published, p.slug in config.release.uf2, `${p.slug}: its status and the release must agree`);
   }
 });
 test("the PEX's downloads tab: its voice pack, with size and full SHA-256", () => {

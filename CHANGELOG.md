@@ -37,6 +37,11 @@ anyone independent.
   Creator, checked by its connections, with a printable 1:1 template; the
   layout spreads out the parts of the tested breadboard and has not been
   built as it stands. The perfboard is still to come.
+- `tools/build-pico.sh pex` builds the PEX's firmware the way the published
+  one is built, and the CI builds it with Cable and QR's: releases from now
+  on carry `dtmf-signer-pex.uf2` too, in the same SHA256SUMS. Until one does,
+  the website's downloads say how to build it and how to install a
+  language pack.
 - Schematics in KiCad for both builds (`hardware/breadboard/kicad/`,
   `hardware/phone/kicad/`), shown in their guides and on the website, where
   the `.kicad_sch` can be downloaded.
