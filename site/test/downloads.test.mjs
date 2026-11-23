@@ -74,6 +74,7 @@ test("the PEX's downloads offer its installer with the three steps; Cable and QR
     assert.match(steps, /dtmf-signer-pex\.uf2/, lang);
     assert.match(steps, /BOOTSEL/, lang);
     assert.match(steps, /<code>python3 install_pex\.py<\/code>/, lang);
+    assert.ok(steps.indexOf("python3 install_pex.py") < steps.indexOf("BOOTSEL"), `${lang}: run it, then BOOTSEL when it asks`);
     assert.doesNotMatch(text(files, `${lang}/cable-qr/downloads/index.html`), /install_pex|install-steps/, lang);
   }
   assert.ok(files.get("files/pex/install_pex.py")?.equals(readFileSync(new URL("../../tools/install_pex.py", import.meta.url))));

@@ -5,11 +5,13 @@ The firmware is a prototype: do not use it with funds.
 ## Unreleased
 
 - `tools/install_pex.py` puts the PEX on a Pico with the language packs you
-  choose, in one go: with the firmware and the packs in one folder and the
-  Pico in BOOTSEL, `python3 install_pex.py` checks every file (a pack for
-  another firmware version, a damaged one, more than three), wipes earlier
-  packs and copies one UF2 onto the Pico. Python 3.8, nothing else. The
-  website's downloads offer it with the three steps.
+  choose: with the firmware and the packs in one folder, `python3
+  install_pex.py` checks every file (a pack for another firmware version, a
+  damaged one, more than three), then copies the firmware and the languages
+  onto the Pico, asking for BOOTSEL before each, and wipes earlier packs.
+  Two copies, because the Pico's boot ROM does not write one UF2 holding
+  both (tried on a Pico). Python 3.8, nothing else. The website's
+  downloads offer it with the three steps.
 
 ## v0.3.0-alpha (2026-11-23)
 

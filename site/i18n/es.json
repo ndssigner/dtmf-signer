@@ -48,7 +48,7 @@
   "downloads.unpublished": "Aún sin publicar: se compila desde su código.",
   "downloads.guide": "Cómo compilarlo e instalarlo",
   "downloads.step_files": "Pon en una carpeta {uf2}, {installer} y los paquetes de idioma que quieras (abajo).",
-  "downloads.step_bootsel": "Mantén pulsado el botón BOOTSEL de la Pico mientras la enchufas.",
+  "downloads.step_bootsel": "Cuando lo pida (dos veces: firmware e idiomas), mantén pulsado el botón BOOTSEL de la Pico mientras la enchufas.",
   "downloads.step_run": "En esa carpeta, ejecuta",
   "downloads.files": "Archivos para construirlo",
   "status.hardware": "Hardware",

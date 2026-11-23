@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """Installs the Phone Exchange (PEX) on a Raspberry Pi Pico: its firmware and
-the language packs you choose, in one go.
+the language packs you choose.
 
   1. Put in one folder this file, dtmf-signer-pex.uf2 and the packs you want
      (es.bin, ...), all from the same version's downloads.
-  2. Hold the Pico's BOOTSEL button while you plug it in: a drive called
-     RPI-RP2 appears.
-  3. In that folder, run:   python3 install_pex.py
+  2. In that folder, run:   python3 install_pex.py
+  3. When it asks, hold the Pico's BOOTSEL button while you plug it in. It
+     asks twice: once for the firmware, once for the languages.
 
-It checks the files, puts the firmware and the packs in one UF2 and copies
-it onto the Pico, which restarts by itself. English is always there; each
-pack adds a language (three at most), offered when the handset is lifted.
-Packs from an earlier install are wiped.
+It checks the files first and says which languages go in. English is
+always there; each pack adds a language (three at most), offered when the
+handset is lifted. Packs from an earlier install are wiped.
 
   python3 install_pex.py FIRMWARE.uf2 es.bin ...   name the files yourself
-  python3 install_pex.py --out pex.uf2             write the UF2, copy nothing
+  python3 install_pex.py --out FOLDER              write the two UF2s, copy nothing
 
 Needs Python 3.8 or later and nothing else. Never connect the PEX to a
 socket of the real telephone network.
@@ -28,6 +27,7 @@ import os
 import string
 import struct
 import sys
+import time
 import zlib
 from pathlib import Path
 
@@ -111,25 +111,24 @@ def check_sums(firmware: Path) -> str:
 
 # -- The UF2 -----------------------------------------------------------------
 
-def region_image(packs: list[bytes]) -> bytes:
-    """The whole voice region: the packs back to back on 4 KB boundaries, the
-    rest erased (0xFF), so no pack of an earlier install is left behind."""
-    image = bytearray(b"\xff" * REGION_SIZE)
+def region_blocks(packs: list[bytes]) -> list[tuple[int, bytes]]:
+    """The voice region's blocks: the packs back to back on 4 KB boundaries,
+    then one erased (0xFF) block at each later 4 KB boundary. The firmware
+    looks for a pack only at those boundaries, so that is enough to leave no
+    pack of an earlier install behind, and it keeps the file small."""
+    out = []
     off = 0
     for p in packs:
         if off + len(p) > REGION_SIZE:
             raise Refused("these packs do not fit together in the Pico's 1 MB for voices")
-        image[off:off + len(p)] = p
+        out += [(REGION + off + i, p[i:i + PAYLOAD].ljust(PAYLOAD, b"\xff")) for i in range(0, len(p), PAYLOAD)]
         off = -(-(off + len(p)) // ALIGN) * ALIGN
-    return bytes(image)
+    out += [(REGION + b, b"\xff" * PAYLOAD) for b in range(off, REGION_SIZE, ALIGN)]
+    return out
 
 
-def build_uf2(firmware: list[tuple[int, bytes]], region: bytes) -> bytes:
-    """The firmware's blocks and the voice region's, numbered as one file: the
-    Pico restarts as soon as a file is whole, so it all goes in one."""
-    if any(addr + len(p) > REGION for addr, p in firmware):
-        raise Refused("this firmware reaches into the voice region")
-    blocks = list(firmware) + [(REGION + i, region[i:i + PAYLOAD]) for i in range(0, len(region), PAYLOAD)]
+def to_uf2(blocks: list[tuple[int, bytes]]) -> bytes:
+    """Blocks as one UF2 file, numbered over the whole."""
     out = bytearray()
     for n, (addr, payload) in enumerate(blocks):
         out += struct.pack("<8I", MAGIC0, MAGIC1, FLAG_FAMILY, addr, len(payload), n, len(blocks), FAMILY)
@@ -162,6 +161,29 @@ def pico_drives() -> list[Path]:
     return found
 
 
+def wait_for(present: bool, seconds: float) -> list[Path]:
+    """Waits until a Pico in BOOTSEL is there (present) or gone; its drives."""
+    end = time.monotonic() + seconds
+    while True:
+        drives = pico_drives()
+        if bool(drives) == present or time.monotonic() > end:
+            return drives
+        time.sleep(0.5)
+
+
+def copy_onto(drive: Path, name: str, uf2: bytes) -> None:
+    """Copies a UF2 onto the Pico's drive; the Pico restarts once it is in."""
+    try:
+        with open(drive / name, "wb") as f:
+            f.write(uf2)
+            f.flush()
+            os.fsync(f.fileno())
+    except OSError:
+        pass  # the drive may vanish as the Pico restarts: checked below
+    if wait_for(False, 20):
+        raise Refused("the Pico did not take the file (its drive is still there): run this again")
+
+
 # -- Main ----------------------------------------------------------------------
 
 def main(argv=None) -> int:
@@ -169,7 +191,8 @@ def main(argv=None) -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  epilog="\n".join(__doc__.splitlines()[2:]))
     ap.add_argument("files", nargs="*", help=f"the firmware ({FIRMWARE}) and the packs (.bin)")
-    ap.add_argument("--out", help="write the UF2 to this file instead of copying it onto the Pico")
+    ap.add_argument("--out", metavar="FOLDER",
+                    help="write the two UF2s to this folder instead of copying them onto the Pico")
     a = ap.parse_args(argv)
 
     here = Path.cwd()
@@ -187,7 +210,10 @@ def main(argv=None) -> int:
         if len(packs) > MAX_PACKS:
             raise Refused(f"{len(packs)} packs: the PEX takes {MAX_PACKS} at most, besides English")
 
-        firmware = uf2_blocks(fw[0].read_bytes(), fw[0].name)
+        fw_uf2 = fw[0].read_bytes()
+        firmware = uf2_blocks(fw_uf2, fw[0].name)
+        if any(addr + len(p) > REGION for addr, p in firmware):
+            raise Refused(f"{fw[0].name} reaches into the voice region: it is not the PEX's")
         sums = check_sums(fw[0])
         count = builtin_count(firmware)
         datas, langs = [], []
@@ -201,38 +227,44 @@ def main(argv=None) -> int:
                 raise Refused(f"{p.name}: that language is already there")
             datas.append(data)
             langs.append(info["lang"])
-        uf2 = build_uf2(firmware, region_image(datas))
+        voices_uf2 = to_uf2(region_blocks(datas))
     except (Refused, OSError) as e:
         print(f"Nothing was installed: {e}", file=sys.stderr)
         return 1
 
     print(f"Firmware: {fw[0].name}, {sums}")
     print("Languages: " + ", ".join(["en (built in)"] + langs))
+    # Two copies: the Pico does not take one file that writes both the
+    # firmware and the voice region, but it takes each on its own.
     if a.out:
-        Path(a.out).write_bytes(uf2)
-        print(f"Written: {a.out}. Copy it onto the Pico's RPI-RP2 drive.")
+        out = Path(a.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "1-firmware.uf2").write_bytes(fw_uf2)
+        (out / "2-languages.uf2").write_bytes(voices_uf2)
+        print(f"Written in {out}: copy 1-firmware.uf2 onto the Pico in BOOTSEL, then, with it "
+              "in BOOTSEL again, 2-languages.uf2.")
         return 0
-    drives = pico_drives()
-    if len(drives) != 1:
-        name = here / "pex-install.uf2"
-        name.write_bytes(uf2)
-        what = "No Pico in BOOTSEL mode was found" if not drives else "More than one Pico was found"
-        print(f"{what}: plug in only one, holding BOOTSEL, and run this again; "
-              f"or copy {name} onto its RPI-RP2 drive yourself.")
-        return 2
-    target = drives[0] / "pex-install.uf2"
-    print(f"Copying onto the Pico ({drives[0]})...")
     try:
-        with open(target, "wb") as f:
-            f.write(uf2)
-            f.flush()
-            os.fsync(f.fileno())
-    except OSError as e:
-        # The Pico restarts as the last block lands, and its drive can vanish
-        # before the copy returns; if it did not restart, the copy failed.
-        print(f"The copy ended with an error ({e}). If the RPI-RP2 drive is still there, "
-              "the Pico did not take it: run this again.")
-        return 3
+        drives = pico_drives()
+        if len(drives) > 1:
+            raise Refused("more than one Pico is in BOOTSEL: leave only one plugged in")
+        if not drives:
+            print("Hold the Pico's BOOTSEL button while you plug it in...")
+            drives = wait_for(True, 120)
+            if not drives:
+                raise Refused("no Pico in BOOTSEL mode appeared")
+        print(f"1 of 2: the firmware, onto the Pico ({drives[0]})...")
+        copy_onto(drives[0], "1-firmware.uf2", fw_uf2)
+        print("The Pico restarted. Unplug it, hold BOOTSEL and plug it in again...")
+        drives = wait_for(True, 300)
+        if not drives:
+            raise Refused("the Pico did not come back in BOOTSEL: the firmware is in; run this "
+                          "again to add the languages")
+        print(f"2 of 2: the languages, onto the Pico ({drives[0]})...")
+        copy_onto(drives[0], "2-languages.uf2", voices_uf2)
+    except Refused as e:
+        print(f"Stopped: {e}", file=sys.stderr)
+        return 2
     print("Done. The Pico restarts by itself; lift the handset and it greets you.")
     return 0
 

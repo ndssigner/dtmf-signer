@@ -194,23 +194,29 @@ falla: el segundo MB es la región de los paquetes de voz.
 La Centralita habla inglés; cada otro idioma es un paquete, que se graba en
 la flash junto al firmware (ver [`tools/voice`](../../tools/voice/README.md)).
 [`tools/install_pex.py`](../../tools/install_pex.py) pone en la Pico el
-firmware y los paquetes que elijas de una vez:
+firmware y los paquetes que elijas:
 
 1. Pon en una carpeta `dtmf-signer-pex.uf2`, `install_pex.py` y los
    paquetes que quieras (`es.bin`, ...), todos de las descargas de la misma
    versión (en la web, o la versión publicada y `app/voice/packs/`). Si
    añades `SHA256SUMS`, el firmware se comprueba con él.
-2. Mantén pulsado el botón BOOTSEL de la Pico mientras la enchufas: aparece
-   una unidad llamada `RPI-RP2`.
-3. En esa carpeta, ejecuta `python3 install_pex.py` (en Windows, `py install_pex.py`).
+2. En esa carpeta, ejecuta `python3 install_pex.py` (en Windows, `py install_pex.py`).
+3. Cuando lo pida, mantén pulsado el botón BOOTSEL de la Pico mientras la
+   enchufas. Lo pide dos veces: una para el firmware y otra para los idiomas.
 
-Necesita Python 3.8 o posterior y nada más. Comprueba cada archivo, dice
-qué idiomas entran, copia un solo UF2 a la Pico y la Pico se reinicia sola;
-al descolgar, la Centralita ofrece los idiomas. Para cambiarlos más
-adelante, vuelve a ejecutarlo con otros paquetes: los anteriores se borran.
-Caben hasta tres paquetes además del inglés. Copiar a mano el firmware y un
-paquete como dos archivos no funciona: la Pico se reinicia en cuanto
-termina el primero.
+Necesita Python 3.8 o posterior y nada más. Primero comprueba cada archivo
+y dice qué idiomas entran; después copia el firmware, espera a que la Pico
+vuelva en BOOTSEL y copia los idiomas. Al descolgar, la Centralita los
+ofrece. Para cambiarlos más adelante, vuelve a ejecutarlo con otros
+paquetes: los anteriores se borran. Caben hasta tres paquetes además del
+inglés.
+
+Hacen falta dos copias porque la ROM de arranque de la Pico no graba un
+solo UF2 que lleve a la vez el firmware y la región de voces (probado en
+una Pico: el firmware entró y los paquetes no), y sí graba cada uno por
+separado. `python3 install_pex.py --out FOLDER` escribe los dos archivos,
+`1-firmware.uf2` y `2-languages.uf2`, para copiarlos a mano en ese orden,
+cada uno con la Pico en BOOTSEL.
 
 ### La línea
 

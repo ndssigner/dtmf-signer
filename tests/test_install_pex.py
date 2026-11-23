@@ -44,33 +44,42 @@ class InstallPexTest(unittest.TestCase):
             import os
             os.chdir(d)
             try:
-                rc = ip.main(["--out", "out.uf2", *args])
-                out = (d / "out.uf2").read_bytes() if (d / "out.uf2").exists() else None
+                rc = ip.main(["--out", "out", *args])
+                fw, voices = d / "out" / "1-firmware.uf2", d / "out" / "2-languages.uf2"
+                out = (fw.read_bytes(), voices.read_bytes()) if fw.exists() else None
             finally:
                 os.chdir(cwd)
             return rc, out
 
-    def test_firmware_and_packs_in_one_file(self):
+    def test_firmware_then_languages(self):
+        # Two files: the Pico does not take one that writes both.
         es, pt = pack("es", 7, b"e" * 5000), pack("pt", 7, b"p" * 300)
-        rc, out = self.run_in({ip.FIRMWARE: firmware(), "es.bin": es, "pt.bin": pt})
+        fw = firmware()
+        rc, (fw_out, out) = self.run_in({ip.FIRMWARE: fw, "es.bin": es, "pt.bin": pt})
         self.assertEqual(rc, 0)
+        self.assertEqual(fw_out, fw)                           # the firmware as published
         n = len(out) // 512
-        self.assertEqual(n, 4 + ip.REGION_SIZE // 256)        # firmware + the whole voice region
-        region = bytearray()
+        region = {}
         for i in range(n):
             blk = out[i * 512:(i + 1) * 512]
             self.assertEqual(struct.unpack_from("<2I", blk, 20), (i, n))   # numbered as one file
             addr, size = struct.unpack_from("<2I", blk, 12)
-            if addr >= ip.REGION:
-                region += blk[32:32 + size]
-        self.assertEqual(region[:len(es)], es)                 # sorted by name: es first
-        self.assertEqual(region[8192:8192 + len(pt)], pt)      # the next 4 KB boundary
-        self.assertEqual(set(region[8192 + len(pt):]), {0xFF})  # the rest erased
+            self.assertEqual(size, 256)
+            self.assertGreaterEqual(addr, ip.REGION)           # the voice region only
+            region[addr - ip.REGION] = blk[32:32 + size]
+        flat = lambda off, n: b"".join(region[off + k] for k in range(0, n, 256))[:n]  # noqa: E731
+        self.assertEqual(flat(0, len(es)), es)                 # sorted by name: es first
+        self.assertEqual(flat(8192, len(pt)), pt)              # the next 4 KB boundary
+        # Then one erased block at every later 4 KB boundary, nothing else.
+        rest = sorted(a for a in region if a >= 12288)
+        self.assertEqual(rest, list(range(12288, ip.REGION_SIZE, 4096)))
+        self.assertTrue(all(region[a] == b"\xff" * 256 for a in rest))
+        self.assertLess(n, 30 + 2 + 256)                       # small: never the whole 1 MB
 
-    def test_no_pack_erases_the_voice_region(self):
-        rc, out = self.run_in({ip.FIRMWARE: firmware()})
+    def test_no_pack_erases_every_boundary(self):
+        rc, (_, out) = self.run_in({ip.FIRMWARE: firmware()})
         self.assertEqual(rc, 0)
-        self.assertEqual(len(out) // 512, 4 + ip.REGION_SIZE // 256)
+        self.assertEqual(len(out) // 512, ip.REGION_SIZE // 4096)
 
     def test_refusals(self):
         fw = firmware(count=7)

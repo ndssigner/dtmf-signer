@@ -237,8 +237,8 @@ function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre
 </ul>${installer ? `
 <ol class="install-steps">
 <li>${e("downloads.step_files", { uf2, installer })}</li>
-<li>${e("downloads.step_bootsel")}</li>
 <li>${e("downloads.step_run")} <code>python3 ${installer}</code></li>
+<li>${e("downloads.step_bootsel")}</li>
 </ol>` : ""}`;
   }
   const fwTitle = published ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");

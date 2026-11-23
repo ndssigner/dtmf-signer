@@ -188,22 +188,28 @@ the second MB is the voice packs' region.
 The PEX speaks English; every other language is a pack, written to the
 flash beside the firmware (see [`tools/voice`](../../tools/voice/README.md)).
 [`tools/install_pex.py`](../../tools/install_pex.py) puts the firmware and the
-packs you choose on the Pico in one go:
+packs you choose on the Pico:
 
 1. Put in one folder `dtmf-signer-pex.uf2`, `install_pex.py` and the packs
    you want (`es.bin`, ...), all from the same version's downloads (on the
    website, or the release and `app/voice/packs/`). Add `SHA256SUMS` and the
    firmware is checked against it.
-2. Hold the Pico's BOOTSEL button while you plug it in: a drive called
-   `RPI-RP2` appears.
-3. In that folder, run `python3 install_pex.py` (on Windows, `py install_pex.py`).
+2. In that folder, run `python3 install_pex.py` (on Windows, `py install_pex.py`).
+3. When it asks, hold the Pico's BOOTSEL button while you plug it in. It
+   asks twice: once for the firmware, once for the languages.
 
-It needs Python 3.8 or later and nothing else. It checks every file, says
-which languages go in, copies one UF2 onto the Pico and the Pico restarts
-by itself; lifting the handset, the PEX offers the languages. To change
-them later, run it again with other packs: the earlier ones are wiped. Up
-to three packs fit besides English. Copying the firmware and a pack by hand
-as two files does not work: the Pico restarts as soon as the first one is in.
+It needs Python 3.8 or later and nothing else. It checks every file first
+and says which languages go in; then it copies the firmware, waits for the
+Pico to come back in BOOTSEL and copies the languages. Lifting the handset,
+the PEX offers them. To change them later, run it again with other packs:
+the earlier ones are wiped. Up to three packs fit besides English.
+
+It takes two copies because the Pico's boot ROM does not write one UF2
+that holds both the firmware and the voice region (tried on a Pico: the
+firmware went in, the packs did not), while it writes each on its own.
+`python3 install_pex.py --out FOLDER` writes the two files,
+`1-firmware.uf2` and `2-languages.uf2`, to copy by hand in that order,
+each with the Pico in BOOTSEL.
 
 ### The line
 
