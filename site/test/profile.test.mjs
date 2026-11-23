@@ -59,6 +59,9 @@ test("the build tab shows the layout and offers its files", () => {
   assert.match(html, /href="[^"]*files\/cable-qr\/dtmf-signer-breadboard\.diy"/);
   assert.match(html, /href="[^"]*files\/cable-qr\/template-es\.pdf"/);
   assert.ok(files.has("files/cable-qr/dtmf-signer-breadboard.diy"));
+  assert.match(html, /<h2 id="schematic">[\s\S]*<img class="schematic" src="[^"]*img\/cable-qr\/cable-qr\.svg"[\s\S]*<h2 id="layout">/);
+  assert.match(html, /href="[^"]*files\/cable-qr\/cable-qr\.kicad_sch"/);
+  assert.ok(files.has("img/cable-qr/cable-qr.svg"));
 });
 test("the PEX: its parts list, and no drawn layout yet, which its build tab says, with its guide", () => {
   for (const lang of ["en", "es"]) {

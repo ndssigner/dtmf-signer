@@ -47,6 +47,9 @@ project's website reads it, and a test checks it against the layout.
   6.8 or later (free).
 - [`template-en.pdf`](template-en.pdf) and [`template-es.pdf`](template-es.pdf):
   the printable template, at 1:1 on A4 landscape.
+- [`kicad/cable-qr.kicad_sch`](kicad/cable-qr.kicad_sch): the schematic,
+  for [KiCad](https://www.kicad.org/) 9 or later (free), with the layout's
+  part references.
 - [`tools/check_diy.py`](../../tools/check_diy.py) reads it and prints what
   each part connects; `tests/test_check_diy.py` checks those connections
   against what the firmware expects.
@@ -93,6 +96,10 @@ python3 tools/breadboard_template.py hardware/breadboard/dtmf-signer-breadboard.
 ```
 
 The PDF carries no date, so the same layout always gives the same file.
+
+## Schematic
+
+![Schematic of Cable and QR: the Pico, the SPI OLED on GP17 to GP21, the five buttons on GP28, and the audio terminal block with its input to GP27 and its output from GP15](kicad/cable-qr.svg)
 
 ## How it is laid out
 

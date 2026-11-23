@@ -49,6 +49,9 @@ lee la web del proyecto, y un test la comprueba contra el plano.
   posterior (gratuito).
 - [`template-en.pdf`](template-en.pdf) y [`template-es.pdf`](template-es.pdf):
   la plantilla imprimible, a escala 1:1 en A4 apaisado.
+- [`kicad/cable-qr.kicad_sch`](kicad/cable-qr.kicad_sch): el esquema, para
+  [KiCad](https://www.kicad.org/) 9 o posterior (gratuito), con las
+  referencias de las piezas de la disposición.
 - [`tools/check_diy.py`](../../tools/check_diy.py) la lee y muestra qué
   conecta cada pieza; `tests/test_check_diy.py` compara esas conexiones con
   lo que espera el firmware.
@@ -98,6 +101,10 @@ python3 tools/breadboard_template.py hardware/breadboard/dtmf-signer-breadboard.
 
 El PDF no lleva fecha, así que la misma disposición da siempre el mismo
 fichero.
+
+## Esquema
+
+![Esquema de Cable y QR: la Pico, la OLED por SPI en GP17 a GP21, los cinco botones en GP28 y la regleta de audio con su entrada a GP27 y su salida desde GP15](kicad/cable-qr.svg)
 
 ## Cómo está colocada
 

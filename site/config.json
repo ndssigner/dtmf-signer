@@ -21,8 +21,10 @@
       ],
       "hardware": "hardware/breadboard",
       "image": "docs/images/breadboard-layout.png",
+      "schematic": "hardware/breadboard/kicad/cable-qr.svg",
       "files": [
         "hardware/breadboard/dtmf-signer-breadboard.diy",
+        "hardware/breadboard/kicad/cable-qr.kicad_sch",
         "hardware/breadboard/template-en.pdf",
         "hardware/breadboard/template-es.pdf"
       ],
