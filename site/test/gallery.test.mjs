@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildInto, text } from "./helpers.mjs";
-import { photoMetadata } from "../lib/gallery.mjs";
+import { galleryList, photoMetadata } from "../lib/gallery.mjs";
 
 const files = buildInto();
 
@@ -14,10 +14,19 @@ test("Cable y QR's gallery links its two videos of real builds, opened elsewhere
     assert.doesNotMatch(html, /<iframe|<video/);
   }
 });
-test("a build without pictures yet says so and points at its status", () => {
-  const html = text(files, "es/pex/gallery/index.html");
-  assert.doesNotMatch(html, /<ul class="gallery">/);
-  assert.match(html, /class="not-yet"[\s\S]*href="[^"]*pex\/status\/"/);
+test("a build without pictures yet gets no gallery list (its tab says so)", () => {
+  assert.equal(galleryList([], (k) => k, "../", "x"), null);
+  assert.equal(galleryList(undefined, (k) => k, "../", "x"), null);
+});
+test("the PEX's gallery: the breadboard prototype as tested, captioned in each language", () => {
+  assert.ok(files.has("img/pex/gallery/pex-breadboard.jpg"));
+  for (const [lang, words] of [["en", /earbuds/], ["es", /auriculares/]]) {
+    const html = text(files, `${lang}/pex/gallery/index.html`);
+    assert.match(html, /<li class="photo"><figure><img src="\.\.\/\.\.\/\.\.\/img\/pex\/gallery\/pex-breadboard\.jpg"/, lang);
+    assert.match(html, /<figcaption>[\s\S]*<\/figcaption>/, lang);
+    assert.match(html, words, lang);
+    assert.doesNotMatch(html, /class="not-yet"/, lang);
+  }
 });
 test("a photo with metadata (EXIF, GPS, text chunks) is refused; a clean one passes", () => {
   const jpegClean = Uint8Array.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x04, 0, 0, 0xff, 0xd9]);

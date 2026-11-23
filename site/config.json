@@ -194,6 +194,15 @@
         "en": "hardware/phone/README.md",
         "es": "hardware/phone/README.es.md"
       },
+      "gallery": [
+        {
+          "kind": "photo",
+          "src": "hardware/phone/pex-breadboard.jpg",
+          "title": "gallery.pex.breadboard",
+          "note": "gallery.pex.breadboard_note",
+          "alt": "gallery.pex.breadboard_alt"
+        }
+      ],
       "simulator": {
         "module": "dtmf-signer-voice.mjs",
         "pin": "123456789012",
