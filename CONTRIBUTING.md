@@ -59,7 +59,17 @@ projects of their own that report here. Open an issue ("A port") to say you
 are on it. A porting guide, with what a port must provide and which vectors
 it must pass, will follow in `docs/porting.md`.
 
-### 4. Something ur-tones needs
+### 4. A voice pack in your language
+
+The Phone Exchange (PEX) speaks English and Spanish, and we are looking for
+people to make it speak their own language. A pack is made from text, a
+free voice and a few checks, with no recording and no programming beyond
+running a script; but someone who speaks the language must hear all of it,
+the numbers above all, before it is published. How, step by step:
+[`docs/voice-packs.md`](docs/voice-packs.md). Open an issue ("A voice pack:
+<language>") to say you are on it.
+
+### 5. Something ur-tones needs
 
 Tones, frames, the seed PIN and the formats on the wire belong to
 [ur-tones](https://github.com/ndssigner/ur-tones). What DTMF-Signer needs

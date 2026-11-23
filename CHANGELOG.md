@@ -4,6 +4,18 @@ The firmware is a prototype: do not use it with funds.
 
 ## Unreleased
 
+- Wanted: a voice pack in your language. `docs/voice-packs.md` (and its
+  Spanish translation) says how to make one, step by step: the voice, the
+  phrases written as they must sound, the number grammar, listening, the
+  checks; CONTRIBUTING, the README and the website's downloads ask for it.
+  `tools/voice/make_pack.py` takes any language with a voice in
+  `voices.json`, refuses a pack with untranslated phrases (listing them),
+  and `--wav-dir` writes every phrase as the signer will play it. Where no
+  free voice exists, a contributor can record the phrases and share them
+  (`"recorded"` in `voices.json`): they get the same treatment as a
+  synthesised voice. The website names a pack's language even when the
+  site is not translated into it.
+
 - `tools/install_pex.py` puts the PEX on a Pico with the language packs you
   choose: with the firmware and the packs in one folder, `python3
   install_pex.py` checks every file (a pack for another firmware version, a

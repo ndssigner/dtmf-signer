@@ -45,6 +45,7 @@
   "downloads.packs": "Language packs",
   "downloads.verify": "Check it before installing it: its SHA-256 must be this one.",
   "downloads.packs_guide": "How to install a pack",
+  "downloads.packs_contribute": "Your language? Make its pack",
   "downloads.unpublished": "Not published yet: build it from its source.",
   "downloads.guide": "How to build and install it",
   "downloads.step_files": "Put in one folder {uf2}, {installer} and the language packs you want (below).",

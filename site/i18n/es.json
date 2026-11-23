@@ -45,6 +45,7 @@
   "downloads.packs": "Paquetes de idioma",
   "downloads.verify": "Compruébalo antes de instalarlo: su SHA-256 debe ser este.",
   "downloads.packs_guide": "Cómo instalar un paquete",
+  "downloads.packs_contribute": "¿Tu idioma? Haz su paquete",
   "downloads.unpublished": "Aún sin publicar: se compila desde su código.",
   "downloads.guide": "Cómo compilarlo e instalarlo",
   "downloads.step_files": "Pon en una carpeta {uf2}, {installer} y los paquetes de idioma que quieras (abajo).",

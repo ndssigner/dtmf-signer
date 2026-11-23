@@ -25,6 +25,7 @@ PAIRS: list[tuple[str, str]] = [
     ("docs/screens.md", "docs/es/screens.md"),
     ("docs/minimal-hardware.md", "docs/es/minimal-hardware.md"),
     ("ports/wasm/README.md", "ports/wasm/README.es.md"),
+    ("docs/voice-packs.md", "docs/es/voice-packs.md"),
     ("hardware/phone/README.md", "hardware/phone/README.es.md"),
 ]
 

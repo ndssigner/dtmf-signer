@@ -244,18 +244,32 @@ def parse_pack(pack: bytes) -> dict:
 LONG = "_long"
 
 
+def languages() -> list[str]:
+    """The languages a pack can be made in: those with a voice in voices.json."""
+    return sorted(json.loads((HERE / "voices.json").read_text(encoding="utf-8"))["voices"])
+
+
 def load_phrases() -> dict:
     """Every clip of a pack, in order: the phrases of phrases.json, then the
     longer version of each one that has it (its optional "long" field), as
-    "<id>_long". Each value is {"es": text, "en": text}."""
+    "<id>_long". Each value is {lang: text} for every language with a voice;
+    a language a phrase does not give gets "" (never said in it)."""
     raw = json.loads((HERE / "phrases.json").read_text(encoding="utf-8"))
-    phrases = {k: {lang: v[lang] for lang in ("es", "en")} for k, v in raw.items()}
+    langs = languages()
+    phrases = {k: {lang: v.get(lang, "") for lang in langs} for k, v in raw.items()}
     for k, v in raw.items():
         if "long" in v:
             if k + LONG in raw:
                 raise SystemExit("phrases.json: %s and %s%s both given" % (k, k, LONG))
-            phrases[k + LONG] = {lang: v["long"][lang] for lang in ("es", "en")}
+            phrases[k + LONG] = {lang: v["long"].get(lang, "") for lang in langs}
     return phrases
+
+
+def untranslated(lang: str, phrases: dict) -> list[str]:
+    """The phrases a pack in lang still lacks. Every phrase but the number
+    words (n_...) must be said in every language; each language has its own
+    number words, empty in the others."""
+    return [k for k, v in phrases.items() if not k.startswith("n_") and not v[lang]]
 
 
 def long_ids(phrases: dict) -> list[int]:
@@ -346,8 +360,12 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def fetch_voice(lang: str) -> tuple[Path, dict]:
+def fetch_voice(lang: str) -> tuple[Path | None, dict]:
+    """The Piper model of a language's voice, downloaded and checked; None for
+    a recorded voice ("recorded": its folder of WAVs), which needs no model."""
     voice = json.loads((HERE / "voices.json").read_text())["voices"][lang]
+    if "recorded" in voice:
+        return None, voice
     cache = cache_dir()
     cache.mkdir(parents=True, exist_ok=True)
     for name, info in voice["files"].items():
@@ -521,6 +539,32 @@ def render_text(model, text: str, wav: Path, speaker=None, eq=False):
     return np.concatenate(out) if out else np.zeros(0)
 
 
+def render_recorded(path: Path, eq=False):
+    """A recorded phrase (WAV, 16-bit mono, any rate of 8 kHz or more) through
+    the same treatment as a synthesised one: resampled to 8 kHz, equalised if
+    asked, notched at the DTMF high group and trimmed at its two ends."""
+    import numpy as np
+    try:
+        x, rate = read_wav(path)
+    except (AssertionError, wave.Error) as e:
+        raise SystemExit("%s: not a 16-bit mono WAV (%s)" % (path, e))
+    if rate < RATE:
+        raise SystemExit("%s: recorded at %d Hz; it needs %d Hz or more" % (path, rate, RATE))
+    y = trim_ends(notch_dtmf(equalise(resample(x, rate)) if eq else resample(x, rate)))
+    return y if y is not None else np.zeros(0)
+
+
+def recorded_dir(voice: dict) -> Path:
+    """The folder of a recorded voice's WAVs, from the repository's root."""
+    return HERE.parent.parent / voice["recorded"]
+
+
+def missing_recordings(lang: str, phrases: dict, voice: dict) -> list[str]:
+    """The phrases with text in lang that have no <id>.wav in its folder."""
+    d = recorded_dir(voice)
+    return [k for k, v in phrases.items() if v[lang] and not (d / (k + ".wav")).exists()]
+
+
 def spxtool_path() -> Path:
     """Builds spxtool (CMake target, host compiler, Release) in
     build/voice-tools and returns its path; the same command every time, so
@@ -550,9 +594,16 @@ def encode_clip(pcm, spxtool: Path, tmp: Path) -> bytes:
     return blob
 
 
-def render_clips(lang: str, phrases: dict, spxtool: Path):
-    """The encoded clips and the voice's name; also the seconds of speech."""
+def render_clips(lang: str, phrases: dict, spxtool: Path, wav_dir: Path | None = None):
+    """The encoded clips and the voice's name; also the seconds of speech.
+    With wav_dir, each clip is also written there as <id>.wav, decoded back
+    from Speex: what the signer will play, to listen to."""
     model, voice = fetch_voice(lang)
+    if model is None:
+        missing = missing_recordings(lang, phrases, voice)
+        if missing:
+            raise SystemExit("%s: %d phrases have no recording in %s yet: %s"
+                             % (lang, len(missing), voice["recorded"], ", ".join(missing)))
     clips, samples = [], 0
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -561,17 +612,31 @@ def render_clips(lang: str, phrases: dict, spxtool: Path):
             if not text:
                 clips.append(b"")
                 continue
-            pcm = condition(render_text(model, text, wav, voice.get("speaker"), voice.get("eq", False)))
+            if model is None:
+                x = render_recorded(recorded_dir(voice) / (key + ".wav"), voice.get("eq", False))
+            else:
+                x = render_text(model, text, wav, voice.get("speaker"), voice.get("eq", False))
+            pcm = condition(x)
             samples += len(pcm)
             clips.append(encode_clip(pcm, spxtool, tmp))
+            if wav_dir is not None and clips[-1]:
+                raw = tmp / "c.raw"   # from encode_clip's c.spx, still there
+                subprocess.run([str(spxtool), "decode", str(tmp / "c.spx"), str(raw)], check=True)
+                with wave.open(str(wav_dir / (key + ".wav")), "wb") as w:
+                    w.setnchannels(1)
+                    w.setsampwidth(2)
+                    w.setframerate(RATE)
+                    w.writeframes(raw.read_bytes())
     return clips, voice["name"], samples / RATE
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--lang", choices=["es", "en"])
+    ap.add_argument("--lang", choices=languages())
     ap.add_argument("--out-c", help="write the pack as a C file (with --lang)")
     ap.add_argument("--out-bin", help="write the raw pack (with --lang)")
+    ap.add_argument("--wav-dir", help="also write each phrase as <id>.wav here, as the signer plays it "
+                                      "(with --lang), to listen to")
     ap.add_argument("--header", help="write ds_prompts.h")
     ap.add_argument("--names", help="write ds_prompt_names.c")
     ap.add_argument("--spxtool", help="the spxtool to encode with (default: build it, see spxtool_path)")
@@ -584,8 +649,15 @@ def main() -> int:
     if a.out_c or a.out_bin:
         if not a.lang:
             ap.error("--out-c/--out-bin need --lang")
+        missing = untranslated(a.lang, phrases)
+        if missing:
+            raise SystemExit("%s: %d phrases have no text in this language yet: %s"
+                             % (a.lang, len(missing), ", ".join(missing)))
         spxtool = Path(a.spxtool) if a.spxtool else spxtool_path()
-        clips, name, secs = render_clips(a.lang, phrases, spxtool)
+        wav_dir = Path(a.wav_dir) if a.wav_dir else None
+        if wav_dir is not None:
+            wav_dir.mkdir(parents=True, exist_ok=True)
+        clips, name, secs = render_clips(a.lang, phrases, spxtool, wav_dir)
         pack = build_pack(a.lang, clips, lang_grammar(a.lang, phrases))
         print("%s: %d bytes, %.1f s of speech, %d phrases" % (a.lang, len(pack), secs, len(clips)))
         if len(pack) > REGION_SIZE:

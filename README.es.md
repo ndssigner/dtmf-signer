@@ -349,7 +349,8 @@ ningún otro daño, ni del uso que cada cual haga de este diseño.
 - [`vectors/`](vectors/): vectores de prueba (JSON), solo semillas de prueba
   públicas: claves y PSBT.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): cómo proponer cambios, ampliar el
-  catálogo o portar DTMF-Signer (en inglés).
+  catálogo o portar DTMF-Signer (en inglés). Se busca: un [paquete de voz en
+  tu idioma](docs/es/voice-packs.md) para la Centralita.
 - [`AUDIT.md`](AUDIT.md): un mapa para revisores: los ficheros críticos por
   prioridad, las dependencias fijadas y las carencias conocidas.
   [`SECURITY.md`](SECURITY.md): cómo avisar en privado de una

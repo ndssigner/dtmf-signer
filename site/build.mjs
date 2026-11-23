@@ -128,6 +128,13 @@ export function packList(site, repoRoot) {
 }
 
 const kib = (n) => `${Math.round(n / 1024)} KiB`;
+// A language's own name: the site's, or, for a pack in a language the site
+// is not translated into, the one the platform knows ("português").
+const langName = (site, code) => {
+  if (site.strings[code]?.["lang.name"]) return site.strings[code]["lang.name"];
+  const own = new Intl.DisplayNames([code], { type: "language" }).of(code);
+  return own && own !== code ? own.charAt(0).toLocaleUpperCase(code) + own.slice(1) : code;
+};
 // Whether a build has a published firmware: its status says so.
 const released = (status) => status.firmware.find((s) => s.stage === "release")?.state === "done";
 
@@ -243,7 +250,7 @@ function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre
   }
   const fwTitle = published ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
   const packs = site.packs.filter((k) => k.slug === p.slug).map((k) =>
-    `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(t(site, k.lang, "lang.name").text)}, ${kib(k.size)})<br>
+    `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(langName(site, k.lang))}, ${kib(k.size)})<br>
 <span class="sha-label">SHA-256</span> <code class="sha">${k.sha256}</code></li>`).join("\n");
   const packBlock = packs ? `
 <h${h} id="${pre}packs">${e("downloads.packs")}</h${h}>
@@ -251,7 +258,8 @@ function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre
 ${packs}
 </ul>
 <p class="verify"><span aria-hidden="true">🔎</span> ${e("downloads.verify")}</p>
-<p class="install">${p.packs_guide ? ext(blob(site, perLang(p.packs_guide, lang)), tr("downloads.packs_guide")) : ""}</p>` : "";
+<p class="install">${p.packs_guide ? ext(blob(site, perLang(p.packs_guide, lang)), tr("downloads.packs_guide")) : ""}</p>${p.packs_contribute ? `
+<p class="contribute"><span aria-hidden="true">🗣</span> ${ext(blob(site, perLang(p.packs_contribute, lang)), tr("downloads.packs_contribute"))}</p>` : ""}` : "";
   const fileBlock = files ? `
 <h${h} id="${pre}files">${e("downloads.files")}</h${h}>
 <ul>

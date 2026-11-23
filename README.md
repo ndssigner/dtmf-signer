@@ -330,7 +330,8 @@ for the use anyone makes of this design.
   step by step.
 - [`vectors/`](vectors/): test vectors (JSON), public test seeds only: keys and PSBTs.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): how to propose changes, add to the
-  catalog or port DTMF-Signer.
+  catalog or port DTMF-Signer. Wanted: a [voice pack in your
+  language](docs/voice-packs.md) for the PEX.
 - [`AUDIT.md`](AUDIT.md): a map for reviewers: the critical files by
   priority, the pinned dependencies and the known gaps.
   [`SECURITY.md`](SECURITY.md): how to report a vulnerability privately.

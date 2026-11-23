@@ -79,6 +79,12 @@ test("the PEX's downloads offer its installer with the three steps; Cable and QR
   }
   assert.ok(files.get("files/pex/install_pex.py")?.equals(readFileSync(new URL("../../tools/install_pex.py", import.meta.url))));
 });
+test("the PEX's language packs ask for a pack in the reader's language, with the guide", () => {
+  for (const [lang, doc] of [["en", "docs/voice-packs.md"], ["es", "docs/es/voice-packs.md"]]) {
+    const c = text(files, `${lang}/pex/downloads/index.html`);
+    assert.match(c, new RegExp(`<p class="contribute">[\\s\\S]*?href="[^"]*blob/main/${doc}"`), lang);
+  }
+});
 test("the release names each build's UF2, and a build marked published has one", () => {
   const config = JSON.parse(readFileSync(new URL("../config.json", import.meta.url), "utf8"));
   const slugs = config.profiles.map((p) => p.slug);

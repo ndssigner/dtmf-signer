@@ -1,5 +1,7 @@
 # Voice packs
 
+A pack in a new language, step by step: [`docs/voice-packs.md`](../../docs/voice-packs.md).
+
 Generates the spoken prompts of the telephone build: Piper text-to-speech,
 resampled to 8 kHz and encoded as Speex narrowband (fixed point, quality 2:
 5.95 kbit/s, under 1 KB per second), in the `DSV3` pack format described at

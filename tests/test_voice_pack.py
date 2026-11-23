@@ -106,10 +106,28 @@ class PackTest(unittest.TestCase):
         self.assertEqual(say(en, 0), ["n_zero"])
 
     def test_every_language_says_every_amount_shape(self):
-        for lang in ("es", "en"):
+        # Every language with a voice, a new one included.
+        for lang in make_pack.languages():
             g = _grammar(lang)
             for n in list(range(0, 2000)) + [10 ** k + d for k in range(3, 19) for d in (0, 1, 21, 999)]:
                 self.assertTrue(make_pack.say_number(g, n), (lang, n))
+
+    def test_a_recorded_voice_needs_every_phrase_recorded(self):
+        import tempfile
+        phrases = {"greeting": {"pt": "olá"}, "n_um": {"pt": "um"}, "n_one": {"pt": ""}}
+        with tempfile.TemporaryDirectory() as d:
+            voice = {"recorded": d, "name": "test"}          # absolute: taken as it is
+            (Path(d) / "greeting.wav").write_bytes(b"")
+            self.assertEqual(make_pack.missing_recordings("pt", phrases, voice), ["n_um"])
+            (Path(d) / "n_um.wav").write_bytes(b"")
+            self.assertEqual(make_pack.missing_recordings("pt", phrases, voice), [])
+
+    def test_every_language_has_every_phrase_but_the_number_words(self):
+        phrases = make_pack.load_phrases()
+        for lang in make_pack.languages():
+            self.assertEqual(make_pack.untranslated(lang, phrases), [], lang)
+        # A language not yet translated lacks them all, and is told which.
+        self.assertTrue(make_pack.untranslated("pt", {"greeting": {"pt": ""}, "n_um": {"pt": ""}}) == ["greeting"])
 
 
 class Uf2Test(unittest.TestCase):
