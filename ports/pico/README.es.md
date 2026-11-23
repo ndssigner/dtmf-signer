@@ -17,9 +17,10 @@ Dos caminos, que dan el mismo programa.
 
 ### El UF2 publicado
 
-Las versiones posteriores a la v0.1.0-alpha llevan `dtmf-signer-pico.uf2`,
-compilado por la CI del proyecto desde la etiqueta de la versión, y su
-SHA-256. Úsalo si no quieres compilarlo: en ese caso confías en esa
+Las versiones posteriores a la v0.1.0-alpha llevan `dtmf-signer-pico.uf2`
+(Cable y QR), y desde la v0.3.0-alpha también `dtmf-signer-pex.uf2` (la
+Centralita), compilados por la CI del proyecto desde la etiqueta de la
+versión, con sus SHA-256 en `SHA256SUMS`. Úsalo si no quieres compilarlo: en ese caso confías en esa
 compilación en vez de comprobarla tú, una decisión que conviene tomar a
 sabiendas. Cualquiera puede comprobarlo para todos compilando la misma
 etiqueta en Linux x86_64, como se explica abajo, y comparando el SHA-256.
@@ -32,7 +33,7 @@ que muestra la página About sale de git):
 ```bash
 git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
 cd dtmf-signer
-git checkout v0.2.0-alpha    # the release to build; skip it for the latest code
+git checkout v0.3.0-alpha    # the release to build; skip it for the latest code
 tools/build-pico.sh
 ```
 
@@ -179,8 +180,8 @@ tools/build-pico.sh pex
 ```
 
 Da `build-pico-pex-release/dtmf-signer-pex.uf2` y su SHA-256, y se carga
-igual (BOOTSEL y copiar el UF2). Las versiones posteriores a la
-v0.2.0-alpha también lo llevan, compilado por la CI. Con CMake a mano, es
+igual (BOOTSEL y copiar el UF2). Desde la
+v0.3.0-alpha, las versiones también lo llevan, compilado por la CI. Con CMake a mano, es
 la opción `-DDS_FIRMWARE=PEX`.
 
 Enlaza libspeex sin su codificador (`speex_nb_dec`) y las locuciones en

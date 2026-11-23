@@ -2,7 +2,7 @@
 
 The firmware is a prototype: do not use it with funds.
 
-## Unreleased
+## v0.3.0-alpha (2026-11-23)
 
 A second build, the cheapest: the **Phone Exchange (PEX)**, a tone
 telephone as the whole interface. Still a prototype, still not reviewed by
