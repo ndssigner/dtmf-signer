@@ -185,16 +185,23 @@ the second MB is the voice packs' region.
 ### Voice packs
 
 Every language but English is a pack, written apart from the firmware, at
-flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)):
+flash offset 1 MB (see [`tools/voice`](../../tools/voice/README.md)).
+
+**The simple way:** `dtmf-signer-pex-es.uf2` is the firmware and the Spanish
+pack in one file (one per language, made by `tools/build-pico.sh pex` and
+attached to the releases). Copy it onto the board as above, once: it speaks
+English and Spanish. Two files copied at once do not work: the Pico
+restarts as soon as the first one is in.
+
+**A pack on its own,** to add it to a board that already has the firmware:
 
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
-picotool load es.uf2
-picotool load -x build-pico-pex-release/dtmf-signer-pex.uf2
 ```
 
-Both loads need BOOTSEL, as above. With more than one language, the
-PEX lists them when the handset is lifted.
+and copy `es.uf2` onto the board in BOOTSEL. A second language goes after
+the first: its `--offset` is the first pack's size rounded up to 4 KB.
+With more than one language, the PEX lists them when the handset is lifted.
 
 ### The line
 

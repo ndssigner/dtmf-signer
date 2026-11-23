@@ -2,6 +2,13 @@
 
 The firmware is a prototype: do not use it with funds.
 
+## Unreleased
+
+- The PEX with a language in one file: `dtmf-signer-pex-es.uf2` is the
+  firmware and the Spanish pack together, copied onto the Pico once
+  (`tools/voice/make_uf2.py --firmware`; `tools/build-pico.sh pex` makes one
+  per pack, and the releases carry them).
+
 ## v0.3.0-alpha (2026-11-23)
 
 A second build, the cheapest: the **Phone Exchange (PEX)**, a tone

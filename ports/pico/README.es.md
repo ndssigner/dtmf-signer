@@ -192,16 +192,23 @@ falla: el segundo MB es la región de los paquetes de voz.
 
 Cada idioma salvo el inglés es un paquete, que se graba aparte del
 firmware, en el desplazamiento de 1 MB de la flash (ver
-[`tools/voice`](../../tools/voice/README.md)):
+[`tools/voice`](../../tools/voice/README.md)).
+
+**Lo sencillo:** `dtmf-signer-pex-es.uf2` es el firmware y el paquete
+español en un solo archivo (uno por idioma, hecho por
+`tools/build-pico.sh pex` y adjunto a las versiones). Cópialo a la placa
+como arriba, una vez: habla inglés y español. Copiar dos archivos a la vez
+no funciona: la Pico se reinicia en cuanto termina el primero.
+
+**Un paquete solo,** para añadirlo a una placa que ya tiene el firmware:
 
 ```bash
 python3 tools/voice/make_uf2.py app/voice/packs/es.bin --offset 0 es.uf2
-picotool load es.uf2
-picotool load -x build-pico-pex-release/dtmf-signer-pex.uf2
 ```
 
-Las dos cargas necesitan BOOTSEL, como arriba. Con más de un idioma, la
-Centralita los ofrece al descolgar.
+y copia `es.uf2` a la placa en BOOTSEL. Un segundo idioma va detrás del
+primero: su `--offset` es el tamaño del primer paquete redondeado a 4 KB.
+Con más de un idioma, la Centralita los ofrece al descolgar.
 
 ### La línea
 

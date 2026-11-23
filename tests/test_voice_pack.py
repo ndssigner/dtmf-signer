@@ -142,6 +142,52 @@ class Uf2Test(unittest.TestCase):
         with self.assertRaises(ValueError):
             make_uf2.to_uf2(b"x", 0x1800)             # not 4 KB aligned
 
+    @staticmethod
+    def firmware_uf2(n):
+        """A stand-in for a firmware UF2: n blocks from the start of flash."""
+        out = bytearray()
+        for i in range(n):
+            out += struct.pack("<8I", 0x0A324655, 0x9E5D5157, 0x2000, 0x10000000 + 256 * i,
+                               256, i, n, 0xE48BFF56) + bytes([i]) * 476 + struct.pack("<I", 0x0AB16F30)
+        return bytes(out)
+
+    def test_firmware_and_pack_in_one_file(self):
+        # One file, numbered as one: the boot ROM reboots once a file is whole.
+        fw, pack = self.firmware_uf2(3), make_uf2.to_uf2(bytes(600), 0)
+        both = make_uf2.join(fw, pack)
+        self.assertEqual(len(both), len(fw) + len(pack))
+        n = len(both) // 512
+        addrs = []
+        for i in range(n):
+            blk = both[i * 512:(i + 1) * 512]
+            self.assertEqual(struct.unpack_from("<2I", blk, 20), (i, n))
+            addrs.append(struct.unpack_from("<I", blk, 12)[0])
+            src = (fw + pack)[i * 512:(i + 1) * 512]
+            self.assertEqual(blk[:20] + blk[28:], src[:20] + src[28:])   # only the numbers change
+        self.assertEqual(addrs[:3], [0x10000000, 0x10000100, 0x10000200])
+        self.assertEqual(addrs[3], 0x10100000)
+
+    def test_join_refuses_overlap_and_what_is_not_uf2(self):
+        fw = self.firmware_uf2(2)
+        with self.assertRaises(ValueError):
+            make_uf2.join(fw, fw)                     # the same flash twice
+        with self.assertRaises(ValueError):
+            make_uf2.join(fw, b"not a uf2")
+        other = bytearray(fw[:512])
+        struct.pack_into("<I", other, 28, 0xE48BFF59)  # another family (RP2350)
+        with self.assertRaises(ValueError):
+            make_uf2.join(bytes(other))
+
+    def test_main_writes_firmware_and_pack(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / "fw.uf2").write_bytes(self.firmware_uf2(2))
+            (d / "p.bin").write_bytes(bytes(300))
+            self.assertEqual(make_uf2.main([str(d / "p.bin"), "--offset", "0",
+                                            "--firmware", str(d / "fw.uf2"), str(d / "out.uf2")]), 0)
+            self.assertEqual(len((d / "out.uf2").read_bytes()), 4 * 512)
+
 
 class CommittedPackTest(unittest.TestCase):
     def test_es_bin_matches_tool(self):

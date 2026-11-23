@@ -221,14 +221,22 @@ function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre
   // One release carries every build's UF2 (site.config.release.uf2, by
   // build) and one SHA256SUMS; a build shows it once its status says so.
   const rel = site.config.release;
-  const uf2 = rel?.uf2?.[p.slug];
-  const published = Boolean(uf2) && released(status);
+  // A build's UF2s: one file, or several (the PEX alone, and the PEX with
+  // each language pack, dtmf-signer-pex-<lang>.uf2), each then with the
+  // languages it speaks.
+  const uf2s = [rel?.uf2?.[p.slug] ?? []].flat();
+  const published = uf2s.length > 0 && released(status);
   const guide = p.firmware_guide ? ext(blob(site, perLang(p.firmware_guide, lang)), tr("downloads.guide")) : "";
   let firmware = guide ? `<p class="not-yet">${e("downloads.unpublished")} ${guide}</p>` : notYet;
   if (published) {
     const base = `${site.config.repo}/releases/download/${rel.tag}/`;
+    const speaks = (f) => {
+      const extra = /-([a-z]{2})\.uf2$/.exec(f)?.[1];
+      const langs = ["en", ...(extra ? [extra] : [])].map((code) => t(site, code, "lang.name").text);
+      return uf2s.length > 1 ? ` (${escapeHtml(langs.join(" + "))})` : "";
+    };
     firmware = `<ul>
-<li>${ext(base + uf2, uf2)}</li>
+${uf2s.map((f) => `<li>${ext(base + f, f)}${speaks(f)}</li>`).join("\n")}
 <li>${ext(base + rel.sums, rel.sums)}</li>
 <li>${ext(`${site.config.repo}/releases`, tr("downloads.all"))}</li>${guide ? `\n<li>${guide}</li>` : ""}
 </ul>`;

@@ -41,15 +41,14 @@ jobs:
       - name: SHA256SUMS
         run: |
           mkdir dist
-          cp build-pico-release/dtmf-signer-pico.uf2 build-pico-pex-release/dtmf-signer-pex.uf2 dist/
+          cp build-pico-release/dtmf-signer-pico.uf2 build-pico-pex-release/dtmf-signer-pex*.uf2 dist/
           cd dist
-          sha256sum dtmf-signer-pico.uf2 dtmf-signer-pex.uf2 > SHA256SUMS
+          sha256sum *.uf2 > SHA256SUMS
           cat SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
           name: dtmf-signer-pico-release
           path: |
-            dist/dtmf-signer-pico.uf2
-            dist/dtmf-signer-pex.uf2
+            dist/*.uf2
             dist/SHA256SUMS
           if-no-files-found: error
