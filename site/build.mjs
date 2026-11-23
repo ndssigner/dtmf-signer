@@ -601,6 +601,13 @@ export function build({ siteDir, outDir, commit }) {
 
   const repoRoot = join(siteDir, "..");
   site.packs = packList(site, repoRoot);
+  // The picture a shared link shows (see shareFor in lib/page.mjs).
+  if (site.config.url) {
+    const og = readFileSync(join(HERE, "static", "img", "og.jpg"));
+    const meta = photoMetadata(og);
+    if (meta) throw new Error(`static/img/og.jpg: remove its metadata (${meta}) before publishing it`);
+    files.set("img/og.jpg", og);
+  }
   // Each build's pictogram.
   for (const f of readdirSync(join(HERE, "static", "img", "builds")).filter((f) => f.endsWith(".svg")).sort())
     files.set(`img/builds/${f}`, readFileSync(join(HERE, "static", "img", "builds", f)));

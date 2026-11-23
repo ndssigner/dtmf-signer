@@ -87,3 +87,17 @@ test("the language switch is a dropdown that keeps the page", () => {
   assert.match(m[2], /<a href="\.\.\/\.\.\/\.\.\/en\/cable-qr\/parts\/" hreflang="en" data-lang="en"[^>]*>English<\/a>/);
   assert.match(m[2], /aria-current="true"[^>]*>Español/);
 });
+test("shared links get a preview: absolute addresses, the page's own URL", () => {
+  const files = buildInto();
+  assert.ok(files.has("img/og.jpg"));
+  const root = text(files, "index.html");
+  assert.match(root, /<meta property="og:url" content="https:\/\/ndssigner\.github\.io\/dtmf-signer\/">/);
+  for (const lang of ["en", "es"]) {
+    const html = text(files, `${lang}/index.html`);
+    assert.match(html, new RegExp(`<meta property="og:url" content="https://ndssigner\\.github\\.io/dtmf-signer/${lang}/">`));
+    assert.match(html, /<meta property="og:image" content="https:\/\/ndssigner\.github\.io\/dtmf-signer\/img\/og\.jpg">/);
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+    assert.match(html, /<meta name="description" content="[^"]{40,}">/);
+  }
+  assert.match(text(files, "es/index.html"), /og:description" content="Un firmador/);
+});

@@ -10,6 +10,7 @@
     }
   ],
   "repo": "https://github.com/ndssigner/dtmf-signer",
+  "url": "https://ndssigner.github.io/dtmf-signer/",
   "profiles": [
     {
       "id": "PROFILE-CABLE-QR",

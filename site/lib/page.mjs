@@ -21,14 +21,47 @@ export function translator(site, lang) {
 
 export const CSP_WASM = CSP.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'");
 
-function head(lang, title, root, wasm = false) {
+// The preview a link to the site gets when it is shared (Open Graph and
+// Twitter cards): only with config.url, since they need absolute
+// addresses. Nothing here is loaded by the page itself.
+function shareMeta(share) {
+  if (!share) return "";
+  const e = escapeHtml;
+  return `
+<meta name="description" content="${e(share.description)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DTMF-Signer">
+<meta property="og:title" content="${e(share.title)}">
+<meta property="og:description" content="${e(share.description)}">
+<meta property="og:url" content="${e(share.url)}">
+<meta property="og:image" content="${e(share.image)}">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="${e(share.alt)}">
+<meta name="twitter:card" content="summary_large_image">`;
+}
+
+// share: { url, title, description, image, alt }, or nothing.
+export function shareFor(site, lang, title, path) {
+  const base = site.config.url;
+  if (!base) return null;
+  return {
+    url: `${base}${lang}/${path}`,
+    title,
+    description: t(site, lang, "home.lede").text,
+    image: `${base}img/og.jpg`,
+    alt: t(site, lang, "share.alt").text,
+  };
+}
+
+function head(lang, title, root, wasm = false, share = null) {
   return `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="${wasm ? CSP_WASM : CSP}">
-<title>${escapeHtml(title)}</title>
+<title>${escapeHtml(title)}</title>${shareMeta(share)}
 <link rel="stylesheet" href="${root}style.css">
 <script type="module" src="${root}lang.js"></script>
 </head>`;
@@ -76,7 +109,7 @@ ${site.config.languages.map(({ code }) => {
   const notice = fallback || tr.fallback
     ? `<p class="notice">${escapeHtml(t(site, lang, "fallback.notice").text)} <a href="${repo}/blob/main/site/TRANSLATING.md" rel="noopener noreferrer">TRANSLATING.md</a></p>\n`
     : "";
-  return `${head(lang, title, root, wasm)}
+  return `${head(lang, title, root, wasm, shareFor(site, lang, title, path))}
 <body>
 <header class="top">
 <a class="brand" href="${root}${lang}/">DTMF-Signer</a>
@@ -102,7 +135,8 @@ export function rootPage(site) {
   const items = site.config.languages.map(({ code }) =>
     `<li><a href="${code}/" hreflang="${code}" data-lang="${code}">${escapeHtml(t(site, code, "lang.name").text)}</a></li>`).join("\n");
   const codes = site.config.languages.map((l) => l.code).join(" ");
-  return head("en", "DTMF-Signer", "").replace('<html lang="en">', `<html lang="en" data-langs="${codes}">`) + `
+  const share = site.config.url && { ...shareFor(site, "en", "DTMF-Signer", ""), url: site.config.url };
+  return head("en", "DTMF-Signer", "", false, share).replace('<html lang="en">', `<html lang="en" data-langs="${codes}">`) + `
 <body>
 <main class="root">
 <h1>DTMF-Signer</h1>
