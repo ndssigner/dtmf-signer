@@ -36,16 +36,18 @@ Pico 2 vendrá después.
 > **Estado: prototipo que funciona.** El montaje de referencia, Cable y QR,
 > funciona en una protoboard y en una placa perforada: carga una semilla por tonos con su PIN,
 > muestra las huellas, exporta la XPUB y devuelve las PSBT firmadas como
-> códigos QR que Sparrow lee. Su disposición y una plantilla imprimible a
-> escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
+> códigos QR que Sparrow lee. Su esquema (KiCad), su disposición y una
+> plantilla imprimible a escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
 > Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
 > independiente. No lo uses con fondos. Vídeos: [en la protoboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
 > y [en placa perforada con v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
 > La Centralita (PEX) también funciona en protoboard: carga una semilla por
 > el auricular o por el teclado, lee cada salida en voz alta y firma cuando
 > cuelgas un momento, byte a byte como la versión de ordenador
-> ([su montaje](hardware/phone/README.es.md)). Faltan sus archivos de
-> disposición y la placa perforada.
+> ([su montaje](hardware/phone/README.es.md), con su esquema, su
+> disposición y una plantilla imprimible; la disposición separa las piezas
+> de la protoboard que se probó y no se ha montado tal cual). Falta su
+> placa perforada.
 
 ## Motivación
 
@@ -266,14 +268,16 @@ disposición y la placa perforada.
 - [x] Firmware del núcleo, probado con grabaciones de ur-tones
 - [x] Decodificador de tonos por software en la referencia Pico, probado con ur-tones
 - [x] Disposición en protoboard (DIY Layout Creator), comprobada por sus conexiones, y una plantilla imprimible 1:1 para la placa perforada
-- [ ] Esquema, guía de montaje paso a paso y lista de materiales
+- [x] Esquemas en KiCad y listas de materiales de los dos montajes
+- [ ] Guía de montaje paso a paso para Cable y QR (la de la Centralita comprueba cada paso)
 - [ ] Dos diseños de PCB: SMD (montada en fábrica) y de agujero pasante
 - [x] El firmware en el navegador: `ports/wasm`, el simulador de la [web](https://ndssigner.github.io/dtmf-signer/), con una wallet de prueba
 - [ ] Simulación de las etapas analógicas
 - [x] Núcleo y versión para ordenador: análisis de PSBT, firma y sesión de firma (`ports/host`)
 - [x] Firmware para la Pico (`ports/pico`): audio, ur-tones, PSBT, firma, pantallas. Probado en el prototipo de protoboard: semilla por tonos con su PIN, huellas, la XPUB como QR leído por Sparrow, dos PSBT firmadas byte a byte igual que la versión para ordenador, un cambio falso rechazado y el borrado de emergencia. En la placa perforada, v0.2.0-alpha desde la semilla por tonos hasta la PSBT firmada leída por Sparrow
 - [x] La Centralita (PEX), el firmware de voz (`app/ds_voice`): en el simulador de la web, y en la Pico (`DS_FIRMWARE=PEX`). Probada en protoboard: los menús, la semilla por el teclado y por el auricular con su PIN, la revisión en voz alta, la firma por un colgado corto byte a byte como la versión de ordenador, la cuenta leída por ur-tones
-- [ ] La disposición de la Centralita en DIY Layout Creator y KiCad, y su placa perforada
+- [x] La disposición de la Centralita en DIY Layout Creator, comprobada por sus conexiones, y una plantilla imprimible 1:1
+- [ ] La Centralita montada a partir de esa disposición, y su placa perforada
 - [ ] Protocolo serie para terminales vintage
 - [ ] Guía de portabilidad: una invitación a otras plataformas
 - [ ] Revisión independiente

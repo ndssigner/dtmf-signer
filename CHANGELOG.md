@@ -33,8 +33,13 @@ anyone independent.
   one per part, steady once it is all in.
 - `hardware/phone/`: the PEX on a breadboard, with a whole telephone on an
   RJ11 socket, its line fed from the USB through a current source, its parts
-  list and a step-by-step build with checks. The layout files and the
-  perfboard are still to come.
+  list and a step-by-step build with checks. Its layout in DIY Layout
+  Creator, checked by its connections, with a printable 1:1 template; the
+  layout spreads out the parts of the tested breadboard and has not been
+  built as it stands. The perfboard is still to come.
+- Schematics in KiCad for both builds (`hardware/breadboard/kicad/`,
+  `hardware/phone/kicad/`), shown in their guides and on the website, where
+  the `.kicad_sch` can be downloaded.
 - Documentation in English first everywhere: the minimal hardware
   specification is now in English (`docs/minimal-hardware.md`), and the
   Spanish translations take the English file names.

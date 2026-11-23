@@ -32,16 +32,18 @@ comes later.
 > **Status: working prototype.** The reference build, Cable and QR, runs on
 > a breadboard and on a perfboard: it loads a seed by tones with its PIN, shows the
 > fingerprints, exports the xpub and returns signed PSBTs as QR codes that
-> Sparrow reads. Its layout and a printable 1:1 template are in
-> [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
+> Sparrow reads. Its schematic (KiCad), its layout and a printable 1:1
+> template are in [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
 > air (microphone and speaker), the PCBs and an independent review are still
 > to come. Do not use it with funds. Videos: [on the breadboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
 > and [on a perfboard with v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
 > The Phone Exchange (PEX) runs on a breadboard too: it loads a seed through
 > the handset or the keypad, reads out every output, and signs when you hang
 > up for a moment, byte for byte as the computer build does
-> ([its build](hardware/phone/README.md)). Its layout files and perfboard
-> are still to come.
+> ([its build](hardware/phone/README.md), with its schematic, its layout
+> and a printable template; the layout spreads out the parts of the tested
+> breadboard and has not been built as it stands). Its perfboard is still
+> to come.
 
 ## Motivation
 
@@ -253,14 +255,16 @@ to come.
 - [x] Core firmware, tested with ur-tones recordings
 - [x] Software tone decoder on the Pico reference, tested with ur-tones
 - [x] Breadboard layout (DIY Layout Creator), checked by its connections, and a printable 1:1 template for the perfboard
-- [ ] Schematic, step-by-step assembly guide and bill of materials
+- [x] Schematics in KiCad and bills of materials for both builds
+- [ ] Step-by-step assembly guide for Cable and QR (the PEX's guide checks each step)
 - [ ] Two PCB layouts: SMD (factory-assembled) and through-hole
 - [x] The firmware in the browser: `ports/wasm`, the simulator on the [website](https://ndssigner.github.io/dtmf-signer/), with a test wallet
 - [ ] Simulation of the analog stages
 - [x] Core and computer build: PSBT analysis, signing and the signing session (`ports/host`)
 - [x] Firmware for the Pico (`ports/pico`): audio, ur-tones, PSBT, signing, screens. Tested on the breadboard prototype: seed by tones with its PIN, fingerprints, the xpub as a QR read by Sparrow, two PSBTs signed byte for byte as the computer build does, a fake change rejected, and the emergency wipe. On the perfboard, v0.2.0-alpha from the seed by tones to the signed PSBT read by Sparrow
 - [x] The Phone Exchange (PEX), the voice firmware (`app/ds_voice`): in the website's simulator, and on the Pico (`DS_FIRMWARE=PEX`). Tested on a breadboard: the menus, the seed by the keypad and by the handset with its PIN, the review read aloud, the signature by a hook flash byte for byte as the computer build does, the account read by ur-tones
-- [ ] The PEX's layout in DIY Layout Creator and KiCad, and its perfboard
+- [x] The PEX's layout in DIY Layout Creator, checked by its connections, and a printable 1:1 template
+- [ ] The PEX built from that layout, and its perfboard
 - [ ] Serial protocol for vintage terminals
 - [ ] Porting guide: an invitation to other platforms
 - [ ] Independent review

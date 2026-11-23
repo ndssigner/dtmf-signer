@@ -538,8 +538,9 @@ Crece con cada montaje que alguien haga y mida.
   unos 20 a 25 mA para la línea, un divisor para medir la línea, la entrada
   de línea de siempre, la salida de audio hacia la línea, un conector RJ11 y
   un teléfono de tonos con auricular: sin pantalla ni botones, el más barato
-  de los montajes con Pico. El montaje en protoboard, su lista de piezas y
-  cómo comprobarlo paso a paso:
+  de los montajes con Pico. El montaje en protoboard, su esquema, su
+  disposición con una plantilla imprimible, su lista de piezas y cómo
+  comprobarlo paso a paso:
   [`hardware/phone/`](../../hardware/phone/README.es.md); el firmware:
   [`ports/pico/`](../../ports/pico/README.es.md#la-centralita-pex) con
   `DS_FIRMWARE=PEX`.

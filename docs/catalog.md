@@ -511,8 +511,9 @@ build someone makes and measures.
   20 to 25 mA for the line, a divider to measure the line, the usual line
   input, the audio output into the line, an RJ11 socket and a tone
   telephone with a handset: no screen and no buttons, the cheapest of the
-  Pico builds. The breadboard build, its parts list and how to check it
-  step by step: [`hardware/phone/`](../hardware/phone/README.md); the
+  Pico builds. The breadboard build, its schematic, its layout with a
+  printable template, its parts list and how to check it step by step:
+  [`hardware/phone/`](../hardware/phone/README.md); the
   firmware: [`ports/pico/`](../ports/pico/README.md#the-phone-exchange-pex)
   with `DS_FIRMWARE=PEX`.
 - **What it lacks:** its own screen, buttons, `OUT-QR`, `STORE-SEED`,
