@@ -39,7 +39,9 @@
     },
     {
       "stage": "release",
-      "state": "planned"
+      "state": "done",
+      "note": "v0.3.0-alpha",
+      "link": "https://github.com/ndssigner/dtmf-signer/releases/tag/v0.3.0-alpha"
     },
     {
       "stage": "review",

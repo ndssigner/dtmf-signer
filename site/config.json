@@ -408,9 +408,10 @@
     }
   ],
   "release": {
-    "tag": "v0.2.0-alpha",
+    "tag": "v0.3.0-alpha",
     "uf2": {
-      "cable-qr": "dtmf-signer-pico.uf2"
+      "cable-qr": "dtmf-signer-pico.uf2",
+      "pex": "dtmf-signer-pex.uf2"
     },
     "sums": "SHA256SUMS"
   },

@@ -6,18 +6,19 @@ import { buildInto, brokenLinks, text } from "./helpers.mjs";
 
 const files = buildInto();
 // Pinned: GitHub's /releases/latest skips pre-releases, and every release so far is one.
-const REL = "https://github.com/ndssigner/dtmf-signer/releases/download/v0.2.0-alpha/";
+const REL = "https://github.com/ndssigner/dtmf-signer/releases/download/v0.3.0-alpha/";
 
 test("downloads page in each language with the latest release's files", () => {
   for (const lang of ["en", "es"]) {
     const html = text(files, `${lang}/downloads/index.html`);
     assert.ok(html.includes(`href="${REL}dtmf-signer-pico.uf2"`), lang);
     assert.ok(html.includes(`href="${REL}SHA256SUMS"`), lang);
-    assert.match(html, /v0\.2\.0-alpha/, lang);
+    assert.ok(html.includes(`href="${REL}dtmf-signer-pex.uf2"`), lang);
+    assert.match(html, /v0\.3\.0-alpha/, lang);
     assert.ok(html.includes('href="https://github.com/ndssigner/dtmf-signer/releases"'), lang);
   }
 });
-test("the downloads page lists each build: firmware or not yet, packs with hash, files", () => {
+test("the downloads page lists each build: its firmware, packs with hash, files", () => {
   const bytes = readFileSync(new URL("../../app/voice/packs/es.bin", import.meta.url));
   const sha = createHash("sha256").update(bytes).digest("hex");
   for (const lang of ["en", "es"]) {
@@ -28,7 +29,8 @@ test("the downloads page lists each build: firmware or not yet, packs with hash,
     assert.ok(a.includes(`${REL}dtmf-signer-pico.uf2`), lang);
     assert.match(a, /files\/cable-qr\/dtmf-signer-breadboard\.diy/, lang);
     assert.ok(!c.includes("dtmf-signer-pico.uf2"), lang);
-    assert.match(c, /<p class="not-yet">[^<]*<a href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
+    assert.ok(c.includes(`${REL}dtmf-signer-pex.uf2`), lang);
+    assert.ok(!a.includes("dtmf-signer-pex.uf2"), lang);
     const row = /<li class="pack">([\s\S]*?)<\/li>/.exec(c);
     assert.equal(/<code class="sha">([0-9a-f]{64})<\/code>/.exec(row?.[1])?.[1], sha, lang);
     assert.ok(row[1].includes(`${Math.round(bytes.length / 1024)} KiB`), lang);
@@ -48,7 +50,7 @@ test("donations on the home and downloads pages", () => {
     assert.match(html, /img\/donate-bitcoin\.png/, page);
   }
 });
-test("a build's downloads tab: the release firmware when it has one", () => {
+test("each build's downloads tab: its own firmware from the release, and its guide", () => {
   for (const lang of ["en", "es"]) {
     const html = text(files, `${lang}/cable-qr/downloads/index.html`);
     assert.ok(html.includes(`href="${REL}dtmf-signer-pico.uf2"`), lang);
@@ -57,9 +59,10 @@ test("a build's downloads tab: the release firmware when it has one", () => {
     assert.match(html, /<li><a href="[^"]*ports\/pico\/README[^"]*#(get-the-firmware|conseguir-el-firmware)"/, lang);
     const c = text(files, `${lang}/pex/downloads/index.html`);
     assert.ok(!c.includes(`${REL}dtmf-signer-pico.uf2`), lang);
-    assert.ok(!c.includes("dtmf-signer-pex.uf2"), lang);
-    assert.match(c, lang === "es" ? /Aún sin publicar/ : /Not published yet/, lang);
-    assert.match(c, /href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
+    assert.ok(c.includes(`href="${REL}dtmf-signer-pex.uf2"`), lang);
+    assert.ok(c.includes(`href="${REL}SHA256SUMS"`), lang);
+    assert.doesNotMatch(c, /class="not-yet"/, lang);
+    assert.match(c, /<li><a href="[^"]*ports\/pico\/README[^"]*#(the-phone-exchange-pex|la-centralita-pex)"/, lang);
   }
 });
 test("the release names each build's UF2, and a build marked published has one", () => {
