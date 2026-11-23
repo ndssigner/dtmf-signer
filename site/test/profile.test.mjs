@@ -63,13 +63,18 @@ test("the build tab shows the layout and offers its files", () => {
   assert.match(html, /href="[^"]*files\/cable-qr\/cable-qr\.kicad_sch"/);
   assert.ok(files.has("img/cable-qr/cable-qr.svg"));
 });
-test("the PEX: its parts list, and no drawn layout yet, which its build tab says, with its guide", () => {
+test("the PEX: its parts list, and a build tab with its layout, its files and its guide", () => {
   for (const lang of ["en", "es"]) {
     assert.match(text(files, `${lang}/pex/parts/index.html`), /<table class="bom">[\s\S]*RJ11 socket/, lang);
     const html = text(files, `${lang}/pex/build/index.html`);
-    assert.match(html, /<p class="not-yet">[^<]*<a href="\.\.\/\.\.\/\.\.\/(en|es)\/pex\/status\/">/, lang);
+    assert.match(html, /<h2 id="layout">[\s\S]*<img [^>]*src="[^"]*img\/pex\/pex-layout\.png"/, lang);
+    assert.doesNotMatch(html, /class="not-yet"/, lang);
+    for (const f of ["dtmf-signer-pex.diy", "template-en.pdf", "template-es.pdf"])
+      assert.match(html, new RegExp(`href="[^"]*files/pex/${f.replace(".", "\\.")}"`), `${lang} ${f}`);
     assert.match(html, new RegExp(`hardware/phone/README${lang === "es" ? "\\.es" : ""}\\.md`), lang);
   }
+  assert.ok(files.has("img/pex/pex-layout.png"));
+  assert.ok(files.has("files/pex/dtmf-signer-pex.diy"));
 });
 test("the PEX's build tab shows its KiCad schematic and offers its source", () => {
   for (const lang of ["en", "es"]) {

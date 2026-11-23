@@ -4,10 +4,14 @@ DIYLC draws the parts but does not say what they connect. This reads the
 project file with a model of DIYLC's Full breadboard (5-hole strips on each
 side of the channel, rails taken as continuous from end to end), and prints,
 for every resistor, capacitor and button, the nets its two leads reach, plus
-the nets that join the Pico, the screen and the terminal block. It reports
-points that miss a hole and holes used twice, and exits 1 if there are any.
+the nets that join the Pico, the screen, the terminal block, the pins of a
+TO-220 part (as U1.1, U1.2, U1.3) and the leads that leave the board for a
+part off it (a wire whose free end has a label, as lead:MT3608 IN+). It
+reports points that miss a hole and holes used twice, and exits 1 if there
+are any.
 
 Usage: python3 tools/check_diy.py hardware/breadboard/dtmf-signer-breadboard.diy
+       python3 tools/check_diy.py hardware/phone/dtmf-signer-pex.diy
 """
 import sys
 import xml.etree.ElementTree as ET
@@ -78,7 +82,31 @@ for c in comps:
         pt = c.find("point")
         BOARD.update(px=float(pt.get("x")), py=float(pt.get("y")), orient=c.findtext("orientation"))
 problems, terminals, holes = [], [], {}
-named = {}  # node -> set of names (Pico pins, OLED pins, terminal block)
+# Labels, to name the free end of a lead that leaves the board.
+labels = [((float(c.find("point").get("x")), float(c.find("point").get("y"))), c.findtext("text"))
+          for c in comps if c.tag.endswith(".Label")]
+
+
+# Pads of modules drawn off the board, which wires reach: DIYLC's MT3608 board.
+pads = {}
+for c in comps:
+    if c.tag.endswith(".MT3608BoostConverter"):
+        for p, pin in zip(pts(c, "controlPoints"), ("VOUT+", "VOUT-", "VIN+", "VIN-")):
+            pads[(round(p[0], 3), round(p[1], 3))] = f"{c.findtext('name')}:{pin}"
+
+
+def off_board(p, reach=0.4):
+    """What the free end of a wire off the board reaches: a module's pad, or
+    the nearest label within reach."""
+    pad = pads.get((round(p[0], 3), round(p[1], 3)))
+    if pad:
+        return pad
+    near = sorted((abs(q[0] - p[0]) + abs(q[1] - p[1]), t) for q, t in labels
+                  if abs(q[0] - p[0]) <= reach and abs(q[1] - p[1]) <= reach)
+    return "lead:" + near[0][1].replace(" ", "_") if near else None
+
+
+named = {}  # node -> set of names (Pico pins, OLED pins, terminal block, pads, leads)
 
 
 def use(p, who):
@@ -96,10 +124,25 @@ for c in comps:
     name = c.findtext("name")
     if kind == "OrthogonalWire":
         cp = pts(c, "controlPoints")
-        a, b = use(cp[0], name), use(cp[-1], name)
-        if a and b:
+        ends = []
+        for p in (cp[0], cp[-1]):
+            off = off_board(p) if node(*p) is None else None
+            ends.append(("off", off) if off else use(p, name))
+        a, b = ends
+        if isinstance(a, tuple) and isinstance(b, tuple):
+            problems.append(f"{name}: both ends are off the board")
+        elif isinstance(a, tuple) or isinstance(b, tuple):
+            off, hole = (a, b) if isinstance(a, tuple) else (b, a)
+            if hole:
+                named.setdefault(hole, set()).add(off[1])
+        elif a and b:
             union(a, b)
-    elif kind in ("Resistor", "RadialElectrolytic", "RadialMicaCapacitor"):
+    elif kind == "TransistorTO220":
+        for i, p in enumerate(pts(c, "controlPoints")):
+            n = use(p, name)
+            if n:
+                named.setdefault(n, set()).add(f"{name}.{i + 1}")
+    elif kind in ("Resistor", "RadialElectrolytic", "RadialMicaCapacitor", "RadialCeramicDiskCapacitor"):
         p = pts(c, "points")
         v = c.find("value")
         val = f'{v.get("value")}{v.get("unit")}' if v is not None else ""

@@ -11,6 +11,12 @@ Usage:
   pip install -r tools/requirements-template.txt
   python3 tools/breadboard_template.py hardware/breadboard/dtmf-signer-breadboard.diy \\
       --lang en --out hardware/breadboard/template-en.pdf
+  python3 tools/breadboard_template.py hardware/phone/dtmf-signer-pex.diy --build pex \\
+      --lang en --out hardware/phone/template-en.pdf
+
+A lead that leaves the board (to the PEX's boost module or its telephone
+socket) is drawn only on the board, with the name of where it goes at the
+board's edge.
 """
 import argparse
 import xml.etree.ElementTree as ET
@@ -26,7 +32,7 @@ REPO = "https://github.com/ndssigner/dtmf-signer"
 WEB_TOOL = "https://ndssigner.github.io/ur-tones/"
 INCH = 25.4 * mm
 
-TEXT = {
+TEXT = {"cable-qr": {
     "en": {
         "title": "DTMF-Signer - Cable and QR - breadboard template",
         "print": "This bar must measure 100 mm.",
@@ -97,7 +103,91 @@ TEXT = {
         "usb": "USB",
         "screen": "pantalla (sobresale)",
     },
+}}
+
+TEXT["pex"] = {
+    "en": {
+        "title": "DTMF-Signer - Phone Exchange (PEX) - breadboard template",
+        "print": TEXT["cable-qr"]["en"]["print"],
+        "warn": TEXT["cable-qr"]["en"]["warn"],
+        "bom_title": "Parts",
+        "bom": {"pico": "Raspberry Pi Pico (RP2040), or a clone with its layout",
+                "res": "Resistor {v}, 1/4 W",
+                "elec": "Electrolytic capacitor {v}, {volts}",
+                "film": "Film capacitor {v}",
+                "ceramic": "Ceramic capacitor {v}",
+                "lm317": "LM317 regulator, TO-220",
+                "mt3608": "MT3608 boost module, 5 to 12 V",
+                "rj11": "RJ11 socket (its two centre contacts are the line)",
+                "board": "Full-size breadboard, or a solderable one",
+                "headers": "Female header strips (a socket for the Pico)",
+                "wire": "Solid insulated wire",
+                "extra": "Also: a USB cable and a USB charger or power bank, and a tone telephone "
+                         "with its handset and telephone cable"},
+        "licence": "Hardware: CERN-OHL-S v2",
+        "rails": ["+3V3", "GND", "LINE A - up to 12 V", "GND"],
+        "info": ["DTMF-Signer", "Phone Exchange (PEX)", "Lift the handset and listen",
+                 "Hook flash: sign, wipe"],
+        "elec_title": "Electrical",
+        "elec": ["NEVER connect it to the real telephone network: 48 V, and about 90 V when it rings.",
+                 "USB: 5 V only, from a USB charger or a power bank, never from a computer.",
+                 "Set the MT3608 to 12.0 V before wiring its output.",
+                 "LINE A: up to 12 V. Only a tone telephone, by its RJ11 socket."],
+        "qr": "ur-tones web tool",
+        "qr_note": "",
+        "usb": "USB",
+    },
+    "es": {
+        "title": "DTMF-Signer - Centralita (PEX) - plantilla de protoboard",
+        "print": TEXT["cable-qr"]["es"]["print"],
+        "warn": TEXT["cable-qr"]["es"]["warn"],
+        "bom_title": "Piezas",
+        "bom": {"pico": "Raspberry Pi Pico (RP2040), o un clon con su disposición",
+                "res": "Resistencia de {v}, 1/4 W",
+                "elec": "Condensador electrolítico de {v}, {volts}",
+                "film": "Condensador de película de {v}",
+                "ceramic": "Condensador cerámico de {v}",
+                "lm317": "Regulador LM317, TO-220",
+                "mt3608": "Módulo elevador MT3608, de 5 a 12 V",
+                "rj11": "Conector RJ11 (sus dos contactos centrales son la línea)",
+                "board": "Protoboard de tamaño completo, o una soldable",
+                "headers": "Tiras de pines hembra (zócalo de la Pico)",
+                "wire": "Cable rígido aislado",
+                "extra": "Además: un cable USB y un cargador USB o una batería externa, y un teléfono "
+                         "de tonos con su auricular y su cable telefónico"},
+        "licence": "Hardware: CERN-OHL-S v2",
+        "rails": ["+3V3", "GND", "LÍNEA A - hasta 12 V", "GND"],
+        "info": ["DTMF-Signer", "Centralita (PEX)", "Descuelga y escucha",
+                 "Colgar un instante: firmar, borrar"],
+        # The layout's own notes (in English) as this sheet shows them.
+        "labels": {"to the telephone": "al teléfono", "MT3608: set to 12.0 V": "MT3608: ajústalo a 12,0 V",
+                   "RJ11 line A": "RJ11 línea A", "RJ11 line B": "RJ11 línea B"},
+        "elec_title": "Electricidad",
+        "elec": ["NUNCA la conectes a la red telefónica real: 48 V, y unos 90 V cuando suena.",
+                 "USB: solo 5 V, de un cargador USB o una batería externa, nunca de un ordenador.",
+                 "Ajusta el MT3608 a 12,0 V antes de conectar su salida.",
+                 "LÍNEA A: hasta 12 V. Solo un teléfono de tonos, por su conector RJ11."],
+        "qr": "herramienta web ur-tones",
+        "qr_note": "",
+        "usb": "USB",
+    },
 }
+
+# What differs between the builds' sheets besides their text: where the rail
+# names go (two rows each), the free part of the board that carries the
+# project's notes (from row, to row, from u, to u) and the parts list's fixed
+# lines.
+BUILD = {
+    "cable-qr": {"rail_rows": [(21, 53), (21, 53), (47, 58), (21, 53)],
+                 "info": (10.5, 0.5, 0.1, 2.2), "headers": "2 x 20, 1 x 7", "extra_bom": []},
+    "pex": {"rail_rows": [(22, 51), (22, 51), (22, 51), (22, 51)],
+            "info": (26.5, 0.5, 0.1, 0.98), "headers": "2 x 20", "extra_bom": [(1, "rj11")],
+            "bom_cols": 2, "scissors": True},
+}
+# The pins of a TO-220 part, by its value.
+TO220_PINS = {"LM317": ("ADJ", "OUT", "IN")}
+# DIYLC's MT3608 board: its pads, in the order of its control points.
+MT3608_PADS = ("OUT+", "OUT-", "IN+", "IN-")
 
 
 def pts(el, tag):
@@ -136,6 +226,22 @@ def ground(c, x, y, size):
     c.restoreState()
 
 
+def scissors(c, x, y, angle):
+    """Open scissors on a cutting line through (x, y), the blades along it."""
+    c.saveState()
+    c.translate(x, y)
+    c.rotate(angle)
+    c.setFillGray(1)
+    c.rect(-3.4 * mm, -2.2 * mm, 7 * mm, 4.4 * mm, fill=1, stroke=0)
+    c.setFillGray(0)
+    c.setLineWidth(0.7)
+    for s_ in (1, -1):
+        c.circle(-2.2 * mm, s_ * 1.1 * mm, 0.85 * mm)                       # the rings
+        c.line(-1.5 * mm, s_ * 0.6 * mm, 3.3 * mm, -s_ * 1.3 * mm)         # the blades, crossed
+    c.circle(0.3 * mm, -0.0 * mm, 0.25 * mm, fill=1)                        # the pivot
+    c.restoreState()
+
+
 def icon(c, name, x, y, size):
     """Button and terminal icons."""
     angles = {"LEFT": 180, "UP": 90, "DOWN": 270, "RIGHT": 0, "IN": 90, "OUT": 270}
@@ -170,14 +276,14 @@ class Board:
 
 
 class Sheet:
-    def __init__(self, path, board, lang):
+    def __init__(self, path, board, t):
         # invariant: no creation date or time zone in the file, and the same bytes every run.
         self.c = canvas.Canvas(path, pagesize=landscape(A4), invariant=1)
         self.c.setAuthor("NDS-Signer")
-        self.c.setTitle(TEXT[lang]["title"])
+        self.c.setTitle(t["title"])
         self.c.setSubject(REPO)
         self.c.setCreator(REPO)
-        self.board, self.t = board, TEXT[lang]
+        self.board, self.t = board, t
         x0, y0, x1, y1 = board.bbox()
         self.ox, self.oy = x0, y0
         pw, ph = landscape(A4)
@@ -212,7 +318,7 @@ def value_text(v):
     return f"{num:g} {unit}"
 
 
-def draw_bom(c, t, comps, x, top):
+def draw_bom(c, t, comps, x, top, build):
     """The bill of materials, counted from the layout's parts."""
     count = {}
 
@@ -227,36 +333,87 @@ def draw_bom(c, t, comps, x, top):
             add(("2", t["bom"]["oled"]))
         elif kind == "TactileMicroSwitch":
             add(("3", t["bom"]["button"]))
+        elif kind == "MT3608BoostConverter":
+            add(("2", t["bom"]["mt3608"]))
+        elif kind == "TransistorTO220":
+            add(("3", t["bom"]["lm317"]))
         elif kind == "Resistor":
             val = float(v.get("value")) * {"K": 1e3, "M": 1e6}.get(v.get("unit"), 1)
             add((f"4{val:012.0f}", t["bom"]["res"].format(v=value_text(v))))
         elif kind == "RadialElectrolytic":
-            add((f"5{value_text(v)}", t["bom"]["elec"].format(v=value_text(v))))
+            volts = (el.findtext("voltage") or "").lstrip("_")
+            add((f"5{value_text(v)}", t["bom"]["elec"].format(v=value_text(v), volts=volts)))
         elif kind == "RadialMicaCapacitor":
             add((f"6{value_text(v)}", t["bom"]["film"].format(v=value_text(v))))
+        elif kind == "RadialCeramicDiskCapacitor":
+            add((f"6{value_text(v)}", t["bom"]["ceramic"].format(v=value_text(v))))
         elif kind == "PCBTerminalBlock":
             add(("7", t["bom"]["tb"]))
     rows = [(n, name) for (_, name), n in sorted(count.items())]
-    rows += [(1, t["bom"]["board"]), ("2 x 20, 1 x 7", t["bom"]["headers"]), ("", t["bom"]["wire"])]
+    rows += [(n, t["bom"][key]) for n, key in BUILD[build]["extra_bom"]]
+    rows += [(1, t["bom"]["board"]), (BUILD[build]["headers"], t["bom"]["headers"]), ("", t["bom"]["wire"])]
     c.setFont("Helvetica-Bold", 9)
     c.drawString(x, top, t["bom_title"])
-    y = top - 5 * mm
-    for n, name in rows:
-        c.setFont("Helvetica-Bold", 7.5)
-        c.drawRightString(x + 18 * mm, y, str(n))
-        c.setFont("Helvetica", 7.5)
-        c.drawString(x + 21 * mm, y, name)
-        y -= 3.6 * mm
+    cols = BUILD[build].get("bom_cols", 1)
+    per = -(-len(rows) // cols)
+    lowest = top
+    for k in range(cols):
+        y = top - 5 * mm
+        for n, name in rows[k * per:(k + 1) * per]:
+            c.setFont("Helvetica-Bold", 7.5)
+            c.drawRightString(x + k * 100 * mm + 18 * mm, y, str(n))
+            c.setFont("Helvetica", 7.5)
+            c.drawString(x + k * 100 * mm + 21 * mm, y, name)
+            y -= 3.6 * mm
+        lowest = min(lowest, y)
     c.setFont("Helvetica-Oblique", 7)
-    c.drawString(x, y - 1 * mm, t["bom"]["extra"])
+    c.drawString(x, lowest - 1 * mm, t["bom"]["extra"])
 
 
-def draw(path, out, lang):
+def draw(path, out, lang, build="cable-qr"):
     root = ET.parse(path).getroot()
     comps = list(root.find("components"))
     board = Board(next(c for c in comps if c.tag.endswith("Breadboard")))
-    s = Sheet(out, board, lang)
+    s = Sheet(out, board, TEXT[build][lang])
     c, t = s.c, s.t
+    bx0, by0, bx1, by1 = board.bbox()
+
+    def on_board(q):
+        return bx0 <= q[0] <= bx1 and by0 <= q[1] <= by1
+
+    # What a lead that leaves the board reaches: a pad of a module drawn off
+    # the board, or the label at its free end.
+    pads = {}
+    for el in comps:
+        if el.tag.endswith(".MT3608BoostConverter"):
+            for q, pin in zip(pts(el, "controlPoints"), MT3608_PADS):
+                pads[(round(q[0], 3), round(q[1], 3))] = "MT3608 " + pin
+    labels = [((float(el.find("point").get("x")), float(el.find("point").get("y"))), el.findtext("text"))
+              for el in comps if el.tag.endswith(".Label")]
+
+    def lead_target(raw):
+        """A lead that leaves the board: its hole, its free end and where it goes."""
+        hole, free = (raw[0], raw[-1]) if on_board(raw[0]) else (raw[-1], raw[0])
+        name = pads.get((round(free[0], 3), round(free[1], 3)))
+        if name is None:
+            near = sorted((abs(q[0] - free[0]) + abs(q[1] - free[1]), txt) for q, txt in labels
+                          if abs(q[0] - free[0]) <= 0.4 and abs(q[1] - free[1]) <= 0.4)
+            name = near[0][1] if near else ""
+        return hole, free, name
+
+    def lead_tag(raw):
+        """Names, at the board's edge, where a lead that leaves the board goes, so
+        the board still says it once it is cut out."""
+        hole, free, name = lead_target(raw)
+        name = t.get("labels", {}).get(name, name)
+        seq = raw if hole is raw[0] else raw[::-1]
+        nxt = next((q for q in seq[1:] if q != hole), hole)
+        if nxt[0] < hole[0] - 1e-6 and abs(nxt[1] - hole[1]) < 1e-6:  # leaves by the left end
+            s.text(bx0 + 0.07, hole[1] + 0.3, name, size=3, angle=90, anchor="start", bold=True, bg=True)
+        elif nxt[1] > hole[1]:  # leaves by the bottom edge
+            s.text(hole[0] - 0.05, by1 - 0.03, name, size=3, angle=90, anchor="start", bold=True, bg=True)
+        else:  # by the top edge
+            s.text(hole[0] - 0.05, by0 + 0.03, name, size=3, angle=90, anchor="end", bold=True, bg=True)
 
     # Header, calibration bar. Everything stays 22 mm from the sides, so the
     # page also prints whole at actual size on Letter paper (9 mm narrower
@@ -286,23 +443,36 @@ def draw(path, out, lang):
         c.drawString(wx + 4 * mm, wy + wh - 13 * mm - i * 4.2 * mm, line)
     c.setLineWidth(0.8)
 
-    # The parts list, read from the layout, under the board.
-    draw_bom(c, t, comps, margin, s.xy(*board.point(0, 2.25))[1] - 8 * mm)
+    # The parts list, read from the layout, under the board and under what is
+    # drawn off the board below it.
+    low = board.bbox()[3]
+    for el in comps:
+        for q in el.iter("point"):
+            low = max(low, float(q.get("y")))
+        if el.tag.endswith(".MT3608BoostConverter"):
+            low = max(low, pts(el, "controlPoints")[0][1] - 0.12 + 17 / 25.4)
+    draw_bom(c, t, comps, margin, s.xy(0, low)[1] - 8 * mm, build)
 
     # Board outline, holes, rails, row and column marks.
     x0, y0, x1, y1 = board.bbox()
     (ax, ay), (bx2, by2) = s.xy(x0, y0), s.xy(x1, y1)
     c.setLineWidth(0.6)
     c.rect(ax, by2, bx2 - ax, ay - by2)
+    if BUILD[build].get("scissors"):
+        # Scissors on the outline: the board is cut out along it, and what is
+        # drawn off the board stays on the sheet.
+        for sx, sy, angle in ((ax + (bx2 - ax) * 0.25, ay, 0), (ax + (bx2 - ax) * 0.3, by2, 180),
+                              (ax, (ay + by2) / 2, 90), (bx2, (ay + by2) / 2, 270)):
+            scissors(c, sx, sy, angle)
     used = set()
     for el in comps:
         kind = el.tag.split(".")[-1]
         if kind == "OrthogonalWire":
             q = pts(el, "controlPoints")
             used.update([q[0], q[-1]])
-        elif kind in ("Resistor", "RadialElectrolytic", "RadialMicaCapacitor"):
+        elif kind in ("Resistor", "RadialElectrolytic", "RadialMicaCapacitor", "RadialCeramicDiskCapacitor"):
             used.update(pts(el, "points")[:2])
-        elif kind in ("TactileMicroSwitch", "PCBTerminalBlock", "OLEDDisplay"):
+        elif kind in ("TactileMicroSwitch", "PCBTerminalBlock", "OLEDDisplay", "TransistorTO220"):
             used.update(pts(el, "controlPoints"))
         elif kind == "RaspberryPiPico":
             used.update(pts(el, "controlPoints")[:40])
@@ -328,8 +498,7 @@ def draw(path, out, lang):
     # names go beside their rail (outer rails in the margin, inner rails in the
     # gap before the strips); they are drawn last, over the wires.
     late = []
-    for u, lab, rows in ((0.12, t["rails"][0], (21, 53)), (0.42, t["rails"][1], (21, 53)),
-                         (1.88, t["rails"][2], (47, 58)), (2.18, t["rails"][3], (21, 53))):
+    for u, lab, rows in zip((0.12, 0.42, 1.88, 2.18), t["rails"], BUILD[build]["rail_rows"]):
         for row in rows:
             late.append(lambda r=row, u=u, lab=lab: s.text(*board.point(r, u), lab, size=4, bold=True, bg=True))
 
@@ -344,13 +513,14 @@ def draw(path, out, lang):
             c.line(*pa, *pb)
             mx, my = (xa + xb) / 2, (ya + yb) / 2
             v = el.find("value")
-            val = f"{float(v.get('value')):g}{v.get('unit').lower()}" if v is not None else ""
+            unit = "" if v is not None and v.get("unit") == "R" else (v.get("unit").lower() if v is not None else "")
+            val = f"{float(v.get('value')):g}{unit}" if v is not None else ""
             c.setFillGray(1)
             cx, cy = s.xy(mx, my)
             c.circle(cx, cy, 1.6 * mm, fill=1)
             c.setFillGray(0)
             s.text(mx, my, val, size=3.2, bold=True)
-        elif kind in ("RadialElectrolytic", "RadialMicaCapacitor"):
+        elif kind in ("RadialElectrolytic", "RadialMicaCapacitor", "RadialCeramicDiskCapacitor"):
             (xa, ya), (xb, yb) = pts(el, "points")[:2]
             mx, my = (xa + xb) / 2, (ya + yb) / 2
             cx, cy = s.xy(mx, my)
@@ -382,6 +552,9 @@ def draw(path, out, lang):
                     c.setFont("Helvetica-Bold", 6)
                     c.drawCentredString(px_, py_ - 2.1, "+")
                 late.append(plus)
+            elif kind == "RadialCeramicDiskCapacitor":  # a disc: rounded ends
+                c.roundRect(cx - 2.2 * mm, cy - 1.2 * mm, 4.4 * mm, 2.4 * mm, 1.2 * mm, fill=1)
+                c.setFillGray(0)
             else:
                 c.rect(cx - 2 * mm, cy - 1.2 * mm, 4 * mm, 2.4 * mm, fill=1)
                 c.setFillGray(0)
@@ -432,6 +605,51 @@ def draw(path, out, lang):
             # The block's name under its terminals, just above the rail.
             late.append(lambda p=p: s.text(sum(q[0] for q in p) / len(p), p[0][1] + 0.257,
                                            t["tb_name"], size=3.2, bold=True, bg=True))
+        elif kind == "TransistorTO220":
+            # Standing on its three legs (in a row along the board): a box over
+            # them that reaches into the centre channel, with the part's name and
+            # each leg's name above its hole.
+            p = pts(el, "controlPoints")
+            (x0_, y0_), (x1_, y1_) = s.xy(min(q[0] for q in p), min(q[1] for q in p) - 0.2), \
+                s.xy(max(q[0] for q in p), max(q[1] for q in p))
+            c.setLineWidth(0.6)
+            c.setFillGray(1)
+            c.rect(min(x0_, x1_) - 1.6 * mm, min(y0_, y1_) - 1.6 * mm, abs(x1_ - x0_) + 3.2 * mm,
+                   abs(y1_ - y0_) + 3.2 * mm, fill=1)
+            c.setFillGray(0)
+            value = el.findtext("value") or ""
+            mx, my = sum(q[0] for q in p) / 3, sum(q[1] for q in p) / 3
+            s.text(mx, my - 0.165, value, size=4.2, bold=True)
+            for q, pin in zip(p, TO220_PINS.get(value, ("1", "2", "3"))):
+                c.circle(*s.xy(*q), 0.55 * mm)
+                s.text(q[0], q[1] - 0.085, pin, size=2.6, bold=True)
+        elif kind == "MT3608BoostConverter":
+            # Off the board: DIYLC's 36 x 17 mm board, its first pad 22 and 24 px
+            # (200 px to the inch) in from the corner; pads named as on the board.
+            p = pts(el, "controlPoints")
+            x0_, y0_ = p[0][0] - 0.11, p[0][1] - 0.12
+            (ax_, ay_), (bx_, by_) = s.xy(x0_, y0_), s.xy(x0_ + 36 / 25.4, y0_ + 17 / 25.4)
+            c.setLineWidth(0.6)
+            c.roundRect(ax_, by_, bx_ - ax_, ay_ - by_, 1.5 * mm)
+            mx, my = x0_ + 18 / 25.4, y0_ + 8.5 / 25.4
+            s.text(mx, my - 0.05, "MT3608", size=6, bold=True)
+            s.text(mx, my + 0.07, "5 - 12 V", size=4.5)
+            for q, pin in zip(p, MT3608_PADS):
+                c.circle(*s.xy(*q), 1.0 * mm)
+                # Each name towards the middle of the board, clear of the wires
+                # that reach the pads from above or from the side.
+                s.text(q[0], q[1] + (0.1 if q[1] < my else -0.1), pin, size=4, bold=True)
+        elif kind == "Label":
+            # Notes DIYLC shows beside the parts off the board. The turned ones
+            # name a lead, which its tag at the board's edge already does.
+            q = (float(el.find("point").get("x")), float(el.find("point").get("y")))
+            if not on_board(q) and el.findtext("orientation") not in ("_90", "_270"):
+                anchor = {"LEFT": "start", "RIGHT": "end"}.get(el.findtext("horizontalAlignment"), "middle")
+                text_ = el.findtext("text") or ""
+                text_ = t.get("labels", {}).get(text_, text_)
+                if text_.startswith("RJ11 "):  # beside the socket's box, which says RJ11
+                    text_ = text_[5:]
+                s.text(*q, text_, size=4.5, bold=True, anchor=anchor)
         elif kind == "RaspberryPiPico":
             p = pts(el, "controlPoints")[:40]
             xs = [s.xy(*q)[0] for q in p]
@@ -478,11 +696,14 @@ def draw(path, out, lang):
                     mx, board.point(0, 0.48)[1], "OLED SH1106 1.3\" - " + t["screen"], size=4.5, bg=True))
 
     # Wires last, thin, over everything: an orthogonal path through the points.
+    sockets = []
     c.setLineWidth(0.3)
     c.setStrokeGray(0.45)
     for el in comps:
         if el.tag.endswith("OrthogonalWire"):
-            p = [s.xy(*q) for q in pts(el, "controlPoints")]
+            raw = pts(el, "controlPoints")
+            p = [s.xy(*q) for q in raw]
+            leaves = not (on_board(raw[0]) and on_board(raw[-1]))
             vertical = el.findtext("startDirection") == "VERTICAL"
             path = c.beginPath()
             path.moveTo(*p[0])
@@ -492,9 +713,22 @@ def draw(path, out, lang):
                 path.lineTo(*b)
                 vertical = not vertical
             c.drawPath(path)
+            if leaves:
+                late.append(lambda raw=raw: lead_tag(raw))
+                if lead_target(raw)[2].startswith("RJ11"):
+                    sockets.append(lead_target(raw)[1])
             for q in (p[0], p[-1]):
                 c.circle(*q, 0.7 * mm, fill=1)
     c.setStrokeGray(0)
+    if sockets:  # the telephone's RJ11 socket, off the board, where its two leads end
+        (ax_, ay_), (bx_, by_) = s.xy(min(q[0] for q in sockets) - 0.08, min(q[1] for q in sockets) - 0.12), \
+            s.xy(max(q[0] for q in sockets) + 0.08, max(q[1] for q in sockets) + 0.03)
+        c.setLineWidth(0.6)
+        c.setFillGray(1)
+        c.rect(ax_, by_, bx_ - ax_, ay_ - by_, fill=1)
+        c.setFillGray(0)
+        s.text(sum(q[0] for q in sockets) / len(sockets), min(q[1] for q in sockets) - 0.05, "RJ11",
+               size=4.5, bold=True)
     for draw_late in late:
         draw_late()
 
@@ -502,13 +736,18 @@ def draw(path, out, lang):
     # No QR code on the board: a wallet's camera reading the signer's screen
     # would read it first. The web tool's QR goes on the sheet, outside the
     # board, and is cut away with it.
-    (ix0, iy0), (ix1, iy1) = s.xy(*board.point(10.5, 0.1)), s.xy(*board.point(0.5, 2.2))
+    r0, r1, u0, u1 = BUILD[build]["info"]
+    (ix0, iy0), (ix1, iy1) = s.xy(*board.point(r0, u0)), s.xy(*board.point(r1, u1))
     lx, rx = min(ix0, ix1), max(ix0, ix1)
     ty, bty = max(iy0, iy1), min(iy0, iy1)
     c.setFillGray(1)
     c.rect(lx, bty, rx - lx, ty - bty, fill=1, stroke=1)
     c.setFillGray(0)
-    cx = (lx + rx) / 2
+    # A tall box holds one column; a wide one, the project and the addresses
+    # on its left third and the electrical notes on the rest.
+    wide = rx - lx > ty - bty
+    ex, ew = (lx + (rx - lx) / 3, (rx - lx) * 2 / 3) if wide else (lx, rx - lx)
+    cx = (lx + ex) / 2 if wide else (lx + rx) / 2
     yy = ty - 3.6 * mm
     for i, line in enumerate(t["info"]):
         c.setFont("Helvetica-Bold" if i == 0 else "Helvetica", 6 if i == 0 else 4.2)
@@ -540,13 +779,17 @@ def draw(path, out, lang):
 
     # Short electrical warnings.
     from reportlab.lib.utils import simpleSplit
+    if wide:
+        yy = ty - 3.6 * mm
+        c.setLineWidth(0.3)
+        c.line(ex, ty - 1.5 * mm, ex, bty + 1.5 * mm)
     c.setFont("Helvetica-Bold", 4.2)
-    c.drawString(lx + 1.5 * mm, yy, t["elec_title"])
+    c.drawString(ex + 1.5 * mm, yy, t["elec_title"])
     yy -= 2.4 * mm
     for para in t["elec"]:
-        for line in simpleSplit(para, "Helvetica", 3.5, rx - lx - 3 * mm):
+        for line in simpleSplit(para, "Helvetica", 3.5, ew - 3 * mm):
             c.setFont("Helvetica", 3.5)
-            c.drawString(lx + 1.5 * mm, yy, line)
+            c.drawString(ex + 1.5 * mm, yy, line)
             yy -= 1.75 * mm
         yy -= 0.6 * mm
 
@@ -574,10 +817,11 @@ def draw(path, out, lang):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("diy")
-    ap.add_argument("--lang", choices=sorted(TEXT), default="en")
+    ap.add_argument("--build", choices=sorted(BUILD), default="cable-qr")
+    ap.add_argument("--lang", choices=["en", "es"], default="en")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    draw(a.diy, a.out, a.lang)
+    draw(a.diy, a.out, a.lang, a.build)
 
 
 if __name__ == "__main__":

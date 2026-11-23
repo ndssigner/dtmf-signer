@@ -188,7 +188,11 @@
       ],
       "hardware": "hardware/phone",
       "schematic": "hardware/phone/kicad/pex.svg",
+      "image": "docs/images/pex-layout.png",
       "files": [
+        "hardware/phone/dtmf-signer-pex.diy",
+        "hardware/phone/template-en.pdf",
+        "hardware/phone/template-es.pdf",
         "hardware/phone/kicad/pex.kicad_sch"
       ],
       "docs": {

@@ -7,7 +7,7 @@ import unittest
 from collections import Counter
 from pathlib import Path
 
-from test_check_diy import VALUES
+from test_check_diy import PEX_VALUES, VALUES
 
 ROOT = Path(__file__).resolve().parent.parent
 BOM = ROOT / "hardware" / "breadboard" / "bom.csv"
@@ -48,6 +48,21 @@ class Bom(unittest.TestCase):
                 m = re.fullmatch(r"(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)", r["price_usd"])
                 self.assertIsNotNone(m, r["part"])
                 self.assertLessEqual(float(m.group(1)), float(m.group(2)), r["part"])
+
+
+class PexBom(unittest.TestCase):
+    """The PEX's list (hardware/phone/bom.csv) against its layout (PEX_VALUES)."""
+
+    def test_passives_match_the_layout(self):
+        with open(ROOT / "hardware" / "phone" / "bom.csv", newline="", encoding="utf-8") as f:
+            listed = Counter()
+            for r in csv.DictReader(f):
+                if re.fullmatch(r"\d+(\.\d+)?(Ω|k|µF|nF)", r["value"]):
+                    listed[r["value"]] += int(r["qty"])
+
+        def pex_short(value):
+            return value.removesuffix(".0R") + "Ω" if value.endswith("R") else short(value)
+        self.assertEqual(listed, Counter(pex_short(v) for v in PEX_VALUES.values()))
 
 
 if __name__ == "__main__":

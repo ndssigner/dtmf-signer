@@ -15,9 +15,11 @@ el perfil es
 lleva hasta 48 V, y unos 90 V de alterna cuando suena.
 
 **Estado:** diseñado y funcionando en protoboard. El esquema está dibujado
-en KiCad ([`kicad/pex.kicad_sch`](kicad/pex.kicad_sch)); la disposición de
-abajo es una tabla, y el archivo de DIY Layout Creator y la versión en placa
-perforada están por hacer. No lo uses con fondos.
+en KiCad ([`kicad/pex.kicad_sch`](kicad/pex.kicad_sch)) y la disposición en
+DIY Layout Creator, con una plantilla imprimible; la versión en placa
+perforada está por hacer. Esta disposición separa las piezas de la
+protoboard que se probó, y no se ha montado tal cual. No lo uses con
+fondos.
 
 ## Piezas
 
@@ -48,6 +50,18 @@ teléfonos de tonos de segunda mano son fáciles de encontrar.
 
 ## Disposición
 
+La disposición es [`dtmf-signer-pex.diy`](dtmf-signer-pex.diy), para
+[DIY Layout Creator](https://github.com/bancika/diy-layout-creator) 6.8 o
+posterior (gratuito), y su plantilla imprimible es
+[`template-es.pdf`](template-es.pdf) ([`template-en.pdf`](template-en.pdf)
+en inglés): imprímela al 100 %, comprueba que su barra mide 100 mm, recorta
+la placa por el contorno marcado con tijeras y pégala en la placa como en
+[Cable y QR](../breadboard/README.es.md#plantilla-imprimible). El módulo
+elevador y el conector RJ11 están dibujados al lado, fuera de la placa; en
+la placa, cada cable que va a ellos lleva su nombre en el borde.
+[`tools/check_diy.py`](../../tools/check_diy.py) lee la disposición y
+muestra qué conecta cada pieza.
+
 La protoboard va en horizontal con la **Pico a la izquierda** y el USB hacia
 el borde izquierdo. Las filas van de 1 (extremo derecho) a 63 (extremo
 izquierdo); las columnas a–e son la mitad de arriba y f–j la de abajo.
@@ -59,72 +73,82 @@ en la **i** (pin 1 en i63, pin 20 en i44).
 | Pin | Señal | Agujero |
 | --- | --- | --- |
 | 40 | VBUS (5 V del USB) | d63 |
-| 38 | GND | d61 |
 | 36 | 3V3 (OUT) | d59 |
 | 34 | GP28 (gancho) | d57 |
 | 33 | AGND | d56 |
 | 32 | GP27 (entrada de línea) | d55 |
+| 23 | GND | d46 |
 | 20 | GP15 (salida de audio) | i44 |
 | 18 | GND | i46 |
 
 **Raíles:**
 
-| Puente | Resultado |
-| --- | --- |
-| a59 → raíl de arriba exterior | **3V3** |
-| a61 → raíl de arriba interior | **GND** |
-| a56 → raíl de arriba interior | AGND a masa |
-| j46 → raíl de abajo exterior | **GND** |
+| Raíl | Qué lleva | Puente |
+| --- | --- | --- |
+| Arriba exterior | **3V3** | a59 → raíl |
+| Arriba interior | **GND** | a46 → raíl, y a56 → raíl (AGND) |
+| Abajo interior | **Línea A**, hasta 12 V: nunca 3V3 | |
+| Abajo exterior | **GND** | j46 → raíl |
 
-**Entrada de línea** (mitad de arriba, filas 36–42):
+Todo lo que va a la línea del teléfono se pincha en el raíl de abajo
+interior.
 
-| Pieza | Agujeros |
-| --- | --- |
-| Condensador de 100 nF | c36 – c40 |
-| Resistencia de 10 kΩ | a40 – raíl de arriba exterior |
-| Resistencia de 10 kΩ | b40 – raíl de arriba interior |
-| Resistencia de 1 kΩ | d40 – d42 |
-| Resistencia de 4,7 kΩ | b42 – b38 |
-| Puente | e38 → e55 (a GP27) |
-| Condensador de 10 nF | b55 – raíl de arriba interior |
-
-**Salida de audio** (mitad de abajo; la fila 36 es la **línea A**):
+**La alimentación de la línea** (mitad de abajo, filas 6–11):
 
 | Pieza | Agujeros | Notas |
 | --- | --- | --- |
-| Puente | f36 → e36 | la línea al 100 nF de arriba |
-| Electrolítico de 10 µF | + en i36, − en i38 | la banda (−) hacia la fila 38 |
-| Resistencia de 1 kΩ | h38 – h44 | la fila 44 de abajo es GP15 |
-| Condensador de 10 nF | j38 – raíl de abajo exterior | |
+| **LM317** | f11, f10, f9 | con la cara impresa hacia ti (el borde de abajo): de izquierda a derecha ADJ (f11), OUT (f10), IN (f9) |
+| Resistencia de **51 Ω** | i10 – raíl de abajo interior | de OUT a la línea A |
+| Puente | j11 → raíl de abajo interior | ADJ a la línea A |
+| Electrolítico de **100 µF** | + en i9, − en i6 | la fila 9 son los 12 V |
+| Condensador de 100 nF | g9 – g6 | |
+| Puente | j6 → raíl de abajo exterior | la fila 6 es GND |
 
-**La alimentación de la línea** (mitad de abajo, filas 20–24):
+**El módulo elevador** va fuera de la placa, debajo de las filas 1–9, con
+cuatro cables:
+
+| Contacto | Agujero |
+| --- | --- |
+| **OUT+** del MT3608 | j9 (12 V) |
+| **OUT−** del MT3608 | raíl de abajo exterior, fila 7 |
+| **IN+** del MT3608 | a63 (VBUS), rodeando el extremo izquierdo de la placa |
+| **IN−** del MT3608 | raíl de abajo exterior, fila 1 |
+
+**El teléfono:** los dos contactos centrales del conector RJ11: uno al
+**raíl de abajo interior** (línea A, fila 15) y el otro al **raíl de abajo
+exterior** (línea B, fila 17). Si el teléfono no suena y la línea se queda
+en unos 11 V con el auricular descolgado, inviértelos.
+
+**Entrada de línea** (mitad de arriba, filas 28–42):
 
 | Pieza | Agujeros | Notas |
 | --- | --- | --- |
-| Puente | j20 → raíl de abajo exterior | la fila 20 es GND |
-| **LM317** | j22, j23, j24 | con la cara impresa hacia ti (el borde de abajo): de izquierda a derecha ADJ (j24), OUT (j23), IN (j22) |
-| Resistencia de **51 Ω** | f23 – f24 | de OUT a ADJ |
-| Electrolítico de **100 µF** | + en g22, − en g20 | |
-| Condensador de 100 nF | h22 – h20 | |
-| **IN+** del MT3608 | a63 | VBUS |
-| **IN−** del MT3608 | raíl de arriba interior | |
-| **OUT+** del MT3608 | f22 | la fila 22 son los 12 V |
-| **OUT−** del MT3608 | raíl de abajo exterior | |
-| Puente | g24 → g36 | la línea A llega a la fila 36 |
+| Puente | j30 → raíl de abajo interior | la línea A a la fila 30 |
+| Condensador de 100 nF | f30 – e30 | sobre el canal |
+| Resistencia de 10 kΩ | a30 – raíl de arriba exterior, fila 28 | |
+| Resistencia de 10 kΩ | b30 – raíl de arriba interior, fila 32 | la fila 30 de arriba queda a 1,65 V |
+| Resistencia de 1 kΩ | c30 – c36 | |
+| Resistencia de 4,7 kΩ | d36 – d42 | |
+| Condensador de 10 nF | a42 – raíl de arriba interior, fila 42 | |
+| Puente | b42 → b55 | a GP27 |
 
-**El gancho** (mitad de abajo, filas 24–28):
+**El gancho** (mitad de arriba, filas 36–40):
 
-| Pieza | Agujeros |
-| --- | --- |
-| Resistencia de **47 kΩ** | i24 – i28 |
-| Resistencia de 10 kΩ | j28 – raíl de abajo exterior |
-| Condensador de 100 nF | h28 – raíl de abajo exterior |
-| Puente | f28 → a57 (a GP28) |
+| Pieza | Agujeros | Notas |
+| --- | --- | --- |
+| Puente | j38 → raíl de abajo interior | la línea A a la fila 38 |
+| Resistencia de **47 kΩ** | f38 – e38 | sobre el canal |
+| Resistencia de 10 kΩ | a38 – raíl de arriba interior, fila 40 | |
+| Condensador de 100 nF | b38 – raíl de arriba interior, fila 36 | |
+| Puente | c38 → c57 | a GP28 |
 
-**El teléfono:** los dos contactos centrales del conector RJ11: uno a **h36**
-(línea A) y el otro al **raíl de abajo exterior** (línea B). Si el teléfono
-no suena y la línea se queda en unos 11 V con el auricular descolgado,
-inviértelos.
+**Salida de audio** (mitad de abajo, filas 40–45):
+
+| Pieza | Agujeros | Notas |
+| --- | --- | --- |
+| Resistencia de 1 kΩ | h44 – h40 | la fila 44 de abajo es GP15 |
+| Condensador de 10 nF | j40 – raíl de abajo exterior, fila 40 | |
+| Electrolítico de 10 µF | − en i40, + en el raíl de abajo interior, fila 45 | la banda (−) hacia la fila 40 |
 
 ## Montaje, paso a paso
 
@@ -132,18 +156,19 @@ Comprueba después de cada paso; los valores son los de un montaje que
 funciona.
 
 1. **La Pico y los raíles.** Sin USB, en ohmios: cada raíl continuo de punta
-   a punta, sin cortocircuito entre los raíles de arriba.
-2. **Entrada de línea y salida de audio.** Con USB: unos **1,65 V** en c40.
+   a punta, sin cortocircuito entre los raíles de arriba ni entre los de
+   abajo.
+2. **Entrada de línea y salida de audio.** Con USB: unos **1,65 V** en d30.
 3. **Ajusta el elevador antes de conectar su salida.** Un MT3608 nuevo puede
    venir a 16 V o más. Conecta solo su entrada (IN+ a a63, IN− al raíl de
-   arriba interior), deja OUT+ y OUT− sueltos, enchufa el USB y gira su
+   abajo exterior), deja OUT+ y OUT− sueltos, enchufa el USB y gira su
    potenciómetro hasta **12,0 V** entre OUT+ y OUT−. Desenchufa.
-4. **La alimentación de la línea.** Sin USB, sin cortocircuito entre f22 y el
-   raíl de abajo exterior. Con USB y sin teléfono: unos 12 V en f22 y unos
-   11 V en h36; el polímetro en mA de h36 al raíl de abajo exterior marca
-   **22–25 mA**.
-5. **El gancho.** Con USB y sin teléfono, unos 1,9 V en f28 (nunca más de
-   3,3 V); después, el puente a a57.
+4. **La alimentación de la línea.** Sin USB, sin cortocircuito entre h9 y el
+   raíl de abajo exterior. Con USB y sin teléfono: unos 12 V en h9 y unos
+   11 V en el raíl de abajo interior; el polímetro en mA del raíl de abajo
+   interior al de abajo exterior marca **22–25 mA**.
+5. **El gancho.** Con USB y sin teléfono, unos 1,9 V en d38 (nunca más de
+   3,3 V); después, el puente c38 → c57.
 6. **El teléfono.** Con el auricular descolgado, la línea a **6–8 V**;
    colgado, unos 11 V. Pulsa una tecla: oyes su tono por el auricular.
 
