@@ -185,7 +185,10 @@
         "handset_tones"
       ],
       "hardware": "hardware/phone",
-      "files": [],
+      "schematic": "hardware/phone/kicad/pex.svg",
+      "files": [
+        "hardware/phone/kicad/pex.kicad_sch"
+      ],
       "docs": {
         "en": "docs/catalog.md#profile-phone--phone-exchange-pex",
         "es": "docs/es/catalog.md#profile-phone--centralita-phone-exchange-pex"

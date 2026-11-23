@@ -68,6 +68,16 @@ test("the PEX: its parts list, and no drawn layout yet, which its build tab says
     assert.match(html, new RegExp(`hardware/phone/README${lang === "es" ? "\\.es" : ""}\\.md`), lang);
   }
 });
+test("the PEX's build tab shows its KiCad schematic and offers its source", () => {
+  for (const lang of ["en", "es"]) {
+    const html = text(files, `${lang}/pex/build/index.html`);
+    assert.match(html, /<h2 id="schematic">/, lang);
+    assert.match(html, /<img class="schematic" src="[^"]*img\/pex\/pex\.svg" alt="[^"]+">/, lang);
+    assert.match(html, /href="[^"]*files\/pex\/pex\.kicad_sch"/, lang);
+  }
+  assert.ok(files.has("img/pex/pex.svg"));
+  assert.ok(files.has("files/pex/pex.kicad_sch"));
+});
 test("the simulator's tab names its profile and holds a place for the simulator", () => {
   const html = text(files, "en/cable-qr/index.html");
   assert.match(html, /PROFILE-CABLE-QR/);

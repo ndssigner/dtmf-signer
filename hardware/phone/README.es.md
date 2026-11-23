@@ -14,9 +14,10 @@ el perfil es
 **Nunca lo conectes a una roseta de la red telefónica real:** esa línea
 lleva hasta 48 V, y unos 90 V de alterna cuando suena.
 
-**Estado:** diseñado y funcionando en protoboard. La disposición de abajo es
-una tabla; los archivos de DIY Layout Creator y KiCad, y la versión en placa
-perforada, están por hacer. No lo uses con fondos.
+**Estado:** diseñado y funcionando en protoboard. El esquema está dibujado
+en KiCad ([`kicad/pex.kicad_sch`](kicad/pex.kicad_sch)); la disposición de
+abajo es una tabla, y el archivo de DIY Layout Creator y la versión en placa
+perforada están por hacer. No lo uses con fondos.
 
 ## Piezas
 
@@ -29,21 +30,7 @@ teléfonos de tonos de segunda mano son fáciles de encontrar.
 
 ## El circuito
 
-```
- VBUS (pin 40) ── MT3608 ── 12 V ──┬── LM317 IN
-                                   ├── 100 µF (+) ── GND
-                                   └── 100 nF ────── GND
-                         LM317 OUT ──[51 Ω]──┐
-                         LM317 ADJ ──────────┴── LÍNEA A ── conector RJ11 ── teléfono
-                                                  │
-     ENTRADA: LÍNEA A ─[100 nF]─ 1,65 V ─[1 kΩ]─[4,7 kΩ]─┬─ GP27
-              (10 kΩ a 3V3, 10 kΩ a GND)            [10 nF]─ GND
-     SALIDA:  GP15 ─[1 kΩ]─┬─(−)[10 µF](+)─ LÍNEA A
-                        [10 nF]─ GND
-     GANCHO:  LÍNEA A ─[47 kΩ]─┬─ GP28
-                          [10 kΩ] y [100 nF] ─ GND
-                                                  LÍNEA B ── GND
-```
+![Esquema de la PEX: la Pico, el elevador a 12 V, la fuente de corriente de línea con el LM317, el conector RJ11 y los circuitos de entrada de línea, salida de audio y gancho](kicad/pex.svg)
 
 - **La alimentación de la línea:** el LM317 mantiene 1,25 V en la de 51 Ω,
   así que por la línea pasan unos 24,5 mA haya lo que haya en ella, que es lo

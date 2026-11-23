@@ -165,13 +165,19 @@ function buildPages(site, lang, p, page) {
         body = rows ? bomTable(rows, tr) : notYet;
       } else if (tab === "build/") {
         const readme = p.readme ? `\n<li>${ext(blob(site, perLang(p.readme, lang)), tr("profile.readme"))}</li>` : "";
+        const sch = p.schematic && `${root}img/${slug}/${escapeHtml(basename(p.schematic))}`;
+        const schematic = sch ? `<h2 id="schematic">${e("profile.schematic")}</h2>
+<p><a href="${sch}"><img class="schematic" src="${sch}" alt="${e("profile.schematic_alt")}"></a></p>
+` : "";
         const plan = p.image ? `<h2 id="layout">${e("profile.plan")}</h2>
-<p><img src="${root}img/${slug}/${escapeHtml(basename(p.image))}" alt="${e("profile.plan")}"></p>
+<p><img src="${root}img/${slug}/${escapeHtml(basename(p.image))}" alt="${e("profile.plan")}"></p>`
+          : sch ? `<h2 id="layout">${e("profile.plan")}</h2>\n${notYet}` : notYet;
+        const fileList = p.files?.length ? `
 <p>${e("profile.files")}</p>
 <ul>
 ${files(root)}
-</ul>` : notYet;
-        body = `${plan}
+</ul>` : "";
+        body = `${schematic}${plan}${fileList}
 <h2 id="details">${e("profile.details")}</h2>
 <ul>${readme}
 <li>${ext(blob(site, perLang(p.docs, lang)), tr("profile.catalog"))}</li>
@@ -583,6 +589,7 @@ export function build({ siteDir, outDir, commit }) {
       files.set(`img/${img}`, readFileSync(join(repoRoot, "docs", "images", img)));
   for (const p of site.config.profiles) {
     if (p.image) files.set(`img/${p.slug}/${basename(p.image)}`, readFileSync(join(repoRoot, p.image)));
+    if (p.schematic) files.set(`img/${p.slug}/${basename(p.schematic)}`, readFileSync(join(repoRoot, p.schematic)));
     for (const f of p.files ?? []) files.set(`files/${p.slug}/${basename(f)}`, readFileSync(join(repoRoot, f)));
     for (const it of (p.gallery ?? []).filter((g) => g.kind === "photo")) {
       const bytes = readFileSync(join(repoRoot, it.src));

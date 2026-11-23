@@ -14,9 +14,10 @@ the profile is
 **Never connect it to a socket of the real telephone network:** that line
 carries up to 48 V, and about 90 V AC when it rings.
 
-**Status:** designed and running on a breadboard. The layout below is a
-table; the DIY Layout Creator and KiCad files, and the perfboard version,
-are still to come. Do not use it with funds.
+**Status:** designed and running on a breadboard. The schematic is drawn
+in KiCad ([`kicad/pex.kicad_sch`](kicad/pex.kicad_sch)); the layout below is
+a table, and the DIY Layout Creator file and the perfboard version are still
+to come. Do not use it with funds.
 
 ## Parts
 
@@ -29,21 +30,7 @@ are easy to come by.
 
 ## The circuit
 
-```
- VBUS (pin 40) ── MT3608 ── 12 V ──┬── LM317 IN
-                                   ├── 100 µF (+) ── GND
-                                   └── 100 nF ────── GND
-                         LM317 OUT ──[51 Ω]──┐
-                         LM317 ADJ ──────────┴── LINE A ── RJ11 socket ── telephone
-                                                  │
-     IN:   LINE A ─[100 nF]─ 1.65 V ─[1 kΩ]─[4.7 kΩ]─┬─ GP27
-              (10 kΩ to 3V3, 10 kΩ to GND)       [10 nF]─ GND
-     OUT:  GP15 ─[1 kΩ]─┬─(−)[10 µF](+)─ LINE A
-                     [10 nF]─ GND
-     HOOK: LINE A ─[47 kΩ]─┬─ GP28
-                       [10 kΩ] and [100 nF] ─ GND
-                                                  LINE B ── GND
-```
+![Schematic of the PEX: the Pico, the 12 V boost, the LM317 line current source, the RJ11 socket, and the line in, audio out and hook circuits](kicad/pex.svg)
 
 - **The line's power:** the LM317 holds 1.25 V across the 51 Ω, so about
   24.5 mA flow through the line whatever is on it, which is what a telephone

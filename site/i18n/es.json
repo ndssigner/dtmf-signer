@@ -21,6 +21,8 @@
   "sim.built": "Se compilará desde el commit {commit}, como el resto de esta web.",
   "profile.plan": "Plano",
   "profile.files": "Archivos para descargar:",
+  "profile.schematic": "Esquema",
+  "profile.schematic_alt": "Esquema del circuito, dibujado en KiCad",
   "profile.details": "Detalles para construirlo",
   "profile.catalog": "Este perfil en el catálogo",
   "profile.readme": "Cómo construirlo",
