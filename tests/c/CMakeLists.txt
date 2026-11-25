@@ -145,3 +145,10 @@ ds_add_test(test_voice)
 target_sources(test_voice PRIVATE ${DS_VOICE_TEST_PACKS_H} ${DS_PSBT_VECTORS_H})
 target_include_directories(test_voice PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(test_voice PRIVATE dtmf_app ds_voice_packs)
+
+# The Nintendo DS port's view helpers (screen scaling, big QR, key mapping)
+# are pure C and are tested here.
+ds_add_test(test_nds_view)
+target_sources(test_nds_view PRIVATE ${PROJECT_SOURCE_DIR}/ports/nds/nds_view.c)
+target_include_directories(test_nds_view PRIVATE ${PROJECT_SOURCE_DIR}/ports/nds)
+target_link_libraries(test_nds_view PRIVATE dtmf_app)
