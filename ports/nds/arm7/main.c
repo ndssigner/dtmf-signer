@@ -46,6 +46,31 @@
  */
 #include <nds.h>
 
+#include "power_pxi.h"
+
+/* Waits for the ARM9's power-off request (after its wipe) and switches the
+ * console off; nothing else is ever asked on this channel. */
+static Thread s_powerThread;
+alignas(8) static u8 s_powerThreadStack[512];
+
+static int powerThreadMain(void *arg)
+{
+	Mailbox mb;
+	u32 slots[2];
+
+	(void)arg;
+	mailboxPrepare(&mb, slots, sizeof(slots) / sizeof(slots[0]));
+	pxiSetMailbox(NDS_PXI_POWER, &mb);
+	for (;;) {
+		if (mailboxRecv(&mb) == NDS_POWER_OFF) {
+			if (systemIsTwlMode())
+				mcuIssueShutdown();
+			pmicIssueShutdown();
+		}
+	}
+	return 0;
+}
+
 static void wirelessOff(void)
 {
 	pmPowerOff(POWCNT_WL_MITSUMI);
@@ -88,6 +113,11 @@ int main(void)
 	// Microphone driver: idle (microphone and amplifier off) except while
 	// the app listens for tones (arm9/mic.c)
 	micStartServer(MAIN_THREAD_PRIO - 0x18);
+
+	// Power-off requests from the ARM9 (after a wipe)
+	threadPrepare(&s_powerThread, powerThreadMain, NULL,
+	              &s_powerThreadStack[sizeof(s_powerThreadStack)], MAIN_THREAD_PRIO - 0x20);
+	threadStart(&s_powerThread);
 
 	// Keep the ARM7 mostly idle
 	while (pmMainLoop()) {

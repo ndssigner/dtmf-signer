@@ -22,6 +22,7 @@
 #include "ds_session.h"
 #include "mic.h"
 #include "nds_view.h"
+#include "power_pxi.h"
 #ifdef DS_NDS_AUTOTEST
 #include "autotest.h"
 #endif
@@ -216,7 +217,10 @@ static void scrub(void)
 static void wipe_and_off(void)
 {
     scrub();
-    systemShutDown();
+    DC_FlushAll();
+    /* The ARM7 switches the console off (power_pxi.h): libnds'
+     * systemShutDown() does nothing under calico. */
+    pxiSend(NDS_PXI_POWER, NDS_POWER_OFF);
     for (;;) {
         swiWaitForVBlank();
     }

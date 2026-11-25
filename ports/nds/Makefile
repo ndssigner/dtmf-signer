@@ -84,7 +84,7 @@ CFLAGS9_CORE := $(COMMON) $(ARCH9) -std=c99 $(WARN) $(INC_LIB) $(ABOUT)
 CFLAGS9_VEND := $(COMMON) $(ARCH9) -std=c99 -w $(INC_LIB) $(SECP_DEFS)
 CFLAGS9_PORT := $(COMMON) $(ARCH9) -std=gnu11 $(WARN) -DARM9 $(NDSINC) $(INC_LIB) \
                 -I$(ROOT)/ports/nds -I$(ROOT)/ports/nds/arm9
-CFLAGS7      := $(COMMON) $(ARCH7) -std=gnu11 -Wall -Wextra -Werror -DARM7 $(NDSINC)
+CFLAGS7      := $(COMMON) $(ARCH7) -std=gnu11 -Wall -Wextra -Werror -DARM7 $(NDSINC) -I$(ROOT)/ports/nds
 
 # Development only: `make AUTOTEST=1`, for an end-to-end run in an emulator.
 # Never used for a released .nds. (Flags are not tracked: make clean first.)
