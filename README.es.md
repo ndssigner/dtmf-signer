@@ -5,6 +5,34 @@ versión inglesa.*
 
 # DTMF-Signer
 
+**Un firmador de Bitcoin que montas tú con piezas genéricas, así que ningún
+revendedor tiene en sus manos un "aparato de Bitcoin" camino de tu casa.** Se
+comunica con tu cartera mediante tonos de teléfono, y nunca muestra ni guarda
+tu semilla.
+
+[![Cable y QR en placa perforada: una Raspberry Pi Pico, una pantalla pequeña que pregunta "Flashed it yourself?" y cinco botones](docs/images/perfboard.jpg)](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)
+
+**[▶ Míralo firmar una PSBT](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)** (5 min), o pruébalo sin montar nada: el
+[simulador](https://ndssigner.github.io/dtmf-signer/es/pex/) ejecuta el
+firmware real en tu navegador, con una cartera de prueba.
+
+| Montaje | Qué necesitas | Piezas | Estado |
+| :--- | :--- | :--- | :--- |
+| **Cable y QR** (la referencia) | Una Raspberry Pi Pico, una OLED de 1,3", cinco botones, una protoboard | unos 13–45 $ | Funciona: firma PSBT que Sparrow lee ([montaje](hardware/breadboard/README.es.md)) |
+| **Centralita (PEX)** | Una Pico y cualquier teléfono de tonos de segunda mano: sin pantalla ni botones | unos 8–35 $ | Funciona en protoboard: lee cada salida en voz alta y firma cuando cuelgas ([montaje](hardware/phone/README.es.md)) |
+| **Placa completa** | Una Pico 2, pantalla, botones, micrófono y piezo | | Prevista |
+
+> **Prototipo que funciona, sin revisión independiente. No lo uses con fondos.**
+
+**¿Por qué montártelo tú?** En 2026, dispositivos Ledger y Trezor vendidos
+por un revendedor llevaban implantes ocultos que leían la semilla de la
+pantalla, y un error en el firmware de Coldcard generó semillas débiles. Aquí
+compras piezas genéricas en cualquier parte, grabas tú el microcontrolador, la
+semilla no aparece en ninguna pantalla y el firmador no tiene generador de
+números aleatorios que pueda fallar. [Más abajo](#motivación).
+
+## Qué es
+
 Un firmador de Bitcoin mínimo, barato y de hardware abierto que cualquiera
 puede montar. La placa completa: una Raspberry Pi Pico, una pantalla pequeña,
 cinco botones, un micrófono y un piezo; el montaje de referencia que ya
@@ -33,21 +61,23 @@ y cuánto tarda. El [catálogo](docs/es/catalog.md) enumera las capacidades
 y los perfiles que las combinan. El prototipo usa una Pico (RP2040); la
 Pico 2 vendrá después.
 
-> **Estado: prototipo que funciona.** El montaje de referencia, Cable y QR,
-> funciona en una protoboard y en una placa perforada: carga una semilla por tonos con su PIN,
-> muestra las huellas, exporta la XPUB y devuelve las PSBT firmadas como
-> códigos QR que Sparrow lee. Su esquema (KiCad), su disposición y una
-> plantilla imprimible a escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
-> Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
-> independiente. No lo uses con fondos. Vídeos: [en la protoboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
-> y [en placa perforada con v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
-> La Centralita (PEX) también funciona en protoboard: carga una semilla por
-> el auricular o por el teclado, lee cada salida en voz alta y firma cuando
-> cuelgas un momento, byte a byte como la versión de ordenador
-> ([su montaje](hardware/phone/README.es.md), con su esquema, su
-> disposición y una plantilla imprimible; la disposición separa las piezas
-> de la protoboard que se probó y no se ha montado tal cual). Falta su
-> placa perforada.
+## Estado
+
+El montaje de referencia, Cable y QR,
+funciona en una protoboard y en una placa perforada: carga una semilla por tonos con su PIN,
+muestra las huellas, exporta la XPUB y devuelve las PSBT firmadas como
+códigos QR que Sparrow lee. Su esquema (KiCad), su disposición y una
+plantilla imprimible a escala 1:1 están en [`hardware/breadboard/`](hardware/breadboard/README.es.md).
+Faltan los tonos por el aire (micrófono y altavoz), las PCB y una revisión
+independiente. No lo uses con fondos. Vídeos: [en la protoboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
+y [en placa perforada con v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
+La Centralita (PEX) también funciona en protoboard: carga una semilla por
+el auricular o por el teclado, lee cada salida en voz alta y firma cuando
+cuelgas un momento, byte a byte como la versión de ordenador
+([su montaje](hardware/phone/README.es.md), con su esquema, su
+disposición y una plantilla imprimible; la disposición separa las piezas
+de la protoboard que se probó y no se ha montado tal cual). Falta su
+placa perforada.
 
 ## Motivación
 
@@ -188,6 +218,8 @@ un conector RJ11 de la placa, es toda la interfaz. El firmador alimenta la
 línea del teléfono, como una centralita, te habla por el auricular y oye tus
 teclas, y los tonos de tu cartera le llegan por el micrófono del auricular
 ([el montaje en protoboard](hardware/phone/README.es.md)):
+
+![La Centralita en una protoboard: una Raspberry Pi Pico conectada a un teléfono de tonos antiguo sacado de la basura](hardware/phone/pex-breadboard.jpg)
 
 | Pieza | Para qué |
 |---|---|

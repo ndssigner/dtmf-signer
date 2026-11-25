@@ -2,6 +2,33 @@ English · [Español](README.es.md) · [Website](https://ndssigner.github.io/dtm
 
 # DTMF-Signer
 
+**A Bitcoin signer you build yourself from generic parts, so no reseller ever
+handles a "Bitcoin device" on its way to you.** It talks to your wallet with
+telephone tones, and never shows or stores your seed.
+
+[![Cable and QR on a perfboard: a Raspberry Pi Pico, a small screen asking "Flashed it yourself?" and five buttons](docs/images/perfboard.jpg)](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)
+
+**[▶ Watch it sign a PSBT](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7)** (5 min), or try it with nothing to build: the
+[simulator](https://ndssigner.github.io/dtmf-signer/en/pex/) runs the real
+firmware in your browser, with a test wallet.
+
+| Build | What you need | Parts | State |
+| :--- | :--- | :--- | :--- |
+| **Cable and QR** (the reference) | A Raspberry Pi Pico, a 1.3" OLED, five buttons, a breadboard | about US$13–45 | Works: signs PSBTs that Sparrow reads ([build](hardware/breadboard/README.md)) |
+| **Phone Exchange (PEX)** | A Pico and any second-hand tone telephone: no screen, no buttons | about US$8–35 | Works on a breadboard: reads every output aloud, signs when you hang up ([build](hardware/phone/README.md)) |
+| **Full board** | A Pico 2, screen, buttons, microphone and piezo | | Planned |
+
+> **Working prototype, not reviewed by anyone independent. Do not use it with funds.**
+
+**Why build your own?** In 2026, Ledger and Trezor devices sold through a
+reseller carried hidden implants that read the seed from the screen, and a
+Coldcard firmware bug generated weak seeds. Here you buy generic parts
+anywhere, flash the microcontroller yourself, the seed never appears on any
+screen, and the signer has no random number generator that could fail.
+[More below](#motivation).
+
+## What it is
+
 A minimal, cheap, open-hardware Bitcoin signer that anyone can build. The
 full board: a Raspberry Pi Pico, a small screen, five buttons, a microphone
 and a piezo; the reference build that works today, **Cable and QR**, leaves
@@ -29,21 +56,23 @@ it takes. The [catalog](docs/catalog.md) lists the capabilities and the
 profiles that combine them. The prototype uses a Pico (RP2040); the Pico 2
 comes later.
 
-> **Status: working prototype.** The reference build, Cable and QR, runs on
-> a breadboard and on a perfboard: it loads a seed by tones with its PIN, shows the
-> fingerprints, exports the xpub and returns signed PSBTs as QR codes that
-> Sparrow reads. Its schematic (KiCad), its layout and a printable 1:1
-> template are in [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
-> air (microphone and speaker), the PCBs and an independent review are still
-> to come. Do not use it with funds. Videos: [on the breadboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
-> and [on a perfboard with v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
-> The Phone Exchange (PEX) runs on a breadboard too: it loads a seed through
-> the handset or the keypad, reads out every output, and signs when you hang
-> up for a moment, byte for byte as the computer build does
-> ([its build](hardware/phone/README.md), with its schematic, its layout
-> and a printable template; the layout spreads out the parts of the tested
-> breadboard and has not been built as it stands). Its perfboard is still
-> to come.
+## Status
+
+The reference build, Cable and QR, runs on
+a breadboard and on a perfboard: it loads a seed by tones with its PIN, shows the
+fingerprints, exports the xpub and returns signed PSBTs as QR codes that
+Sparrow reads. Its schematic (KiCad), its layout and a printable 1:1
+template are in [`hardware/breadboard/`](hardware/breadboard/README.md). Tones through the
+air (microphone and speaker), the PCBs and an independent review are still
+to come. Do not use it with funds. Videos: [on the breadboard](https://odysee.com/@ndssigner:9/demo-dtmf-signer:c)
+and [on a perfboard with v0.2.0-alpha](https://odysee.com/@ndssigner:9/dtmf-signer-perfboard-v0-2-0:7).
+The Phone Exchange (PEX) runs on a breadboard too: it loads a seed through
+the handset or the keypad, reads out every output, and signs when you hang
+up for a moment, byte for byte as the computer build does
+([its build](hardware/phone/README.md), with its schematic, its layout
+and a printable template; the layout spreads out the parts of the tested
+breadboard and has not been built as it stands). Its perfboard is still
+to come.
 
 ## Motivation
 
@@ -177,6 +206,8 @@ an RJ11 socket on the board, is the whole interface. The signer powers the
 telephone's line, as an exchange does, speaks to you in the earpiece and
 hears your keys, and your wallet's tones reach it through the handset's
 microphone ([the breadboard build](hardware/phone/README.md)):
+
+![The Phone Exchange on a breadboard: a Raspberry Pi Pico wired to an old tone telephone found in the trash](hardware/phone/pex-breadboard.jpg)
 
 | Part | What for |
 |---|---|
