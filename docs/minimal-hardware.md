@@ -351,7 +351,7 @@ Entry details:
 - **Entry in rows of 16 pieces**, confirmed at the end of each row. One piece too many or too few shifts everything after it; by rows, where the fault lies is found at once.
 
 Notes:
-- The SeedCraft sequence counts as an **unencrypted seed** in the channel policy: by PS/2 or by UART with confirmation, never by air.
+- The SeedCraft sequence counts as an **unencrypted seed** in the channel policy: by PS/2 or by UART with confirmation (cable recommended); by air it is possible, with the warning that anyone who records it has the seed.
 - **Recommended path: a PS/2 keyboard with a TV**, both inside the trust boundary. By UART, the terminal sees the dictionary and the sequence, that is, the whole seed: better a device that has never been connected to a network.
 - The dictionary is entered in each session: the signer keeps nothing.
 - It needs SeedCraft's decoder ported to C (from symbols to QR modules, removing the mask, correcting errors and extracting the seed).

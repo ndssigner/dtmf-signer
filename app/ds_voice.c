@@ -1298,10 +1298,16 @@ static void seed_failed(ds_voice *v, uint16_t phrase)
     go(v, ST_SEED_HOW);
 }
 
+/* PEX has a cable alternative (a keypad seed), so by the handset it keeps
+ * the stricter rule: only a seed encrypted with this many characters or more;
+ * the core policy only warns. */
+#define DS_VOICE_AIR_MIN_PIN 12
+
 /* The PIN is complete: decrypt, apply the policy, load. As ds_app's job_pin:
  * the PIN, the group and the entropy are wiped on every path. By the
- * handset the seed came by air (DS_AIR: it warns, never refuses);
- * typed on the keypad when asked it counts as a cable (DS_CABLE). */
+ * handset the seed came by air (DS_AIR; the core warns, and PEX also refuses
+ * a plain seed or a PIN under DS_VOICE_AIR_MIN_PIN); typed on the keypad
+ * when asked it counts as a cable (DS_CABLE). */
 static void load_seed(ds_voice *v)
 {
     uint8_t entropy[32];
@@ -1314,7 +1320,8 @@ static void load_seed(ds_voice *v)
 
     listen_afresh(v);
     if (ds_policy_accepts(encrypted ? DS_DATA_SEED_ENCRYPTED : DS_DATA_SEED_PLAIN,
-                          channel, pin_len) < 0) {
+                          channel, pin_len) < 0 ||
+        (channel == DS_AIR && pin_len < DS_VOICE_AIR_MIN_PIN)) {
         seed_failed(v, DS_P_SEED_REFUSED); /* refused before it is even decrypted */
         return;
     }

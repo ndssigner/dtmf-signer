@@ -351,7 +351,7 @@ Detalles de la entrada:
 - **Introducción por filas de 16 piezas**, con confirmación al terminar cada fila. Una pieza de más o de menos desplaza todo lo que viene detrás; por filas se localiza enseguida dónde está el fallo.
 
 Notas:
-- La secuencia de SeedCraft cuenta como **seed sin cifrar** en la política de canales: por PS/2 o por UART con confirmación, nunca por el aire.
+- La secuencia de SeedCraft cuenta como **seed sin cifrar** en la política de canales: por PS/2 o por UART con confirmación (cable recomendado); por el aire es posible, con el aviso de que quien la grabe tiene la semilla.
 - **Vía recomendada: teclado PS/2 con tele**, ambos dentro de la frontera de confianza. Por UART, el terminal ve el diccionario y la secuencia, es decir, la seed completa: mejor un aparato que nunca se haya conectado a la red.
 - El diccionario se introduce en cada sesión: el firmador no guarda nada.
 - Requiere portar a C el decodificador de SeedCraft (de símbolos a módulos del QR, quitar la máscara, corregir errores y extraer la seed).

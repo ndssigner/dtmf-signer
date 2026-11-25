@@ -141,8 +141,7 @@ static int is_zero(const void *p, size_t n)
 
 static void test_policy_table(void)
 {
-    /* rows: data; columns: AIR, CABLE, CABLE_TERMINAL, LOCAL. The encrypted
-     * seed is taken with a 12-character PIN. */
+    /* rows: data; columns: AIR, CABLE, CABLE_TERMINAL, LOCAL. */
     static const struct {
         int data;
         int32_t air, cable, terminal, local;

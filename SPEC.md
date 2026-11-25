@@ -132,8 +132,9 @@ everything `AIR` and refuse the PIN. Instead, **keys typed while the signer
 explicitly asks for them (the PIN, a keypad seed, a menu choice) count as
 `CABLE`**: what is typed does not sound in the room. Everything else that
 arrives on the line, such as a PSBT or a PIN-encrypted seed played near the
-handset, is `AIR`; a seed by air stays within §4.2. The signer warns once: a speakerphone says the keys aloud,
-and the telephone's redial memory may keep them (§4.3).
+handset, is `AIR`; a seed by air stays within §4.2. The signer warns once: a
+speakerphone says the keys aloud, and the telephone's redial memory may
+keep them (§4.3).
 
 ### 4.2 What is accepted where
 
@@ -270,11 +271,10 @@ fee and ends up signing a huge one.
 
 ## 7. Minimum hardware
 
-From §2–§5, every build needs at least the following, except that the
-`CABLE` input is recommended, not required:
+From §2–§5, every build needs at least:
 
-- **A `CABLE` input** (line-in jack, UART or the telephone line):
-  recommended, because it is the path that keeps a seed out of the room,
+- **A `CABLE` input**, recommended, not required (line-in jack, UART or
+  the telephone line): because it is the path that keeps a seed out of the room,
   and valid for the PIN and the passphrase when there is no `LOCAL` input.
   On a telephone line, the keys it asks for count as `CABLE` (§4.1). An
   air-only build is allowed; it says so in its catalog entry ("air only"),

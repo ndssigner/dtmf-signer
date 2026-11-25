@@ -41,8 +41,9 @@
 
 /* Whether a channel may carry the data:
  *   PSBT             air, cable, cable with terminal; not local (DS_ERR_POLICY)
- *   SEED_ENCRYPTED   cable; air with DS_WARN_AIR (the port must show the
- *   SEED_PLAIN       warning before listening); terminal: DS_NEED_CONFIRM
+ *   SEED_ENCRYPTED,
+ *   SEED_PLAIN       cable; air with DS_WARN_AIR (the port must show the
+ *                    warning before listening); terminal: DS_NEED_CONFIRM
  *   PIN, PASSPHRASE  cable and local; terminal: DS_NEED_CONFIRM; never air
  * Seeds by air warn and never refuse: the signer cannot know whether a seed
  * is encrypted, nor with which PIN, and the exposure happens when the tones
