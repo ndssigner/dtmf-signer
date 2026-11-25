@@ -33,11 +33,11 @@
  *
  * Compared with the default calico core, this ARM7 does NOT start the
  * wireless manager (wlmgr), the block-device driver for the SD card / NAND
- * (blk), the RTC, the touch screen server or maxmod. Their code is not even
- * linked, so the ARM9 has no way to ask for network or storage access. Only
- * power management, the keypad's extra keys (the lid), the sound driver and
- * the microphone driver run; the microphone and its amplifier are off
- * except while the app listens. The console is never let sleep: closing
+ * (blk), the RTC or maxmod. Their code is not even linked, so the ARM9 has
+ * no way to ask for network or storage access. Only power management, the
+ * keypad's extra keys (the lid), the touch screen, the sound driver and the
+ * microphone driver run; the microphone and its amplifier are off except
+ * while the app listens. The console is never let sleep: closing
  * the lid makes the ARM9 wipe and turn it off instead.
  *
  * wirelessOff() also powers the wireless hardware down at start (the
@@ -74,9 +74,13 @@ int main(void)
 	// No networking: the wireless hardware stays off
 	wirelessOff();
 
-	// The touch screen controller, which the microphone is read through in
-	// DS mode (no touch server: the touch screen is not used)
+	// The touch screen, with the console's own calibration from its
+	// settings: the stylus types the PIN and the passphrase and taps the
+	// footer's arrows (in DS mode the microphone is read through the same
+	// controller; calico shares it between the two)
+	envReadNvramSettings();
 	touchInit();
+	touchStartServer(80, MAIN_THREAD_PRIO);
 
 	// Sound driver (handles the DSi audio codec)
 	soundStartServer(MAIN_THREAD_PRIO - 0x10);
