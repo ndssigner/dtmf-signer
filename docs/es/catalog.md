@@ -553,3 +553,28 @@ Crece con cada montaje que alguien haga y mida.
   Mientras trabaja, el firmador suena con un motivo de espera, y el LED de la
   placa enseña cómo va una recepción mientras el auricular está pegado a la
   cartera.
+
+### `PROFILE-NDS` — Nintendo DS (solo por el aire)
+
+- **Capacidades:** `TONES-SW`, `IN-MIC`, `IN-BUTTONS`, `VERIFY-SCREEN`,
+  `OUT-QR`, `BTC-INPUT-AMOUNTS`.
+- **Piezas:** una Nintendo DS o DS Lite y un flashcart de la ranura 1; una
+  DSi, DSi XL o 3DS no necesita flashcart (la ejecuta su cargador de
+  homebrew). Sin soldar y sin lista de piezas: la consola es el hardware. Su
+  micrófono oye los tonos de la cartera, y sus dos pantallas y sus botones
+  son la interfaz: la PSBT firmada o la xpub salen como un QR animado,
+  grande en la pantalla de arriba y pequeño en la de abajo. El firmware,
+  cómo compilarlo y cómo usarlo: [`ports/nds/`](../../ports/nds/README.es.md);
+  la página de esta versión: [`hardware/nds/`](../../hardware/nds/README.es.md).
+- **Qué le falta:** cualquier entrada por cable: es una versión solo por el
+  aire (§4.2 y §7 de la [especificación](spec.md#42-qué-se-acepta-por-dónde)),
+  así que la semilla le llega por el aire, tras el aviso que muestra antes
+  de escuchar. También `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`. El PIN y
+  la frase de contraseña se teclean en la consola. Nunca arranca su radio:
+  no hay código de Wi-Fi enlazado.
+- **Clase de procesador:** `CPU-32`: un ARM946E-S a 67 MHz.
+- **Tiempo:** sin medir en una consola. En un emulador (melonDS, modo DS; no
+  es una consola): el PIN de la semilla 5,5 s, la derivación de la cartera
+  2,9 s, la revisión de una PSBT 0,3 s, la firma 0,1 s, iniciar un QR 0,4 s.
+- **Aún sin probar en una consola real.** Se buscan probadores: ver
+  [`ports/nds/`](../../ports/nds/README.es.md#se-buscan-probadores).

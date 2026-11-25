@@ -524,3 +524,28 @@ build someone makes and measures.
   the computer build signs. Minimum free stack seen: 2.8 KB of 8 KB. While
   the work runs, the signer plays a wait motif, and the board's LED shows how
   a reception goes while the handset is held to the wallet.
+
+### `PROFILE-NDS` — Nintendo DS (air only)
+
+- **Capabilities:** `TONES-SW`, `IN-MIC`, `IN-BUTTONS`, `VERIFY-SCREEN`,
+  `OUT-QR`, `BTC-INPUT-AMOUNTS`.
+- **Parts:** a Nintendo DS or DS Lite and a slot-1 flashcart; a DSi, DSi XL
+  or 3DS needs no flashcart (its homebrew loader runs it). No soldering and
+  no parts list: the console is the hardware. Its microphone hears the
+  wallet's tones, and its two screens and its buttons are the interface:
+  the signed PSBT or the xpub goes out as an animated QR, large on the top
+  screen and small on the bottom one. The firmware, how to build it and how
+  to use it: [`ports/nds/`](../ports/nds/README.md); the build's page:
+  [`hardware/nds/`](../hardware/nds/README.md).
+- **What it lacks:** any cable input: it is an air-only build (§4.2 and §7
+  of the [specification](../SPEC.md#42-what-is-accepted-where)), so a seed
+  reaches it by air, after the warning it shows before listening. Also
+  `STORE-SEED`, `BTC-TAPROOT`, `BTC-MULTISIG`. The PIN and the passphrase
+  are typed on the console. It never starts its radio: no Wi-Fi code is
+  linked.
+- **Processor class:** `CPU-32`: an ARM946E-S at 67 MHz.
+- **Time:** not measured on a console. In an emulator (melonDS, DS mode;
+  not a console): the seed PIN 5.5 s, the wallet's derivation 2.9 s, a PSBT's
+  review 0.3 s, signing 0.1 s, starting a QR 0.4 s.
+- **Not tested on a real console yet.** Testers wanted: see
+  [`ports/nds/`](../ports/nds/README.md#testers-wanted).

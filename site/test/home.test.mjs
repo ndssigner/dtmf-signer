@@ -5,8 +5,8 @@ import { buildInto, brokenLinks, text, SITE } from "./helpers.mjs";
 import { freqs, wavePoints, caption, play, KEYS, LOW, HIGH } from "../static/dtmf-keypad.mjs";
 
 const files = buildInto();
-const BUILDS = ["cable-qr", "pex"];
-const HARDWARE = { "cable-qr": "breadboard", pex: "phone" };
+const BUILDS = ["cable-qr", "pex", "nds"];
+const HARDWARE = { "cable-qr": "breadboard", pex: "phone", nds: "nds" };
 const URTONES = { spec: "https://github.com/ndssigner/ur-tones/blob/main/SPEC.md", web: "https://ndssigner.github.io/ur-tones/" };
 
 test("the keys and their two tones", () => {

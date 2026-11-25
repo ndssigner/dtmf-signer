@@ -411,6 +411,28 @@
           }
         ]
       }
+    },
+    {
+      "id": "PROFILE-NDS",
+      "slug": "nds",
+      "talks": [
+        "air_in",
+        "qr_out",
+        "own_screen"
+      ],
+      "hardware": "hardware/nds",
+      "docs": {
+        "en": "docs/catalog.md#profile-nds--nintendo-ds-air-only",
+        "es": "docs/es/catalog.md#profile-nds--nintendo-ds-solo-por-el-aire"
+      },
+      "readme": {
+        "en": "hardware/nds/README.md",
+        "es": "hardware/nds/README.es.md"
+      },
+      "firmware_guide": {
+        "en": "ports/nds/README.md",
+        "es": "ports/nds/README.es.md"
+      }
     }
   ],
   "release": {

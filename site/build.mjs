@@ -149,6 +149,11 @@ function buildPages(site, lang, p, page) {
   const status = parseStatus(readFileSync(join(repoRoot, p.hardware, "status.json"), "utf8"));
   const slug = escapeHtml(p.slug);
   const files = (root) => buildFiles(p, root);
+  // A build whose hardware stages are all "na" has nothing to build: the
+  // console (or whatever it runs on) is the hardware.
+  const noParts = status.hardware.every((s) => s.state === "na");
+  // A build with no simulator and none planned (its firmware stage is "na").
+  const noSim = !p.simulator && status.firmware.find((s) => s.stage === "simulator")?.state === "na";
 
   for (const [tab, key] of TABS) {
     page(`${p.slug}/${tab}`, (tr, root) => {
@@ -162,21 +167,23 @@ function buildPages(site, lang, p, page) {
       }).join("\n");
       let body, fallback = false;
       if (tab === "") {
-        body = sim ? simulatorBlock(site, tr, p, root, lang) : `<div class="simulator">
+        body = sim ? simulatorBlock(site, tr, p, root, lang) : noSim ? `<div class="simulator">
+<p>${e("sim.none")}</p>
+</div>` : `<div class="simulator">
 <p>${e("sim.soon")}</p>
 <p>${e("sim.built", { commit: site.commit })}</p>
 </div>`;
       } else if (tab === "what/") {
         ({ html: body, fallback } = content(site, lang, p.slug));
       } else if (tab === "parts/") {
-        body = rows ? bomTable(rows, tr) : notYet;
+        body = noParts ? `<p class="no-parts"><span aria-hidden="true">🎮</span> ${e("build.no_parts")}</p>` : rows ? bomTable(rows, tr) : notYet;
       } else if (tab === "build/") {
         const readme = p.readme ? `\n<li>${ext(blob(site, perLang(p.readme, lang)), tr("profile.readme"))}</li>` : "";
         const sch = p.schematic && `${root}img/${slug}/${escapeHtml(basename(p.schematic))}`;
         const schematic = sch ? `<h2 id="schematic">${e("profile.schematic")}</h2>
 <p><a href="${sch}"><img class="schematic" src="${sch}" alt="${e("profile.schematic_alt")}"></a></p>
 ` : "";
-        const plan = p.image ? `<h2 id="layout">${e("profile.plan")}</h2>
+        const plan = noParts ? "" : p.image ? `<h2 id="layout">${e("profile.plan")}</h2>
 <p><img src="${root}img/${slug}/${escapeHtml(basename(p.image))}" alt="${e("profile.plan")}"></p>`
           : sch ? `<h2 id="layout">${e("profile.plan")}</h2>\n${notYet}` : notYet;
         const fileList = p.files?.length ? `

@@ -4,6 +4,23 @@ The firmware is a prototype: do not use it with funds.
 
 ## Unreleased
 
+- A third build: the **Nintendo DS**, air only, with nothing to build (the
+  console is the hardware). The firmware is in `ports/nds/`: the microphone
+  hears the wallet, the top screen shows the signed PSBT or xpub as a large
+  animated QR and the bottom one the same screens as the Pico, doubled; A is
+  OK, B goes back, holding B for 3 s or closing the lid wipes everything and
+  powers the console off. No Wi-Fi code is linked. `tools/build-nds.sh`
+  builds it in Docker, reproducibly (CI job `nds`); `tools/build-nds.sh
+  --autotest` with `tools/dev/nds_e2e.sh` checks it in melonDS. Not tried on
+  a real console yet: testers wanted. It is in the catalog as `PROFILE-NDS`
+  and on the website; a build with no hardware stages shows "No parts to
+  build: the console is the hardware".
+
+- A build with no cable input is allowed (SPEC §4.2 and §7, "air only"): a
+  seed by air is accepted after one warning shown before listening, and the
+  PIN and the passphrase are typed on the device. `ds_app_set_channel`
+  tells the app whether its tones come by cable (the default) or by air.
+
 - Wanted: a voice pack in your language. `docs/voice-packs.md` (and its
   Spanish translation) says how to make one, step by step: the voice, the
   phrases written as they must sound, the number grammar, listening, the

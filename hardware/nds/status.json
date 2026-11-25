@@ -1,0 +1,16 @@
+{
+  "hardware": [
+    { "stage": "design", "state": "na" },
+    { "stage": "simulation", "state": "na" },
+    { "stage": "breadboard", "state": "na" },
+    { "stage": "perfboard", "state": "na" },
+    { "stage": "pcb", "state": "na" }
+  ],
+  "firmware": [
+    { "stage": "core", "state": "done" },
+    { "stage": "port", "state": "done", "note": "Nintendo DS" },
+    { "stage": "simulator", "state": "na" },
+    { "stage": "release", "state": "planned" },
+    { "stage": "review", "state": "planned" }
+  ]
+}

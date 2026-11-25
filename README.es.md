@@ -20,6 +20,7 @@ firmware real en tu navegador, con una cartera de prueba.
 | :--- | :--- | :--- | :--- |
 | **Cable y QR** (la referencia) | Una Raspberry Pi Pico, una OLED de 1,3", cinco botones, una protoboard | unos 13–45 $ | Funciona: firma PSBT que Sparrow lee ([montaje](hardware/breadboard/README.es.md)) |
 | **Centralita (PEX)** | Una Pico y cualquier teléfono de tonos de segunda mano: sin pantalla ni botones | unos 8–35 $ | Funciona en protoboard: lee cada salida en voz alta y firma cuando cuelgas ([montaje](hardware/phone/README.es.md)) |
+| **Nintendo DS** (solo por el aire) | Una DS o DS Lite con flashcart de la ranura 1, o una DSi o 3DS: nada que montar | la consola | Funciona en un emulador; aún sin probar en una consola real ([firmware](ports/nds/README.es.md)) |
 | **Placa completa** | Una Pico 2, pantalla, botones, micrófono y piezo | | Prevista |
 
 > **Prototipo que funciona, sin revisión independiente. No lo uses con fondos.**
