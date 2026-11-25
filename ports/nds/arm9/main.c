@@ -155,6 +155,16 @@ static void scrub(void)
     show(top, vram_top);
 }
 
+/* Zero everything and turn the console off; never returns. */
+static void wipe_and_off(void)
+{
+    scrub();
+    systemShutDown();
+    for (;;) {
+        swiWaitForVBlank();
+    }
+}
+
 int main(void)
 {
     int mic_on = 0, first = 1;
@@ -178,6 +188,12 @@ int main(void)
          * debounce, and far inside the 200 ms that ds_app.h allows). */
         now = now_ms();
         scanKeys();
+        /* A sleeping DS keeps its RAM, seed included, for days on battery:
+         * the ARM7 never lets it sleep, and closing the lid is an
+         * emergency wipe instead (as NDS-Signer does). */
+        if (keysHeld() & KEY_LID) {
+            wipe_and_off();
+        }
         b = ds_btn_feed(&btn, nds_view_button(keysHeld()), now, &kind);
         if (b != DS_BTN_NONE) {
             ds_app_button(&app, b, kind);
@@ -202,11 +218,7 @@ int main(void)
 
         /* 6: a wipe: zero what is left and turn the console off. */
         if (ds_app_wants_reboot(&app)) {
-            scrub();
-            systemShutDown();
-            for (;;) {
-                swiWaitForVBlank();
-            }
+            wipe_and_off();
         }
     }
     /* The console is being turned off or reset (power button). */

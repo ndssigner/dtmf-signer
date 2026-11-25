@@ -35,8 +35,10 @@
  * wireless manager (wlmgr), the block-device driver for the SD card / NAND
  * (blk), the RTC, the touch screen server or maxmod. Their code is not even
  * linked, so the ARM9 has no way to ask for network or storage access. Only
- * power management, the sound driver and the microphone driver run; the
- * microphone and its amplifier are off except while the app listens.
+ * power management, the keypad's extra keys (the lid), the sound driver and
+ * the microphone driver run; the microphone and its amplifier are off
+ * except while the app listens. The console is never let sleep: closing
+ * the lid makes the ARM9 wipe and turn it off instead.
  *
  * wirelessOff() also powers the wireless hardware down at start (the
  * launcher may leave it on): the DS (Mitsumi) chip and, when started in
@@ -64,6 +66,10 @@ int main(void)
 
 	// Initialize power management
 	pmInit();
+
+	// The extended keypad (X/Y and the hinge): the ARM9 sees the lid close
+	pmSetSleepAllowed(false);
+	keypadStartExtServer();
 
 	// No networking: the wireless hardware stays off
 	wirelessOff();
