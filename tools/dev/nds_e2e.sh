@@ -41,9 +41,28 @@ SUM=
 KEEP=
 [ -f "$CFG" ] && { cp -p "$CFG" "$TMP/user.toml"; SUM=$(shasum -a 256 < "$CFG"); }
 
+# melonDS writes its config when it quits: it must be gone before the
+# user's file goes back. (Any melonDS running is this run's: the script
+# refuses to start beside another one.)
+stop_melonds() {
+    [ -n "${PID:-}" ] || return 0
+    pkill -P "$PID" 2>/dev/null || true
+    pkill -x melonDS 2>/dev/null || true
+    kill "$PID" 2>/dev/null || true
+    n=0
+    while { kill -0 "$PID" 2>/dev/null || pgrep -x melonDS >/dev/null 2>&1; } && [ $n -lt 10 ]; do
+        sleep 0.5
+        n=$((n + 1))
+    done
+    pkill -9 -P "$PID" 2>/dev/null || true
+    pkill -9 -x melonDS 2>/dev/null || true
+    kill -9 "$PID" 2>/dev/null || true
+    wait "$PID" 2>/dev/null || true
+    PID=
+}
+
 restore() {
-    [ -n "${PID:-}" ] && { pkill -P "$PID" 2>/dev/null || true; kill "$PID" 2>/dev/null || true; }
-    sleep 1
+    stop_melonds
     if [ -n "$SUM" ]; then
         cp -p "$TMP/user.toml" "$CFG"
         if [ "$(shasum -a 256 < "$CFG")" != "$SUM" ]; then

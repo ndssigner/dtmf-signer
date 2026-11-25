@@ -336,7 +336,6 @@ size_t nds_autotest_mic(int16_t *out, size_t cap, uint32_t now)
 
 void nds_autotest_echo(const char *line)
 {
-    unsigned a, b;
     long t;
 
     if (strncmp(line, "state ", 6) == 0) {
@@ -358,7 +357,7 @@ void nds_autotest_echo(const char *line)
     } else if (sscanf(line, "t sign %ld", &t) == 1) {
         t_sign = t;
         redraw = 1;
-    } else if (sscanf(line, "signed-psbt-begin %u %u", &a, &b) == 2) {
+    } else if (strncmp(line, "signed-psbt-begin ", 18) == 0) {
         collecting = 1;
         signed_len = 0;
     } else if (collecting && strncmp(line, "signed-psbt ", 12) == 0) {
@@ -370,7 +369,7 @@ void nds_autotest_echo(const char *line)
         } else {
             signed_len += (size_t)k;
         }
-    } else if (collecting && sscanf(line, "signed-psbt-end %u", &a) == 1) {
+    } else if (collecting && strncmp(line, "signed-psbt-end ", 16) == 0) {
         collecting = 0;
         collected = 1;
         collected_at = now_last;

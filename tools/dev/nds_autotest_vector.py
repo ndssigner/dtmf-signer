@@ -5,8 +5,8 @@ Usage: python3 tools/dev/nds_autotest_vector.py HOST_BINARY OUT_HEADER
 
 The test (ports/nds/arm9/autotest.c, `make AUTOTEST=1`) plays what the
 site's simulator of the screen firmware plays (site/config.json,
-PROFILE-CABLE-QR's "simulator", mainnet): the keys
-vector's seed with the simulator's PIN, then the PSBT vector. The signed
+PROFILE-CABLE-QR's "simulator", mainnet): the seed of its keys vector,
+with the simulator's PIN, then its PSBT vector. The signed
 PSBT it must give is the host port's (`dtmf-signer-host sign`, HOST_BINARY):
 its length and SHA-256 go in the header, with the seed's entropy, the PIN,
 the PSBT and the fingerprints the screens must show. Test vectors only.

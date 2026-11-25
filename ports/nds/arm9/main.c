@@ -124,7 +124,9 @@ static void pump_audio(int *mic_on)
     if (listening && !*mic_on) {
         *mic_on = nds_mic_start();
 #ifdef DS_NDS_AUTOTEST
-        nds_autotest_mic_start(now_ms());
+        if (*mic_on) {
+            nds_autotest_mic_start(now_ms());
+        }
 #endif
     } else if (!listening && *mic_on) {
         nds_mic_stop_wipe();
