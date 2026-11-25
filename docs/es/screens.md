@@ -88,6 +88,13 @@ pierde un cuadro con los tonos demasiado flojos. `That was not a seed`
 quiere decir que ha llegado un cuadro de otra cosa (una PSBT, por ejemplo);
 la escucha sigue.
 
+![Semilla por aire](../images/screens/air-warning.png)
+
+Una placa cuya única entrada es un micrófono lo declara al arrancar, y
+`Load seed` muestra antes este aviso, una sola vez: los tonos en el aire se
+pueden grabar, así que un PIN corto se puede adivinar. OK escucha, ◀ vuelve.
+El PIN y la frase de paso nunca se aceptan por aire.
+
 ### El PIN
 
 ![PIN, vacío](../images/screens/pin-empty.png)

@@ -26,7 +26,8 @@ enum {
     ST_WORKING,
     ST_WIPED,
     ST_WELCOME,   /* at power-up: flash it yourself */
-    ST_ABOUT      /* the About pages */
+    ST_ABOUT,     /* the About pages */
+    ST_AIR_WARN   /* "Seed by air": the one warning before listening */
 };
 
 /* Heavy work, run in the tick after "Working..." was shown. */
@@ -73,6 +74,7 @@ static const char *state_name(int st)
     case ST_WIPED: return "wiped";
     case ST_WELCOME: return "welcome";
     case ST_ABOUT: return "about";
+    case ST_AIR_WARN: return "air-warning";
     default: return "?";
     }
 }
@@ -257,7 +259,11 @@ static void listening(const ds_app *a, ds_screen *s, int psbt)
     int level = heard ? ds_rx_level(&a->rx) : sound ? a->sound_level : -990;
     int row = 4;
 
-    line(s, 0, psbt ? "PSBT by cable" : "Seed by cable");
+    if (a->channel == DS_AIR) {
+        line(s, 0, psbt ? "PSBT by air" : "Seed by air");
+    } else {
+        line(s, 0, psbt ? "PSBT by cable" : "Seed by cable");
+    }
     if (heard) {
         line(s, 1, DS_ICON_DOT " Receiving");
     } else if (quiet) {
@@ -430,6 +436,15 @@ static void build(const ds_app *a, ds_screen *s)
         footer(s, DS_ICON_UP DS_ICON_DOWN " move  OK choose");
         break;
     }
+    case ST_AIR_WARN:
+        line(s, 0, "Seed by air");
+        line(s, 1, "Anyone who records");
+        line(s, 2, "these tones gets the");
+        line(s, 3, "seed, or can try PINs");
+        line(s, 4, "if it is short. Use");
+        line(s, 5, "a long PIN.");
+        footer(s, "OK listen  " DS_ICON_LEFT " back");
+        break;
     case ST_LOAD:
         listening(a, s, 0);
         break;
@@ -685,9 +700,12 @@ static void job_pin(ds_app *a)
         error_to(a, E_SEED, n);
         return;
     }
-    /* On these channels DS_NEED_CONFIRM and DS_WARN_AIR cannot happen: any
-     * result but DS_OK is an error. */
-    r = ds_session_seed(&a->s, entropy, (size_t)n, pin_len > 0, pin_len, DS_CABLE, 0);
+    /* DS_NEED_CONFIRM cannot happen on these channels. DS_WARN_AIR (a seed
+     * by air) loaded the seed: the warning was shown before listening. */
+    r = ds_session_seed(&a->s, entropy, (size_t)n, pin_len > 0, pin_len, a->channel, 0);
+    if (r == DS_WARN_AIR) {
+        r = DS_OK;
+    }
     if (r == DS_OK) {
         r = ds_wallet_load(&tmp, entropy, (size_t)n, NULL, a->testnet);
         a->seed_fp = tmp.seed_fp;
@@ -738,7 +756,7 @@ static void job_review(ds_app *a)
     a->psbt = p;
     a->psbt_len = len;
     src = psbt_source(a);
-    r = ds_session_review(&a->s, &src, DS_CABLE);
+    r = ds_session_review(&a->s, &src, a->channel);
     if (r != DS_OK) {
         ds_session_cancel(&a->s);
         clear_work(a);
@@ -890,8 +908,21 @@ void ds_app_init(ds_app *a, uint32_t audio_rate)
     a->contrast = DEFAULT_CONTRAST;
     a->scale = 2;
     a->state = ST_WELCOME;
+    a->channel = DS_CABLE;
     refresh(a);
     a->dirty = 1;
+}
+
+int32_t ds_app_set_channel(ds_app *a, int channel)
+{
+    if (channel != DS_CABLE && channel != DS_AIR) {
+        return DS_ERR_ARG;
+    }
+    if (a->state != ST_WELCOME && a->state != ST_HOME) {
+        return DS_ERR_STATE;
+    }
+    a->channel = channel;
+    return DS_OK;
 }
 
 int ds_app_listening(const ds_app *a)
@@ -1021,7 +1052,11 @@ static void button_home(ds_app *a, int btn)
         switch (a->cursor) {
         case 0:
             ds_session_init(&a->s, a->testnet);
-            start_listening(a, DS_RX_SEED, ST_LOAD);
+            if (a->channel == DS_AIR) {
+                set_state(a, ST_AIR_WARN);
+            } else {
+                start_listening(a, DS_RX_SEED, ST_LOAD);
+            }
             break;
         case 4: open_about(a, ST_HOME); break;
         default: change_setting(a, a->cursor - 1, 1); break;
@@ -1144,6 +1179,13 @@ void ds_app_button(ds_app *a, int btn, int kind)
         break;
     case ST_HOME:
         button_home(a, btn);
+        break;
+    case ST_AIR_WARN:
+        if (btn == DS_BTN_OK) {
+            start_listening(a, DS_RX_SEED, ST_LOAD);
+        } else if (btn == DS_BTN_LEFT) {
+            go_home(a);
+        }
         break;
     case ST_LOAD:
         if (btn == DS_BTN_LEFT) {

@@ -329,5 +329,15 @@ int main(void)
     ds_app_button(&app, DS_BTN_LEFT, DS_BTN_WIPE);
     tick();
     shot("wiped");
+
+    /* A port whose input is a microphone: the one warning before a seed. */
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    expect(ds_app_set_channel(&app, DS_AIR) == DS_OK, "the air channel");
+    press(DS_BTN_OK); /* past the welcome */
+    press(DS_BTN_OK);
+    expect(shows("records"), "the air warning");
+    shot("air-warning");
     return 0;
 }

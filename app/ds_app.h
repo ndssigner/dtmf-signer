@@ -6,6 +6,7 @@
  *   Seed fingerprint --OK--> Passphrase? --> Working... --> Wallet fingerprint
  *   --> READY: Sign PSBT (listening --> Working... --> review pages --> hold
  *   OK on the last page --> Working... --> signed PSBT as QR) or Show XPUB.
+ *   On DS_AIR, Load seed first shows one warning (OK listens, LEFT goes back).
  *
  * The session's invariants hold through the screens:
  *  - nothing is signed unless every page of the review has been reached and
@@ -135,6 +136,7 @@ typedef struct {
     size_t echo_len;
     uint32_t rate;
     int state, cursor;
+    int channel;                  /* DS_CABLE (init) or DS_AIR: how the tones arrive */
     int about_page, about_back;   /* the About page shown; the state to return to */
     int testnet, contrast, scale; /* settings: contrast index, 2 or 1 px */
     int qr_scale;                 /* the scale the QR really uses */
@@ -163,6 +165,12 @@ typedef struct {
 
 /* Everything to zero, then HOME. audio_rate: the rate of ds_app_audio. */
 void ds_app_init(ds_app *a, uint32_t audio_rate);
+
+/* How the port gets the tones: DS_CABLE (the default) or DS_AIR (a
+ * microphone: a seed by air is warned about once, before listening; a PIN
+ * and a passphrase are never taken by air). DS_ERR_ARG for any other value,
+ * DS_ERR_STATE unless the screen is the welcome or HOME. */
+int32_t ds_app_set_channel(ds_app *a, int channel);
 
 /* Line-in samples. Taken only while listening; ignored otherwise. */
 void ds_app_audio(ds_app *a, const int16_t *x, size_t n);

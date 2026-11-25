@@ -300,6 +300,9 @@ static void to_ready(const char *passphrase, uint32_t fp)
     CHECK(shows("Wipe"));
 }
 
+/* What the listening titles say: "by cable", or "by air" on the DS port. */
+static const char *by = "by cable";
+
 /* READY -> Sign PSBT -> the vector's parts until the app stops listening. */
 static void send_psbt(const psbt_vector *v)
 {
@@ -314,9 +317,9 @@ static void send_psbt(const psbt_vector *v)
         press(DS_BTN_UP);
     }
     press(DS_BTN_OK);
-    CHECK(shows("by cable"));
+    CHECK(shows(by));
     CHECK(shows("Parts") && shows("0/?"));
-    for (i = 0; i < 10 * enc.seq_len && shows("by cable"); i++) {
+    for (i = 0; i < 10 * enc.seq_len && shows(by); i++) {
         CHECK(tones_next_part(&enc, tones, sizeof tones) > 0);
         feed_tones(tones);
     }
@@ -1372,10 +1375,168 @@ static void test_app_activity(void)
     ds_app_init(&app, TONES_RATE);
 }
 
+/* ---- the channel the port declares ---- */
+
+/* Init, past the welcome, the channel set (DS_CABLE: left as init has it). */
+static void to_home(int channel)
+{
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    press(DS_BTN_OK);
+    CHECK(shows("Load seed"));
+    if (channel == DS_AIR) {
+        CHECK_EQ_INT(ds_app_set_channel(&app, DS_AIR), DS_OK);
+        by = "by air";
+    } else {
+        by = "by cable";
+    }
+}
+
+/* AIR: HOME -> Load seed -> the warning -> OK -> the seed's tones (with
+ * pin, or none) -> the PIN typed -> Seed fingerprint. */
+static void air_to_seed_fp(const char *pin)
+{
+    to_home(DS_AIR);
+    press(DS_BTN_OK);
+    CHECK(shows("records"));
+    press(DS_BTN_OK);
+    CHECK(shows("Seed by air"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(tones_seed_ur(zero16, 16, pin, tones, sizeof tones) > 0);
+    CHECK(feed_tones(tones));
+    CHECK(shows("PIN"));
+    CHECK(!shows("records")); /* one warning only, before listening */
+    if (pin != NULL) {
+        type(pin);
+    }
+    hold_ok();
+    work_done();
+    CHECK(shows("Seed fingerprint"));
+    CHECK(shows("73c5da0a"));
+}
+
+static void test_app_channel_default_cable(void)
+{
+    to_home(DS_CABLE);
+    press(DS_BTN_OK);
+    CHECK(shows("Seed by cable"));
+    CHECK(!shows("air"));
+    CHECK(!shows("records"));
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_set_channel_args(void)
+{
+    to_home(DS_CABLE);
+    CHECK_EQ_INT(ds_app_set_channel(&app, 99), DS_ERR_ARG);
+    CHECK_EQ_INT(ds_app_set_channel(&app, DS_AIR), DS_OK);
+    CHECK_EQ_INT(ds_app_set_channel(&app, DS_CABLE), DS_OK);
+    CHECK_EQ_INT(ds_app_set_channel(&app, DS_AIR), DS_OK);
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    CHECK_EQ_INT(ds_app_set_channel(&app, DS_AIR), DS_OK); /* at the welcome */
+    ds_app_init(&app, TONES_RATE);
+    to_seed_fp(); /* cable */
+    CHECK_EQ_INT(ds_app_set_channel(&app, DS_AIR), DS_ERR_STATE);
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_air_warning_then_listen(void)
+{
+    char line[DS_APP_ECHO_MAX];
+    to_home(DS_AIR);
+    press(DS_BTN_OK);
+    CHECK(shows("Seed by air"));
+    CHECK(shows("records"));
+    CHECK(shows("Use"));
+    CHECK(shows("a long PIN."));
+    CHECK(shows("OK listen"));
+    CHECK(shows("back"));
+    CHECK(!shows("Waiting for tones"));
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    {
+        int found = 0;
+        int32_t n;
+        while ((n = ds_app_take_echo(&app, line, sizeof line)) > 0) {
+            if (strcmp(line, "state air-warning") == 0) {
+                found = 1;
+            }
+        }
+        CHECK(found);
+    }
+    press(DS_BTN_LEFT);
+    CHECK(shows("Load seed"));
+    CHECK(!shows("records"));
+    press(DS_BTN_OK);
+    CHECK(shows("records"));
+    press(DS_BTN_OK);
+    CHECK(shows("Seed by air"));
+    CHECK(shows("Waiting for tones"));
+    CHECK(!shows("records"));
+    CHECK_EQ_INT(ds_app_listening(&app), 1);
+    /* WIPE works from the warning, as everywhere. */
+    ds_app_init(&app, TONES_RATE);
+    to_home(DS_AIR);
+    press(DS_BTN_OK);
+    CHECK(shows("records"));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_WIPE);
+    CHECK(app.reboot);
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_air_seed_plain_loads(void)
+{
+    air_to_seed_fp(NULL);
+    CHECK_EQ_INT(app.s.state, DS_S_SEED);
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_air_seed_short_pin_loads(void)
+{
+    air_to_seed_fp("TEST");
+    CHECK(shows("73c5da0a")); /* the cable flow's fingerprint */
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_air_psbt_signs(void)
+{
+    const psbt_vector *v = vector("one input with change");
+    uint32_t id = 0;
+    int32_t n;
+    size_t w_len = sign_direct(v);
+
+    air_to_seed_fp("TEST");
+    look();
+    press(DS_BTN_OK);
+    press(DS_BTN_OK); /* no passphrase */
+    work_done();
+    look();
+    press(DS_BTN_OK);
+    CHECK(shows("Sign PSBT"));
+    send_psbt(v);
+    CHECK(shows("Working..."));
+    work_done();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    read_all_pages();
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    work_done();
+    CHECK(shows("Signed"));
+    n = take_signed(raw, sizeof raw, &id);
+    CHECK_EQ_INT(n, (int32_t)w_len);
+    CHECK(n > 0 && memcmp(raw, want, w_len) == 0);
+    by = "by cable";
+    ds_app_init(&app, TONES_RATE);
+}
+
 TEST_MAIN(test_app_seed_flow, test_app_listening, test_app_seed_discard, test_app_passphrase,
           test_app_sign_flow, test_app_timings, test_app_reject, test_app_cancel,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
           test_app_fits_qr, test_app_settings, test_app_single_page,
           test_app_echo_abort, test_app_echo_dropped, test_app_qr_pace,
           test_app_wipe_anywhere, test_app_arm_delay, test_app_job_screens_wait,
-          test_app_activity, test_app_welcome_about)
+          test_app_activity, test_app_welcome_about, test_app_channel_default_cable,
+          test_app_set_channel_args, test_app_air_warning_then_listen,
+          test_app_air_seed_plain_loads, test_app_air_seed_short_pin_loads,
+          test_app_air_psbt_signs)

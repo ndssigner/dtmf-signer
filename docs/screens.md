@@ -86,6 +86,13 @@ a seed. ◀ goes back home.
 with its tones too quiet. `That was not a seed` means a frame of something
 else arrived (a PSBT, for example); listening goes on.
 
+![Seed by air](images/screens/air-warning.png)
+
+A port whose only input is a microphone says so when it starts, and `Load seed`
+first shows this warning, once: tones in the air can be recorded, so a short
+PIN can be guessed. OK listens, ◀ goes back. The PIN and the passphrase are
+never taken by air.
+
 ### The PIN
 
 ![PIN, empty](images/screens/pin-empty.png)
