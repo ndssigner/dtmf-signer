@@ -1300,7 +1300,7 @@ static void seed_failed(ds_voice *v, uint16_t phrase)
 
 /* The PIN is complete: decrypt, apply the policy, load. As ds_app's job_pin:
  * the PIN, the group and the entropy are wiped on every path. By the
- * handset the seed came by air (DS_AIR: encrypted with a PIN of 12 or more);
+ * handset the seed came by air (DS_AIR: it warns, never refuses);
  * typed on the keypad when asked it counts as a cable (DS_CABLE). */
 static void load_seed(ds_voice *v)
 {

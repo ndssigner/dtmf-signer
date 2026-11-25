@@ -114,7 +114,8 @@ Mitigaciones:
 
 | Riesgo | Valoración | Mitigación |
 |---|---|---|
-| Alguien graba la semilla cifrada que se envía por el aire y prueba PINs sin conexión | Media | PIN de **12 caracteres o más**; semilla **por cable** cuando sea posible; el PIN nunca suena. El montaje Cable y QR solo escucha por cable |
+| Alguien graba la semilla cifrada que se envía por el aire y prueba PINs sin conexión | Media | El firmador acepta una semilla por el aire con un aviso y no la rechaza: no distingue una semilla cifrada de una sin cifrar, ni sabe con qué PIN se cifró, y la exposición ocurre al reproducir los tonos. El usuario asume el riesgo a sabiendas. PIN de **12 caracteres o más** (uno corto cae por fuerza bruta); semilla **por cable** cuando sea posible; el PIN nunca suena. El montaje Cable y QR solo escucha por cable |
+| Se envía por el aire una semilla sin cifrar | Alta | Quien la grabe, aunque sea de pasada, tiene la semilla. El aviso lo dice antes de escuchar; usar el cable, o cifrarla con un PIN largo |
 | El aparato que envía la semilla o la passphrase está comprometido | Media | Enviar datos sensibles desde un aparato **desconectado de la red**; el cable protege el camino, no el origen |
 | La cartera o el ordenador generan una PSBT con una dirección cambiada | Media | Revisión **completa en la pantalla** antes de firmar; verificación de la salida de cambio |
 | El ordenador que alimenta el prototipo por USB ve su eco: el descriptor (XPUB y huella), las PSBT firmadas y líneas de estado y tiempos | Baja (privacidad, no fondos) | El eco es solo de salida y nunca lleva secretos, pero dice a ese ordenador qué cartera es. Alimentarlo con un cargador o una batería externa; **pendiente**: una opción de compilación sin eco |

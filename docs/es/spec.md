@@ -139,8 +139,7 @@ pulsadas mientras el firmador las pide explícitamente (el PIN, una semilla
 por teclado, una opción del menú) cuentan como `CABLE`**: lo que se teclea
 no suena en la sala. Todo lo demás que llega por la línea, como una PSBT o
 una semilla cifrada con PIN reproducida junto al auricular, es `AIR`; una
-semilla por el aire sigue dentro de la §4.2, con un PIN de al menos `12`
-caracteres. El firmador avisa una vez: un manos libres dice las teclas en
+semilla por el aire sigue dentro de la §4.2. El firmador avisa una vez: un manos libres dice las teclas en
 voz alta, y la memoria de rellamada del teléfono puede guardarlas (§4.3).
 
 ### 4.2 Qué se acepta por dónde
@@ -148,13 +147,19 @@ voz alta, y la memoria de rellamada del teléfono puede guardarlas (§4.3).
 | Dato | `AIR` | `CABLE` | `LOCAL` |
 |---|---|---|---|
 | PSBT, XPUB, resúmenes, huellas | ✅ | ✅ | — |
-| Semilla cifrada con PIN | ⚠️ con aviso, y un PIN de al menos `12` caracteres | ✅ recomendado | ❌ (obligaría a mostrarla) |
-| Semilla sin cifrar | ❌ | ✅ | ❌ salvo la entrada de SeedCraft en consola, a ciegas |
+| Semilla cifrada con PIN | ⚠️ con aviso (se recomienda encarecidamente un PIN largo) | ✅ recomendado | ❌ (obligaría a mostrarla) |
+| Semilla sin cifrar | ⚠️ con aviso: quien la grabe tiene la semilla | ✅ | ❌ salvo la entrada de SeedCraft en consola, a ciegas |
 | PIN | ❌ | ✅ | ✅ |
 | Passphrase | ❌ | ✅ | ✅ |
 
-- **Los datos sensibles (la semilla sin cifrar, el PIN, la passphrase) van
-  solo por `CABLE` o `LOCAL`, aunque viajen en DTMF.**
+- **El PIN y la passphrase van solo por `CABLE` o `LOCAL`, aunque viajen
+  en DTMF.**
+- **Una semilla por `AIR` es una decisión informada del usuario.** El
+  firmador avisa una vez, antes de escuchar, y no la rechaza: no distingue
+  una semilla cifrada de una sin cifrar, ni sabe con qué PIN se cifró (un
+  PIN equivocado pero válido da simplemente otra cartera), y la exposición
+  ocurre al reproducir los tonos, así que rechazarla al recibirla no
+  protegería nada.
 - **Los datos sensibles por UART solo se aceptan con confirmación física**:
   el firmador pregunta, por ejemplo, "¿Aceptar passphrase recibida por
   UART?". Un terminal conectado nunca puede meter datos sensibles sin que el
@@ -276,13 +281,16 @@ una comisión normal y acaba firmando una enorme.
 
 ## 7. Hardware mínimo
 
-De las §2–§5 se deduce que todo montaje necesita al menos:
+De las §2–§5 se deduce que todo montaje necesita al menos lo siguiente,
+salvo que la entrada `CABLE` es recomendable, no obligatoria:
 
 - **Una entrada `CABLE`** (jack de entrada de línea, UART o la línea
-  telefónica): la vía recomendada para la semilla cifrada, la única para
-  la semilla sin cifrar, y válida para el PIN y la passphrase si no hay
-  entrada `LOCAL`. En una línea telefónica, las teclas que pide cuentan
-  como `CABLE` (§4.1).
+  telefónica): recomendable, porque es la vía que mantiene la semilla fuera
+  de la sala, y válida para el PIN y la passphrase si no hay entrada
+  `LOCAL`. En una línea telefónica, las teclas que pide cuentan como
+  `CABLE` (§4.1). Se permite un montaje solo de aire; lo dice en su ficha
+  del catálogo («solo aire»), y quien lo use no puede cargar una semilla
+  sin exponerla a la sala.
 - **Una confirmación:** un botón, una tecla de un teclado `LOCAL`, o el
   gancho de un teléfono en la propia línea del firmador (un colgado corto,
   de 200 a 1500 ms; ningún sonido puede imitarlo).

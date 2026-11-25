@@ -637,20 +637,19 @@ static void test_air_seed_with_long_pin(void)
     CHECK_EQ_STR(fp, "8b218e81");
 }
 
-static void test_air_seed_short_pin_refused(void)
+static void test_air_seed_short_pin_loads(void)
 {
+    /* By air a short PIN is not refused: the warning was already given. */
     air_seed_to_pin(&L, seed_6a, "1234");
     run_quiet(&L);
     size_t mark = L.log_len;
     type_pin(&L, "1234");
+    run_ms(&L, 500);
     run_quiet(&L);
-    long e = find_line(&L, "say seed_refused", mark); /* by air: 12 characters or more */
-    CHECK(e >= 0);
-    CHECK(e >= 0 && HAS(&L, "state seed-how", (size_t)e));
-    CHECK(!HAS(&L, "state fingerprint", mark));
-    CHECK(strstr(L.log + mark, "fingerprint ") == NULL);
-    CHECK(L.v.s.state != DS_S_SEED && L.v.s.state != DS_S_READY);
-    CHECK(all_zero(L.v.s.entropy, sizeof L.v.s.entropy));
+    CHECK(find_line(&L, "say seed_refused", mark) < 0);
+    CHECK(HAS(&L, "state fingerprint", mark));
+    CHECK(find_line(&L, "fingerprint 8b218e81", mark) >= 0);
+    CHECK_EQ_INT(L.v.s.state, DS_S_SEED);
     CHECK(all_zero(&L.v.mt, sizeof L.v.mt));
     CHECK(all_zero(&L.v.rx, sizeof L.v.rx));
 }
@@ -3824,7 +3823,7 @@ TEST_MAIN(test_one_language_no_list, test_greets_on_off_hook,
           test_hash_in_menu_does_nothing, test_two_toggles_network, test_zero_repeats,
           test_key_during_prompt_barges_in, test_own_voice_is_not_a_key,
           test_hang_up_keeps_session, test_air_seed_with_long_pin,
-          test_air_seed_short_pin_refused, test_keypad_seed_no_pin,
+          test_air_seed_short_pin_loads, test_keypad_seed_no_pin,
           test_keypad_seed_with_pin, test_pin_chars_never_in_echo,
           test_hang_up_mid_pin_wipes, test_keypad_choice_key_not_data,
           test_air_listens_only_when_quiet, test_pin_keys_forgotten,

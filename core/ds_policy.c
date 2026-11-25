@@ -1,9 +1,8 @@
 #include "ds_session.h"
 
-#define DS_AIR_MIN_PIN 12
-
 int32_t ds_policy_accepts(int data, int channel, size_t pin_len)
 {
+    (void)pin_len; /* kept: the signature is public; no rule depends on it */
     if (channel != DS_AIR && channel != DS_CABLE &&
         channel != DS_CABLE_TERMINAL && channel != DS_LOCAL) {
         return DS_ERR_POLICY;
@@ -12,13 +11,12 @@ int32_t ds_policy_accepts(int data, int channel, size_t pin_len)
     case DS_DATA_PSBT:
         return channel == DS_LOCAL ? DS_ERR_POLICY : DS_OK;
     case DS_DATA_SEED_ENCRYPTED:
-        if (channel == DS_AIR) {
-            return pin_len >= DS_AIR_MIN_PIN ? DS_WARN_AIR : DS_ERR_POLICY;
-        }
-        break;
     case DS_DATA_SEED_PLAIN:
+        /* The signer cannot tell whether a seed is encrypted, nor with which
+         * PIN, and the exposure happens when the tones are played: air warns
+         * (once, before listening) and never refuses. */
         if (channel == DS_AIR) {
-            return DS_ERR_POLICY;
+            return DS_WARN_AIR;
         }
         break;
     case DS_DATA_PIN:

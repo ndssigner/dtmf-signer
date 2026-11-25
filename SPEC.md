@@ -132,8 +132,7 @@ everything `AIR` and refuse the PIN. Instead, **keys typed while the signer
 explicitly asks for them (the PIN, a keypad seed, a menu choice) count as
 `CABLE`**: what is typed does not sound in the room. Everything else that
 arrives on the line, such as a PSBT or a PIN-encrypted seed played near the
-handset, is `AIR`; a seed by air stays within §4.2, with a PIN of at least
-`12` characters. The signer warns once: a speakerphone says the keys aloud,
+handset, is `AIR`; a seed by air stays within §4.2. The signer warns once: a speakerphone says the keys aloud,
 and the telephone's redial memory may keep them (§4.3).
 
 ### 4.2 What is accepted where
@@ -141,13 +140,18 @@ and the telephone's redial memory may keep them (§4.3).
 | Data | `AIR` | `CABLE` | `LOCAL` |
 |---|---|---|---|
 | PSBT, xpub, summaries, fingerprints | ✅ | ✅ | — |
-| Seed encrypted with a PIN | ⚠️ with a warning, and a PIN of at least `12` characters | ✅ recommended | ❌ (would mean showing it) |
-| Unencrypted seed | ❌ | ✅ | ❌ except SeedCraft console entry, blind |
+| Seed encrypted with a PIN | ⚠️ with a warning (a long PIN is strongly recommended) | ✅ recommended | ❌ (would mean showing it) |
+| Unencrypted seed | ⚠️ with a warning: anyone who records it has the seed | ✅ | ❌ except SeedCraft console entry, blind |
 | PIN | ❌ | ✅ | ✅ |
 | Passphrase | ❌ | ✅ | ✅ |
 
-- **Sensitive data (the unencrypted seed, the PIN, the passphrase) travels
-  only by `CABLE` or `LOCAL`, even when it travels as DTMF.**
+- **The PIN and the passphrase travel only by `CABLE` or `LOCAL`, even
+  when they travel as DTMF.**
+- **A seed by `AIR` is the user's informed choice.** The signer warns once,
+  before listening, and does not refuse: it cannot tell an encrypted seed
+  from a plain one, nor which PIN was used (a wrong but valid PIN just
+  gives another wallet), and the exposure happens when the tones are
+  played, so refusing on receipt would protect nothing.
 - **Sensitive data over UART is accepted only after physical
   confirmation**: the signer asks, for example, "Accept passphrase received
   over UART?". A connected terminal can never slip sensitive data in
@@ -266,13 +270,15 @@ fee and ends up signing a huge one.
 
 ## 7. Minimum hardware
 
-From §2–§5, every build needs at least:
+From §2–§5, every build needs at least the following, except that the
+`CABLE` input is recommended, not required:
 
-- **A `CABLE` input** (line-in jack, UART or the telephone line): the
-  recommended path for the encrypted seed, the only one for the
-  unencrypted seed, and valid for the PIN and the passphrase when there is
-  no `LOCAL` input. On a telephone line, the keys it asks for count as
-  `CABLE` (§4.1).
+- **A `CABLE` input** (line-in jack, UART or the telephone line):
+  recommended, because it is the path that keeps a seed out of the room,
+  and valid for the PIN and the passphrase when there is no `LOCAL` input.
+  On a telephone line, the keys it asks for count as `CABLE` (§4.1). An
+  air-only build is allowed; it says so in its catalog entry ("air only"),
+  and its users cannot load a seed without exposing it to the room.
 - **A confirmation:** a button, a key of a `LOCAL` keypad, or the hook of a
   telephone on the signer's own line (a short hang-up, on-hook for 200 to
   1500 ms; no sound can fake it).

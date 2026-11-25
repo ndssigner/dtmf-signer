@@ -113,7 +113,8 @@ Mitigations:
 
 | Risk | Rating | Mitigation |
 |---|---|---|
-| Someone records the encrypted seed sent through the air and tries PINs offline | Medium | A PIN of **12 characters or more**; the seed **by cable** when possible; the PIN never sounds. The Cable and QR build only listens by cable |
+| Someone records the encrypted seed sent through the air and tries PINs offline | Medium | The signer accepts a seed by air with a warning and does not refuse it: it cannot tell an encrypted seed from a plain one, nor which PIN was used, and the exposure happens when the tones are played. The user takes the risk knowingly. A PIN of **12 characters or more** (a short one falls to brute force); the seed **by cable** when possible; the PIN never sounds. The Cable and QR build only listens by cable |
+| A seed that is not encrypted is sent through the air | High | Anyone who records it, even in passing, has the seed. The warning says so before listening; use the cable, or encrypt it with a long PIN |
 | The device that sends the seed or the passphrase is compromised | Medium | Send sensitive data from a device **disconnected from the network**; the cable protects the path, not the source |
 | The wallet or the computer makes a PSBT with a swapped address | Medium | A **full review on the screen** before signing; the change output is checked |
 | The computer that powers the prototype over USB sees its echo: the descriptor (xpub and fingerprint), the signed PSBTs, and state and timing lines | Low (privacy, not funds) | The echo is output only and never carries secrets, but it tells that computer which wallet this is. Power the board from a charger or a power bank; **to do**: a build option with no echo |

@@ -41,12 +41,14 @@
 
 /* Whether a channel may carry the data:
  *   PSBT             air, cable, cable with terminal; not local (DS_ERR_POLICY)
- *   SEED_ENCRYPTED   cable; air only with pin_len >= 12 (DS_WARN_AIR, the port
- *                    must show the warning); terminal: DS_NEED_CONFIRM
- *   SEED_PLAIN       cable; terminal: DS_NEED_CONFIRM; nothing else
+ *   SEED_ENCRYPTED   cable; air with DS_WARN_AIR (the port must show the
+ *   SEED_PLAIN       warning before listening); terminal: DS_NEED_CONFIRM
  *   PIN, PASSPHRASE  cable and local; terminal: DS_NEED_CONFIRM; never air
+ * Seeds by air warn and never refuse: the signer cannot know whether a seed
+ * is encrypted, nor with which PIN, and the exposure happens when the tones
+ * are played, so refusing on receipt would protect nothing.
  * Returns DS_OK, DS_WARN_AIR, DS_NEED_CONFIRM or DS_ERR_POLICY (also for an
- * unknown data or channel). pin_len only matters for SEED_ENCRYPTED. */
+ * unknown data or channel). pin_len is unused by the policy. */
 int32_t ds_policy_accepts(int data, int channel, size_t pin_len);
 
 /* The states start at 1: an all-zero struct (a wiped session) is in no state,

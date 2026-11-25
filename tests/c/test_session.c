@@ -149,7 +149,7 @@ static void test_policy_table(void)
     } t[] = {
         {DS_DATA_PSBT, DS_OK, DS_OK, DS_OK, DS_ERR_POLICY},
         {DS_DATA_SEED_ENCRYPTED, DS_WARN_AIR, DS_OK, DS_NEED_CONFIRM, DS_ERR_POLICY},
-        {DS_DATA_SEED_PLAIN, DS_ERR_POLICY, DS_OK, DS_NEED_CONFIRM, DS_ERR_POLICY},
+        {DS_DATA_SEED_PLAIN, DS_WARN_AIR, DS_OK, DS_NEED_CONFIRM, DS_ERR_POLICY},
         {DS_DATA_PIN, DS_ERR_POLICY, DS_OK, DS_NEED_CONFIRM, DS_OK},
         {DS_DATA_PASSPHRASE, DS_ERR_POLICY, DS_OK, DS_NEED_CONFIRM, DS_OK},
     };
@@ -163,13 +163,14 @@ static void test_policy_table(void)
     }
 }
 
-static void test_policy_pin_length_boundary(void)
+static void test_policy_air_seed_any_pin(void)
 {
-    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 11), DS_ERR_POLICY);
-    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 0), DS_ERR_POLICY);
+    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 0), DS_WARN_AIR);
+    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 4), DS_WARN_AIR);
     CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 12), DS_WARN_AIR);
-    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_AIR, 13), DS_WARN_AIR);
-    /* The PIN length matters only for the encrypted seed on the air. */
+    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_PLAIN, DS_AIR, 0), DS_WARN_AIR);
+    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_PIN, DS_AIR, 20), DS_ERR_POLICY);
+    CHECK_EQ_INT(ds_policy_accepts(DS_DATA_PASSPHRASE, DS_AIR, 0), DS_ERR_POLICY);
     CHECK_EQ_INT(ds_policy_accepts(DS_DATA_SEED_ENCRYPTED, DS_CABLE, 0), DS_OK);
     CHECK_EQ_INT(ds_policy_accepts(DS_DATA_PSBT, DS_AIR, 0), DS_OK);
 }
@@ -200,9 +201,7 @@ static void test_session_seed_policy(void)
     uint8_t e[16] = {1};
 
     ds_session_init(&s, 0);
-    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_AIR, 0), DS_ERR_POLICY);
     CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_LOCAL, 0), DS_ERR_POLICY);
-    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 1, 11, DS_AIR, 0), DS_ERR_POLICY);
     CHECK_EQ_INT(ds_session_seed(&s, e, 16, 1, 12, DS_LOCAL, 0), DS_ERR_POLICY);
     /* Refused: the session is untouched, no entropy kept. */
     CHECK_EQ_INT(s.state, DS_S_EMPTY);
@@ -210,13 +209,18 @@ static void test_session_seed_policy(void)
     CHECK_EQ_INT(s.entropy_len, 0);
 }
 
-static void test_session_seed_encrypted_by_air_warns(void)
+static void test_session_seed_by_air_warns_and_loads(void)
 {
     ds_session s;
     uint8_t e[16] = {1};
 
     ds_session_init(&s, 0);
-    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 1, 12, DS_AIR, 0), DS_WARN_AIR);
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_AIR, 0), DS_WARN_AIR);
+    CHECK_EQ_INT(s.state, DS_S_SEED);
+    ds_session_wipe(&s);
+
+    ds_session_init(&s, 0);
+    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 1, 4, DS_AIR, 0), DS_WARN_AIR);
     CHECK_EQ_INT(s.state, DS_S_SEED);
     ds_session_wipe(&s);
 }
@@ -258,14 +262,12 @@ static void test_session_seed_via_terminal_needs_confirmation(void)
     ds_session_wipe(&s);
 }
 
-static void test_session_confirmed_does_not_bypass_policy(void)
+static void test_session_confirmed_does_not_bypass_local_policy(void)
 {
     ds_session s;
     uint8_t e[16] = {1};
 
     ds_session_init(&s, 0);
-    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_AIR, 1), DS_ERR_POLICY);
-    CHECK_EQ_INT(ds_session_seed(&s, e, 16, 1, 11, DS_AIR, 1), DS_ERR_POLICY);
     CHECK_EQ_INT(ds_session_seed(&s, e, 16, 0, 0, DS_LOCAL, 1), DS_ERR_POLICY);
     CHECK_EQ_INT(s.state, DS_S_EMPTY);
 }
@@ -712,12 +714,12 @@ static void test_session_null_arguments(void)
     ds_session_init(NULL, 0);
 }
 
-TEST_MAIN(test_policy_table, test_policy_pin_length_boundary,
+TEST_MAIN(test_policy_table, test_policy_air_seed_any_pin,
           test_policy_unknown, test_session_init, test_session_seed_policy,
-          test_session_seed_encrypted_by_air_warns,
+          test_session_seed_by_air_warns_and_loads,
           test_session_seed_bad_length,
           test_session_seed_via_terminal_needs_confirmation,
-          test_session_confirmed_does_not_bypass_policy,
+          test_session_confirmed_does_not_bypass_local_policy,
           test_session_seed_only_from_empty, test_session_pin_by_air_rejected,
           test_session_passphrase_paths,
           test_session_passphrase_rejected_can_retry,
