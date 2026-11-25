@@ -37,4 +37,9 @@ int nds_view_qr(const ds_qr *q, uint16_t *out, uint16_t dark, uint16_t light);
  * DOWN, RIGHT; DS_BTN_NONE for nothing relevant. */
 int nds_view_button(uint32_t held);
 
+/* A touch at DS bottom-screen pixel (tx 0-255, ty 0-191) to the fb pixel it
+ * shows: x = tx / 2, y = (ty - 32) / 2. Returns 1 inside the fb (rows
+ * 32-159), 0 outside (x and y untouched). */
+int nds_view_touch(int tx, int ty, int *x, int *y);
+
 #endif

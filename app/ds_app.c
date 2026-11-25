@@ -1083,6 +1083,19 @@ static void button_ready(ds_app *a, int btn)
     }
 }
 
+/* What an arrow does in the review, armed or not: UP and DOWN turn the
+ * cards, LEFT cancels. */
+static void pager_arrow(ds_app *a, int btn)
+{
+    if (btn == DS_BTN_UP) {
+        ds_pager_move(&a->pager, -1);
+    } else if (btn == DS_BTN_DOWN) {
+        ds_pager_move(&a->pager, 1);
+    } else if (btn == DS_BTN_LEFT) {
+        go_ready(a);
+    }
+}
+
 /* The review. ds_btn sends at most one LONG per press, and a PRESS ends
  * its press. A PRESS arms the review only DS_APP_ARM_MS after the review
  * was taken by the port and a tick followed (gate_open): events lag their
@@ -1107,13 +1120,7 @@ static void button_pager(ds_app *a, int btn, int kind)
     if (gate_open(a)) {
         a->armed = 1;
     }
-    if (btn == DS_BTN_UP) {
-        ds_pager_move(&a->pager, -1);
-    } else if (btn == DS_BTN_DOWN) {
-        ds_pager_move(&a->pager, 1);
-    } else if (btn == DS_BTN_LEFT) {
-        go_ready(a);
-    }
+    pager_arrow(a, btn);
 }
 
 static void button_error(ds_app *a, int btn)
@@ -1132,9 +1139,8 @@ static void button_error(ds_app *a, int btn)
 
 /* The picker for the PIN or the passphrase: delete on an empty entry goes
  * back, OK held ends it. */
-static void button_picker(ds_app *a, int btn, int kind, int pin)
+static void picker_result(ds_app *a, int r, int pin)
 {
-    int r = ds_picker_button(&a->pick, btn, kind);
     if (r == DS_PICK_BACK) {
         ds_picker_wipe(&a->pick);
         if (pin) {
@@ -1146,6 +1152,13 @@ static void button_picker(ds_app *a, int btn, int kind, int pin)
         start_job(a, pin ? JOB_PIN : JOB_DERIVE);
     }
 }
+
+static void button_picker(ds_app *a, int btn, int kind, int pin)
+{
+    picker_result(a, ds_picker_button(&a->pick, btn, kind), pin);
+}
+
+static void press_screen(ds_app *a, int btn);
 
 void ds_app_button(ds_app *a, int btn, int kind)
 {
@@ -1170,6 +1183,13 @@ void ds_app_button(ds_app *a, int btn, int kind)
     if (kind != DS_BTN_PRESS || !gate_open(a)) {
         return; /* a tap carried over from "Working..." is dropped */
     }
+    press_screen(a, btn);
+    refresh(a);
+}
+
+/* A PRESS on the screens other than the picker and the review. */
+static void press_screen(ds_app *a, int btn)
+{
     switch (a->state) {
     case ST_WELCOME:
         button_welcome(a, btn);
@@ -1236,6 +1256,34 @@ void ds_app_button(ds_app *a, int btn, int kind)
         break;
     default:
         break; /* working: buttons wait */
+    }
+}
+
+/* The touch screen (the DS port): the picker's grid in PIN and passphrase,
+ * and the arrow hints of row 7 on every screen as a PRESS of that arrow,
+ * through a path that never arms the review (no DS_BTN_PRESS reaches
+ * button_pager) and, like a button, is ignored on a screen a job put up
+ * until gate_open. OK is never touched: it stays a button. */
+void ds_app_touch(ds_app *a, int x, int y)
+{
+    int btn;
+
+    if (a->state == ST_WIPED || a->state == ST_WORKING) {
+        return;
+    }
+    if (a->state == ST_PIN || a->state == ST_PASS) {
+        picker_result(a, ds_picker_touch(&a->pick, x, y), a->state == ST_PIN);
+        refresh(a);
+        return;
+    }
+    btn = ds_ui_footer_hit(&a->screen, x, y);
+    if (btn == DS_BTN_NONE || btn == DS_BTN_OK || !gate_open(a)) {
+        return;
+    }
+    if (a->state == ST_PAGER) {
+        pager_arrow(a, btn); /* never a->armed */
+    } else {
+        press_screen(a, btn);
     }
     refresh(a);
 }

@@ -255,6 +255,47 @@ void ds_pager_move(ds_pager *p, int delta)
     }
 }
 
+int ds_ui_footer_hit(const ds_screen *s, int x, int y)
+{
+    const char *t = s->line[DS_UI_ROWS - 1];
+    int x0 = s->qr ? QR_X : 0, cols = s->qr ? QR_COLS : DS_UI_COLS;
+    int col, start = 0, n = (int)strlen(t);
+
+    if (s->review || s->pick || y < 8 * (DS_UI_ROWS - 1) || y > 63 || x < x0) {
+        return DS_BTN_NONE;
+    }
+    col = (x - x0) / 6;
+    if (col >= cols || col >= n) {
+        return DS_BTN_NONE;
+    }
+    /* The segment that holds col: from start to the next two spaces. */
+    while (start < n) {
+        const char *gap = strstr(t + start, "  ");
+        int end = gap ? (int)(gap - t) : n; /* one past the segment */
+        if (col < start) {
+            return DS_BTN_NONE; /* in a gap */
+        }
+        if (col < end) {
+            static const int ARROW[4] = { DS_BTN_LEFT, DS_BTN_RIGHT, DS_BTN_UP, DS_BTN_DOWN };
+            int first = t[start], second = start + 1 < end ? t[start + 1] : 0;
+            int is_first = first >= DS_ICON_LEFT[0] && first <= DS_ICON_DOWN[0];
+            int is_second = second >= DS_ICON_LEFT[0] && second <= DS_ICON_DOWN[0];
+            if (!is_first) {
+                return DS_BTN_NONE;
+            }
+            if (is_second && col > start) {
+                return ARROW[second - DS_ICON_LEFT[0]];
+            }
+            return ARROW[first - DS_ICON_LEFT[0]];
+        }
+        start = end;
+        while (start < n && t[start] == ' ') {
+            start++;
+        }
+    }
+    return DS_BTN_NONE;
+}
+
 /* ---- picker ---- */
 
 #define PICK_COLS 10
@@ -351,6 +392,41 @@ int ds_picker_button(ds_picker *p, int btn, int kind)
         return 0;
     }
     p->cur = row * PICK_COLS + col;
+    return 0;
+}
+
+int ds_picker_touch(ds_picker *p, int x, int y)
+{
+    const char *cells = pick_page(p);
+    int n = (int)strlen(cells), col, row, i;
+
+    /* Cell i: x cx-2..cx+7, y cy-2..cy+7 with cx = col * 10 + 2 and
+     * cy = 20 + row * 10, so the cells tile x 0-99 and y 18 on. */
+    if (x >= 0 && x < 10 * PICK_COLS && y >= 18) {
+        col = x / 10;
+        row = (y - 18) / 10;
+        i = row * PICK_COLS + col;
+        if (i < n) {
+            if (cells[i] == DS_PICK_NONE) {
+                return 0;
+            }
+            p->cur = i;
+            return ds_picker_button(p, DS_BTN_OK, DS_BTN_PRESS);
+        }
+    }
+    /* The tabs, y 50-58, as ds_picker_draw lays them out. */
+    if (pick_pages(p) > 1 && y >= 50 && y <= 58) {
+        int tx = 0;
+        for (i = 0; i < 4; i++) {
+            int w = 6 * (int)strlen(TEXT_TABS[i]) + 1;
+            if (x >= tx && x <= tx + w) {
+                p->page = i;
+                p->cur = 0;
+                return 0;
+            }
+            tx += w + 6;
+        }
+    }
     return 0;
 }
 

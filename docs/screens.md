@@ -25,6 +25,10 @@ The bottom row of most screens, under a dotted line, says which buttons do
 what there. The screen is turned 180 degrees by default, as the breadboard
 mounts it.
 
+On the Nintendo DS the stylus also works: tap a cell of the PIN or
+passphrase grid (or a page tab), or an arrow hint of the bottom row. OK is
+never tapped: finishing an entry and signing stay a held A.
+
 ## At power-up
 
 ![Flashed it yourself?](images/screens/welcome.png)

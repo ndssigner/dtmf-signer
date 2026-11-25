@@ -1530,6 +1530,169 @@ static void test_app_air_psbt_signs(void)
     ds_app_init(&app, TONES_RATE);
 }
 
+/* ---- the touch screen (the DS port) ---- */
+
+static void touch(int x, int y)
+{
+    ds_app_touch(&app, x, y);
+    tick();
+}
+
+/* Taps the PIN picker's cell of c (A-Z, 0-9), at its centre. */
+static void touch_pin_char(char c)
+{
+    int i = c >= 'A' && c <= 'Z' ? c - 'A' : 26 + (c - '0');
+    touch((i % 10) * 10 + 4, 20 + (i / 10) * 10 + 3);
+}
+
+/* Taps every 3 px of rows y0-y1: nothing may change. */
+static void touch_all_nothing(int y0, int y1)
+{
+    int x, y, st = app.state, cur = app.cursor;
+    uint32_t page = app.pager.page;
+    int armed = app.armed, s_state = app.s.state;
+    CHECK(!ds_app_take_dirty(&app));
+    for (y = y0; y <= y1; y += 3) {
+        for (x = 0; x < 128; x += 3) {
+            ds_app_touch(&app, x, y);
+        }
+    }
+    CHECK(!ds_app_take_dirty(&app));
+    CHECK_EQ_INT(app.state, st);
+    CHECK_EQ_INT(app.cursor, cur);
+    CHECK_EQ_INT((int)app.pager.page, (int)page);
+    CHECK_EQ_INT(app.armed, armed);
+    CHECK_EQ_INT(app.s.state, s_state);
+}
+
+static void test_app_touch_types_pin(void)
+{
+    ds_app_init(&app, TONES_RATE);
+    now = 1000;
+    tick();
+    press(DS_BTN_OK);
+    press(DS_BTN_OK);
+    CHECK(tones_seed_ur(zero16, 16, "TEST", tones, sizeof tones) > 0);
+    CHECK(feed_tones(tones));
+    CHECK(shows("PIN"));
+    touch_pin_char('T');
+    touch_pin_char('E');
+    touch_pin_char('X');
+    CHECK(shows("TEX_"));
+    touch(6 * 10 + 4, 53); /* cell 36: delete */
+    CHECK(shows("TE_"));
+    touch(9 * 10 + 4, 53); /* cell 39: empty */
+    CHECK(shows("TE_"));
+    touch_pin_char('S');
+    touch_pin_char('T');
+    CHECK(shows("TEST_"));
+    hold_ok();
+    work_done();
+    CHECK(shows("Seed fingerprint"));
+    CHECK(shows("73c5da0a")); /* the fingerprint to_seed_fp gets */
+    CHECK(all_zero(&app.pick, offsetof(ds_picker, kind)));
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_touch_ignored_elsewhere(void)
+{
+    const psbt_vector *v = vector("one input with change");
+    uint32_t i;
+
+    to_ready(NULL, 0x73c5da0au);
+    /* READY and HOME: above the footer, a tap does nothing. */
+    touch_all_nothing(0, 55);
+    ds_app_init(&app, TONES_RATE);
+    to_home(DS_CABLE);
+    touch_all_nothing(0, 55);
+    /* The review: nothing anywhere, on any page, armed or not. */
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(v);
+    work_done();
+    CHECK(app.screen.review);
+    touch_all_nothing(0, 63);
+    look();
+    touch_all_nothing(0, 63);
+    for (i = 0; i + 1 < app.pager.pages; i++) {
+        press(DS_BTN_DOWN);
+        touch_all_nothing(0, 63);
+    }
+    CHECK(shows("Hold OK: sign"));
+    CHECK(all_zero(app.out, sizeof app.out));
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    work_done();
+    CHECK(shows("Signed"));
+    /* The signed screen: before DS_APP_ARM_MS even its footer is ignored. */
+    touch_all_nothing(0, 63);
+    look();
+    touch_all_nothing(0, 55);
+    touch(80, 60); /* "done", drawn right of the QR */
+    CHECK(shows("Sign PSBT"));
+    ds_app_init(&app, TONES_RATE);
+}
+
+static void test_app_touch_back(void)
+{
+    to_home(DS_AIR);
+    /* "move": the second arrow, down. */
+    touch(25, 60);
+    CHECK_EQ_INT(app.cursor, 1);
+    touch(2, 60); /* the first arrow, up */
+    CHECK_EQ_INT(app.cursor, 0);
+    touch(80, 60); /* "OK choose": OK is a button only */
+    CHECK_EQ_INT(app.cursor, 0);
+    CHECK(shows("Load seed"));
+    press(DS_BTN_OK);
+    CHECK(shows("records"));
+    touch(10, 60); /* "OK listen" */
+    CHECK(shows("records"));
+    touch(85, 60); /* "back" */
+    CHECK(shows("Load seed"));
+    CHECK(!shows("records"));
+    CHECK_EQ_INT(ds_app_listening(&app), 0);
+    by = "by cable";
+    /* A screen a job put up: a tap before DS_APP_ARM_MS is ignored. */
+    to_seed_fp();
+    touch(70, 60); /* "discard" */
+    CHECK(shows("Seed fingerprint"));
+    look();
+    touch(70, 60);
+    CHECK(shows("Load seed"));
+    ds_app_init(&app, TONES_RATE);
+}
+
+/* No tap arms the review: on the last card reached before DS_APP_ARM_MS
+ * (so unarmed), taps anywhere, then OK held: nothing signed. */
+static void test_app_touch_never_arms(void)
+{
+    const psbt_vector *v = vector("one input with change");
+    int i;
+
+    to_ready(NULL, 0x73c5da0au);
+    send_psbt(v);
+    for (i = 0; i < 4 && !app.screen.review; i++) {
+        tick();
+    }
+    to_last_card();
+    CHECK(shows("Tap OK, then hold OK"));
+    look();
+    for (i = 0; i < 3; i++) {
+        touch_all_nothing(0, 63);
+        touch(8, 60);
+        touch(25, 60);
+        touch(2, 44); /* "cancel" on the last card: not a footer */
+        touch(2, 56);
+    }
+    CHECK_EQ_INT(app.armed, 0);
+    ds_app_button(&app, DS_BTN_OK, DS_BTN_LONG);
+    tick();
+    CHECK_EQ_INT(app.s.state, DS_S_REVIEW);
+    CHECK_EQ_INT(app.pager.page + 1, app.pager.pages);
+    CHECK(shows("Tap OK, then hold OK"));
+    CHECK(all_zero(app.out, sizeof app.out));
+    ds_app_init(&app, TONES_RATE);
+}
+
 TEST_MAIN(test_app_seed_flow, test_app_listening, test_app_seed_discard, test_app_passphrase,
           test_app_sign_flow, test_app_timings, test_app_reject, test_app_cancel,
           test_app_wrong_data, test_app_wrong_seed_data, test_app_wipe, test_app_xpub,
@@ -1539,4 +1702,5 @@ TEST_MAIN(test_app_seed_flow, test_app_listening, test_app_seed_discard, test_ap
           test_app_activity, test_app_welcome_about, test_app_channel_default_cable,
           test_app_set_channel_args, test_app_air_warning_then_listen,
           test_app_air_seed_plain_loads, test_app_air_seed_short_pin_loads,
-          test_app_air_psbt_signs)
+          test_app_air_psbt_signs, test_app_touch_types_pin,
+          test_app_touch_ignored_elsewhere, test_app_touch_back, test_app_touch_never_arms)

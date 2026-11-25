@@ -41,6 +41,9 @@ The autotest build is for development and is never released.
 
 - **D-pad** moves; **A** is OK; **B** goes back (the LEFT of the Pico). To
   confirm a signature or finish a picker, hold A.
+- **Stylus:** tap the PIN or passphrase grid (a cell adds it, a tab turns
+  the page) or an arrow hint of the bottom row ("◀ back", "▲▼ move"). OK
+  is never tapped: finishing and signing stay a held A.
 - **Emergency wipe:** hold B for 3 s, on any screen. Everything is zeroed
   and the console powers off (it does not restart).
 - **Closing the lid** wipes everything and powers the console off. During a

@@ -434,6 +434,115 @@ static void test_picker_draw(void)
     ds_picker_wipe(&pk);
 }
 
+/* The centre of picker cell i (the geometry of ds_picker_draw). */
+static void cell_xy(int i, int *x, int *y)
+{
+    *x = (i % 10) * 10 + 2 + 2;
+    *y = 20 + (i / 10) * 10 + 3;
+}
+
+static int touch_cell(int i)
+{
+    int x, y;
+    cell_xy(i, &x, &y);
+    return ds_picker_touch(&pk, x, y);
+}
+
+/* Tapping a cell chooses it and acts as OK; an empty cell or outside: nothing. */
+static void test_picker_touch_pin(void)
+{
+    ds_picker_init(&pk, DS_PICK_PIN);
+    CHECK_EQ_INT(touch_cell(0), 0); /* 'A' */
+    CHECK_EQ_INT(touch_cell(27), 0); /* '1' */
+    CHECK_EQ_STR(pk.buf, "A1");
+    CHECK_EQ_INT(pk.cur, 27);
+    CHECK_EQ_INT(touch_cell(36), 0); /* delete */
+    CHECK_EQ_STR(pk.buf, "A");
+    CHECK_EQ_INT(pk.cur, 36);
+    CHECK_EQ_INT(ds_picker_touch(&pk, 0, 0), 0); /* the title: no cell */
+    CHECK_EQ_INT(ds_picker_touch(&pk, 120, 30), 0); /* the magnifier */
+    CHECK_EQ_INT(touch_cell(39), 0); /* an empty cell */
+    CHECK_EQ_STR(pk.buf, "A");
+    CHECK_EQ_INT(pk.cur, 36);
+    /* The hit box edges: x cx-2..cx+7, y cy-2..cy+7. */
+    CHECK_EQ_INT(ds_picker_touch(&pk, 10, 18), 0); /* cell 1 (B), its top left */
+    CHECK_EQ_INT(ds_picker_touch(&pk, 9, 27), 0);  /* cell 0 (A), its bottom right */
+    CHECK_EQ_STR(pk.buf, "ABA");
+    CHECK_EQ_INT(touch_cell(36), 0);
+    CHECK_EQ_INT(touch_cell(36), 0);
+    CHECK_EQ_INT(touch_cell(36), 0);
+    CHECK_EQ_INT(pk.len, 0);
+    CHECK_EQ_INT(touch_cell(36), DS_PICK_BACK); /* delete on an empty entry */
+    ds_picker_wipe(&pk);
+}
+
+/* The passphrase's tabs switch pages; a tap never finishes the entry. */
+static void test_picker_touch_tabs(void)
+{
+    ds_picker_init(&pk, DS_PICK_TEXT);
+    CHECK_EQ_INT(touch_cell(4), 0);
+    CHECK_EQ_STR(pk.buf, "e");
+    /* Tabs: "abc" x 0-19, "ABC" 25-44, "123" 50-69, "<{~" 75-94, y 50-58. */
+    CHECK_EQ_INT(ds_picker_touch(&pk, 60, 54), 0);
+    CHECK_EQ_INT(pk.page, 2);
+    CHECK_EQ_INT(pk.cur, 0);
+    CHECK_EQ_STR(pk.buf, "e");
+    CHECK_EQ_INT(touch_cell(1), 0);
+    CHECK_EQ_STR(pk.buf, "e1");
+    CHECK_EQ_INT(ds_picker_touch(&pk, 25, 50), 0);
+    CHECK_EQ_INT(pk.page, 1);
+    CHECK_EQ_INT(ds_picker_touch(&pk, 94, 58), 0);
+    CHECK_EQ_INT(pk.page, 3);
+    CHECK_EQ_INT(ds_picker_touch(&pk, 22, 54), 0); /* between two tabs */
+    CHECK_EQ_INT(pk.page, 3);
+    CHECK_EQ_INT(ds_picker_touch(&pk, 0, 50), 0);
+    CHECK_EQ_INT(pk.page, 0);
+    CHECK_EQ_INT(pk.cur, 0);
+    CHECK_EQ_STR(pk.buf, "e1");
+    /* The PIN has no tabs: that strip is its fourth row. */
+    ds_picker_init(&pk, DS_PICK_PIN);
+    CHECK_EQ_INT(ds_picker_touch(&pk, 55, 54), 0); /* column 5, row 3: '9' */
+    CHECK_EQ_INT(pk.page, 0);
+    CHECK_EQ_STR(pk.buf, "9");
+    ds_picker_wipe(&pk);
+}
+
+/* Footer taps: an arrow segment is that arrow; OK is never touchable. */
+static void test_footer_hit(void)
+{
+    memset(&scr, 0, sizeof scr);
+    scr.highlight = -1;
+    strcpy(scr.line[7], "OK listen  " DS_ICON_LEFT " back");
+    /* "back" is columns 13-16: x 78-101. */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 85, 60), DS_BTN_LEFT);
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 66, 58), DS_BTN_LEFT); /* the icon */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 10, 60), DS_BTN_NONE); /* "OK listen" */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 60, 60), DS_BTN_NONE); /* the gap */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 120, 60), DS_BTN_NONE); /* past the text */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 85, 55), DS_BTN_NONE);  /* y < 56 */
+    strcpy(scr.line[7], DS_ICON_UP DS_ICON_DOWN " move  OK choose");
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 2, 60), DS_BTN_UP);
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 8, 60), DS_BTN_DOWN);
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 25, 63), DS_BTN_DOWN); /* "move" */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 70, 60), DS_BTN_NONE); /* "OK choose" */
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 25, 50), DS_BTN_NONE);
+    strcpy(scr.line[7], "OK go on  " DS_ICON_DOWN " About");
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 80, 60), DS_BTN_DOWN);
+    /* With a QR the text is at x 66 on. */
+    strcpy(scr.line[7], DS_ICON_LEFT " done");
+    scr.qr = 1;
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 10, 60), DS_BTN_NONE);
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 80, 60), DS_BTN_LEFT);
+    /* The review and the picker draw row 7 their own way: no footer. */
+    scr.qr = 0;
+    scr.review = 1;
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 2, 60), DS_BTN_NONE);
+    scr.review = 0;
+    scr.pick = 1;
+    CHECK_EQ_INT(ds_ui_footer_hit(&scr, 2, 60), DS_BTN_NONE);
+}
+
 TEST_MAIN(test_font, test_render_text, test_render_qr, test_pager_wrap,
           test_pager_words, test_pager_last_page, test_picker_pin,
-          test_picker_text, test_picker_draw)
+          test_picker_text, test_picker_draw, test_picker_touch_pin,
+          test_picker_touch_tabs, test_footer_hit)

@@ -95,12 +95,29 @@ static void test_button_priority(void)
     CHECK_EQ_INT(nds_view_button(0), DS_BTN_NONE);
 }
 
+/* DS touch pixels to framebuffer pixels: the fb is doubled on rows 32-159. */
+static void test_touch_map(void)
+{
+    int x = -1, y = -1;
+    CHECK_EQ_INT(nds_view_touch(0, 32, &x, &y), 1);
+    CHECK_EQ_INT(x, 0);
+    CHECK_EQ_INT(y, 0);
+    CHECK_EQ_INT(nds_view_touch(255, 159, &x, &y), 1);
+    CHECK_EQ_INT(x, 127);
+    CHECK_EQ_INT(y, 63);
+    CHECK_EQ_INT(nds_view_touch(10, 31, &x, &y), 0);
+    CHECK_EQ_INT(nds_view_touch(10, 160, &x, &y), 0);
+    CHECK_EQ_INT(nds_view_touch(256, 100, &x, &y), 0);
+    CHECK_EQ_INT(nds_view_touch(-1, 100, &x, &y), 0);
+}
+
 int main(void)
 {
     test_scale_corners();
     test_qr_v1_and_v7();
     test_qr_none();
     test_button_priority();
+    test_touch_map();
     if (ds_failures) {
         printf("test_nds_view: %d failure(s)\n", ds_failures);
         return 1;

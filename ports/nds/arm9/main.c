@@ -4,7 +4,8 @@
  *  - the tones arrive by air: the microphone (mic.c) records while the app
  *    listens, and the loop hands its samples to ds_app;
  *  - the keys (A, B, the D-pad) are read once per frame and go through the
- *    same ds_btn debouncer as the Pico's buttons;
+ *    same ds_btn debouncer as the Pico's buttons; a stylus tap on the
+ *    bottom screen (one per touch, on its first frame) goes to ds_app_touch;
  *  - the bottom screen shows the app's 128x64 screen doubled, the top one
  *    the current QR code large (black when there is none);
  *  - no Wi-Fi, no storage: the ARM7 (arm7/main.c) runs neither.
@@ -222,6 +223,20 @@ int main(void)
 #endif
         if (b != DS_BTN_NONE) {
             ds_app_button(&app, b, kind);
+        }
+        /* The stylus: one tap per touch, read on the frame it lands (a
+         * held stylus does nothing more). Where it lands on the PIN grid
+         * is a secret: wiped after. */
+        if (keysDown() & KEY_TOUCH) {
+            touchPosition tp;
+            int x = 0, y = 0;
+            touchRead(&tp);
+            if (nds_view_touch(tp.px, tp.py, &x, &y)) {
+                ds_app_touch(&app, x, y);
+            }
+            ds_wipe(&tp, sizeof tp);
+            ds_wipe(&x, sizeof x);
+            ds_wipe(&y, sizeof y);
         }
 
         /* 3: the clock; the heavy work the app was asked for runs here. */

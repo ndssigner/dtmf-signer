@@ -33,6 +33,8 @@
  *    by the same rule until DS_APP_ARM_MS of tick time have passed since
  *    the first tick after the port took it: a tap made during "Working..."
  *    cannot pass the seed fingerprint unseen;
+ *  - a touch (ds_app_touch) is never OK, never arms nor confirms the
+ *    review, and is ignored on those screens before DS_APP_ARM_MS too;
  *  - before the review can be confirmed, the signed PSBT's upper bound
  *    (PSBT + 112 bytes per input of ours + 8) must fit an animated QR at
  *    1 px, or the review is cancelled ("Too big for QR"): the device never
@@ -183,6 +185,16 @@ void ds_app_audio_lost(ds_app *a, uint32_t samples);
 
 /* A button event: btn DS_BTN_LEFT..RIGHT, kind DS_BTN_PRESS/LONG/WIPE. */
 void ds_app_button(ds_app *a, int btn, int kind);
+
+/* A tap on the screen, at framebuffer pixel (x, y) (x 0-127, y 0-63), for a
+ * port with a touch screen. In PIN and passphrase it types on the picker's
+ * grid (ds_picker_touch: a cell is chosen and taken as OK, a tab turns the
+ * page; never the end of the entry). On every screen a tap on an arrow hint
+ * of row 7 (ds_ui_footer_hit: "<back", "v About", "^v move") is a PRESS of
+ * that arrow. A tap never arms or confirms the review and is never OK; on a
+ * screen a job put up it is ignored until DS_APP_ARM_MS, like a button.
+ * Anything else: nothing. */
+void ds_app_touch(ds_app *a, int x, int y);
 
 /* The clock (milliseconds, free-running, wrapping): runs the pending heavy
  * work, takes what the receiver heard, times messages and QR parts. */

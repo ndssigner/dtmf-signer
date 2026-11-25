@@ -69,6 +69,15 @@ typedef struct {
  * with qr). */
 void ds_ui_render(const ds_screen *s, uint8_t fb[8][128]);
 
+/* A tap at fb pixel (x, y) on row 7's button hints (y 56-63, 6 px per
+ * character, x 66 on with a QR), whose segments are separated by two
+ * spaces: the DS_BTN_* arrow of a segment that starts with an arrow icon,
+ * or DS_BTN_NONE. A segment that starts with two arrows ("^v move") is the
+ * first on the first icon, the second on the rest. Segments that start
+ * otherwise ("OK choose") are DS_BTN_NONE: OK is a button only. Always
+ * DS_BTN_NONE on a review card or a picker (they draw row 7 their way). */
+int ds_ui_footer_hit(const ds_screen *s, int x, int y);
+
 /* ---- pager ---- */
 
 /* Shows a text (kept by pointer; it must outlive the pager) 7 rows at a time
@@ -133,6 +142,14 @@ void ds_picker_init(ds_picker *p, int kind);
  * entry. A long OK returns DS_PICK_DONE; other long presses do nothing (a
  * held LEFT is the emergency wipe). Anything else returns 0. */
 int ds_picker_button(ds_picker *p, int btn, int kind);
+
+/* A tap at fb pixel (x, y), x 0-127 and y 0-63, on the grid ds_picker_draw
+ * draws. On a cell with a character or delete: the cursor moves there and
+ * the tap acts as an OK press (and returns what that returns, so
+ * DS_PICK_BACK for delete on an empty entry). On a page tab: that page, its
+ * first cell, returns 0. On an empty cell or anywhere else: nothing, 0. It
+ * never returns DS_PICK_DONE: the entry ends with a held OK only. */
+int ds_picker_touch(ds_picker *p, int x, int y);
 
 /* The chosen cell: a character, DS_PICK_DEL or DS_PICK_NONE. */
 char ds_picker_cell(const ds_picker *p);

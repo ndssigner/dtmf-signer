@@ -66,3 +66,13 @@ int nds_view_button(uint32_t held)
     }
     return DS_BTN_NONE;
 }
+
+int nds_view_touch(int tx, int ty, int *x, int *y)
+{
+    if (tx < 0 || tx >= NDS_W || ty < 32 || ty >= 32 + 2 * 64) {
+        return 0;
+    }
+    *x = tx / 2;
+    *y = (ty - 32) / 2;
+    return 1;
+}

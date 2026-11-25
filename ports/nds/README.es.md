@@ -43,6 +43,10 @@ compilación de autoprueba es para desarrollo y nunca se publica.
 
 - **La cruceta** mueve; **A** es OK; **B** vuelve atrás (la IZQUIERDA de la
   Pico). Para confirmar una firma o terminar un selector, mantén A.
+- **Lápiz:** toca la rejilla del PIN o de la frase de contraseña (una
+  casilla la añade, una pestaña cambia de página) o una flecha de la fila
+  de abajo ("◀ back", "▲▼ move"). OK nunca se toca: terminar y firmar
+  siguen siendo mantener A.
 - **Borrado de emergencia:** mantén B 3 s, en cualquier pantalla. Todo se
   pone a cero y la consola se apaga (no se reinicia).
 - **Cerrar la tapa** lo borra todo y apaga la consola. Durante un cálculo

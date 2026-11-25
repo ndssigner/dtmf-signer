@@ -25,6 +25,11 @@ La fila de abajo de casi todas las pantallas, bajo una línea de puntos, dice
 qué hace cada botón ahí. La pantalla va girada 180 grados por defecto, como
 la monta la protoboard.
 
+En la Nintendo DS también sirve el lápiz: toca una casilla de la rejilla
+del PIN o de la passphrase (o una pestaña de página), o una flecha de la
+fila de abajo. OK nunca se toca: terminar una entrada y firmar siguen
+siendo mantener A.
+
 ## Al encender
 
 ![¿Lo has grabado tú?](../images/screens/welcome.png)
