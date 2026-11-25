@@ -5,3 +5,6 @@ build-pico-release/
 build-pico-pex-release/
 build-pico-repro*/
 build-wasm/
+build-nds/
+ports/nds/build/
+ports/nds/*.nds
