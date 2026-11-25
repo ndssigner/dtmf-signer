@@ -138,10 +138,12 @@ trataría todo como `AIR` y rechazaría el PIN. En su lugar, **las teclas
 pulsadas mientras el firmador las pide explícitamente (el PIN, una semilla
 por teclado, una opción del menú) cuentan como `CABLE`**: lo que se teclea
 no suena en la sala. Todo lo demás que llega por la línea, como una PSBT o
-una semilla cifrada con PIN reproducida junto al auricular, es `AIR`; una
-semilla por el aire sigue dentro de la §4.2. El firmador avisa una vez:
-un manos libres dice las teclas en voz alta, y la memoria de rellamada
-del teléfono puede guardarlas (§4.3).
+una semilla cifrada con PIN reproducida junto al auricular, es `AIR`. Una
+semilla por el aire sigue dentro de la §4.2, que es el suelo: un montaje
+puede ser más estricto. PEX, que tiene la alternativa del teclado, solo
+toma una semilla por el auricular cifrada con un PIN de 12 caracteres o
+más. El firmador avisa una vez: un manos libres dice las teclas en voz
+alta, y la memoria de rellamada del teléfono puede guardarlas (§4.3).
 
 ### 4.2 Qué se acepta por dónde
 
@@ -285,12 +287,12 @@ una comisión normal y acaba firmando una enorme.
 De las §2–§5 se deduce que todo montaje necesita al menos:
 
 - **Una entrada `CABLE`**, recomendable, no obligatoria (jack de entrada
-  de línea, UART o la línea telefónica): porque es la vía que mantiene la semilla fuera
-  de la sala, y válida para el PIN y la passphrase si no hay entrada
-  `LOCAL`. En una línea telefónica, las teclas que pide cuentan como
-  `CABLE` (§4.1). Se permite un montaje solo de aire; lo dice en su ficha
-  del catálogo («solo aire»), y quien lo use no puede cargar una semilla
-  sin exponerla a la sala.
+  de línea, UART o la línea telefónica). Es la vía que mantiene la
+  semilla fuera de la sala, y es válida para el PIN y la passphrase si no
+  hay entrada `LOCAL`. En una línea telefónica, las teclas que pide
+  cuentan como `CABLE` (§4.1). Se permite un montaje solo de aire; lo dice
+  en su ficha del catálogo («solo aire»), y quien lo use no puede cargar
+  una semilla sin exponerla a la sala.
 - **Una confirmación:** un botón, una tecla de un teclado `LOCAL`, o el
   gancho de un teléfono en la propia línea del firmador (un colgado corto,
   de 200 a 1500 ms; ningún sonido puede imitarlo).

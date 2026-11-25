@@ -28,13 +28,14 @@ tools/build-nds.sh        # gives build-nds/dtmf-signer-ds.nds
 
 It needs git and Docker. The build runs in a pinned devkitARM image and is
 reproducible: the same commit gives the same `.nds`, byte for byte. The CI
-job `nds` (`.github/workflows/core.yml`) builds it too and uploads it as the
-artifact `dtmf-signer-ds-nds`. Copy the `.nds` to your flashcart or loader
-as any homebrew.
+job `nds` (`.github/workflows/core.yml`) builds the same file and uploads it
+as the artifact `dtmf-signer-ds-nds`; its hash should match a local build of
+the same commit (push builds), which has not been checked yet. Copy the
+`.nds` to your flashcart or loader as any homebrew.
 
-An emulator end-to-end test (macOS, melonDS):
+An emulator end-to-end test (melonDS):
 `tools/build-nds.sh --autotest`, then
-`tools/dev/nds_e2e.sh` with the path of melonDS.app; it prints `AUTOTEST PASS`.
+`tools/dev/nds_e2e.sh` with the path of melonDS.app (or of its binary); it prints `AUTOTEST PASS`.
 The autotest build is for development and is never released.
 
 ## Controls
@@ -43,7 +44,8 @@ The autotest build is for development and is never released.
   confirm a signature or finish a picker, hold A.
 - **Stylus:** tap the PIN or passphrase grid (a cell adds it, a tab turns
   the page) or an arrow hint of the bottom row ("◀ back", "▲▼ move"). OK
-  is never tapped: finishing and signing stay a held A.
+  is never tapped: finishing and signing stay a held A. The review's "Tap
+  OK, then hold OK" means the A button; stylus taps never confirm.
 - **Emergency wipe:** hold B for 3 s, on any screen. Everything is zeroed
   and the console powers off (it does not restart).
 - **Closing the lid** wipes everything and powers the console off. During a

@@ -92,6 +92,8 @@ CFLAGS7      := $(COMMON) $(ARCH7) -std=gnu11 -Wall -Wextra -Werror -DARM7 $(NDS
 # tools/dev/nds_autotest_vector.py (tools/build-nds.sh --autotest makes it).
 ifneq ($(strip $(AUTOTEST)),)
 CFLAGS9_PORT += -DDS_NDS_AUTOTEST -I$(CURDIR)/$(BUILD)/gen
+# its own file name: a self-pressing build is never made under the release name
+TARGET := dtmf-signer-ds-autotest
 ifeq ($(filter clean,$(MAKECMDGOALS)),)
 ifeq ($(wildcard $(BUILD)/gen/autotest_vector.h),)
 $(error AUTOTEST needs $(BUILD)/gen/autotest_vector.h: use tools/build-nds.sh --autotest)
@@ -142,6 +144,6 @@ $(ARM7_OBJ): $(BUILD)/arm7/%.o: $(ROOT)/%.c
 	$(CC) -MMD -MP $(CFLAGS7) -c $< -o $@
 
 clean:
-	rm -rf $(BUILD) $(TARGET).nds
+	rm -rf $(BUILD) $(TARGET).nds dtmf-signer-ds.nds dtmf-signer-ds-autotest.nds
 
 -include $(LIB_OBJ:.o=.d) $(PORT_OBJ:.o=.d) $(ARM7_OBJ:.o=.d)

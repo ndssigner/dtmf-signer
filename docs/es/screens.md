@@ -95,9 +95,9 @@ la escucha sigue.
 
 ![Semilla por aire](../images/screens/air-warning.png)
 
-Una placa cuya única entrada es un micrófono lo declara al arrancar, y
-`Load seed` muestra antes este aviso, una sola vez: los tonos en el aire se
-pueden grabar, así que un PIN corto se puede adivinar. OK escucha, ◀ vuelve.
+Una placa cuya única entrada es un micrófono titula «por aire» sus pantallas
+de escucha, y antes de escuchar una semilla muestra este aviso, una sola vez:
+los tonos en el aire se pueden grabar, así que un PIN corto se puede adivinar. OK escucha, ◀ vuelve.
 El PIN y la frase de paso nunca se aceptan por aire.
 
 ### El PIN

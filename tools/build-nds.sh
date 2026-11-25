@@ -47,7 +47,8 @@ git -C "$ROOT" describe --tags --always >/dev/null 2>&1 || die "not a git clone:
 docker build -q -t "$IMAGE" "$ROOT/ports/nds" >/dev/null
 
 # Always from scratch. Run as the caller, so the files it writes are theirs.
-rm -rf "$ROOT/ports/nds/build" "$ROOT/ports/nds/dtmf-signer-ds.nds"
+rm -rf "$ROOT/ports/nds/build" "$ROOT/ports/nds/dtmf-signer-ds.nds" \
+    "$ROOT/ports/nds/dtmf-signer-ds-autotest.nds"
 if [ -z "$AUTOTEST" ]; then
     docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$ROOT":/source "$IMAGE" \
         make -C ports/nds >/dev/null
@@ -65,7 +66,7 @@ fi
 OUT=$ROOT/build-nds
 mkdir -p "$OUT"
 NDS=$OUT/$NAME
-cp "$ROOT/ports/nds/dtmf-signer-ds.nds" "$NDS"
+cp "$ROOT/ports/nds/${NAME}" "$NDS"
 say ""
 say "Built: $NDS"
 say "Version: $(git -C "$ROOT" describe --tags --always --dirty)"

@@ -132,9 +132,11 @@ everything `AIR` and refuse the PIN. Instead, **keys typed while the signer
 explicitly asks for them (the PIN, a keypad seed, a menu choice) count as
 `CABLE`**: what is typed does not sound in the room. Everything else that
 arrives on the line, such as a PSBT or a PIN-encrypted seed played near the
-handset, is `AIR`; a seed by air stays within §4.2. The signer warns once: a
-speakerphone says the keys aloud, and the telephone's redial memory may
-keep them (§4.3).
+handset, is `AIR`. A seed by air stays within §4.2, which is the floor: a
+build may be stricter. PEX, which has a keypad alternative, takes a seed
+by the handset only encrypted with a PIN of 12 characters or more. The
+signer warns once: a speakerphone says the keys aloud, and the telephone's
+redial memory may keep them (§4.3).
 
 ### 4.2 What is accepted where
 
@@ -274,11 +276,12 @@ fee and ends up signing a huge one.
 From §2–§5, every build needs at least:
 
 - **A `CABLE` input**, recommended, not required (line-in jack, UART or
-  the telephone line): because it is the path that keeps a seed out of the room,
-  and valid for the PIN and the passphrase when there is no `LOCAL` input.
-  On a telephone line, the keys it asks for count as `CABLE` (§4.1). An
-  air-only build is allowed; it says so in its catalog entry ("air only"),
-  and its users cannot load a seed without exposing it to the room.
+  the telephone line). It is the path that keeps a seed out of the room,
+  and it is valid for the PIN and the passphrase when there is no `LOCAL`
+  input. On a telephone line, the keys it asks for count as `CABLE`
+  (§4.1). An air-only build is allowed; it says so in its catalog entry
+  ("air only"), and its users cannot load a seed without exposing it to
+  the room.
 - **A confirmation:** a button, a key of a `LOCAL` keypad, or the hook of a
   telephone on the signer's own line (a short hang-up, on-hook for 200 to
   1500 ms; no sound can fake it).

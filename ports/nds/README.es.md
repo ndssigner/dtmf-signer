@@ -30,13 +30,15 @@ tools/build-nds.sh        # da build-nds/dtmf-signer-ds.nds
 
 Necesita git y Docker. La compilación corre en una imagen fija de devkitARM
 y es reproducible: el mismo commit da el mismo `.nds`, byte a byte. El
-trabajo de CI `nds` (`.github/workflows/core.yml`) también lo compila y lo
-sube como el artefacto `dtmf-signer-ds-nds`. Copia el `.nds` a tu flashcart
-o cargador como cualquier homebrew.
+trabajo de CI `nds` (`.github/workflows/core.yml`) compila el mismo archivo y
+lo sube como el artefacto `dtmf-signer-ds-nds`; su hash debería coincidir con
+el de una compilación local del mismo commit (las de push), lo que aún no se
+ha comprobado. Copia el `.nds` a tu flashcart o cargador como cualquier
+homebrew.
 
-Una prueba de extremo a extremo en emulador (macOS, melonDS):
+Una prueba de extremo a extremo en emulador (melonDS):
 `tools/build-nds.sh --autotest`, y luego
-`tools/dev/nds_e2e.sh` con la ruta de melonDS.app; imprime `AUTOTEST PASS`. La
+`tools/dev/nds_e2e.sh` con la ruta de melonDS.app (o de su binario); imprime `AUTOTEST PASS`. La
 compilación de autoprueba es para desarrollo y nunca se publica.
 
 ## Controles
@@ -46,7 +48,8 @@ compilación de autoprueba es para desarrollo y nunca se publica.
 - **Lápiz:** toca la rejilla del PIN o de la frase de contraseña (una
   casilla la añade, una pestaña cambia de página) o una flecha de la fila
   de abajo ("◀ back", "▲▼ move"). OK nunca se toca: terminar y firmar
-  siguen siendo mantener A.
+  siguen siendo mantener A. El «Tap OK, then hold OK» de la revisión se
+  refiere al botón A; los toques del lápiz nunca confirman.
 - **Borrado de emergencia:** mantén B 3 s, en cualquier pantalla. Todo se
   pone a cero y la consola se apaga (no se reinicia).
 - **Cerrar la tapa** lo borra todo y apaga la consola. Durante un cálculo

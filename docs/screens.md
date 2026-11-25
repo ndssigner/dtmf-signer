@@ -92,9 +92,9 @@ else arrived (a PSBT, for example); listening goes on.
 
 ![Seed by air](images/screens/air-warning.png)
 
-A port whose only input is a microphone says so when it starts, and `Load seed`
-first shows this warning, once: tones in the air can be recorded, so a short
-PIN can be guessed. OK listens, ◀ goes back. The PIN and the passphrase are
+A port whose only input is a microphone titles its listening screens "by
+air", and before listening for a seed it shows this warning, once: tones in
+the air can be recorded, so a short PIN can be guessed. OK listens, ◀ goes back. The PIN and the passphrase are
 never taken by air.
 
 ### The PIN

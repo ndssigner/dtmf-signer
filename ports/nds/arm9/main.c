@@ -18,6 +18,7 @@
 #include "ds_app.h"
 #include "ds_btn.h"
 #include "ds_core.h"
+#include "ds_ui.h"
 #include "ds_session.h"
 #include "mic.h"
 #include "nds_view.h"
@@ -40,6 +41,10 @@ static uint16_t top[NDS_W * NDS_H] __attribute__((aligned(32)));
 static int16_t pcm[AUDIO_CHUNK];
 static char echo[DS_APP_ECHO_MAX];
 static u16 *vram_top, *vram_bottom;
+/* The microphone would not start for this many frames in a row: say so on
+ * the top screen (the app cannot know), and keep trying. */
+#define MIC_FAIL_FRAMES 30
+static int mic_fail_frames, mic_fail_shown, mic_note_changed;
 
 /* The clock: hardware timers 0 and 1 cascaded, counting BUS_CLOCK / 1024
  * (about 32.7 kHz) in 32 bits; now_ms (called every frame, far more often
@@ -98,6 +103,25 @@ static void show(const uint16_t *buf, u16 *vram)
     dmaCopy(buf, vram, NDS_W * NDS_H * sizeof buf[0]);
 }
 
+/* The note at the top left, in the app's 5x7 font. */
+static void mic_note(void)
+{
+    const char *s = "Microphone not available";
+    int x = 8, y = 8;
+
+    for (; *s; s++, x += 6) {
+        const uint8_t *g = ds_glyph(*s);
+        int c, r;
+        for (c = 0; c < 5; c++) {
+            for (r = 0; r < 8; r++) {
+                if ((g[c] >> r) & 1) {
+                    top[(y + r) * NDS_W + x + c] = WHITE;
+                }
+            }
+        }
+    }
+}
+
 static void draw(void)
 {
     size_t i;
@@ -112,6 +136,9 @@ static void draw(void)
         for (i = 0; i < NDS_W * NDS_H; i++) {
             top[i] = BLACK;
         }
+        if (mic_fail_shown) {
+            mic_note();
+        }
     }
     show(top, vram_top);
 }
@@ -124,6 +151,12 @@ static void pump_audio(int *mic_on)
 
     if (listening && !*mic_on) {
         *mic_on = nds_mic_start();
+        if (*mic_on) {
+            mic_fail_frames = 0;
+        } else if (++mic_fail_frames == MIC_FAIL_FRAMES) {
+            mic_fail_shown = 1;
+            mic_note_changed = 1;
+        }
 #ifdef DS_NDS_AUTOTEST
         if (*mic_on) {
             nds_autotest_mic_start(now_ms());
@@ -133,6 +166,11 @@ static void pump_audio(int *mic_on)
         nds_mic_stop_wipe();
         ds_wipe(pcm, sizeof pcm);
         *mic_on = 0;
+    }
+    if ((!listening || *mic_on) && (mic_fail_frames || mic_fail_shown)) {
+        mic_note_changed = mic_fail_shown;
+        mic_fail_frames = 0;
+        mic_fail_shown = 0;
     }
     if (!*mic_on) {
         return;
@@ -248,8 +286,9 @@ int main(void)
             first = 1;
         }
 #endif
-        if (ds_app_take_dirty(&app) || first) {
+        if (ds_app_take_dirty(&app) || first || mic_note_changed) {
             first = 0;
+            mic_note_changed = 0;
             draw();
         }
 

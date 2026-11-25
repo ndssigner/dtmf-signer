@@ -1,10 +1,10 @@
 #!/bin/sh
-# The DS port's end-to-end test in melonDS (macOS, development only).
+# The DS port's end-to-end test in melonDS (development only).
 #
 #   tools/build-nds.sh --autotest
 #   tools/dev/nds_e2e.sh MELONDS [NDS]
 #
-# MELONDS is melonDS.app (or its binary); NDS defaults to
+# MELONDS is a melonDS .app bundle or a melonDS binary; NDS defaults to
 # build-nds/dtmf-signer-ds-autotest.nds. The AUTOTEST build plays the test
 # seed and PSBT as tones in place of the microphone and presses the keys
 # itself (ports/nds/arm9/autotest.h); this script only starts it and reads
@@ -27,19 +27,30 @@ die() { printf 'nds_e2e: %s\n' "$*" >&2; exit 2; }
 
 [ $# -ge 1 ] && [ $# -le 2 ] || die "usage: tools/dev/nds_e2e.sh MELONDS [NDS]"
 EMU=$1
-[ -d "$EMU" ] && EMU=$EMU/Contents/MacOS/melonDS
+[ -d "$EMU" ] && EMU=$EMU/Contents/MacOS/melonDS # an .app bundle
 [ -x "$EMU" ] || die "not a melonDS binary: $EMU"
 NDS=${2:-$ROOT/build-nds/dtmf-signer-ds-autotest.nds}
 [ -f "$NDS" ] || die "no $NDS: run tools/build-nds.sh --autotest"
-pgrep -x melonDS >/dev/null 2>&1 && die "melonDS is running: close it first"
+PNAME=$(basename "$EMU")
+pgrep -x "$PNAME" >/dev/null 2>&1 && die "melonDS is running: close it first"
 
-CFG_DIR=$HOME/Library/Preferences/melonDS
+# melonDS's config directory: macOS, or Linux (XDG).
+if [ -d "$HOME/Library/Preferences" ]; then
+    CFG_DIR=$HOME/Library/Preferences/melonDS
+else
+    CFG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/melonDS
+fi
+if command -v sha256sum >/dev/null 2>&1; then
+    sha256() { sha256sum < "$1" | cut -d' ' -f1; }
+else
+    sha256() { shasum -a 256 < "$1" | cut -d' ' -f1; }
+fi
 CFG=$CFG_DIR/melonDS.toml
 TMP=$(mktemp -d)
 LOG=$TMP/melonDS.log
 SUM=
 KEEP=
-[ -f "$CFG" ] && { cp -p "$CFG" "$TMP/user.toml"; SUM=$(shasum -a 256 < "$CFG"); }
+[ -f "$CFG" ] && { cp -p "$CFG" "$TMP/user.toml"; SUM=$(sha256 "$CFG"); }
 
 # melonDS writes its config when it quits: it must be gone before the
 # user's file goes back. (Any melonDS running is this run's: the script
@@ -47,15 +58,15 @@ KEEP=
 stop_melonds() {
     [ -n "${PID:-}" ] || return 0
     pkill -P "$PID" 2>/dev/null || true
-    pkill -x melonDS 2>/dev/null || true
+    pkill -x "$PNAME" 2>/dev/null || true
     kill "$PID" 2>/dev/null || true
     n=0
-    while { kill -0 "$PID" 2>/dev/null || pgrep -x melonDS >/dev/null 2>&1; } && [ $n -lt 10 ]; do
+    while { kill -0 "$PID" 2>/dev/null || pgrep -x "$PNAME" >/dev/null 2>&1; } && [ $n -lt 10 ]; do
         sleep 0.5
         n=$((n + 1))
     done
     pkill -9 -P "$PID" 2>/dev/null || true
-    pkill -9 -x melonDS 2>/dev/null || true
+    pkill -9 -x "$PNAME" 2>/dev/null || true
     kill -9 "$PID" 2>/dev/null || true
     wait "$PID" 2>/dev/null || true
     PID=
@@ -65,7 +76,7 @@ restore() {
     stop_melonds
     if [ -n "$SUM" ]; then
         cp -p "$TMP/user.toml" "$CFG"
-        if [ "$(shasum -a 256 < "$CFG")" != "$SUM" ]; then
+        if [ "$(sha256 "$CFG")" != "$SUM" ]; then
             printf 'nds_e2e: %s NOT restored: the original is in %s\n' "$CFG" "$TMP/user.toml" >&2
             KEEP=1
         fi
@@ -101,7 +112,12 @@ mkdir -p "$CFG_DIR"
 cp "$TMP/run.toml" "$CFG"
 
 # script(1) gives melonDS a terminal, so its output is not held in a buffer.
-script -q "$LOG" "$EMU" "$NDS" >/dev/null 2>&1 &
+# (BSD script takes the command as arguments, util-linux's with -c.)
+if script --version 2>&1 | grep -q util-linux; then
+    E_EMU=$EMU E_NDS=$NDS script -q -c 'exec "$E_EMU" "$E_NDS"' "$LOG" >/dev/null 2>&1 &
+else
+    script -q "$LOG" "$EMU" "$NDS" >/dev/null 2>&1 &
+fi
 PID=$!
 
 i=0

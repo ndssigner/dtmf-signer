@@ -1281,7 +1281,9 @@ void ds_app_touch(ds_app *a, int x, int y)
         return;
     }
     if (a->state == ST_PAGER) {
-        pager_arrow(a, btn); /* never a->armed */
+        /* Unreachable today (review cards have no footer); keep it, and it
+         * must never arm. */
+        pager_arrow(a, btn);
     } else {
         press_screen(a, btn);
     }

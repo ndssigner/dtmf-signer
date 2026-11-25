@@ -29,8 +29,9 @@
  *     handset: where, the air warning (once per power-up), about 25 s, the
  *       "receive" motif, then the signer only
  *       listens (half-duplex) until a crypto-seed frame is heard; then its
- *       PIN by narrated multi-tap. By air the policy wants a PIN of 12
- *       characters or more (DS_AIR); otherwise it fails and asks again.
+ *       PIN by narrated multi-tap. By air PEX itself wants a PIN of 12
+ *       characters or more (DS_VOICE_AIR_MIN_PIN; the core policy only
+ *       warns); otherwise it fails and asks again.
  *     keypad: the speakerphone warning (once per power-up), then "*", the
  *       digits, "#" (ur-tones keypad mode), then its PIN if it has one, "#"
  *       alone if not. Typed when asked, it counts as a cable.

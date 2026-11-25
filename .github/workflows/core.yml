@@ -101,6 +101,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # a pull request's own head, not the merge commit: the branch's file
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           submodules: recursive
           fetch-depth: 0 # git describe needs the tags: the version is in the firmware
       # The same build as anyone's: devkitARM pinned by its image digest
