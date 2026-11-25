@@ -47,6 +47,9 @@ SECP_SRC := $(addprefix third_party/secp256k1/src/, secp256k1.c \
 VEND_SRC := third_party/ur-tones/c/ur_tones.c third_party/qrcodegen/c/qrcodegen.c
 PORT_SRC := ports/nds/nds_view.c $(addprefix ports/nds/arm9/, main.c mic.c secp_callbacks.c)
 ARM7_SRC := ports/nds/arm7/main.c
+ifneq ($(strip $(AUTOTEST)),)
+PORT_SRC += ports/nds/arm9/autotest.c
+endif
 
 LIB_SRC  := $(CORE_SRC) $(APP_SRC) $(SECP_SRC) $(VEND_SRC)
 LIB_OBJ  := $(addprefix $(BUILD)/arm9/,$(LIB_SRC:.c=.o))
@@ -85,8 +88,15 @@ CFLAGS7      := $(COMMON) $(ARCH7) -std=gnu11 -Wall -Wextra -Werror -DARM7 $(NDS
 
 # Development only: `make AUTOTEST=1`, for an end-to-end run in an emulator.
 # Never used for a released .nds. (Flags are not tracked: make clean first.)
+# Its test vector, build/gen/autotest_vector.h, comes from
+# tools/dev/nds_autotest_vector.py (tools/build-nds.sh --autotest makes it).
 ifneq ($(strip $(AUTOTEST)),)
-CFLAGS9_PORT += -DDS_NDS_AUTOTEST
+CFLAGS9_PORT += -DDS_NDS_AUTOTEST -I$(CURDIR)/$(BUILD)/gen
+ifeq ($(filter clean,$(MAKECMDGOALS)),)
+ifeq ($(wildcard $(BUILD)/gen/autotest_vector.h),)
+$(error AUTOTEST needs $(BUILD)/gen/autotest_vector.h: use tools/build-nds.sh --autotest)
+endif
+endif
 endif
 
 NDS_LIBDIRS := -L$(CALICO)/lib -L$(LIBNDS)/lib

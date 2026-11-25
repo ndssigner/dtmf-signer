@@ -5,8 +5,13 @@
 # on any host that runs Docker (Linux, macOS, Windows).
 #
 #   tools/build-nds.sh             # prints the .nds's path and SHA-256
+#   tools/build-nds.sh --autotest  # development only: the emulator test build
 #
 # Gives build-nds/dtmf-signer-ds.nds. Needs git and Docker (running).
+# --autotest gives build-nds/dtmf-signer-ds-autotest.nds instead (make
+# AUTOTEST=1; never released): it first builds the host port in the same
+# image and has it sign the test vector, the bytes the DS must give
+# (tools/dev/nds_autotest_vector.py). Run it with tools/dev/nds_e2e.sh.
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
@@ -14,6 +19,13 @@ IMAGE=dtmf-signer-nds-builder
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'build-nds: %s\n' "$*" >&2; exit 1; }
+
+AUTOTEST=
+case "${1:-}" in
+    "") ;;
+    --autotest) AUTOTEST=1 ;;
+    *) die "usage: tools/build-nds.sh [--autotest]" ;;
+esac
 
 for tool in git docker; do
     command -v "$tool" >/dev/null 2>&1 || die "$tool is missing"
@@ -36,12 +48,23 @@ docker build -q -t "$IMAGE" "$ROOT/ports/nds" >/dev/null
 
 # Always from scratch. Run as the caller, so the files it writes are theirs.
 rm -rf "$ROOT/ports/nds/build" "$ROOT/ports/nds/dtmf-signer-ds.nds"
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$ROOT":/source "$IMAGE" \
-    make -C ports/nds >/dev/null
+if [ -z "$AUTOTEST" ]; then
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$ROOT":/source "$IMAGE" \
+        make -C ports/nds >/dev/null
+    NAME=dtmf-signer-ds.nds
+else
+    docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$ROOT":/source "$IMAGE" sh -ec '
+        cmake --log-level=WARNING -S . -B build-nds/host -DCMAKE_BUILD_TYPE=Release >/dev/null
+        cmake --build build-nds/host --target dtmf-signer-host -j4 >/dev/null
+        python3 tools/dev/nds_autotest_vector.py build-nds/host/ports/host/dtmf-signer-host \
+            ports/nds/build/gen/autotest_vector.h
+        make -C ports/nds AUTOTEST=1 >/dev/null'
+    NAME=dtmf-signer-ds-autotest.nds
+fi
 
 OUT=$ROOT/build-nds
 mkdir -p "$OUT"
-NDS=$OUT/dtmf-signer-ds.nds
+NDS=$OUT/$NAME
 cp "$ROOT/ports/nds/dtmf-signer-ds.nds" "$NDS"
 say ""
 say "Built: $NDS"

@@ -20,6 +20,9 @@
 #include "ds_session.h"
 #include "mic.h"
 #include "nds_view.h"
+#ifdef DS_NDS_AUTOTEST
+#include "autotest.h"
+#endif
 
 #define AUDIO_CHUNK 512
 
@@ -100,6 +103,9 @@ static void draw(void)
 
     ds_app_draw(&app, fb);
     nds_view_scale((const uint8_t(*)[128])fb, bottom, WHITE, BLACK);
+#ifdef DS_NDS_AUTOTEST
+    nds_autotest_overlay(bottom, WHITE);
+#endif
     show(bottom, vram_bottom);
     if (!app.screen.qr || nds_view_qr(&app.qr, top, BLACK, WHITE) == 0) {
         for (i = 0; i < NDS_W * NDS_H; i++) {
@@ -117,6 +123,9 @@ static void pump_audio(int *mic_on)
 
     if (listening && !*mic_on) {
         *mic_on = nds_mic_start();
+#ifdef DS_NDS_AUTOTEST
+        nds_autotest_mic_start(now_ms());
+#endif
     } else if (!listening && *mic_on) {
         nds_mic_stop_wipe();
         ds_wipe(pcm, sizeof pcm);
@@ -127,7 +136,14 @@ static void pump_audio(int *mic_on)
     }
     for (;;) {
         uint32_t lost;
+#ifdef DS_NDS_AUTOTEST
+        /* the test's tones instead of what the microphone hears (it runs,
+         * unread: its ring just counts the overflow) */
+        size_t n = nds_autotest_mic(pcm, AUDIO_CHUNK, now_ms());
+        lost = 0;
+#else
         size_t n = nds_mic_read(pcm, AUDIO_CHUNK, &lost);
+#endif
 
         if (n > 0) {
             ds_app_audio(&app, pcm, n);
@@ -174,6 +190,9 @@ int main(void)
     ds_btn_init(&btn);
     ds_app_init(&app, NDS_MIC_RATE);
     ds_app_set_channel(&app, DS_AIR);
+#ifdef DS_NDS_AUTOTEST
+    nds_autotest_init(&app, NDS_MIC_RATE);
+#endif
 
     while (pmMainLoop()) {
         uint32_t now;
@@ -194,7 +213,11 @@ int main(void)
         if (keysHeld() & KEY_LID) {
             wipe_and_off();
         }
+#ifdef DS_NDS_AUTOTEST
+        b = ds_btn_feed(&btn, nds_view_button(nds_autotest_keys(now)), now, &kind);
+#else
         b = ds_btn_feed(&btn, nds_view_button(keysHeld()), now, &kind);
+#endif
         if (b != DS_BTN_NONE) {
             ds_app_button(&app, b, kind);
         }
@@ -203,6 +226,11 @@ int main(void)
         ds_app_tick(&app, now_ms());
 
         /* 4: draw what changed now, before the next tick (ds_app.h). */
+#ifdef DS_NDS_AUTOTEST
+        if (nds_autotest_take_redraw()) {
+            first = 1;
+        }
+#endif
         if (ds_app_take_dirty(&app) || first) {
             first = 0;
             draw();
@@ -213,6 +241,7 @@ int main(void)
 #ifdef DS_NDS_AUTOTEST
             nocashWrite(echo, strlen(echo));
             nocashWrite("\n", 1);
+            nds_autotest_echo(echo);
 #endif
         }
 
