@@ -406,7 +406,10 @@ de escuchar una canción. Sin arrepentimientos.
 ## Proyectos hermanos
 
 - [NDS-Signer](https://github.com/ndssigner/nds-signer): un firmador sin
-  conexión para la Nintendo DSi, que firma PSBT por QR o por tonos.
+  conexión para la Nintendo DSi, que firma PSBT por QR o por tonos; ejecuta
+  el Python de SeedSigner. No es lo mismo que el
+  [build para Nintendo DS](ports/nds/README.es.md#dtmf-signer-o-nds-signer)
+  de DTMF-Signer, que funciona en todas las DS.
 - [ur-tones](https://github.com/ndssigner/ur-tones): PSBT y semillas como
   tonos de teléfono, por cable o al aire.
 - [SeedCraft](https://github.com/ndssigner/seedcraft): una semilla guardada

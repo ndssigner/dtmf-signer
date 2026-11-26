@@ -10,6 +10,11 @@ your wallet's camera. The profile is
 the firmware, how to build it, load it and use it:
 [`ports/nds/`](../../ports/nds/README.md).
 
+Not to be confused with [NDS-Signer](https://github.com/ndssigner/nds-signer),
+SeedSigner on a DSi: DTMF-Signer runs on every DS, original and Lite too,
+with its own small C code
+([the differences](../../ports/nds/README.md#dtmf-signer-or-nds-signer)).
+
 **Air only:** the DS has no input but its microphone, so a seed reaches it
 through the room, after a warning (§4.2 and §7 of the
 [specification](../../SPEC.md#42-what-is-accepted-where)). Use a long PIN.

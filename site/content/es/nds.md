@@ -3,6 +3,10 @@ DSi, o una 3DS) carga el firmware como cualquier homebrew. Su micrófono oye
 los tonos de tu wallet, sus pantallas y botones son la interfaz, y la
 transacción firmada vuelve como un QR animado para la cámara de tu wallet.
 
+No es [NDS-Signer](https://github.com/ndssigner/nds-signer), SeedSigner en
+una DSi: este funciona en todas las DS, también la original y la Lite, con
+su propio código pequeño en C ([las diferencias](https://github.com/ndssigner/dtmf-signer/blob/main/ports/nds/README.es.md#dtmf-signer-o-nds-signer)).
+
 Los tonos hablan [ur-tones](https://github.com/ndssigner/ur-tones/blob/main/SPEC.md), que puedes oír y decodificar con su
 [herramienta web](https://ndssigner.github.io/ur-tones/).
 

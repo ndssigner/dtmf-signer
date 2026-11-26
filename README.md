@@ -384,7 +384,10 @@ stop replaying a song. No regrets.
 ## Sister projects
 
 - [NDS-Signer](https://github.com/ndssigner/nds-signer): an air-gapped
-  signer for the Nintendo DSi, signing PSBTs from QR codes or tones.
+  signer for the Nintendo DSi, signing PSBTs from QR codes or tones; it
+  runs SeedSigner's Python. Not the same as DTMF-Signer's own
+  [Nintendo DS build](ports/nds/README.md#dtmf-signer-or-nds-signer), which
+  runs on every DS.
 - [ur-tones](https://github.com/ndssigner/ur-tones): PSBTs and seeds as
   telephone tones, by cable or through the air.
 - [SeedCraft](https://github.com/ndssigner/seedcraft): a seed kept as the

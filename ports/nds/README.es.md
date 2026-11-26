@@ -25,6 +25,22 @@ semilla entró igual pero la PSBT falló; con ella apagada, la PSBT entró
 también. Falta probar una DS, DS Lite o 3DS. No lo uses con fondos todavía,
 y nunca pongas una semilla real en un emulador.
 
+## ¿DTMF-Signer o NDS-Signer?
+
+Dos programas distintos para las mismas consolas, de proyectos hermanos:
+
+| | DTMF-Signer (este) | [NDS-Signer](https://github.com/ndssigner/nds-signer) |
+| :--- | :--- | :--- |
+| Consolas | Todas las DS: DS, DS Lite, DSi, 3DS (le sobran 4 MB de RAM) | DSi y DSi XL: necesita más de 8 MB de RAM |
+| Qué es | Un programa pequeño en C, escrito para este proyecto | El Python de [SeedSigner](https://github.com/SeedSigner/seedsigner), sin modificar, sobre MicroPython |
+| Código de Bitcoin | Su propio código de BIP-39, BIP-32 y PSBT (`core/`); claves y firmas con [libsecp256k1](https://github.com/bitcoin-core/secp256k1), la librería de Bitcoin Core | [embit](https://github.com/diybitcoinhardware/embit), con libsecp256k1 por debajo |
+| Recibe | Solo tonos, por el micrófono | Códigos QR con la cámara, o tonos |
+| La semilla | Llega en tonos y nunca se muestra: solo su huella | Tecleada, escaneada como SeedQR o creada en la consola; puede mostrar las palabras |
+| Hace | Firma PSBT y muestra la xpub | Toda la caja de herramientas de SeedSigner: semillas nuevas, copias de seguridad, explorador de direcciones… |
+
+Elige DTMF-Signer para una DS o DS Lite originales, o para tener menos código
+que auditar; NDS-Signer para las funciones de SeedSigner en una DSi.
+
 ## Consolas
 
 La DS y la DS Lite necesitan un flashcart de la ranura 1 que cargue archivos

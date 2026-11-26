@@ -10,6 +10,11 @@ tu cartera. El perfil es
 el firmware, cómo compilarlo, cargarlo y usarlo:
 [`ports/nds/`](../../ports/nds/README.es.md).
 
+No confundir con [NDS-Signer](https://github.com/ndssigner/nds-signer),
+SeedSigner en una DSi: DTMF-Signer funciona en todas las DS, también la
+original y la Lite, con su propio código pequeño en C
+([las diferencias](../../ports/nds/README.es.md#dtmf-signer-o-nds-signer)).
+
 **Solo por el aire:** la DS no tiene más entrada que su micrófono, así que
 la semilla le llega por la habitación, tras un aviso (§4.2 y §7 de la
 [especificación](../../docs/es/spec.md#42-qué-se-acepta-por-dónde)). Usa un
