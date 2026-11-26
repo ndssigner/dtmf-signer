@@ -21,8 +21,9 @@ PIN largo.
 - **DSi, DSi XL y 3DS:** su cargador de homebrew la ejecuta, en modo DSi por
   defecto; sin flashcart.
 
-**Estado:** probado en una DSi XL (una semilla por el aire, el stylus, el
-borrado, la tapa); falta probar la firma de una PSBT y las demás consolas:
+**Estado:** probado de punta a punta en una DSi XL (una semilla y una PSBT
+por el aire, la PSBT firmada leída por una cartera, el stylus, el borrado,
+la tapa); falta probar las demás consolas:
 [se buscan probadores](../../ports/nds/README.es.md#se-buscan-probadores).
 No lo uses con fondos.
 

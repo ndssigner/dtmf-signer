@@ -576,7 +576,10 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** sin medir en una consola. En un emulador (melonDS, modo DS; no
   es una consola): el PIN de la semilla 5,5 s, la derivación de la cartera
   2,9 s, la revisión de una PSBT 0,3 s, la firma 0,1 s, iniciar un QR 0,4 s.
-- **Probado en una DSi XL** (una semilla por el aire, el stylus, el borrado,
-  la tapa); falta probar la firma de una PSBT y las demás consolas. Se
-  buscan probadores: ver
+- **Probado de punta a punta en una DSi XL**, en modo DSi y DS: una semilla
+  y una PSBT por el aire desde un portátil al lado a 30 ms de tono + 10 ms
+  de silencio («Cable rápido» de ur-tones), la PSBT firmada leída por una
+  cartera. Con una televisión encendida en la habitación la semilla entró
+  igual pero la PSBT falló; con ella apagada, entró. Falta probar las demás
+  consolas. Se buscan probadores: ver
   [`ports/nds/`](../../ports/nds/README.es.md#se-buscan-probadores).

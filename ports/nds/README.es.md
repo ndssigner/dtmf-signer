@@ -16,10 +16,14 @@ código de Wi-Fi enlazado. En modo DS, una DSi o una 3DS dejan encendida la
 luz del wifi: ese modo no puede apagarla.
 
 **Probado de momento en una consola:** una DSi XL, en modo DSi y en modo
-DS: una semilla con su PIN por el aire, el stylus, el borrado de emergencia
-y la tapa. Falta probar la firma de una PSBT para una cartera, y una DS, DS
-Lite o 3DS. No lo uses con fondos, y nunca pongas una semilla real en un
-emulador.
+DS, de punta a punta: una semilla con su PIN y una PSBT por el aire desde un
+portátil al lado, la PSBT firmada leída por una cartera desde el QR de la
+pantalla de arriba, el stylus, el borrado de emergencia y la tapa. Por el
+aire aguantó el ritmo más rápido de ur-tones («Cable rápido», 30 ms de tono
++ 10 ms de silencio). Con una televisión encendida en la habitación la
+semilla entró igual pero la PSBT falló; con ella apagada, la PSBT entró
+también. Falta probar una DS, DS Lite o 3DS. No lo uses con fondos todavía,
+y nunca pongas una semilla real en un emulador.
 
 ## Consolas
 

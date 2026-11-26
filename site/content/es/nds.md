@@ -19,5 +19,5 @@ Los tonos hablan [ur-tones](https://github.com/ndssigner/ur-tones/blob/main/SPEC
 - Guardar nada: al apagarla, la semilla desaparece.
 - Recibir tonos por cable: solo por el aire, así que usa un PIN largo.
 - Taproot ni multifirma, todavía.
-- Estar probado en todas las consolas, todavía: solo en una DSi XL, y se
-  buscan probadores.
+- Estar probado en todas las consolas, todavía: firma de punta a punta en
+  una DSi XL, y se buscan probadores para las demás.

@@ -19,5 +19,5 @@ The tones speak [ur-tones](https://github.com/ndssigner/ur-tones/blob/main/SPEC.
 - Keep anything: when it is switched off, the seed is gone.
 - Take tones by cable: air only, so use a long PIN.
 - Taproot or multisig, yet.
-- Proven on every console, yet: tried on a DSi XL only, and testers are
-  wanted.
+- Proven on every console, yet: it signs end to end on a DSi XL, and
+  testers are wanted for the others.

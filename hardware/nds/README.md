@@ -20,8 +20,9 @@ through the room, after a warning (§4.2 and §7 of the
 - **DSi, DSi XL and 3DS:** their homebrew loader runs it, in DSi mode by
   default; no flashcart.
 
-**Status:** tried on a DSi XL (a seed by air, the stylus, the wipe, the
-lid); signing a PSBT and the other consoles are still to be tried:
+**Status:** tried end to end on a DSi XL (a seed and a PSBT by air, the
+signed PSBT read by a wallet, the stylus, the wipe, the lid); the other
+consoles are still to be tried:
 [testers are wanted](../../ports/nds/README.md#testers-wanted).
 Do not use it with funds.
 

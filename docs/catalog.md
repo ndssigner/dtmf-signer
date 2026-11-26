@@ -547,7 +547,9 @@ build someone makes and measures.
 - **Time:** not measured on a console. In an emulator (melonDS, DS mode;
   not a console): the seed PIN 5.5 s, the wallet's derivation 2.9 s, a PSBT's
   review 0.3 s, signing 0.1 s, starting a QR 0.4 s.
-- **Tried on a DSi XL** (a seed by air, the stylus, the wipe, the lid);
-  signing a PSBT and the other consoles are still to be tried. Testers
-  wanted: see
+- **Tried end to end on a DSi XL**, in DSi and DS mode: a seed and a PSBT
+  by air from a laptop next to it at 30 ms tone + 10 ms gap (ur-tones' "Fast
+  cable"), the signed PSBT read by a wallet. With a television on in the
+  room the seed still loaded but the PSBT failed; with it off, it loaded.
+  The other consoles are still to be tried. Testers wanted: see
   [`ports/nds/`](../ports/nds/README.md#testers-wanted).

@@ -14,10 +14,14 @@ DSi's wireless chip in reset and turns its light off; no Wi-Fi code is
 linked. In DS mode a DSi or 3DS keeps its wireless light on: that mode
 cannot switch it off.
 
-**Tried on one console so far:** a DSi XL, in DSi and in DS mode: a seed
-with its PIN by air, the stylus, the emergency wipe and the lid. Signing a
-PSBT for a wallet, and a DS, DS Lite or 3DS, are still to be tried. Do not
-use it with funds, and never put a real seed in an emulator.
+**Tried on one console so far:** a DSi XL, in DSi and in DS mode, end to
+end: a seed with its PIN and a PSBT by air from a laptop next to it, the
+signed PSBT read by a wallet from the top screen's QR, the stylus, the
+emergency wipe and the lid. By air it took ur-tones' fastest pace ("Fast
+cable", 30 ms tone + 10 ms gap). With a television on in the room the seed
+still loaded but the PSBT failed; with it off, the PSBT loaded too. A DS, DS
+Lite or 3DS are still to be tried. Do not use it with funds yet, and never
+put a real seed in an emulator.
 
 ## Consoles
 
