@@ -433,7 +433,16 @@
         "en": "ports/nds/README.md",
         "es": "ports/nds/README.es.md"
       },
-      "firmware_title": "downloads.firmware_ds"
+      "firmware_title": "downloads.firmware_ds",
+      "gallery": [
+        {
+          "kind": "photo",
+          "src": "hardware/nds/dsi-xl.jpg",
+          "title": "gallery.nds.dsi_xl",
+          "note": "gallery.nds.dsi_xl_note",
+          "alt": "gallery.nds.dsi_xl_alt"
+        }
+      ]
     }
   ],
   "release": {
