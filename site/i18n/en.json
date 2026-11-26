@@ -39,6 +39,7 @@
   "home.builds": "Builds",
   "downloads.title": "Downloads",
   "downloads.firmware": "Firmware for the Raspberry Pi Pico, version {tag}",
+  "downloads.firmware_ds": "Firmware for the Nintendo DS, version {tag}",
   "downloads.layouts": "Layouts and parts lists",
   "donate.title": "Donate",
   "donate.text": "DTMF-Signer is free and has no funding. Donations help keep it going.",

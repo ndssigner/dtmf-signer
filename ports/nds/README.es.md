@@ -32,19 +32,24 @@ La DS y la DS Lite necesitan un flashcart de la ranura 1 que cargue archivos
 en modo DSi por defecto (en modo DS también funciona, con la luz del wifi
 encendida).
 
-## Compilar y cargar
+## Conseguirlo
+
+Las versiones desde la v0.4.0-alpha llevan `dtmf-signer-ds.nds`, compilado
+por la CI del proyecto a partir de la etiqueta de la versión, con su SHA-256
+en `SHA256SUMS`. Usarlo es confiar en esa compilación; para comprobarla,
+compila tú la misma etiqueta y compara:
 
 ```bash
-tools/build-nds.sh        # da build-nds/dtmf-signer-ds.nds
+git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
+cd dtmf-signer
+git checkout v0.4.0-alpha    # la versión a compilar; sáltatelo para el código más reciente
+tools/build-nds.sh           # da build-nds/dtmf-signer-ds.nds y su SHA-256
 ```
 
 Necesita git y Docker. La compilación corre en una imagen fija de devkitARM
-y es reproducible: el mismo commit da el mismo `.nds`, byte a byte. El
-trabajo de CI `nds` (`.github/workflows/core.yml`) compila el mismo archivo y
-lo sube como el artefacto `dtmf-signer-ds-nds`; su hash debería coincidir con
-el de una compilación local del mismo commit (las de push), lo que aún no se
-ha comprobado. Copia el `.nds` a tu flashcart o cargador como cualquier
-homebrew.
+y es reproducible: el mismo commit da el mismo `.nds`, byte a byte, en
+cualquier máquina (la compilación de CI de un commit coincidió con una
+local). Copia el `.nds` a tu flashcart o cargador como cualquier homebrew.
 
 Una prueba de extremo a extremo en emulador (melonDS):
 `tools/build-nds.sh --autotest`, y luego

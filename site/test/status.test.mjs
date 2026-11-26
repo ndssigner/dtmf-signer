@@ -45,7 +45,7 @@ test("the status tab shows each part as a sequence of stages, translated, with n
   const html = text(files, "es/cable-qr/status/index.html");
   assert.match(html, /Placa perforada/);
   assert.match(html, /SPICE/);
-  assert.match(html, /href="https:\/\/github\.com\/ndssigner\/dtmf-signer\/releases\/tag\/v0\.3\.0-alpha"/);
+  assert.match(html, /href="https:\/\/github\.com\/ndssigner\/dtmf-signer\/releases\/tag\/v0\.4\.0-alpha"/);
 });
 test("a stage in progress is marked wip", () => {
   const s = ok(); s.hardware[1].state = "doing"; s.firmware[0].state = "done";

@@ -39,3 +39,16 @@ test("the DS is on the home page with its air chip and a pictogram", () => {
   assert.match(svg, /viewBox="0 0 120 80"/);
   assert.doesNotMatch(svg, /<text/);
 });
+test("the DS's downloads: its .nds from the release, titled for the Nintendo DS", () => {
+  const REL = "https://github.com/ndssigner/dtmf-signer/releases/download/v0.4.0-alpha/";
+  for (const [lang, title] of [["en", /Firmware for the Nintendo DS, version v0\.4\.0-alpha/], ["es", /Firmware para la Nintendo DS, versión v0\.4\.0-alpha/]]) {
+    const html = text(files, `${lang}/nds/downloads/index.html`);
+    assert.ok(html.includes(`href="${REL}dtmf-signer-ds.nds"`), lang);
+    assert.ok(html.includes(`href="${REL}SHA256SUMS"`), lang);
+    assert.match(html, title, lang);
+    assert.doesNotMatch(/<main>([\s\S]*)<\/main>/.exec(html)[1], /Raspberry Pi Pico/, lang);
+    assert.doesNotMatch(html, /class="not-yet"/, lang);
+    const all = text(files, `${lang}/downloads/index.html`);
+    assert.ok(all.includes(`${REL}dtmf-signer-ds.nds`), lang);
+  }
+});

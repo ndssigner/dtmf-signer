@@ -2,14 +2,17 @@
 
 The firmware is a prototype: do not use it with funds.
 
-## Unreleased
+## v0.4.0-alpha (2026-11-26)
 
 - A third build: the **Nintendo DS**, air only, with nothing to build (the
   console is the hardware). The firmware is in `ports/nds/`: the microphone
   hears the wallet, the top screen shows the signed PSBT or xpub as a large
   animated QR and the bottom one the same screens as the Pico, doubled; A is
   OK, B goes back, holding B for 3 s or closing the lid wipes everything and
-  powers the console off. No Wi-Fi code is linked. `tools/build-nds.sh`
+  powers the console off; the stylus types the PIN and the passphrase on
+  their grid and taps the footer's arrows, but never confirms a signature.
+  No Wi-Fi code is linked; the radio's power is cut at start. The release
+  carries `dtmf-signer-ds.nds` beside the UF2s, in the same `SHA256SUMS`. `tools/build-nds.sh`
   builds it in Docker, reproducibly (CI job `nds`); `tools/build-nds.sh
   --autotest` with `tools/dev/nds_e2e.sh` checks it in melonDS. Signs end to end
   on a DSi XL, by air at ur-tones' "Fast cable" pace; testers wanted for

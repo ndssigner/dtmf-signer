@@ -232,8 +232,8 @@ const buildFiles = (p, root) => (p.files ?? []).map((f) => {
 // and with ids prefixed by the build.
 function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre = "") {
   const e = (k, params) => escapeHtml(tr(k, params));
-  // One release carries every build's UF2 (site.config.release.uf2, by
-  // build) and one SHA256SUMS; a build shows it once its status says so.
+  // One release carries every build's firmware file (site.config.release.uf2,
+  // by build: the Pico's UF2s, the DS's .nds) and one SHA256SUMS; a build shows it once its status says so.
   const rel = site.config.release;
   const uf2 = rel?.uf2?.[p.slug];
   const published = Boolean(uf2) && released(status);
@@ -255,7 +255,8 @@ function downloadsTab(site, tr, lang, p, status, root, files, notYet, h = 2, pre
 <li>${e("downloads.step_bootsel")}</li>
 </ol>` : ""}`;
   }
-  const fwTitle = published ? e("downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
+  // The title names the hardware it runs on (the Pico unless the build says).
+  const fwTitle = published ? e(p.firmware_title ?? "downloads.firmware", { tag: rel.tag }) : e("downloads.firmware_none");
   const packs = site.packs.filter((k) => k.slug === p.slug).map((k) =>
     `<li class="pack"><a href="${root}${escapeHtml(k.href)}" download>${escapeHtml(k.name)}</a> (${escapeHtml(langName(site, k.lang))}, ${kib(k.size)})<br>
 <span class="sha-label">SHA-256</span> <code class="sha">${k.sha256}</code></li>`).join("\n");

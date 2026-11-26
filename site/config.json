@@ -432,14 +432,16 @@
       "firmware_guide": {
         "en": "ports/nds/README.md",
         "es": "ports/nds/README.es.md"
-      }
+      },
+      "firmware_title": "downloads.firmware_ds"
     }
   ],
   "release": {
-    "tag": "v0.3.0-alpha",
+    "tag": "v0.4.0-alpha",
     "uf2": {
       "cable-qr": "dtmf-signer-pico.uf2",
-      "pex": "dtmf-signer-pex.uf2"
+      "pex": "dtmf-signer-pex.uf2",
+      "nds": "dtmf-signer-ds.nds"
     },
     "sums": "SHA256SUMS"
   },

@@ -29,18 +29,24 @@ DS and DS Lite need a slot-1 flashcart that loads `.nds` files; DSi, DSi XL
 and 3DS run it from their homebrew loader, in DSi mode by default (DS mode
 works too, with the wireless light left on).
 
-## Build and load
+## Get it
+
+The releases from v0.4.0-alpha carry `dtmf-signer-ds.nds`, built by the
+project's CI from the release's tag, with its SHA-256 in `SHA256SUMS`. Taking
+it means trusting that build; to check it, build the same tag yourself and
+compare:
 
 ```bash
-tools/build-nds.sh        # gives build-nds/dtmf-signer-ds.nds
+git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
+cd dtmf-signer
+git checkout v0.4.0-alpha    # the release to build; skip it for the latest code
+tools/build-nds.sh           # gives build-nds/dtmf-signer-ds.nds and its SHA-256
 ```
 
 It needs git and Docker. The build runs in a pinned devkitARM image and is
-reproducible: the same commit gives the same `.nds`, byte for byte. The CI
-job `nds` (`.github/workflows/core.yml`) builds the same file and uploads it
-as the artifact `dtmf-signer-ds-nds`; its hash should match a local build of
-the same commit (push builds), which has not been checked yet. Copy the
-`.nds` to your flashcart or loader as any homebrew.
+reproducible: the same commit gives the same `.nds`, byte for byte, on any
+machine (CI's build of a commit matched a local one). Copy the `.nds` to
+your flashcart or loader as any homebrew.
 
 An emulator end-to-end test (melonDS):
 `tools/build-nds.sh --autotest`, then

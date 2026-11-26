@@ -1,7 +1,8 @@
-# Builds the Pico firmware for a release tag: the UF2s that are attached to
-# the release (Cable and QR's and the PEX's), made with tools/build-pico.sh
-# on Linux x86_64, so anyone can build the same tag there (or in a Linux
-# x86_64 container) and compare.
+# Builds the firmware for a release tag, the files attached to the release:
+# the Pico's UF2s (Cable and QR's and the PEX's), made with
+# tools/build-pico.sh on Linux x86_64, and the Nintendo DS's .nds, made with
+# tools/build-nds.sh in its pinned devkitARM image. Anyone can build the
+# same tag the same way and compare with the one SHA256SUMS.
 name: release
 
 on:
@@ -37,19 +38,51 @@ jobs:
       # checks, nothing kept from earlier runs.
       - run: tools/build-pico.sh
       - run: tools/build-pico.sh pex
-      # Both builds' UF2s, with one SHA256SUMS for the release.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: uf2
+          path: |
+            build-pico-release/dtmf-signer-pico.uf2
+            build-pico-pex-release/dtmf-signer-pex.uf2
+          if-no-files-found: error
+
+  nds:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0 # git describe needs the tags: the version is in the firmware
+      - run: tools/build-nds.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nds
+          path: build-nds/dtmf-signer-ds.nds
+          if-no-files-found: error
+
+  # Every build's file, with one SHA256SUMS for the release.
+  sums:
+    needs: [uf2, nds]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: in
       - name: SHA256SUMS
         run: |
           mkdir dist
-          cp build-pico-release/dtmf-signer-pico.uf2 build-pico-pex-release/dtmf-signer-pex.uf2 dist/
+          cp in/uf2/build-pico-release/dtmf-signer-pico.uf2 in/uf2/build-pico-pex-release/dtmf-signer-pex.uf2 in/nds/dtmf-signer-ds.nds dist/
           cd dist
-          sha256sum dtmf-signer-pico.uf2 dtmf-signer-pex.uf2 > SHA256SUMS
+          sha256sum dtmf-signer-pico.uf2 dtmf-signer-pex.uf2 dtmf-signer-ds.nds > SHA256SUMS
           cat SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
-          name: dtmf-signer-pico-release
+          name: dtmf-signer-release
           path: |
             dist/dtmf-signer-pico.uf2
             dist/dtmf-signer-pex.uf2
+            dist/dtmf-signer-ds.nds
             dist/SHA256SUMS
           if-no-files-found: error

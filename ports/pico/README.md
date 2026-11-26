@@ -32,7 +32,7 @@ shown on the About page comes from git):
 ```bash
 git clone --recurse-submodules https://github.com/ndssigner/dtmf-signer
 cd dtmf-signer
-git checkout v0.3.0-alpha    # the release to build; skip it for the latest code
+git checkout v0.4.0-alpha    # the release to build; skip it for the latest code
 tools/build-pico.sh
 ```
 
