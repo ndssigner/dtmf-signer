@@ -576,5 +576,7 @@ Crece con cada montaje que alguien haga y mida.
 - **Tiempo:** sin medir en una consola. En un emulador (melonDS, modo DS; no
   es una consola): el PIN de la semilla 5,5 s, la derivación de la cartera
   2,9 s, la revisión de una PSBT 0,3 s, la firma 0,1 s, iniciar un QR 0,4 s.
-- **Aún sin probar en una consola real.** Se buscan probadores: ver
+- **Probado en una DSi XL** (una semilla por el aire, el stylus, el borrado,
+  la tapa); falta probar la firma de una PSBT y las demás consolas. Se
+  buscan probadores: ver
   [`ports/nds/`](../../ports/nds/README.es.md#se-buscan-probadores).

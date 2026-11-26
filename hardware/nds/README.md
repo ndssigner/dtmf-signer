@@ -17,11 +17,12 @@ through the room, after a warning (§4.2 and §7 of the
 ## Which consoles
 
 - **DS and DS Lite:** a slot-1 flashcart that loads `.nds` files.
-- **DSi, DSi XL and 3DS:** their homebrew loader runs it in DS mode; no
-  flashcart.
+- **DSi, DSi XL and 3DS:** their homebrew loader runs it, in DSi mode by
+  default; no flashcart.
 
-**Status:** it runs in an emulator and has not been tried on any real
-console yet: [testers are wanted](../../ports/nds/README.md#testers-wanted).
+**Status:** tried on a DSi XL (a seed by air, the stylus, the wipe, the
+lid); signing a PSBT and the other consoles are still to be tried:
+[testers are wanted](../../ports/nds/README.md#testers-wanted).
 Do not use it with funds.
 
 There is no parts list, schematic or layout, and no soldering.

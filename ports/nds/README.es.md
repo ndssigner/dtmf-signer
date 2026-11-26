@@ -10,17 +10,23 @@ copia pequeña. Reutiliza `core/` y `app/` sin cambios; este directorio solo
 contiene lo que los rodea (pantallas, botones, micrófono, la tapa). El
 perfil es
 [`PROFILE-NDS`](../../docs/es/catalog.md#profile-nds--nintendo-ds-solo-por-el-aire).
-La radio de la DS nunca se inicializa y no hay código de Wi-Fi enlazado.
+Al arrancar corta la alimentación de la radio de la DS y, en modo DSi,
+mantiene en reset el chip inalámbrico de la DSi y apaga su luz; no hay
+código de Wi-Fi enlazado. En modo DS, una DSi o una 3DS dejan encendida la
+luz del wifi: ese modo no puede apagarla.
 
-**Aún sin probar en una consola real.** Funciona en un emulador, donde pasa
-la autoprueba. No lo uses con fondos, y nunca pongas una semilla real en un
+**Probado de momento en una consola:** una DSi XL, en modo DSi y en modo
+DS: una semilla con su PIN por el aire, el stylus, el borrado de emergencia
+y la tapa. Falta probar la firma de una PSBT para una cartera, y una DS, DS
+Lite o 3DS. No lo uses con fondos, y nunca pongas una semilla real en un
 emulador.
 
 ## Consolas
 
 La DS y la DS Lite necesitan un flashcart de la ranura 1 que cargue archivos
 `.nds`; la DSi, la DSi XL y la 3DS la ejecutan desde su cargador de homebrew,
-en modo DS.
+en modo DSi por defecto (en modo DS también funciona, con la luz del wifi
+encendida).
 
 ## Compilar y cargar
 

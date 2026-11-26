@@ -9,16 +9,21 @@ as a large animated QR (4 parts a second), and the bottom one a small copy.
 It reuses `core/` and `app/` unchanged; this directory holds only what
 surrounds them (screens, buttons, microphone, the lid). The profile is
 [`PROFILE-NDS`](../../docs/catalog.md#profile-nds--nintendo-ds-air-only).
-The DS radio is never initialised and no Wi-Fi code is linked.
+At start it switches the DS radio's power off and, in DSi mode, holds the
+DSi's wireless chip in reset and turns its light off; no Wi-Fi code is
+linked. In DS mode a DSi or 3DS keeps its wireless light on: that mode
+cannot switch it off.
 
-**Not tested on a real console yet.** It runs in an emulator, where the
-autotest passes. Do not use it with funds, and never put a real seed in an
-emulator.
+**Tried on one console so far:** a DSi XL, in DSi and in DS mode: a seed
+with its PIN by air, the stylus, the emergency wipe and the lid. Signing a
+PSBT for a wallet, and a DS, DS Lite or 3DS, are still to be tried. Do not
+use it with funds, and never put a real seed in an emulator.
 
 ## Consoles
 
 DS and DS Lite need a slot-1 flashcart that loads `.nds` files; DSi, DSi XL
-and 3DS run it from their homebrew loader, in DS mode.
+and 3DS run it from their homebrew loader, in DSi mode by default (DS mode
+works too, with the wireless light left on).
 
 ## Build and load
 

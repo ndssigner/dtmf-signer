@@ -16,7 +16,7 @@ firmware in your browser, with a test wallet.
 | :--- | :--- | :--- | :--- |
 | **Cable and QR** (the reference) | A Raspberry Pi Pico, a 1.3" OLED, five buttons, a breadboard | about US$13–45 | Works: signs PSBTs that Sparrow reads ([build](hardware/breadboard/README.md)) |
 | **Phone Exchange (PEX)** | A Pico and any second-hand tone telephone: no screen, no buttons | about US$8–35 | Works on a breadboard: reads every output aloud, signs when you hang up ([build](hardware/phone/README.md)) |
-| **Nintendo DS** (air only) | A DS or DS Lite with a slot-1 flashcart, or a DSi or 3DS: nothing to build | the console | Runs in an emulator; not tried on a real console yet ([firmware](ports/nds/README.md)) |
+| **Nintendo DS** (air only) | A DS or DS Lite with a slot-1 flashcart, or a DSi or 3DS: nothing to build | the console | Tried on a DSi XL; signing a PSBT still to try ([firmware](ports/nds/README.md)) |
 | **Full board** | A Pico 2, screen, buttons, microphone and piezo | | Planned |
 
 > **Working prototype, not reviewed by anyone independent. Do not use it with funds.**

@@ -11,8 +11,8 @@ The firmware is a prototype: do not use it with funds.
   OK, B goes back, holding B for 3 s or closing the lid wipes everything and
   powers the console off. No Wi-Fi code is linked. `tools/build-nds.sh`
   builds it in Docker, reproducibly (CI job `nds`); `tools/build-nds.sh
-  --autotest` with `tools/dev/nds_e2e.sh` checks it in melonDS. Not tried on
-  a real console yet: testers wanted. It is in the catalog as `PROFILE-NDS`
+  --autotest` with `tools/dev/nds_e2e.sh` checks it in melonDS. Tried on a DSi
+  XL (a seed by air, the stylus, the wipe, the lid); testers wanted. It is in the catalog as `PROFILE-NDS`
   and on the website; a build with no hardware stages shows "No parts to
   build: the console is the hardware".
 

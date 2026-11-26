@@ -18,11 +18,12 @@ PIN largo.
 ## Qué consolas
 
 - **DS y DS Lite:** un flashcart de la ranura 1 que cargue archivos `.nds`.
-- **DSi, DSi XL y 3DS:** su cargador de homebrew la ejecuta en modo DS; sin
-  flashcart.
+- **DSi, DSi XL y 3DS:** su cargador de homebrew la ejecuta, en modo DSi por
+  defecto; sin flashcart.
 
-**Estado:** funciona en un emulador y no se ha probado en ninguna consola
-real: [se buscan probadores](../../ports/nds/README.es.md#se-buscan-probadores).
+**Estado:** probado en una DSi XL (una semilla por el aire, el stylus, el
+borrado, la tapa); falta probar la firma de una PSBT y las demás consolas:
+[se buscan probadores](../../ports/nds/README.es.md#se-buscan-probadores).
 No lo uses con fondos.
 
 No hay lista de piezas, esquema ni disposición, y no hay que soldar.
